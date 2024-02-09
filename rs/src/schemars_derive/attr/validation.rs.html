@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/schemars_derive-0.8.12/src/attr/validation.rs`."><title>validation.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="schemars_derive" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/schemars_derive-0.8.12/src/attr/validation.rs`."><title>validation.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="schemars_derive" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -500,7 +501,7 @@
 <span class="kw">use </span>syn::{Expr, ExprLit, ExprPath, Lit, Meta, MetaNameValue, NestedMeta, Path};
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">static </span>VALIDATION_KEYWORDS: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str] = <span class="kw-2">&amp;</span>[
-    <span class="string">&quot;range&quot;</span>, <span class="string">&quot;regex&quot;</span>, <span class="string">&quot;contains&quot;</span>, <span class="string">&quot;email&quot;</span>, <span class="string">&quot;phone&quot;</span>, <span class="string">&quot;url&quot;</span>, <span class="string">&quot;length&quot;</span>, <span class="string">&quot;required&quot;</span>,
+    <span class="string">"range"</span>, <span class="string">"regex"</span>, <span class="string">"contains"</span>, <span class="string">"email"</span>, <span class="string">"phone"</span>, <span class="string">"url"</span>, <span class="string">"length"</span>, <span class="string">"required"</span>,
 ];
 
 <span class="attr">#[derive(Debug, Clone, Copy, PartialEq)]
@@ -511,19 +512,19 @@
 }
 
 <span class="kw">impl </span>Format {
-    <span class="kw">fn </span>attr_str(<span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str {
+    <span class="kw">fn </span>attr_str(<span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
         <span class="kw">match </span><span class="self">self </span>{
-            Format::Email =&gt; <span class="string">&quot;email&quot;</span>,
-            Format::Uri =&gt; <span class="string">&quot;url&quot;</span>,
-            Format::Phone =&gt; <span class="string">&quot;phone&quot;</span>,
+            Format::Email =&gt; <span class="string">"email"</span>,
+            Format::Uri =&gt; <span class="string">"url"</span>,
+            Format::Phone =&gt; <span class="string">"phone"</span>,
         }
     }
 
-    <span class="kw">fn </span>schema_str(<span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str {
+    <span class="kw">fn </span>schema_str(<span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
         <span class="kw">match </span><span class="self">self </span>{
-            Format::Email =&gt; <span class="string">&quot;email&quot;</span>,
-            Format::Uri =&gt; <span class="string">&quot;uri&quot;</span>,
-            Format::Phone =&gt; <span class="string">&quot;phone&quot;</span>,
+            Format::Email =&gt; <span class="string">"email"</span>,
+            Format::Uri =&gt; <span class="string">"uri"</span>,
+            Format::Phone =&gt; <span class="string">"phone"</span>,
         }
     }
 }
@@ -544,8 +545,8 @@
 <span class="kw">impl </span>ValidationAttrs {
     <span class="kw">pub fn </span>new(attrs: <span class="kw-2">&amp;</span>[syn::Attribute], errors: <span class="kw-2">&amp;</span>Ctxt) -&gt; <span class="self">Self </span>{
         ValidationAttrs::default()
-            .populate(attrs, <span class="string">&quot;schemars&quot;</span>, <span class="bool-val">false</span>, errors)
-            .populate(attrs, <span class="string">&quot;validate&quot;</span>, <span class="bool-val">true</span>, errors)
+            .populate(attrs, <span class="string">"schemars"</span>, <span class="bool-val">false</span>, errors)
+            .populate(attrs, <span class="string">"validate"</span>, <span class="bool-val">true</span>, errors)
     }
 
     <span class="kw">pub fn </span>required(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
@@ -555,14 +556,14 @@
     <span class="kw">fn </span>populate(
         <span class="kw-2">mut </span><span class="self">self</span>,
         attrs: <span class="kw-2">&amp;</span>[syn::Attribute],
-        attr_type: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
+        attr_type: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
         ignore_errors: bool,
         errors: <span class="kw-2">&amp;</span>Ctxt,
     ) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>duplicate_error = |path: <span class="kw-2">&amp;</span>Path| {
             <span class="kw">if </span>!ignore_errors {
                 <span class="kw">let </span>msg = <span class="macro">format!</span>(
-                    <span class="string">&quot;duplicate schemars attribute `{}`&quot;</span>,
+                    <span class="string">"duplicate schemars attribute `{}`"</span>,
                     path.get_ident().unwrap()
                 );
                 errors.error_spanned_by(path, msg)
@@ -571,7 +572,7 @@
         <span class="kw">let </span>mutual_exclusive_error = |path: <span class="kw-2">&amp;</span>Path, other: <span class="kw-2">&amp;</span>str| {
             <span class="kw">if </span>!ignore_errors {
                 <span class="kw">let </span>msg = <span class="macro">format!</span>(
-                    <span class="string">&quot;schemars attribute cannot contain both `{}` and `{}`&quot;</span>,
+                    <span class="string">"schemars attribute cannot contain both `{}` and `{}`"</span>,
                     path.get_ident().unwrap(),
                     other,
                 );
@@ -581,10 +582,10 @@
         <span class="kw">let </span>duplicate_format_error = |existing: Format, new: Format, path: <span class="kw-2">&amp;</span>syn::Path| {
             <span class="kw">if </span>!ignore_errors {
                 <span class="kw">let </span>msg = <span class="kw">if </span>existing == new {
-                    <span class="macro">format!</span>(<span class="string">&quot;duplicate schemars attribute `{}`&quot;</span>, existing.attr_str())
+                    <span class="macro">format!</span>(<span class="string">"duplicate schemars attribute `{}`"</span>, existing.attr_str())
                 } <span class="kw">else </span>{
                     <span class="macro">format!</span>(
-                        <span class="string">&quot;schemars attribute cannot contain both `{}` and `{}`&quot;</span>,
+                        <span class="string">"schemars attribute cannot contain both `{}` and `{}`"</span>,
                         existing.attr_str(),
                         new.attr_str(),
                     )
@@ -599,44 +600,44 @@
             .flatten()
         {
             <span class="kw">match </span><span class="kw-2">&amp;</span>meta_item {
-                NestedMeta::Meta(Meta::List(meta_list)) <span class="kw">if </span>meta_list.path.is_ident(<span class="string">&quot;length&quot;</span>) =&gt; {
+                NestedMeta::Meta(Meta::List(meta_list)) <span class="kw">if </span>meta_list.path.is_ident(<span class="string">"length"</span>) =&gt; {
                     <span class="kw">for </span>nested <span class="kw">in </span>meta_list.nested.iter() {
                         <span class="kw">match </span>nested {
-                            NestedMeta::Meta(Meta::NameValue(nv)) <span class="kw">if </span>nv.path.is_ident(<span class="string">&quot;min&quot;</span>) =&gt; {
+                            NestedMeta::Meta(Meta::NameValue(nv)) <span class="kw">if </span>nv.path.is_ident(<span class="string">"min"</span>) =&gt; {
                                 <span class="kw">if </span><span class="self">self</span>.length_min.is_some() {
                                     duplicate_error(<span class="kw-2">&amp;</span>nv.path)
                                 } <span class="kw">else if </span><span class="self">self</span>.length_equal.is_some() {
-                                    mutual_exclusive_error(<span class="kw-2">&amp;</span>nv.path, <span class="string">&quot;equal&quot;</span>)
+                                    mutual_exclusive_error(<span class="kw-2">&amp;</span>nv.path, <span class="string">"equal"</span>)
                                 } <span class="kw">else </span>{
-                                    <span class="self">self</span>.length_min = str_or_num_to_expr(errors, <span class="string">&quot;min&quot;</span>, <span class="kw-2">&amp;</span>nv.lit);
+                                    <span class="self">self</span>.length_min = str_or_num_to_expr(errors, <span class="string">"min"</span>, <span class="kw-2">&amp;</span>nv.lit);
                                 }
                             }
-                            NestedMeta::Meta(Meta::NameValue(nv)) <span class="kw">if </span>nv.path.is_ident(<span class="string">&quot;max&quot;</span>) =&gt; {
+                            NestedMeta::Meta(Meta::NameValue(nv)) <span class="kw">if </span>nv.path.is_ident(<span class="string">"max"</span>) =&gt; {
                                 <span class="kw">if </span><span class="self">self</span>.length_max.is_some() {
                                     duplicate_error(<span class="kw-2">&amp;</span>nv.path)
                                 } <span class="kw">else if </span><span class="self">self</span>.length_equal.is_some() {
-                                    mutual_exclusive_error(<span class="kw-2">&amp;</span>nv.path, <span class="string">&quot;equal&quot;</span>)
+                                    mutual_exclusive_error(<span class="kw-2">&amp;</span>nv.path, <span class="string">"equal"</span>)
                                 } <span class="kw">else </span>{
-                                    <span class="self">self</span>.length_max = str_or_num_to_expr(errors, <span class="string">&quot;max&quot;</span>, <span class="kw-2">&amp;</span>nv.lit);
+                                    <span class="self">self</span>.length_max = str_or_num_to_expr(errors, <span class="string">"max"</span>, <span class="kw-2">&amp;</span>nv.lit);
                                 }
                             }
-                            NestedMeta::Meta(Meta::NameValue(nv)) <span class="kw">if </span>nv.path.is_ident(<span class="string">&quot;equal&quot;</span>) =&gt; {
+                            NestedMeta::Meta(Meta::NameValue(nv)) <span class="kw">if </span>nv.path.is_ident(<span class="string">"equal"</span>) =&gt; {
                                 <span class="kw">if </span><span class="self">self</span>.length_equal.is_some() {
                                     duplicate_error(<span class="kw-2">&amp;</span>nv.path)
                                 } <span class="kw">else if </span><span class="self">self</span>.length_min.is_some() {
-                                    mutual_exclusive_error(<span class="kw-2">&amp;</span>nv.path, <span class="string">&quot;min&quot;</span>)
+                                    mutual_exclusive_error(<span class="kw-2">&amp;</span>nv.path, <span class="string">"min"</span>)
                                 } <span class="kw">else if </span><span class="self">self</span>.length_max.is_some() {
-                                    mutual_exclusive_error(<span class="kw-2">&amp;</span>nv.path, <span class="string">&quot;max&quot;</span>)
+                                    mutual_exclusive_error(<span class="kw-2">&amp;</span>nv.path, <span class="string">"max"</span>)
                                 } <span class="kw">else </span>{
                                     <span class="self">self</span>.length_equal =
-                                        str_or_num_to_expr(errors, <span class="string">&quot;equal&quot;</span>, <span class="kw-2">&amp;</span>nv.lit);
+                                        str_or_num_to_expr(errors, <span class="string">"equal"</span>, <span class="kw-2">&amp;</span>nv.lit);
                                 }
                             }
                             meta =&gt; {
                                 <span class="kw">if </span>!ignore_errors {
                                     errors.error_spanned_by(
                                         meta,
-                                        <span class="string">&quot;unknown item in schemars length attribute&quot;</span>.to_string(),
+                                        <span class="string">"unknown item in schemars length attribute"</span>.to_string(),
                                     );
                                 }
                             }
@@ -644,28 +645,28 @@
                     }
                 }
 
-                NestedMeta::Meta(Meta::List(meta_list)) <span class="kw">if </span>meta_list.path.is_ident(<span class="string">&quot;range&quot;</span>) =&gt; {
+                NestedMeta::Meta(Meta::List(meta_list)) <span class="kw">if </span>meta_list.path.is_ident(<span class="string">"range"</span>) =&gt; {
                     <span class="kw">for </span>nested <span class="kw">in </span>meta_list.nested.iter() {
                         <span class="kw">match </span>nested {
-                            NestedMeta::Meta(Meta::NameValue(nv)) <span class="kw">if </span>nv.path.is_ident(<span class="string">&quot;min&quot;</span>) =&gt; {
+                            NestedMeta::Meta(Meta::NameValue(nv)) <span class="kw">if </span>nv.path.is_ident(<span class="string">"min"</span>) =&gt; {
                                 <span class="kw">if </span><span class="self">self</span>.range_min.is_some() {
                                     duplicate_error(<span class="kw-2">&amp;</span>nv.path)
                                 } <span class="kw">else </span>{
-                                    <span class="self">self</span>.range_min = str_or_num_to_expr(errors, <span class="string">&quot;min&quot;</span>, <span class="kw-2">&amp;</span>nv.lit);
+                                    <span class="self">self</span>.range_min = str_or_num_to_expr(errors, <span class="string">"min"</span>, <span class="kw-2">&amp;</span>nv.lit);
                                 }
                             }
-                            NestedMeta::Meta(Meta::NameValue(nv)) <span class="kw">if </span>nv.path.is_ident(<span class="string">&quot;max&quot;</span>) =&gt; {
+                            NestedMeta::Meta(Meta::NameValue(nv)) <span class="kw">if </span>nv.path.is_ident(<span class="string">"max"</span>) =&gt; {
                                 <span class="kw">if </span><span class="self">self</span>.range_max.is_some() {
                                     duplicate_error(<span class="kw-2">&amp;</span>nv.path)
                                 } <span class="kw">else </span>{
-                                    <span class="self">self</span>.range_max = str_or_num_to_expr(errors, <span class="string">&quot;max&quot;</span>, <span class="kw-2">&amp;</span>nv.lit);
+                                    <span class="self">self</span>.range_max = str_or_num_to_expr(errors, <span class="string">"max"</span>, <span class="kw-2">&amp;</span>nv.lit);
                                 }
                             }
                             meta =&gt; {
                                 <span class="kw">if </span>!ignore_errors {
                                     errors.error_spanned_by(
                                         meta,
-                                        <span class="string">&quot;unknown item in schemars range attribute&quot;</span>.to_string(),
+                                        <span class="string">"unknown item in schemars range attribute"</span>.to_string(),
                                     );
                                 }
                             }
@@ -674,7 +675,7 @@
                 }
 
                 NestedMeta::Meta(Meta::Path(m))
-                    <span class="kw">if </span>m.is_ident(<span class="string">&quot;required&quot;</span>) || m.is_ident(<span class="string">&quot;required_nested&quot;</span>) =&gt;
+                    <span class="kw">if </span>m.is_ident(<span class="string">"required"</span>) || m.is_ident(<span class="string">"required_nested"</span>) =&gt;
                 {
                     <span class="self">self</span>.required = <span class="bool-val">true</span>;
                 }
@@ -698,21 +699,21 @@
                     }
                 }
 
-                NestedMeta::Meta(Meta::NameValue(nv)) <span class="kw">if </span>nv.path.is_ident(<span class="string">&quot;regex&quot;</span>) =&gt; {
+                NestedMeta::Meta(Meta::NameValue(nv)) <span class="kw">if </span>nv.path.is_ident(<span class="string">"regex"</span>) =&gt; {
                     <span class="kw">match </span>(<span class="kw-2">&amp;</span><span class="self">self</span>.regex, <span class="kw-2">&amp;</span><span class="self">self</span>.contains) {
                         (<span class="prelude-val">Some</span>(<span class="kw">_</span>), <span class="kw">_</span>) =&gt; duplicate_error(<span class="kw-2">&amp;</span>nv.path),
-                        (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="kw">_</span>)) =&gt; mutual_exclusive_error(<span class="kw-2">&amp;</span>nv.path, <span class="string">&quot;contains&quot;</span>),
+                        (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="kw">_</span>)) =&gt; mutual_exclusive_error(<span class="kw-2">&amp;</span>nv.path, <span class="string">"contains"</span>),
                         (<span class="prelude-val">None</span>, <span class="prelude-val">None</span>) =&gt; {
                             <span class="self">self</span>.regex =
-                                parse_lit_into_expr_path(errors, attr_type, <span class="string">&quot;regex&quot;</span>, <span class="kw-2">&amp;</span>nv.lit).ok()
+                                parse_lit_into_expr_path(errors, attr_type, <span class="string">"regex"</span>, <span class="kw-2">&amp;</span>nv.lit).ok()
                         }
                     }
                 }
 
-                NestedMeta::Meta(Meta::List(meta_list)) <span class="kw">if </span>meta_list.path.is_ident(<span class="string">&quot;regex&quot;</span>) =&gt; {
+                NestedMeta::Meta(Meta::List(meta_list)) <span class="kw">if </span>meta_list.path.is_ident(<span class="string">"regex"</span>) =&gt; {
                     <span class="kw">match </span>(<span class="kw-2">&amp;</span><span class="self">self</span>.regex, <span class="kw-2">&amp;</span><span class="self">self</span>.contains) {
                         (<span class="prelude-val">Some</span>(<span class="kw">_</span>), <span class="kw">_</span>) =&gt; duplicate_error(<span class="kw-2">&amp;</span>meta_list.path),
-                        (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="kw">_</span>)) =&gt; mutual_exclusive_error(<span class="kw-2">&amp;</span>meta_list.path, <span class="string">&quot;contains&quot;</span>),
+                        (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="kw">_</span>)) =&gt; mutual_exclusive_error(<span class="kw-2">&amp;</span>meta_list.path, <span class="string">"contains"</span>),
                         (<span class="prelude-val">None</span>, <span class="prelude-val">None</span>) =&gt; {
                             <span class="kw">for </span>x <span class="kw">in </span>meta_list.nested.iter() {
                                 <span class="kw">match </span>x {
@@ -720,17 +721,17 @@
                                         path,
                                         lit,
                                         ..
-                                    })) <span class="kw">if </span>path.is_ident(<span class="string">&quot;path&quot;</span>) =&gt; {
+                                    })) <span class="kw">if </span>path.is_ident(<span class="string">"path"</span>) =&gt; {
                                         <span class="self">self</span>.regex =
-                                            parse_lit_into_expr_path(errors, attr_type, <span class="string">&quot;path&quot;</span>, lit)
+                                            parse_lit_into_expr_path(errors, attr_type, <span class="string">"path"</span>, lit)
                                                 .ok()
                                     }
                                     NestedMeta::Meta(Meta::NameValue(MetaNameValue {
                                         path,
                                         lit,
                                         ..
-                                    })) <span class="kw">if </span>path.is_ident(<span class="string">&quot;pattern&quot;</span>) =&gt; {
-                                        <span class="self">self</span>.regex = get_lit_str(errors, attr_type, <span class="string">&quot;pattern&quot;</span>, lit)
+                                    })) <span class="kw">if </span>path.is_ident(<span class="string">"pattern"</span>) =&gt; {
+                                        <span class="self">self</span>.regex = get_lit_str(errors, attr_type, <span class="string">"pattern"</span>, lit)
                                             .ok()
                                             .map(|litstr| {
                                                 Expr::Lit(syn::ExprLit {
@@ -743,7 +744,7 @@
                                         <span class="kw">if </span>!ignore_errors {
                                             errors.error_spanned_by(
                                                 meta,
-                                                <span class="string">&quot;unknown item in schemars regex attribute&quot;</span>.to_string(),
+                                                <span class="string">"unknown item in schemars regex attribute"</span>.to_string(),
                                             );
                                         }
                                     }
@@ -754,23 +755,23 @@
                 }
 
                 NestedMeta::Meta(Meta::NameValue(MetaNameValue { path, lit, .. }))
-                    <span class="kw">if </span>path.is_ident(<span class="string">&quot;contains&quot;</span>) =&gt;
+                    <span class="kw">if </span>path.is_ident(<span class="string">"contains"</span>) =&gt;
                 {
                     <span class="kw">match </span>(<span class="kw-2">&amp;</span><span class="self">self</span>.contains, <span class="kw-2">&amp;</span><span class="self">self</span>.regex) {
                         (<span class="prelude-val">Some</span>(<span class="kw">_</span>), <span class="kw">_</span>) =&gt; duplicate_error(path),
-                        (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="kw">_</span>)) =&gt; mutual_exclusive_error(path, <span class="string">&quot;regex&quot;</span>),
+                        (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="kw">_</span>)) =&gt; mutual_exclusive_error(path, <span class="string">"regex"</span>),
                         (<span class="prelude-val">None</span>, <span class="prelude-val">None</span>) =&gt; {
-                            <span class="self">self</span>.contains = get_lit_str(errors, attr_type, <span class="string">&quot;contains&quot;</span>, lit)
+                            <span class="self">self</span>.contains = get_lit_str(errors, attr_type, <span class="string">"contains"</span>, lit)
                                 .map(|litstr| litstr.value())
                                 .ok()
                         }
                     }
                 }
 
-                NestedMeta::Meta(Meta::List(meta_list)) <span class="kw">if </span>meta_list.path.is_ident(<span class="string">&quot;contains&quot;</span>) =&gt; {
+                NestedMeta::Meta(Meta::List(meta_list)) <span class="kw">if </span>meta_list.path.is_ident(<span class="string">"contains"</span>) =&gt; {
                     <span class="kw">match </span>(<span class="kw-2">&amp;</span><span class="self">self</span>.contains, <span class="kw-2">&amp;</span><span class="self">self</span>.regex) {
                         (<span class="prelude-val">Some</span>(<span class="kw">_</span>), <span class="kw">_</span>) =&gt; duplicate_error(<span class="kw-2">&amp;</span>meta_list.path),
-                        (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="kw">_</span>)) =&gt; mutual_exclusive_error(<span class="kw-2">&amp;</span>meta_list.path, <span class="string">&quot;regex&quot;</span>),
+                        (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(<span class="kw">_</span>)) =&gt; mutual_exclusive_error(<span class="kw-2">&amp;</span>meta_list.path, <span class="string">"regex"</span>),
                         (<span class="prelude-val">None</span>, <span class="prelude-val">None</span>) =&gt; {
                             <span class="kw">for </span>x <span class="kw">in </span>meta_list.nested.iter() {
                                 <span class="kw">match </span>x {
@@ -778,9 +779,9 @@
                                         path,
                                         lit,
                                         ..
-                                    })) <span class="kw">if </span>path.is_ident(<span class="string">&quot;pattern&quot;</span>) =&gt; {
+                                    })) <span class="kw">if </span>path.is_ident(<span class="string">"pattern"</span>) =&gt; {
                                         <span class="self">self</span>.contains =
-                                            get_lit_str(errors, attr_type, <span class="string">&quot;contains&quot;</span>, lit)
+                                            get_lit_str(errors, attr_type, <span class="string">"contains"</span>, lit)
                                                 .ok()
                                                 .map(|litstr| litstr.value())
                                     }
@@ -788,7 +789,7 @@
                                         <span class="kw">if </span>!ignore_errors {
                                             errors.error_spanned_by(
                                                 meta,
-                                                <span class="string">&quot;unknown item in schemars contains attribute&quot;</span>.to_string(),
+                                                <span class="string">"unknown item in schemars contains attribute"</span>.to_string(),
                                             );
                                         }
                                     }
@@ -905,8 +906,8 @@
 
 <span class="kw">fn </span>parse_lit_into_expr_path(
     cx: <span class="kw-2">&amp;</span>Ctxt,
-    attr_type: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
-    meta_item_name: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
+    attr_type: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+    meta_item_name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
     lit: <span class="kw-2">&amp;</span>syn::Lit,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;Expr, ()&gt; {
     parse_lit_into_path(cx, attr_type, meta_item_name, lit).map(|path| {
@@ -982,7 +983,7 @@
             cx.error_spanned_by(
                 lit,
                 <span class="macro">format!</span>(
-                    <span class="string">&quot;expected `{}` to be a string or number literal&quot;</span>,
+                    <span class="string">"expected `{}` to be a string or number literal"</span>,
                     meta_item_name
                 ),
             );

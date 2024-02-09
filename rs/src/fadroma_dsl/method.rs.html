@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `proc/fadroma-dsl/src/method.rs`."><title>method.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="fadroma_dsl" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `proc/fadroma-dsl/src/method.rs`."><title>method.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="fadroma_dsl" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -276,28 +277,28 @@
     err::ErrorSink
 };
 
-<span class="kw">pub enum </span>Method&lt;<span class="lifetime">&#39;a</span>&gt; {
-    Contract(ContractMethod&lt;<span class="lifetime">&#39;a</span>&gt;),
-    Interface(InterfaceMethod&lt;<span class="lifetime">&#39;a</span>&gt;)
+<span class="kw">pub enum </span>Method&lt;<span class="lifetime">'a</span>&gt; {
+    Contract(ContractMethod&lt;<span class="lifetime">'a</span>&gt;),
+    Interface(InterfaceMethod&lt;<span class="lifetime">'a</span>&gt;)
 }
 
-<span class="kw">pub struct </span>ContractMethod&lt;<span class="lifetime">&#39;a</span>&gt; {
+<span class="kw">pub struct </span>ContractMethod&lt;<span class="lifetime">'a</span>&gt; {
     ty: MsgAttr,
-    sig: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>Signature,
-    return_ty: ResultType&lt;<span class="lifetime">&#39;a</span>&gt;
+    sig: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Signature,
+    return_ty: ResultType&lt;<span class="lifetime">'a</span>&gt;
 }
 
-<span class="kw">pub struct </span>InterfaceMethod&lt;<span class="lifetime">&#39;a</span>&gt; {
+<span class="kw">pub struct </span>InterfaceMethod&lt;<span class="lifetime">'a</span>&gt; {
     <span class="kw">pub </span>ty: MsgAttr,
-    <span class="kw">pub </span>sig: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>Signature,
-    <span class="kw">pub </span>return_ty: ResultType&lt;<span class="lifetime">&#39;a</span>&gt;,
+    <span class="kw">pub </span>sig: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Signature,
+    <span class="kw">pub </span>return_ty: ResultType&lt;<span class="lifetime">'a</span>&gt;,
     trait_: Path
 }
 
-<span class="kw">pub fn </span>trait_methods&lt;<span class="lifetime">&#39;a</span>&gt;(
+<span class="kw">pub fn </span>trait_methods&lt;<span class="lifetime">'a</span>&gt;(
     sink: <span class="kw-2">&amp;mut </span>ErrorSink,
-    trait_: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>ItemTrait
-) -&gt; Vec&lt;InterfaceMethod&lt;<span class="lifetime">&#39;a</span>&gt;&gt; {
+    trait_: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>ItemTrait
+) -&gt; Vec&lt;InterfaceMethod&lt;<span class="lifetime">'a</span>&gt;&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>methods = <span class="macro">vec!</span>[];
 
     <span class="kw">for </span>item <span class="kw">in </span><span class="kw-2">&amp;</span>trait_.items {
@@ -308,7 +309,7 @@
         <span class="kw">if </span>method.default.is_some() {
             sink.push_spanned(
                 method,
-                <span class="string">&quot;Contract interface method cannot contain a default implementation.&quot;
+                <span class="string">"Contract interface method cannot contain a default implementation."
             </span>);
         }
 
@@ -338,10 +339,10 @@
     methods
 }
 
-<span class="kw">pub fn </span>item_impl_methods&lt;<span class="lifetime">&#39;a</span>&gt;(
+<span class="kw">pub fn </span>item_impl_methods&lt;<span class="lifetime">'a</span>&gt;(
     sink: <span class="kw-2">&amp;mut </span>ErrorSink,
-    item_impl: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>ItemImpl
-) -&gt; Vec&lt;Method&lt;<span class="lifetime">&#39;a</span>&gt;&gt; {
+    item_impl: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>ItemImpl
+) -&gt; Vec&lt;Method&lt;<span class="lifetime">'a</span>&gt;&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>methods = <span class="macro">vec!</span>[];
 
     <span class="kw">for </span>item <span class="kw">in </span><span class="kw-2">&amp;</span>item_impl.items {
@@ -351,7 +352,7 @@
 
         <span class="kw">let </span><span class="prelude-val">Some</span>(ty) = MsgAttr::parse(sink, <span class="kw-2">&amp;</span>method.attrs) <span class="kw">else </span>{
             <span class="comment">// Require an attribute for trait impls only.
-            // The &quot;Contract&quot; struct methods don&#39;t all
+            // The "Contract" struct methods don't all
             // have to be part of its interface.
             </span><span class="kw">if </span>item_impl.trait_.is_some() {
                 sink.expected_interface_attrs(<span class="kw-2">&amp;</span>method.sig.ident);
@@ -376,7 +377,7 @@
             }
         } <span class="kw">else </span>{
             <span class="kw">if </span>method.vis != <span class="macro">parse_quote!</span>(<span class="kw">pub</span>) {
-                sink.push_spanned(method, <span class="string">&quot;Method must be public.&quot;</span>);
+                sink.push_spanned(method, <span class="string">"Method must be public."</span>);
             }
 
             <span class="kw">if let </span><span class="prelude-val">Some</span>(return_ty) = contract_method_return_ty(
@@ -419,7 +420,7 @@
         FnArg::Receiver(<span class="kw">_</span>) =&gt; {
             sink.push_spanned(
                 <span class="kw-2">&amp;</span>arg,
-                <span class="string">&quot;Method definition cannot contain \&quot;self\&quot;.&quot;</span>,
+                <span class="string">"Method definition cannot contain \"self\"."</span>,
             );
 
             <span class="prelude-val">None
@@ -432,24 +433,24 @@
     <span class="kw">if let </span>Pat::Ident(pat_ident) = pat {
         <span class="comment">// Strip leading underscores because we might want to include a field in the
         // generated message, but not actually use it in the impl. A very rare case,
-        // but it is used in the SNIP-20 implementation (&#39;padding&#39; field), for example.
+        // but it is used in the SNIP-20 implementation ('padding' field), for example.
         </span><span class="kw">let </span>name = pat_ident.ident.to_string();
-        <span class="kw">let </span>name = name.trim_start_matches(<span class="string">&#39;_&#39;</span>);
+        <span class="kw">let </span>name = name.trim_start_matches(<span class="string">'_'</span>);
 
         <span class="prelude-val">Some</span>(Ident::new(name, pat_ident.ident.span()))
     } <span class="kw">else </span>{
-        sink.push_spanned(pat, <span class="string">&quot;Expected identifier.&quot;</span>);
+        sink.push_spanned(pat, <span class="string">"Expected identifier."</span>);
 
         <span class="prelude-val">None
     </span>}
 }
 
-<span class="kw">fn </span>interface_method_return_ty&lt;<span class="lifetime">&#39;a</span>&gt;(
+<span class="kw">fn </span>interface_method_return_ty&lt;<span class="lifetime">'a</span>&gt;(
     sink: <span class="kw-2">&amp;mut </span>ErrorSink,
     ty: MsgAttr,
     trait_ident: <span class="kw-2">&amp;</span>Path,
-    sig: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>Signature
-) -&gt; <span class="prelude-ty">Option</span>&lt;validate::ResultType&lt;<span class="lifetime">&#39;a</span>&gt;&gt; {
+    sig: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Signature
+) -&gt; <span class="prelude-ty">Option</span>&lt;validate::ResultType&lt;<span class="lifetime">'a</span>&gt;&gt; {
     <span class="kw">let </span>err_ty = Ident::new(ERROR_TYPE, Span::call_site());
     <span class="kw">let </span>err_args: <span class="kw-2">&amp;</span>[GenericArgument] = <span class="kw-2">&amp;</span>[
         <span class="macro">parse_quote!</span>(<span class="self">Self</span>::#err_ty),
@@ -467,11 +468,11 @@
 }
 
 <span class="attr">#[inline]
-</span><span class="kw">fn </span>contract_method_return_ty&lt;<span class="lifetime">&#39;a</span>&gt;(
+</span><span class="kw">fn </span>contract_method_return_ty&lt;<span class="lifetime">'a</span>&gt;(
     sink: <span class="kw-2">&amp;mut </span>ErrorSink,
     ty: MsgAttr,
-    sig: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>Signature
-) -&gt; <span class="prelude-ty">Option</span>&lt;ResultType&lt;<span class="lifetime">&#39;a</span>&gt;&gt; {
+    sig: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>Signature
+) -&gt; <span class="prelude-ty">Option</span>&lt;ResultType&lt;<span class="lifetime">'a</span>&gt;&gt; {
     <span class="kw">let </span>expected = expected_value_type(ty);
     <span class="kw">let </span>expected = <span class="kw">if let </span><span class="prelude-val">Some</span>(expected) = <span class="kw-2">&amp;</span>expected {
         slice::from_ref(expected)
@@ -492,7 +493,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; Method&lt;<span class="lifetime">&#39;a</span>&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; Method&lt;<span class="lifetime">'a</span>&gt; {
     <span class="attr">#[inline]
     </span><span class="kw">pub fn </span>sig(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Signature {
         <span class="kw">match </span><span class="self">self </span>{
@@ -510,7 +511,7 @@
     }
 
     <span class="attr">#[inline]
-    </span><span class="kw">pub fn </span>return_ty(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>ResultType&lt;<span class="lifetime">&#39;_</span>&gt; {
+    </span><span class="kw">pub fn </span>return_ty(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>ResultType&lt;<span class="lifetime">'_</span>&gt; {
         <span class="kw">match </span><span class="self">self </span>{
             Method::Contract(x) =&gt; <span class="kw-2">&amp;</span>x.return_ty,
             Method::Interface(x) =&gt; <span class="kw-2">&amp;</span>x.return_ty
@@ -518,7 +519,7 @@
     }
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; InterfaceMethod&lt;<span class="lifetime">&#39;a</span>&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; InterfaceMethod&lt;<span class="lifetime">'a</span>&gt; {
     <span class="attr">#[inline]
     </span><span class="kw">pub fn </span>trait_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Ident {
         <span class="kw-2">&amp;</span><span class="self">self</span>.trait_.segments.last().unwrap().ident

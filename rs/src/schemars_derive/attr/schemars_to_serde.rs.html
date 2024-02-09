@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/schemars_derive-0.8.12/src/attr/schemars_to_serde.rs`."><title>schemars_to_serde.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="schemars_derive" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/schemars_derive-0.8.12/src/attr/schemars_to_serde.rs`."><title>schemars_to_serde.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="schemars_derive" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -212,28 +213,28 @@
 
 <span class="comment">// List of keywords that can appear in #[serde(...)]/#[schemars(...)] attributes which we want serde_derive_internals to parse for us.
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">static </span>SERDE_KEYWORDS: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str] = <span class="kw-2">&amp;</span>[
-    <span class="string">&quot;rename&quot;</span>,
-    <span class="string">&quot;rename_all&quot;</span>,
-    <span class="string">&quot;deny_unknown_fields&quot;</span>,
-    <span class="string">&quot;tag&quot;</span>,
-    <span class="string">&quot;content&quot;</span>,
-    <span class="string">&quot;untagged&quot;</span>,
-    <span class="string">&quot;default&quot;</span>,
-    <span class="string">&quot;skip&quot;</span>,
-    <span class="string">&quot;skip_serializing&quot;</span>,
-    <span class="string">&quot;skip_serializing_if&quot;</span>,
-    <span class="string">&quot;skip_deserializing&quot;</span>,
-    <span class="string">&quot;flatten&quot;</span>,
-    <span class="string">&quot;remote&quot;</span>,
-    <span class="string">&quot;transparent&quot;</span>,
+    <span class="string">"rename"</span>,
+    <span class="string">"rename_all"</span>,
+    <span class="string">"deny_unknown_fields"</span>,
+    <span class="string">"tag"</span>,
+    <span class="string">"content"</span>,
+    <span class="string">"untagged"</span>,
+    <span class="string">"default"</span>,
+    <span class="string">"skip"</span>,
+    <span class="string">"skip_serializing"</span>,
+    <span class="string">"skip_serializing_if"</span>,
+    <span class="string">"skip_deserializing"</span>,
+    <span class="string">"flatten"</span>,
+    <span class="string">"remote"</span>,
+    <span class="string">"transparent"</span>,
     <span class="comment">// Special case - `bound` is removed from serde attrs, so is only respected when present in schemars attr.
-    </span><span class="string">&quot;bound&quot;</span>,
+    </span><span class="string">"bound"</span>,
     <span class="comment">// Special cases - `with`/`serialize_with` are passed to serde but not copied from schemars attrs to serde attrs.
-    // This is because we want to preserve any serde attribute&#39;s `serialize_with` value to determine whether the field&#39;s
+    // This is because we want to preserve any serde attribute's `serialize_with` value to determine whether the field's
     // default value should be serialized. We also check the `with` value on schemars/serde attrs e.g. to support deriving
     // JsonSchema on remote types, but we parse that ourselves rather than using serde_derive_internals.
-    </span><span class="string">&quot;serialize_with&quot;</span>,
-    <span class="string">&quot;with&quot;</span>,
+    </span><span class="string">"serialize_with"</span>,
+    <span class="string">"with"</span>,
 ];
 
 <span class="comment">// If a struct/variant/field has any #[schemars] attributes, then create copies of them
@@ -250,14 +251,14 @@
     ctxt.check()
 }
 
-<span class="kw">fn </span>process_serde_variant_attrs&lt;<span class="lifetime">&#39;a</span>&gt;(ctxt: <span class="kw-2">&amp;</span>Ctxt, variants: <span class="kw">impl </span>Iterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>Variant&gt;) {
+<span class="kw">fn </span>process_serde_variant_attrs&lt;<span class="lifetime">'a</span>&gt;(ctxt: <span class="kw-2">&amp;</span>Ctxt, variants: <span class="kw">impl </span>Iterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>Variant&gt;) {
     <span class="kw">for </span>v <span class="kw">in </span>variants {
         process_attrs(ctxt, <span class="kw-2">&amp;mut </span>v.attrs);
         process_serde_field_attrs(ctxt, v.fields.iter_mut());
     }
 }
 
-<span class="kw">fn </span>process_serde_field_attrs&lt;<span class="lifetime">&#39;a</span>&gt;(ctxt: <span class="kw-2">&amp;</span>Ctxt, fields: <span class="kw">impl </span>Iterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>Field&gt;) {
+<span class="kw">fn </span>process_serde_field_attrs&lt;<span class="lifetime">'a</span>&gt;(ctxt: <span class="kw-2">&amp;</span>Ctxt, fields: <span class="kw">impl </span>Iterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>Field&gt;) {
     <span class="kw">for </span>f <span class="kw">in </span>fields {
         process_attrs(ctxt, <span class="kw-2">&amp;mut </span>f.attrs);
     }
@@ -266,12 +267,12 @@
 <span class="kw">fn </span>process_attrs(ctxt: <span class="kw-2">&amp;</span>Ctxt, attrs: <span class="kw-2">&amp;mut </span>Vec&lt;Attribute&gt;) {
     <span class="comment">// Remove #[serde(...)] attributes (some may be re-added later)
     </span><span class="kw">let </span>(serde_attrs, other_attrs): (Vec&lt;<span class="kw">_</span>&gt;, Vec&lt;<span class="kw">_</span>&gt;) =
-        attrs.drain(..).partition(|at| at.path.is_ident(<span class="string">&quot;serde&quot;</span>));
+        attrs.drain(..).partition(|at| at.path.is_ident(<span class="string">"serde"</span>));
     <span class="kw-2">*</span>attrs = other_attrs;
 
     <span class="kw">let </span>schemars_attrs: Vec&lt;<span class="kw">_</span>&gt; = attrs
         .iter()
-        .filter(|at| at.path.is_ident(<span class="string">&quot;schemars&quot;</span>))
+        .filter(|at| at.path.is_ident(<span class="string">"schemars"</span>))
         .collect();
 
     <span class="comment">// Copy appropriate #[schemars(...)] attributes to #[serde(...)] attributes
@@ -281,7 +282,7 @@
         .flatten()
         .filter_map(|meta| {
             <span class="kw">let </span>keyword = get_meta_ident(ctxt, <span class="kw-2">&amp;</span>meta).ok()<span class="question-mark">?</span>;
-            <span class="kw">if </span>keyword.ends_with(<span class="string">&quot;with&quot;</span>) || !SERDE_KEYWORDS.contains(<span class="kw-2">&amp;</span>keyword.as_ref()) {
+            <span class="kw">if </span>keyword.ends_with(<span class="string">"with"</span>) || !SERDE_KEYWORDS.contains(<span class="kw-2">&amp;</span>keyword.as_ref()) {
                 <span class="prelude-val">None
             </span>} <span class="kw">else </span>{
                 <span class="prelude-val">Some</span>((meta, keyword))
@@ -289,12 +290,12 @@
         })
         .unzip();
 
-    <span class="kw">if </span>schemars_meta_names.contains(<span class="string">&quot;skip&quot;</span>) {
-        schemars_meta_names.insert(<span class="string">&quot;skip_serializing&quot;</span>.to_string());
-        schemars_meta_names.insert(<span class="string">&quot;skip_deserializing&quot;</span>.to_string());
+    <span class="kw">if </span>schemars_meta_names.contains(<span class="string">"skip"</span>) {
+        schemars_meta_names.insert(<span class="string">"skip_serializing"</span>.to_string());
+        schemars_meta_names.insert(<span class="string">"skip_deserializing"</span>.to_string());
     }
 
-    <span class="comment">// Re-add #[serde(...)] attributes that weren&#39;t overridden by #[schemars(...)] attributes
+    <span class="comment">// Re-add #[serde(...)] attributes that weren't overridden by #[schemars(...)] attributes
     </span><span class="kw">for </span>meta <span class="kw">in </span>serde_attrs
         .into_iter()
         .flat_map(|at| get_meta_items(ctxt, <span class="kw-2">&amp;</span>at))
@@ -303,7 +304,7 @@
         <span class="kw">if let </span><span class="prelude-val">Ok</span>(i) = get_meta_ident(ctxt, <span class="kw-2">&amp;</span>meta) {
             <span class="kw">if </span>!schemars_meta_names.contains(<span class="kw-2">&amp;</span>i)
                 &amp;&amp; SERDE_KEYWORDS.contains(<span class="kw-2">&amp;</span>i.as_ref())
-                &amp;&amp; i != <span class="string">&quot;bound&quot;
+                &amp;&amp; i != <span class="string">"bound"
             </span>{
                 serde_meta.push(meta);
             }
@@ -335,7 +336,7 @@
     <span class="kw">match </span>attr.parse_meta() {
         <span class="prelude-val">Ok</span>(Meta::List(meta)) =&gt; <span class="prelude-val">Ok</span>(meta.nested.into_iter().collect()),
         <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {
-            ctxt.error_spanned_by(attr, <span class="string">&quot;expected #[schemars(...)] or #[serde(...)]&quot;</span>);
+            ctxt.error_spanned_by(attr, <span class="string">"expected #[schemars(...)] or #[serde(...)]"</span>);
             <span class="prelude-val">Err</span>(())
         }
         <span class="prelude-val">Err</span>(err) =&gt; {
@@ -352,7 +353,7 @@
             ctxt.error_spanned_by(
                 meta,
                 <span class="macro">format!</span>(
-                    <span class="string">&quot;unexpected literal in attribute: {}&quot;</span>,
+                    <span class="string">"unexpected literal in attribute: {}"</span>,
                     lit.into_token_stream()
                 ),
             );
@@ -370,16 +371,16 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_process_serde_attrs() {
         <span class="kw">let </span><span class="kw-2">mut </span>input: DeriveInput = <span class="macro">parse_quote! </span>{
-            <span class="attr">#[serde(rename(serialize = <span class="string">&quot;ser_name&quot;</span>), rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+            <span class="attr">#[serde(rename(serialize = <span class="string">"ser_name"</span>), rename_all = <span class="string">"camelCase"</span>)]
             #[serde(default, unknown_word)]
-            #[schemars(rename = <span class="string">&quot;overriden&quot;</span>, another_unknown_word)]
+            #[schemars(rename = <span class="string">"overriden"</span>, another_unknown_word)]
             #[misc]
             </span><span class="kw">struct </span>MyStruct {
                 <span class="doccomment">/// blah blah blah
-                </span><span class="attr">#[serde(skip_serializing_if = <span class="string">&quot;some_fn&quot;</span>, bound = <span class="string">&quot;removed&quot;</span>)]
+                </span><span class="attr">#[serde(skip_serializing_if = <span class="string">"some_fn"</span>, bound = <span class="string">"removed"</span>)]
                 </span>field1: i32,
-                <span class="attr">#[serde(serialize_with = <span class="string">&quot;se&quot;</span>, deserialize_with = <span class="string">&quot;de&quot;</span>)]
-                #[schemars(with = <span class="string">&quot;with&quot;</span>, bound = <span class="string">&quot;bound&quot;</span>)]
+                <span class="attr">#[serde(serialize_with = <span class="string">"se"</span>, deserialize_with = <span class="string">"de"</span>)]
+                #[schemars(with = <span class="string">"with"</span>, bound = <span class="string">"bound"</span>)]
                 </span>field2: i32,
                 <span class="attr">#[schemars(skip)]
                 #[serde(skip_serializing)]
@@ -387,15 +388,15 @@
             }
         };
         <span class="kw">let </span>expected: DeriveInput = <span class="macro">parse_quote! </span>{
-            <span class="attr">#[schemars(rename = <span class="string">&quot;overriden&quot;</span>, another_unknown_word)]
+            <span class="attr">#[schemars(rename = <span class="string">"overriden"</span>, another_unknown_word)]
             #[misc]
-            #[serde(rename = <span class="string">&quot;overriden&quot;</span>, rename_all = <span class="string">&quot;camelCase&quot;</span>, default)]
+            #[serde(rename = <span class="string">"overriden"</span>, rename_all = <span class="string">"camelCase"</span>, default)]
             </span><span class="kw">struct </span>MyStruct {
-                <span class="attr">#[doc = <span class="string">r&quot; blah blah blah&quot;</span>]
-                #[serde(skip_serializing_if = <span class="string">&quot;some_fn&quot;</span>)]
+                <span class="attr">#[doc = <span class="string">r" blah blah blah"</span>]
+                #[serde(skip_serializing_if = <span class="string">"some_fn"</span>)]
                 </span>field1: i32,
-                <span class="attr">#[schemars(with = <span class="string">&quot;with&quot;</span>, bound = <span class="string">&quot;bound&quot;</span>)]
-                #[serde(bound = <span class="string">&quot;bound&quot;</span>, serialize_with = <span class="string">&quot;se&quot;</span>)]
+                <span class="attr">#[schemars(with = <span class="string">"with"</span>, bound = <span class="string">"bound"</span>)]
+                #[serde(bound = <span class="string">"bound"</span>, serialize_with = <span class="string">"se"</span>)]
                 </span>field2: i32,
                 <span class="attr">#[schemars(skip)]
                 #[serde(skip)]
@@ -404,7 +405,7 @@
         };
 
         <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = process_serde_attrs(<span class="kw-2">&amp;mut </span>input) {
-            <span class="macro">panic!</span>(<span class="string">&quot;process_serde_attrs returned error: {}&quot;</span>, e[<span class="number">0</span>])
+            <span class="macro">panic!</span>(<span class="string">"process_serde_attrs returned error: {}"</span>, e[<span class="number">0</span>])
         };
 
         <span class="macro">assert_eq!</span>(input, expected);

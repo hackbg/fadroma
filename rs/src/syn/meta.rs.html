@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/syn-2.0.23/src/meta.rs`."><title>meta.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="syn" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/syn-2.0.23/src/meta.rs`."><title>meta.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="syn" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -440,7 +441,7 @@
 /// *Warning:* When parsing attribute args **other than** the
 /// `proc_macro::TokenStream` input of a `proc_macro_attribute`, you do **not**
 /// need this function. In several cases your callers will get worse error
-/// messages if you use this function, because the surrounding delimiter&#39;s span
+/// messages if you use this function, because the surrounding delimiter's span
 /// is concealed from attribute macros by rustc. Use
 /// [`Attribute::parse_nested_meta`] instead.
 ///
@@ -452,14 +453,14 @@
 ///
 /// ```
 /// # const IGNORE: &amp;str = stringify! {
-/// #[tea(kind = &quot;EarlGrey&quot;, hot)]
+/// #[tea(kind = "EarlGrey", hot)]
 /// struct Picard {...}
 /// # };
 /// ```
 ///
-/// The &quot;parameters&quot; supported by the attribute are:
+/// The "parameters" supported by the attribute are:
 ///
-/// - `kind = &quot;...&quot;`
+/// - `kind = "..."`
 /// - `hot`
 /// - `with(sugar, milk, ...)`, a comma-separated list of ingredients
 ///
@@ -477,24 +478,24 @@
 ///     let mut hot: bool = false;
 ///     let mut with: Vec&lt;Path&gt; = Vec::new();
 ///     let tea_parser = syn::meta::parser(|meta| {
-///         if meta.path.is_ident(&quot;kind&quot;) {
+///         if meta.path.is_ident("kind") {
 ///             kind = Some(meta.value()?.parse()?);
 ///             Ok(())
-///         } else if meta.path.is_ident(&quot;hot&quot;) {
+///         } else if meta.path.is_ident("hot") {
 ///             hot = true;
 ///             Ok(())
-///         } else if meta.path.is_ident(&quot;with&quot;) {
+///         } else if meta.path.is_ident("with") {
 ///             meta.parse_nested_meta(|meta| {
 ///                 with.push(meta.path);
 ///                 Ok(())
 ///             })
 ///         } else {
-///             Err(meta.error(&quot;unsupported tea property&quot;))
+///             Err(meta.error("unsupported tea property"))
 ///         }
 ///     });
 ///
 ///     parse_macro_input!(args with tea_parser);
-///     eprintln!(&quot;kind={kind:?} hot={hot} with={with:?}&quot;);
+///     eprintln!("kind={kind:?} hot={hot} with={with:?}");
 ///
 ///     /* ... */
 /// #   TokenStream::new()
@@ -508,7 +509,7 @@
 /// error: expected `,`
 ///  --&gt; src/main.rs:3:37
 ///   |
-/// 3 | #[tea(kind = &quot;EarlGrey&quot;, with(sugar = &quot;lol&quot;, milk))]
+/// 3 | #[tea(kind = "EarlGrey", with(sugar = "lol", milk))]
 ///   |                                     ^
 /// ```
 ///
@@ -545,7 +546,7 @@
 ///
 /// impl TeaAttributes {
 ///     fn parse(&amp;mut self, meta: ParseNestedMeta) -&gt; Result&lt;()&gt; {
-///         if meta.path.is_ident(&quot;kind&quot;) {
+///         if meta.path.is_ident("kind") {
 ///             self.kind = Some(meta.value()?.parse()?);
 ///             Ok(())
 ///         } else /* just like in last example */
@@ -586,13 +587,13 @@
 /// [`Attribute::parse_nested_meta`]: crate::Attribute::parse_nested_meta
 /// [`syn::meta::parser`]: crate::meta::parser
 </span><span class="attr">#[non_exhaustive]
-</span><span class="kw">pub struct </span>ParseNestedMeta&lt;<span class="lifetime">&#39;a</span>&gt; {
+</span><span class="kw">pub struct </span>ParseNestedMeta&lt;<span class="lifetime">'a</span>&gt; {
     <span class="kw">pub </span>path: Path,
-    <span class="kw">pub </span>input: ParseStream&lt;<span class="lifetime">&#39;a</span>&gt;,
+    <span class="kw">pub </span>input: ParseStream&lt;<span class="lifetime">'a</span>&gt;,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; ParseNestedMeta&lt;<span class="lifetime">&#39;a</span>&gt; {
-    <span class="doccomment">/// Used when parsing `key = &quot;value&quot;` syntax.
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; ParseNestedMeta&lt;<span class="lifetime">'a</span>&gt; {
+    <span class="doccomment">/// Used when parsing `key = "value"` syntax.
     ///
     /// All it does is advance `meta.input` past the `=` sign in the input. You
     /// could accomplish the same effect by writing
@@ -605,32 +606,32 @@
     /// use syn::{parse_quote, Attribute, LitStr};
     ///
     /// let attr: Attribute = parse_quote! {
-    ///     #[tea(kind = &quot;EarlGrey&quot;)]
+    ///     #[tea(kind = "EarlGrey")]
     /// };
     ///                                          // conceptually:
-    /// if attr.path().is_ident(&quot;tea&quot;) {         // this parses the `tea`
+    /// if attr.path().is_ident("tea") {         // this parses the `tea`
     ///     attr.parse_nested_meta(|meta| {      // this parses the `(`
-    ///         if meta.path.is_ident(&quot;kind&quot;) {  // this parses the `kind`
+    ///         if meta.path.is_ident("kind") {  // this parses the `kind`
     ///             let value = meta.value()?;   // this parses the `=`
-    ///             let s: LitStr = value.parse()?;  // this parses `&quot;EarlGrey&quot;`
-    ///             if s.value() == &quot;EarlGrey&quot; {
+    ///             let s: LitStr = value.parse()?;  // this parses `"EarlGrey"`
+    ///             if s.value() == "EarlGrey" {
     ///                 // ...
     ///             }
     ///             Ok(())
     ///         } else {
-    ///             Err(meta.error(&quot;unsupported attribute&quot;))
+    ///             Err(meta.error("unsupported attribute"))
     ///         }
     ///     })?;
     /// }
     /// # anyhow::Ok(())
     /// ```
-    </span><span class="kw">pub fn </span>value(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;ParseStream&lt;<span class="lifetime">&#39;a</span>&gt;&gt; {
+    </span><span class="kw">pub fn </span>value(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;ParseStream&lt;<span class="lifetime">'a</span>&gt;&gt; {
         <span class="self">self</span>.input.parse::&lt;<span class="macro">Token!</span>[=]&gt;()<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(<span class="self">self</span>.input)
     }
 
     <span class="doccomment">/// Used when parsing `list(...)` syntax **if** the content inside the
-    /// nested parentheses is also expected to conform to Rust&#39;s structured
+    /// nested parentheses is also expected to conform to Rust's structured
     /// attribute convention.
     ///
     /// # Example
@@ -642,21 +643,21 @@
     ///     #[tea(with(sugar, milk))]
     /// };
     ///
-    /// if attr.path().is_ident(&quot;tea&quot;) {
+    /// if attr.path().is_ident("tea") {
     ///     attr.parse_nested_meta(|meta| {
-    ///         if meta.path.is_ident(&quot;with&quot;) {
+    ///         if meta.path.is_ident("with") {
     ///             meta.parse_nested_meta(|meta| {  // &lt;---
-    ///                 if meta.path.is_ident(&quot;sugar&quot;) {
+    ///                 if meta.path.is_ident("sugar") {
     ///                     // Here we can go even deeper if needed.
     ///                     Ok(())
-    ///                 } else if meta.path.is_ident(&quot;milk&quot;) {
+    ///                 } else if meta.path.is_ident("milk") {
     ///                     Ok(())
     ///                 } else {
-    ///                     Err(meta.error(&quot;unsupported ingredient&quot;))
+    ///                     Err(meta.error("unsupported ingredient"))
     ///                 }
     ///             })
     ///         } else {
-    ///             Err(meta.error(&quot;unsupported tea property&quot;))
+    ///             Err(meta.error("unsupported tea property"))
     ///         }
     ///     })?;
     /// }
@@ -665,7 +666,7 @@
     ///
     /// # Counterexample
     ///
-    /// If you don&#39;t need `parse_nested_meta`&#39;s help in parsing the content
+    /// If you don't need `parse_nested_meta`'s help in parsing the content
     /// written within the nested parentheses, keep in mind that you can always
     /// just parse it yourself from the exposed ParseStream. Rust syntax permits
     /// arbitrary tokens within those parentheses so for the crazier stuff,
@@ -679,15 +680,15 @@
     /// };
     ///
     /// let mut align: Option&lt;LitInt&gt; = None;
-    /// if attr.path().is_ident(&quot;repr&quot;) {
+    /// if attr.path().is_ident("repr") {
     ///     attr.parse_nested_meta(|meta| {
-    ///         if meta.path.is_ident(&quot;align&quot;) {
+    ///         if meta.path.is_ident("align") {
     ///             let content;
     ///             parenthesized!(content in meta.input);
     ///             align = Some(content.parse()?);
     ///             Ok(())
     ///         } else {
-    ///             Err(meta.error(&quot;unsupported repr&quot;))
+    ///             Err(meta.error("unsupported repr"))
     ///         }
     ///     })?;
     /// }
@@ -702,7 +703,7 @@
         parse_nested_meta(<span class="kw-2">&amp;</span>content, logic)
     }
 
-    <span class="doccomment">/// Report that the attribute&#39;s content did not conform to expectations.
+    <span class="doccomment">/// Report that the attribute's content did not conform to expectations.
     ///
     /// The span of the resulting error will cover `meta.path` *and* everything
     /// that has been parsed so far since it.
@@ -715,11 +716,11 @@
     /// #
     /// # fn example(attr: &amp;Attribute) -&gt; syn::Result&lt;()&gt; {
     /// attr.parse_nested_meta(|meta| {
-    ///     if meta.path.is_ident(&quot;kind&quot;) {
+    ///     if meta.path.is_ident("kind") {
     ///         // ...
     ///         Ok(())
     ///     } else {
-    ///         Err(meta.error(&quot;unsupported tea property&quot;))
+    ///         Err(meta.error("unsupported tea property"))
     ///     }
     /// })?;
     /// # Ok(())
@@ -727,17 +728,17 @@
     /// ```
     ///
     /// In this case, it behaves exactly like
-    /// `syn::Error::new_spanned(&amp;meta.path, &quot;message...&quot;)`.
+    /// `syn::Error::new_spanned(&amp;meta.path, "message...")`.
     ///
     /// ```console
     /// error: unsupported tea property
     ///  --&gt; src/main.rs:3:26
     ///   |
-    /// 3 | #[tea(kind = &quot;EarlGrey&quot;, wat = &quot;foo&quot;)]
+    /// 3 | #[tea(kind = "EarlGrey", wat = "foo")]
     ///   |                          ^^^
     /// ```
     ///
-    /// More usefully, the second place is if you&#39;ve already parsed a value but
+    /// More usefully, the second place is if you've already parsed a value but
     /// have decided not to accept the value:
     ///
     /// ```
@@ -747,7 +748,7 @@
     /// use syn::Expr;
     ///
     /// attr.parse_nested_meta(|meta| {
-    ///     if meta.path.is_ident(&quot;kind&quot;) {
+    ///     if meta.path.is_ident("kind") {
     ///         let expr: Expr = meta.value()?.parse()?;
     ///         match expr {
     ///             Expr::Lit(expr) =&gt; /* ... */
@@ -756,7 +757,7 @@
     /// #               unimplemented!(),
     ///             Expr::Macro(expr) =&gt; /* ... */
     /// #               unimplemented!(),
-    ///             _ =&gt; Err(meta.error(&quot;tea kind must be a string literal, path, or macro&quot;)),
+    ///             _ =&gt; Err(meta.error("tea kind must be a string literal, path, or macro")),
     ///         }
     ///     } else /* as above */
     /// #       { unimplemented!() }
@@ -788,7 +789,7 @@
     /// #           unimplemented!(),
     ///         Expr::Macro(expr) =&gt; /* ... */
     /// #           unimplemented!(),
-    ///         _ =&gt; Err(Error::new_spanned(expr, &quot;unsupported expression type for `kind`&quot;)),
+    ///         _ =&gt; Err(Error::new_spanned(expr, "unsupported expression type for `kind`")),
     ///     }
     /// # }
     /// ```
@@ -834,11 +835,11 @@
                 <span class="kw">let </span>ident = Ident::parse_any(input)<span class="question-mark">?</span>;
                 segments.push_value(PathSegment::from(ident));
             } <span class="kw">else if </span>input.is_empty() {
-                <span class="kw">return </span><span class="prelude-val">Err</span>(input.error(<span class="string">&quot;expected nested attribute&quot;</span>));
+                <span class="kw">return </span><span class="prelude-val">Err</span>(input.error(<span class="string">"expected nested attribute"</span>));
             } <span class="kw">else if </span>input.peek(Lit) {
-                <span class="kw">return </span><span class="prelude-val">Err</span>(input.error(<span class="string">&quot;unexpected literal in nested attribute, expected ident&quot;</span>));
+                <span class="kw">return </span><span class="prelude-val">Err</span>(input.error(<span class="string">"unexpected literal in nested attribute, expected ident"</span>));
             } <span class="kw">else </span>{
-                <span class="kw">return </span><span class="prelude-val">Err</span>(input.error(<span class="string">&quot;unexpected token in nested attribute, expected ident&quot;</span>));
+                <span class="kw">return </span><span class="prelude-val">Err</span>(input.error(<span class="string">"unexpected token in nested attribute, expected ident"</span>));
             }
             <span class="kw">while </span>input.peek(<span class="macro">Token!</span>[::]) {
                 <span class="kw">let </span>punct = input.parse()<span class="question-mark">?</span>;

@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/syn-2.0.23/src/token.rs`."><title>token.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="syn" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/syn-2.0.23/src/token.rs`."><title>token.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="syn" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1157,41 +1158,41 @@
 //! [`Span`]: https://docs.rs/proc-macro2/1.0/proc_macro2/struct.Span.html
 
 </span><span class="kw">use </span><span class="self">self</span>::private::WithSpan;
-<span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">use </span><span class="kw">crate</span>::buffer::Cursor;
-<span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">use </span><span class="kw">crate</span>::error::Result;
-<span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">use </span><span class="kw">crate</span>::lifetime::Lifetime;
-<span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">use </span><span class="kw">crate</span>::lit::{Lit, LitBool, LitByte, LitByteStr, LitChar, LitFloat, LitInt, LitStr};
-<span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">use </span><span class="kw">crate</span>::lookahead;
-<span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">use </span><span class="kw">crate</span>::parse::{Parse, ParseStream};
 <span class="kw">use </span><span class="kw">crate</span>::span::IntoSpans;
 <span class="kw">use </span>proc_macro2::extra::DelimSpan;
 <span class="kw">use </span>proc_macro2::Span;
-<span class="attr">#[cfg(feature = <span class="string">&quot;printing&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"printing"</span>)]
 </span><span class="kw">use </span>proc_macro2::TokenStream;
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;parsing&quot;</span>, feature = <span class="string">&quot;printing&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"parsing"</span>, feature = <span class="string">"printing"</span>))]
 </span><span class="kw">use </span>proc_macro2::{Delimiter, Ident};
-<span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">use </span>proc_macro2::{Literal, Punct, TokenTree};
-<span class="attr">#[cfg(feature = <span class="string">&quot;printing&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"printing"</span>)]
 </span><span class="kw">use </span>quote::{ToTokens, TokenStreamExt};
-<span class="attr">#[cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"extra-traits"</span>)]
 </span><span class="kw">use </span>std::cmp;
-<span class="attr">#[cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"extra-traits"</span>)]
 </span><span class="kw">use </span>std::fmt::{<span class="self">self</span>, Debug};
-<span class="attr">#[cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"extra-traits"</span>)]
 </span><span class="kw">use </span>std::hash::{Hash, Hasher};
 <span class="kw">use </span>std::ops::{Deref, DerefMut};
 
 <span class="doccomment">/// Marker trait for types that represent single tokens.
 ///
 /// This trait is sealed and cannot be implemented for types outside of Syn.
-</span><span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+</span><span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">pub trait </span>Token: private::Sealed {
     <span class="comment">// Not public API.
     </span><span class="attr">#[doc(hidden)]
@@ -1199,13 +1200,13 @@
 
     <span class="comment">// Not public API.
     </span><span class="attr">#[doc(hidden)]
-    </span><span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str;
+    </span><span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str;
 }
 
 <span class="kw">mod </span>private {
     <span class="kw">use </span>proc_macro2::Span;
 
-    <span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
     </span><span class="kw">pub trait </span>Sealed {}
 
     <span class="doccomment">/// Support writing `token.span` rather than `token.spans[0]` on tokens that
@@ -1216,10 +1217,10 @@
     }
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">impl </span>private::Sealed <span class="kw">for </span>Ident {}
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">fn </span>peek_impl(cursor: Cursor, peek: <span class="kw">fn</span>(ParseStream) -&gt; bool) -&gt; bool {
     <span class="kw">use </span><span class="kw">crate</span>::parse::Unexpected;
     <span class="kw">use </span>std::cell::Cell;
@@ -1233,7 +1234,7 @@
 
 <span class="macro">macro_rules! </span>impl_token {
     (<span class="macro-nonterminal">$display</span>:literal <span class="macro-nonterminal">$name</span>:ty) =&gt; {
-        <span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+        <span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
         </span><span class="kw">impl </span>Token <span class="kw">for </span><span class="macro-nonterminal">$name </span>{
             <span class="kw">fn </span>peek(cursor: Cursor) -&gt; bool {
                 <span class="kw">fn </span>peek(input: ParseStream) -&gt; bool {
@@ -1242,67 +1243,67 @@
                 peek_impl(cursor, peek)
             }
 
-            <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str {
+            <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                 <span class="macro-nonterminal">$display
             </span>}
         }
 
-        <span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+        <span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
         </span><span class="kw">impl </span>private::Sealed <span class="kw">for </span><span class="macro-nonterminal">$name </span>{}
     };
 }
 
-<span class="macro">impl_token!</span>(<span class="string">&quot;lifetime&quot; </span>Lifetime);
-<span class="macro">impl_token!</span>(<span class="string">&quot;literal&quot; </span>Lit);
-<span class="macro">impl_token!</span>(<span class="string">&quot;string literal&quot; </span>LitStr);
-<span class="macro">impl_token!</span>(<span class="string">&quot;byte string literal&quot; </span>LitByteStr);
-<span class="macro">impl_token!</span>(<span class="string">&quot;byte literal&quot; </span>LitByte);
-<span class="macro">impl_token!</span>(<span class="string">&quot;character literal&quot; </span>LitChar);
-<span class="macro">impl_token!</span>(<span class="string">&quot;integer literal&quot; </span>LitInt);
-<span class="macro">impl_token!</span>(<span class="string">&quot;floating point literal&quot; </span>LitFloat);
-<span class="macro">impl_token!</span>(<span class="string">&quot;boolean literal&quot; </span>LitBool);
-<span class="macro">impl_token!</span>(<span class="string">&quot;group token&quot; </span>proc_macro2::Group);
+<span class="macro">impl_token!</span>(<span class="string">"lifetime" </span>Lifetime);
+<span class="macro">impl_token!</span>(<span class="string">"literal" </span>Lit);
+<span class="macro">impl_token!</span>(<span class="string">"string literal" </span>LitStr);
+<span class="macro">impl_token!</span>(<span class="string">"byte string literal" </span>LitByteStr);
+<span class="macro">impl_token!</span>(<span class="string">"byte literal" </span>LitByte);
+<span class="macro">impl_token!</span>(<span class="string">"character literal" </span>LitChar);
+<span class="macro">impl_token!</span>(<span class="string">"integer literal" </span>LitInt);
+<span class="macro">impl_token!</span>(<span class="string">"floating point literal" </span>LitFloat);
+<span class="macro">impl_token!</span>(<span class="string">"boolean literal" </span>LitBool);
+<span class="macro">impl_token!</span>(<span class="string">"group token" </span>proc_macro2::Group);
 
 <span class="macro">macro_rules! </span>impl_low_level_token {
     (<span class="macro-nonterminal">$display</span>:literal <span class="macro-nonterminal">$ty</span>:ident <span class="macro-nonterminal">$get</span>:ident) =&gt; {
-        <span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+        <span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
         </span><span class="kw">impl </span>Token <span class="kw">for </span><span class="macro-nonterminal">$ty </span>{
             <span class="kw">fn </span>peek(cursor: Cursor) -&gt; bool {
                 cursor.<span class="macro-nonterminal">$get</span>().is_some()
             }
 
-            <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str {
+            <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                 <span class="macro-nonterminal">$display
             </span>}
         }
 
-        <span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+        <span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
         </span><span class="kw">impl </span>private::Sealed <span class="kw">for </span><span class="macro-nonterminal">$ty </span>{}
     };
 }
 
-<span class="macro">impl_low_level_token!</span>(<span class="string">&quot;punctuation token&quot; </span>Punct punct);
-<span class="macro">impl_low_level_token!</span>(<span class="string">&quot;literal&quot; </span>Literal literal);
-<span class="macro">impl_low_level_token!</span>(<span class="string">&quot;token&quot; </span>TokenTree token_tree);
+<span class="macro">impl_low_level_token!</span>(<span class="string">"punctuation token" </span>Punct punct);
+<span class="macro">impl_low_level_token!</span>(<span class="string">"literal" </span>Literal literal);
+<span class="macro">impl_low_level_token!</span>(<span class="string">"token" </span>TokenTree token_tree);
 
 <span class="comment">// Not public API.
 </span><span class="attr">#[doc(hidden)]
-#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">pub trait </span>CustomToken {
     <span class="kw">fn </span>peek(cursor: Cursor) -&gt; bool;
-    <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str;
+    <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str;
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">impl</span>&lt;T: CustomToken&gt; private::Sealed <span class="kw">for </span>T {}
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">impl</span>&lt;T: CustomToken&gt; Token <span class="kw">for </span>T {
     <span class="kw">fn </span>peek(cursor: Cursor) -&gt; bool {
         &lt;<span class="self">Self </span><span class="kw">as </span>CustomToken&gt;::peek(cursor)
     }
 
-    <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str {
+    <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
         &lt;<span class="self">Self </span><span class="kw">as </span>CustomToken&gt;::display()
     }
 }
@@ -1310,9 +1311,9 @@
 <span class="macro">macro_rules! </span>define_keywords {
     ($(<span class="macro-nonterminal">$token</span>:literal <span class="kw">pub struct </span><span class="macro-nonterminal">$name</span>:ident)<span class="kw-2">*</span>) =&gt; {
         $(
-            <span class="attr">#[doc = <span class="macro">concat!</span>(<span class="string">&#39;`&#39;</span>, <span class="macro-nonterminal">$token</span>, <span class="string">&#39;`&#39;</span>)]
+            <span class="attr">#[doc = <span class="macro">concat!</span>(<span class="string">'`'</span>, <span class="macro-nonterminal">$token</span>, <span class="string">'`'</span>)]
             </span><span class="doccomment">///
-            /// Don&#39;t try to remember the name of this type &amp;mdash; use the
+            /// Don't try to remember the name of this type &amp;mdash; use the
             /// [`Token!`] macro instead.
             ///
             /// [`Token!`]: crate::token
@@ -1336,54 +1337,54 @@
                 }
             }
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;clone-impls&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;clone-impls&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"clone-impls"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"clone-impls"</span>)))]
             </span><span class="kw">impl </span>Copy <span class="kw">for </span><span class="macro-nonterminal">$name </span>{}
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;clone-impls&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;clone-impls&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"clone-impls"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"clone-impls"</span>)))]
             </span><span class="kw">impl </span>Clone <span class="kw">for </span><span class="macro-nonterminal">$name </span>{
                 <span class="kw">fn </span>clone(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self </span>{
                     <span class="kw-2">*</span><span class="self">self
                 </span>}
             }
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"extra-traits"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"extra-traits"</span>)))]
             </span><span class="kw">impl </span>Debug <span class="kw">for </span><span class="macro-nonterminal">$name </span>{
                 <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter) -&gt; fmt::Result {
                     f.write_str(<span class="macro">stringify!</span>(<span class="macro-nonterminal">$name</span>))
                 }
             }
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"extra-traits"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"extra-traits"</span>)))]
             </span><span class="kw">impl </span>cmp::Eq <span class="kw">for </span><span class="macro-nonterminal">$name </span>{}
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"extra-traits"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"extra-traits"</span>)))]
             </span><span class="kw">impl </span>PartialEq <span class="kw">for </span><span class="macro-nonterminal">$name </span>{
                 <span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, _other: <span class="kw-2">&amp;</span><span class="macro-nonterminal">$name</span>) -&gt; bool {
                     <span class="bool-val">true
                 </span>}
             }
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"extra-traits"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"extra-traits"</span>)))]
             </span><span class="kw">impl </span>Hash <span class="kw">for </span><span class="macro-nonterminal">$name </span>{
                 <span class="kw">fn </span>hash&lt;H: Hasher&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, _state: <span class="kw-2">&amp;mut </span>H) {}
             }
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;printing&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;printing&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"printing"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"printing"</span>)))]
             </span><span class="kw">impl </span>ToTokens <span class="kw">for </span><span class="macro-nonterminal">$name </span>{
                 <span class="kw">fn </span>to_tokens(<span class="kw-2">&amp;</span><span class="self">self</span>, tokens: <span class="kw-2">&amp;mut </span>TokenStream) {
                     printing::keyword(<span class="macro-nonterminal">$token</span>, <span class="self">self</span>.span, tokens);
                 }
             }
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;parsing&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"parsing"</span>)))]
             </span><span class="kw">impl </span>Parse <span class="kw">for </span><span class="macro-nonterminal">$name </span>{
                 <span class="kw">fn </span>parse(input: ParseStream) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
                     <span class="prelude-val">Ok</span>(<span class="macro-nonterminal">$name </span>{
@@ -1392,18 +1393,18 @@
                 }
             }
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+            <span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
             </span><span class="kw">impl </span>Token <span class="kw">for </span><span class="macro-nonterminal">$name </span>{
                 <span class="kw">fn </span>peek(cursor: Cursor) -&gt; bool {
                     parsing::peek_keyword(cursor, <span class="macro-nonterminal">$token</span>)
                 }
 
-                <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str {
-                    <span class="macro">concat!</span>(<span class="string">&quot;`&quot;</span>, <span class="macro-nonterminal">$token</span>, <span class="string">&quot;`&quot;</span>)
+                <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+                    <span class="macro">concat!</span>(<span class="string">"`"</span>, <span class="macro-nonterminal">$token</span>, <span class="string">"`"</span>)
                 }
             }
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+            <span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
             </span><span class="kw">impl </span>private::Sealed <span class="kw">for </span><span class="macro-nonterminal">$name </span>{}
         )*
     };
@@ -1433,12 +1434,12 @@
     ($(<span class="macro-nonterminal">$token</span>:literal <span class="kw">pub struct </span><span class="macro-nonterminal">$name</span>:ident/<span class="macro-nonterminal">$len</span>:tt <span class="attr">#[doc = <span class="macro-nonterminal">$usage</span>:literal]</span>)<span class="kw-2">*</span>) =&gt; {
         $(
             <span class="attr">#[cfg_attr(not(doc), repr(transparent))]
-            #[doc = <span class="macro">concat!</span>(<span class="string">&#39;`&#39;</span>, <span class="macro-nonterminal">$token</span>, <span class="string">&#39;`&#39;</span>)]
+            #[doc = <span class="macro">concat!</span>(<span class="string">'`'</span>, <span class="macro-nonterminal">$token</span>, <span class="string">'`'</span>)]
             </span><span class="doccomment">///
             /// Usage:
-            </span><span class="attr">#[doc = <span class="macro">concat!</span>(<span class="macro-nonterminal">$usage</span>, <span class="string">&#39;.&#39;</span>)]
+            </span><span class="attr">#[doc = <span class="macro">concat!</span>(<span class="macro-nonterminal">$usage</span>, <span class="string">'.'</span>)]
             </span><span class="doccomment">///
-            /// Don&#39;t try to remember the name of this type &amp;mdash; use the
+            /// Don't try to remember the name of this type &amp;mdash; use the
             /// [`Token!`] macro instead.
             ///
             /// [`Token!`]: crate::token
@@ -1462,40 +1463,40 @@
                 }
             }
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;clone-impls&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;clone-impls&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"clone-impls"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"clone-impls"</span>)))]
             </span><span class="kw">impl </span>Copy <span class="kw">for </span><span class="macro-nonterminal">$name </span>{}
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;clone-impls&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;clone-impls&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"clone-impls"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"clone-impls"</span>)))]
             </span><span class="kw">impl </span>Clone <span class="kw">for </span><span class="macro-nonterminal">$name </span>{
                 <span class="kw">fn </span>clone(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self </span>{
                     <span class="kw-2">*</span><span class="self">self
                 </span>}
             }
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"extra-traits"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"extra-traits"</span>)))]
             </span><span class="kw">impl </span>Debug <span class="kw">for </span><span class="macro-nonterminal">$name </span>{
                 <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter) -&gt; fmt::Result {
                     f.write_str(<span class="macro">stringify!</span>(<span class="macro-nonterminal">$name</span>))
                 }
             }
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"extra-traits"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"extra-traits"</span>)))]
             </span><span class="kw">impl </span>cmp::Eq <span class="kw">for </span><span class="macro-nonterminal">$name </span>{}
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"extra-traits"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"extra-traits"</span>)))]
             </span><span class="kw">impl </span>PartialEq <span class="kw">for </span><span class="macro-nonterminal">$name </span>{
                 <span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, _other: <span class="kw-2">&amp;</span><span class="macro-nonterminal">$name</span>) -&gt; bool {
                     <span class="bool-val">true
                 </span>}
             }
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"extra-traits"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"extra-traits"</span>)))]
             </span><span class="kw">impl </span>Hash <span class="kw">for </span><span class="macro-nonterminal">$name </span>{
                 <span class="kw">fn </span>hash&lt;H: Hasher&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, _state: <span class="kw-2">&amp;mut </span>H) {}
             }
@@ -1512,16 +1513,16 @@
                 <span class="macro-nonterminal">$token </span><span class="kw">pub struct </span><span class="macro-nonterminal">$name</span>/<span class="macro-nonterminal">$len </span><span class="attr">#[doc = <span class="macro-nonterminal">$usage</span>]
             </span>}
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;printing&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;printing&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"printing"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"printing"</span>)))]
             </span><span class="kw">impl </span>ToTokens <span class="kw">for </span><span class="macro-nonterminal">$name </span>{
                 <span class="kw">fn </span>to_tokens(<span class="kw-2">&amp;</span><span class="self">self</span>, tokens: <span class="kw-2">&amp;mut </span>TokenStream) {
                     printing::punct(<span class="macro-nonterminal">$token</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.spans, tokens);
                 }
             }
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;parsing&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"parsing"</span>)))]
             </span><span class="kw">impl </span>Parse <span class="kw">for </span><span class="macro-nonterminal">$name </span>{
                 <span class="kw">fn </span>parse(input: ParseStream) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
                     <span class="prelude-val">Ok</span>(<span class="macro-nonterminal">$name </span>{
@@ -1530,18 +1531,18 @@
                 }
             }
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+            <span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
             </span><span class="kw">impl </span>Token <span class="kw">for </span><span class="macro-nonterminal">$name </span>{
                 <span class="kw">fn </span>peek(cursor: Cursor) -&gt; bool {
                     parsing::peek_punct(cursor, <span class="macro-nonterminal">$token</span>)
                 }
 
-                <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str {
-                    <span class="macro">concat!</span>(<span class="string">&quot;`&quot;</span>, <span class="macro-nonterminal">$token</span>, <span class="string">&quot;`&quot;</span>)
+                <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+                    <span class="macro">concat!</span>(<span class="string">"`"</span>, <span class="macro-nonterminal">$token</span>, <span class="string">"`"</span>)
                 }
             }
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+            <span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
             </span><span class="kw">impl </span>private::Sealed <span class="kw">for </span><span class="macro-nonterminal">$name </span>{}
         )*
     };
@@ -1569,46 +1570,46 @@
                 }
             }
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;clone-impls&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;clone-impls&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"clone-impls"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"clone-impls"</span>)))]
             </span><span class="kw">impl </span>Copy <span class="kw">for </span><span class="macro-nonterminal">$name </span>{}
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;clone-impls&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;clone-impls&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"clone-impls"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"clone-impls"</span>)))]
             </span><span class="kw">impl </span>Clone <span class="kw">for </span><span class="macro-nonterminal">$name </span>{
                 <span class="kw">fn </span>clone(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self </span>{
                     <span class="kw-2">*</span><span class="self">self
                 </span>}
             }
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"extra-traits"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"extra-traits"</span>)))]
             </span><span class="kw">impl </span>Debug <span class="kw">for </span><span class="macro-nonterminal">$name </span>{
                 <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter) -&gt; fmt::Result {
                     f.write_str(<span class="macro">stringify!</span>(<span class="macro-nonterminal">$name</span>))
                 }
             }
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"extra-traits"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"extra-traits"</span>)))]
             </span><span class="kw">impl </span>cmp::Eq <span class="kw">for </span><span class="macro-nonterminal">$name </span>{}
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"extra-traits"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"extra-traits"</span>)))]
             </span><span class="kw">impl </span>PartialEq <span class="kw">for </span><span class="macro-nonterminal">$name </span>{
                 <span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, _other: <span class="kw-2">&amp;</span><span class="macro-nonterminal">$name</span>) -&gt; bool {
                     <span class="bool-val">true
                 </span>}
             }
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)]
-            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)))]
+            <span class="attr">#[cfg(feature = <span class="string">"extra-traits"</span>)]
+            #[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"extra-traits"</span>)))]
             </span><span class="kw">impl </span>Hash <span class="kw">for </span><span class="macro-nonterminal">$name </span>{
                 <span class="kw">fn </span>hash&lt;H: Hasher&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, _state: <span class="kw-2">&amp;mut </span>H) {}
             }
 
             <span class="kw">impl </span><span class="macro-nonterminal">$name </span>{
-                <span class="attr">#[cfg(feature = <span class="string">&quot;printing&quot;</span>)]
+                <span class="attr">#[cfg(feature = <span class="string">"printing"</span>)]
                 </span><span class="kw">pub fn </span>surround&lt;F&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, tokens: <span class="kw-2">&amp;mut </span>TokenStream, f: F)
                 <span class="kw">where
                     </span>F: FnOnce(<span class="kw-2">&amp;mut </span>TokenStream),
@@ -1619,62 +1620,62 @@
                 }
             }
 
-            <span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+            <span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
             </span><span class="kw">impl </span>private::Sealed <span class="kw">for </span><span class="macro-nonterminal">$name </span>{}
         )*
     };
 }
 
 <span class="macro">define_punctuation_structs! </span>{
-    <span class="string">&quot;_&quot; </span><span class="kw">pub struct </span>Underscore/<span class="number">1 </span><span class="doccomment">/// wildcard patterns, inferred types, unnamed items in constants, extern crates, use declarations, and destructuring assignment
+    <span class="string">"_" </span><span class="kw">pub struct </span>Underscore/<span class="number">1 </span><span class="doccomment">/// wildcard patterns, inferred types, unnamed items in constants, extern crates, use declarations, and destructuring assignment
 </span>}
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;printing&quot;</span>)]
-#[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;printing&quot;</span>)))]
+<span class="attr">#[cfg(feature = <span class="string">"printing"</span>)]
+#[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"printing"</span>)))]
 </span><span class="kw">impl </span>ToTokens <span class="kw">for </span>Underscore {
     <span class="kw">fn </span>to_tokens(<span class="kw-2">&amp;</span><span class="self">self</span>, tokens: <span class="kw-2">&amp;mut </span>TokenStream) {
-        tokens.append(Ident::new(<span class="string">&quot;_&quot;</span>, <span class="self">self</span>.span));
+        tokens.append(Ident::new(<span class="string">"_"</span>, <span class="self">self</span>.span));
     }
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
-#[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;parsing&quot;</span>)))]
+<span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
+#[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"parsing"</span>)))]
 </span><span class="kw">impl </span>Parse <span class="kw">for </span>Underscore {
     <span class="kw">fn </span>parse(input: ParseStream) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
         input.step(|cursor| {
             <span class="kw">if let </span><span class="prelude-val">Some</span>((ident, rest)) = cursor.ident() {
-                <span class="kw">if </span>ident == <span class="string">&quot;_&quot; </span>{
+                <span class="kw">if </span>ident == <span class="string">"_" </span>{
                     <span class="kw">return </span><span class="prelude-val">Ok</span>((Underscore(ident.span()), rest));
                 }
             }
             <span class="kw">if let </span><span class="prelude-val">Some</span>((punct, rest)) = cursor.punct() {
-                <span class="kw">if </span>punct.as_char() == <span class="string">&#39;_&#39; </span>{
+                <span class="kw">if </span>punct.as_char() == <span class="string">'_' </span>{
                     <span class="kw">return </span><span class="prelude-val">Ok</span>((Underscore(punct.span()), rest));
                 }
             }
-            <span class="prelude-val">Err</span>(cursor.error(<span class="string">&quot;expected `_`&quot;</span>))
+            <span class="prelude-val">Err</span>(cursor.error(<span class="string">"expected `_`"</span>))
         })
     }
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">impl </span>Token <span class="kw">for </span>Underscore {
     <span class="kw">fn </span>peek(cursor: Cursor) -&gt; bool {
         <span class="kw">if let </span><span class="prelude-val">Some</span>((ident, _rest)) = cursor.ident() {
-            <span class="kw">return </span>ident == <span class="string">&quot;_&quot;</span>;
+            <span class="kw">return </span>ident == <span class="string">"_"</span>;
         }
         <span class="kw">if let </span><span class="prelude-val">Some</span>((punct, _rest)) = cursor.punct() {
-            <span class="kw">return </span>punct.as_char() == <span class="string">&#39;_&#39;</span>;
+            <span class="kw">return </span>punct.as_char() == <span class="string">'_'</span>;
         }
         <span class="bool-val">false
     </span>}
 
-    <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str {
-        <span class="string">&quot;`_`&quot;
+    <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+        <span class="string">"`_`"
     </span>}
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">impl </span>private::Sealed <span class="kw">for </span>Underscore {}
 
 <span class="doccomment">/// None-delimited group
@@ -1698,46 +1699,46 @@
     }
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;clone-impls&quot;</span>)]
-#[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;clone-impls&quot;</span>)))]
+<span class="attr">#[cfg(feature = <span class="string">"clone-impls"</span>)]
+#[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"clone-impls"</span>)))]
 </span><span class="kw">impl </span>Copy <span class="kw">for </span>Group {}
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;clone-impls&quot;</span>)]
-#[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;clone-impls&quot;</span>)))]
+<span class="attr">#[cfg(feature = <span class="string">"clone-impls"</span>)]
+#[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"clone-impls"</span>)))]
 </span><span class="kw">impl </span>Clone <span class="kw">for </span>Group {
     <span class="kw">fn </span>clone(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self </span>{
         <span class="kw-2">*</span><span class="self">self
     </span>}
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)]
-#[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)))]
+<span class="attr">#[cfg(feature = <span class="string">"extra-traits"</span>)]
+#[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"extra-traits"</span>)))]
 </span><span class="kw">impl </span>Debug <span class="kw">for </span>Group {
     <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter) -&gt; fmt::Result {
-        f.write_str(<span class="string">&quot;Group&quot;</span>)
+        f.write_str(<span class="string">"Group"</span>)
     }
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)]
-#[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)))]
+<span class="attr">#[cfg(feature = <span class="string">"extra-traits"</span>)]
+#[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"extra-traits"</span>)))]
 </span><span class="kw">impl </span>cmp::Eq <span class="kw">for </span>Group {}
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)]
-#[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)))]
+<span class="attr">#[cfg(feature = <span class="string">"extra-traits"</span>)]
+#[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"extra-traits"</span>)))]
 </span><span class="kw">impl </span>PartialEq <span class="kw">for </span>Group {
     <span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, _other: <span class="kw-2">&amp;</span>Group) -&gt; bool {
         <span class="bool-val">true
     </span>}
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)]
-#[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">&quot;extra-traits&quot;</span>)))]
+<span class="attr">#[cfg(feature = <span class="string">"extra-traits"</span>)]
+#[cfg_attr(doc_cfg, doc(cfg(feature = <span class="string">"extra-traits"</span>)))]
 </span><span class="kw">impl </span>Hash <span class="kw">for </span>Group {
     <span class="kw">fn </span>hash&lt;H: Hasher&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, _state: <span class="kw-2">&amp;mut </span>H) {}
 }
 
 <span class="kw">impl </span>Group {
-    <span class="attr">#[cfg(feature = <span class="string">&quot;printing&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"printing"</span>)]
     </span><span class="kw">pub fn </span>surround&lt;F&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, tokens: <span class="kw-2">&amp;mut </span>TokenStream, f: F)
     <span class="kw">where
         </span>F: FnOnce(<span class="kw-2">&amp;mut </span>TokenStream),
@@ -1748,155 +1749,155 @@
     }
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">impl </span>private::Sealed <span class="kw">for </span>Group {}
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">impl </span>Token <span class="kw">for </span>Paren {
     <span class="kw">fn </span>peek(cursor: Cursor) -&gt; bool {
         lookahead::is_delimiter(cursor, Delimiter::Parenthesis)
     }
 
-    <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str {
-        <span class="string">&quot;parentheses&quot;
+    <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+        <span class="string">"parentheses"
     </span>}
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">impl </span>Token <span class="kw">for </span>Brace {
     <span class="kw">fn </span>peek(cursor: Cursor) -&gt; bool {
         lookahead::is_delimiter(cursor, Delimiter::Brace)
     }
 
-    <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str {
-        <span class="string">&quot;curly braces&quot;
+    <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+        <span class="string">"curly braces"
     </span>}
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">impl </span>Token <span class="kw">for </span>Bracket {
     <span class="kw">fn </span>peek(cursor: Cursor) -&gt; bool {
         lookahead::is_delimiter(cursor, Delimiter::Bracket)
     }
 
-    <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str {
-        <span class="string">&quot;square brackets&quot;
+    <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+        <span class="string">"square brackets"
     </span>}
 }
 
-<span class="attr">#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">impl </span>Token <span class="kw">for </span>Group {
     <span class="kw">fn </span>peek(cursor: Cursor) -&gt; bool {
         lookahead::is_delimiter(cursor, Delimiter::None)
     }
 
-    <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str {
-        <span class="string">&quot;invisible group&quot;
+    <span class="kw">fn </span>display() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+        <span class="string">"invisible group"
     </span>}
 }
 
 <span class="macro">define_keywords! </span>{
-    <span class="string">&quot;abstract&quot;    </span><span class="kw">pub struct </span>Abstract
-    <span class="string">&quot;as&quot;          </span><span class="kw">pub struct </span>As
-    <span class="string">&quot;async&quot;       </span><span class="kw">pub struct </span>Async
-    <span class="string">&quot;auto&quot;        </span><span class="kw">pub struct </span>Auto
-    <span class="string">&quot;await&quot;       </span><span class="kw">pub struct </span>Await
-    <span class="string">&quot;become&quot;      </span><span class="kw">pub struct </span>Become
-    <span class="string">&quot;box&quot;         </span><span class="kw">pub struct </span>Box
-    <span class="string">&quot;break&quot;       </span><span class="kw">pub struct </span>Break
-    <span class="string">&quot;const&quot;       </span><span class="kw">pub struct </span>Const
-    <span class="string">&quot;continue&quot;    </span><span class="kw">pub struct </span>Continue
-    <span class="string">&quot;crate&quot;       </span><span class="kw">pub struct </span>Crate
-    <span class="string">&quot;default&quot;     </span><span class="kw">pub struct </span>Default
-    <span class="string">&quot;do&quot;          </span><span class="kw">pub struct </span>Do
-    <span class="string">&quot;dyn&quot;         </span><span class="kw">pub struct </span>Dyn
-    <span class="string">&quot;else&quot;        </span><span class="kw">pub struct </span>Else
-    <span class="string">&quot;enum&quot;        </span><span class="kw">pub struct </span>Enum
-    <span class="string">&quot;extern&quot;      </span><span class="kw">pub struct </span>Extern
-    <span class="string">&quot;final&quot;       </span><span class="kw">pub struct </span>Final
-    <span class="string">&quot;fn&quot;          </span><span class="kw">pub struct </span>Fn
-    <span class="string">&quot;for&quot;         </span><span class="kw">pub struct </span>For
-    <span class="string">&quot;if&quot;          </span><span class="kw">pub struct </span>If
-    <span class="string">&quot;impl&quot;        </span><span class="kw">pub struct </span>Impl
-    <span class="string">&quot;in&quot;          </span><span class="kw">pub struct </span>In
-    <span class="string">&quot;let&quot;         </span><span class="kw">pub struct </span>Let
-    <span class="string">&quot;loop&quot;        </span><span class="kw">pub struct </span>Loop
-    <span class="string">&quot;macro&quot;       </span><span class="kw">pub struct </span>Macro
-    <span class="string">&quot;match&quot;       </span><span class="kw">pub struct </span>Match
-    <span class="string">&quot;mod&quot;         </span><span class="kw">pub struct </span>Mod
-    <span class="string">&quot;move&quot;        </span><span class="kw">pub struct </span>Move
-    <span class="string">&quot;mut&quot;         </span><span class="kw">pub struct </span>Mut
-    <span class="string">&quot;override&quot;    </span><span class="kw">pub struct </span>Override
-    <span class="string">&quot;priv&quot;        </span><span class="kw">pub struct </span>Priv
-    <span class="string">&quot;pub&quot;         </span><span class="kw">pub struct </span>Pub
-    <span class="string">&quot;ref&quot;         </span><span class="kw">pub struct </span>Ref
-    <span class="string">&quot;return&quot;      </span><span class="kw">pub struct </span>Return
-    <span class="string">&quot;Self&quot;        </span><span class="kw">pub struct </span>SelfType
-    <span class="string">&quot;self&quot;        </span><span class="kw">pub struct </span>SelfValue
-    <span class="string">&quot;static&quot;      </span><span class="kw">pub struct </span>Static
-    <span class="string">&quot;struct&quot;      </span><span class="kw">pub struct </span>Struct
-    <span class="string">&quot;super&quot;       </span><span class="kw">pub struct </span>Super
-    <span class="string">&quot;trait&quot;       </span><span class="kw">pub struct </span>Trait
-    <span class="string">&quot;try&quot;         </span><span class="kw">pub struct </span>Try
-    <span class="string">&quot;type&quot;        </span><span class="kw">pub struct </span>Type
-    <span class="string">&quot;typeof&quot;      </span><span class="kw">pub struct </span>Typeof
-    <span class="string">&quot;union&quot;       </span><span class="kw">pub struct </span>Union
-    <span class="string">&quot;unsafe&quot;      </span><span class="kw">pub struct </span>Unsafe
-    <span class="string">&quot;unsized&quot;     </span><span class="kw">pub struct </span>Unsized
-    <span class="string">&quot;use&quot;         </span><span class="kw">pub struct </span>Use
-    <span class="string">&quot;virtual&quot;     </span><span class="kw">pub struct </span>Virtual
-    <span class="string">&quot;where&quot;       </span><span class="kw">pub struct </span>Where
-    <span class="string">&quot;while&quot;       </span><span class="kw">pub struct </span>While
-    <span class="string">&quot;yield&quot;       </span><span class="kw">pub struct </span>Yield
+    <span class="string">"abstract"    </span><span class="kw">pub struct </span>Abstract
+    <span class="string">"as"          </span><span class="kw">pub struct </span>As
+    <span class="string">"async"       </span><span class="kw">pub struct </span>Async
+    <span class="string">"auto"        </span><span class="kw">pub struct </span>Auto
+    <span class="string">"await"       </span><span class="kw">pub struct </span>Await
+    <span class="string">"become"      </span><span class="kw">pub struct </span>Become
+    <span class="string">"box"         </span><span class="kw">pub struct </span>Box
+    <span class="string">"break"       </span><span class="kw">pub struct </span>Break
+    <span class="string">"const"       </span><span class="kw">pub struct </span>Const
+    <span class="string">"continue"    </span><span class="kw">pub struct </span>Continue
+    <span class="string">"crate"       </span><span class="kw">pub struct </span>Crate
+    <span class="string">"default"     </span><span class="kw">pub struct </span>Default
+    <span class="string">"do"          </span><span class="kw">pub struct </span>Do
+    <span class="string">"dyn"         </span><span class="kw">pub struct </span>Dyn
+    <span class="string">"else"        </span><span class="kw">pub struct </span>Else
+    <span class="string">"enum"        </span><span class="kw">pub struct </span>Enum
+    <span class="string">"extern"      </span><span class="kw">pub struct </span>Extern
+    <span class="string">"final"       </span><span class="kw">pub struct </span>Final
+    <span class="string">"fn"          </span><span class="kw">pub struct </span>Fn
+    <span class="string">"for"         </span><span class="kw">pub struct </span>For
+    <span class="string">"if"          </span><span class="kw">pub struct </span>If
+    <span class="string">"impl"        </span><span class="kw">pub struct </span>Impl
+    <span class="string">"in"          </span><span class="kw">pub struct </span>In
+    <span class="string">"let"         </span><span class="kw">pub struct </span>Let
+    <span class="string">"loop"        </span><span class="kw">pub struct </span>Loop
+    <span class="string">"macro"       </span><span class="kw">pub struct </span>Macro
+    <span class="string">"match"       </span><span class="kw">pub struct </span>Match
+    <span class="string">"mod"         </span><span class="kw">pub struct </span>Mod
+    <span class="string">"move"        </span><span class="kw">pub struct </span>Move
+    <span class="string">"mut"         </span><span class="kw">pub struct </span>Mut
+    <span class="string">"override"    </span><span class="kw">pub struct </span>Override
+    <span class="string">"priv"        </span><span class="kw">pub struct </span>Priv
+    <span class="string">"pub"         </span><span class="kw">pub struct </span>Pub
+    <span class="string">"ref"         </span><span class="kw">pub struct </span>Ref
+    <span class="string">"return"      </span><span class="kw">pub struct </span>Return
+    <span class="string">"Self"        </span><span class="kw">pub struct </span>SelfType
+    <span class="string">"self"        </span><span class="kw">pub struct </span>SelfValue
+    <span class="string">"static"      </span><span class="kw">pub struct </span>Static
+    <span class="string">"struct"      </span><span class="kw">pub struct </span>Struct
+    <span class="string">"super"       </span><span class="kw">pub struct </span>Super
+    <span class="string">"trait"       </span><span class="kw">pub struct </span>Trait
+    <span class="string">"try"         </span><span class="kw">pub struct </span>Try
+    <span class="string">"type"        </span><span class="kw">pub struct </span>Type
+    <span class="string">"typeof"      </span><span class="kw">pub struct </span>Typeof
+    <span class="string">"union"       </span><span class="kw">pub struct </span>Union
+    <span class="string">"unsafe"      </span><span class="kw">pub struct </span>Unsafe
+    <span class="string">"unsized"     </span><span class="kw">pub struct </span>Unsized
+    <span class="string">"use"         </span><span class="kw">pub struct </span>Use
+    <span class="string">"virtual"     </span><span class="kw">pub struct </span>Virtual
+    <span class="string">"where"       </span><span class="kw">pub struct </span>Where
+    <span class="string">"while"       </span><span class="kw">pub struct </span>While
+    <span class="string">"yield"       </span><span class="kw">pub struct </span>Yield
 }
 
 <span class="macro">define_punctuation! </span>{
-    <span class="string">&quot;&amp;&quot;           </span><span class="kw">pub struct </span>And/<span class="number">1        </span><span class="doccomment">/// bitwise and logical AND, borrow, references, reference patterns
-    </span><span class="string">&quot;&amp;&amp;&quot;          </span><span class="kw">pub struct </span>AndAnd/<span class="number">2     </span><span class="doccomment">/// lazy AND, borrow, references, reference patterns
-    </span><span class="string">&quot;&amp;=&quot;          </span><span class="kw">pub struct </span>AndEq/<span class="number">2      </span><span class="doccomment">/// bitwise AND assignment
-    </span><span class="string">&quot;@&quot;           </span><span class="kw">pub struct </span>At/<span class="number">1         </span><span class="doccomment">/// subpattern binding
-    </span><span class="string">&quot;^&quot;           </span><span class="kw">pub struct </span>Caret/<span class="number">1      </span><span class="doccomment">/// bitwise and logical XOR
-    </span><span class="string">&quot;^=&quot;          </span><span class="kw">pub struct </span>CaretEq/<span class="number">2    </span><span class="doccomment">/// bitwise XOR assignment
-    </span><span class="string">&quot;:&quot;           </span><span class="kw">pub struct </span>Colon/<span class="number">1      </span><span class="doccomment">/// various separators
-    </span><span class="string">&quot;,&quot;           </span><span class="kw">pub struct </span>Comma/<span class="number">1      </span><span class="doccomment">/// various separators
-    </span><span class="string">&quot;$&quot;           </span><span class="kw">pub struct </span>Dollar/<span class="number">1     </span><span class="doccomment">/// macros
-    </span><span class="string">&quot;.&quot;           </span><span class="kw">pub struct </span>Dot/<span class="number">1        </span><span class="doccomment">/// field access, tuple index
-    </span><span class="string">&quot;..&quot;          </span><span class="kw">pub struct </span>DotDot/<span class="number">2     </span><span class="doccomment">/// range, struct expressions, patterns, range patterns
-    </span><span class="string">&quot;...&quot;         </span><span class="kw">pub struct </span>DotDotDot/<span class="number">3  </span><span class="doccomment">/// variadic functions, range patterns
-    </span><span class="string">&quot;..=&quot;         </span><span class="kw">pub struct </span>DotDotEq/<span class="number">3   </span><span class="doccomment">/// inclusive range, range patterns
-    </span><span class="string">&quot;=&quot;           </span><span class="kw">pub struct </span>Eq/<span class="number">1         </span><span class="doccomment">/// assignment, attributes, various type definitions
-    </span><span class="string">&quot;==&quot;          </span><span class="kw">pub struct </span>EqEq/<span class="number">2       </span><span class="doccomment">/// equal
-    </span><span class="string">&quot;=&gt;&quot;          </span><span class="kw">pub struct </span>FatArrow/<span class="number">2   </span><span class="doccomment">/// match arms, macros
-    </span><span class="string">&quot;&gt;=&quot;          </span><span class="kw">pub struct </span>Ge/<span class="number">2         </span><span class="doccomment">/// greater than or equal to, generics
-    </span><span class="string">&quot;&gt;&quot;           </span><span class="kw">pub struct </span>Gt/<span class="number">1         </span><span class="doccomment">/// greater than, generics, paths
-    </span><span class="string">&quot;&lt;-&quot;          </span><span class="kw">pub struct </span>LArrow/<span class="number">2     </span><span class="doccomment">/// unused
-    </span><span class="string">&quot;&lt;=&quot;          </span><span class="kw">pub struct </span>Le/<span class="number">2         </span><span class="doccomment">/// less than or equal to
-    </span><span class="string">&quot;&lt;&quot;           </span><span class="kw">pub struct </span>Lt/<span class="number">1         </span><span class="doccomment">/// less than, generics, paths
-    </span><span class="string">&quot;-&quot;           </span><span class="kw">pub struct </span>Minus/<span class="number">1      </span><span class="doccomment">/// subtraction, negation
-    </span><span class="string">&quot;-=&quot;          </span><span class="kw">pub struct </span>MinusEq/<span class="number">2    </span><span class="doccomment">/// subtraction assignment
-    </span><span class="string">&quot;!=&quot;          </span><span class="kw">pub struct </span>Ne/<span class="number">2         </span><span class="doccomment">/// not equal
-    </span><span class="string">&quot;!&quot;           </span><span class="kw">pub struct </span>Not/<span class="number">1        </span><span class="doccomment">/// bitwise and logical NOT, macro calls, inner attributes, never type, negative impls
-    </span><span class="string">&quot;|&quot;           </span><span class="kw">pub struct </span>Or/<span class="number">1         </span><span class="doccomment">/// bitwise and logical OR, closures, patterns in match, if let, and while let
-    </span><span class="string">&quot;|=&quot;          </span><span class="kw">pub struct </span>OrEq/<span class="number">2       </span><span class="doccomment">/// bitwise OR assignment
-    </span><span class="string">&quot;||&quot;          </span><span class="kw">pub struct </span>OrOr/<span class="number">2       </span><span class="doccomment">/// lazy OR, closures
-    </span><span class="string">&quot;::&quot;          </span><span class="kw">pub struct </span>PathSep/<span class="number">2    </span><span class="doccomment">/// path separator
-    </span><span class="string">&quot;%&quot;           </span><span class="kw">pub struct </span>Percent/<span class="number">1    </span><span class="doccomment">/// remainder
-    </span><span class="string">&quot;%=&quot;          </span><span class="kw">pub struct </span>PercentEq/<span class="number">2  </span><span class="doccomment">/// remainder assignment
-    </span><span class="string">&quot;+&quot;           </span><span class="kw">pub struct </span>Plus/<span class="number">1       </span><span class="doccomment">/// addition, trait bounds, macro Kleene matcher
-    </span><span class="string">&quot;+=&quot;          </span><span class="kw">pub struct </span>PlusEq/<span class="number">2     </span><span class="doccomment">/// addition assignment
-    </span><span class="string">&quot;#&quot;           </span><span class="kw">pub struct </span>Pound/<span class="number">1      </span><span class="doccomment">/// attributes
-    </span><span class="string">&quot;?&quot;           </span><span class="kw">pub struct </span>Question/<span class="number">1   </span><span class="doccomment">/// question mark operator, questionably sized, macro Kleene matcher
-    </span><span class="string">&quot;-&gt;&quot;          </span><span class="kw">pub struct </span>RArrow/<span class="number">2     </span><span class="doccomment">/// function return type, closure return type, function pointer type
-    </span><span class="string">&quot;;&quot;           </span><span class="kw">pub struct </span>Semi/<span class="number">1       </span><span class="doccomment">/// terminator for various items and statements, array types
-    </span><span class="string">&quot;&lt;&lt;&quot;          </span><span class="kw">pub struct </span>Shl/<span class="number">2        </span><span class="doccomment">/// shift left, nested generics
-    </span><span class="string">&quot;&lt;&lt;=&quot;         </span><span class="kw">pub struct </span>ShlEq/<span class="number">3      </span><span class="doccomment">/// shift left assignment
-    </span><span class="string">&quot;&gt;&gt;&quot;          </span><span class="kw">pub struct </span>Shr/<span class="number">2        </span><span class="doccomment">/// shift right, nested generics
-    </span><span class="string">&quot;&gt;&gt;=&quot;         </span><span class="kw">pub struct </span>ShrEq/<span class="number">3      </span><span class="doccomment">/// shift right assignment, nested generics
-    </span><span class="string">&quot;/&quot;           </span><span class="kw">pub struct </span>Slash/<span class="number">1      </span><span class="doccomment">/// division
-    </span><span class="string">&quot;/=&quot;          </span><span class="kw">pub struct </span>SlashEq/<span class="number">2    </span><span class="doccomment">/// division assignment
-    </span><span class="string">&quot;*&quot;           </span><span class="kw">pub struct </span>Star/<span class="number">1       </span><span class="doccomment">/// multiplication, dereference, raw pointers, macro Kleene matcher, use wildcards
-    </span><span class="string">&quot;*=&quot;          </span><span class="kw">pub struct </span>StarEq/<span class="number">2     </span><span class="doccomment">/// multiplication assignment
-    </span><span class="string">&quot;~&quot;           </span><span class="kw">pub struct </span>Tilde/<span class="number">1      </span><span class="doccomment">/// unused since before Rust 1.0
+    <span class="string">"&amp;"           </span><span class="kw">pub struct </span>And/<span class="number">1        </span><span class="doccomment">/// bitwise and logical AND, borrow, references, reference patterns
+    </span><span class="string">"&amp;&amp;"          </span><span class="kw">pub struct </span>AndAnd/<span class="number">2     </span><span class="doccomment">/// lazy AND, borrow, references, reference patterns
+    </span><span class="string">"&amp;="          </span><span class="kw">pub struct </span>AndEq/<span class="number">2      </span><span class="doccomment">/// bitwise AND assignment
+    </span><span class="string">"@"           </span><span class="kw">pub struct </span>At/<span class="number">1         </span><span class="doccomment">/// subpattern binding
+    </span><span class="string">"^"           </span><span class="kw">pub struct </span>Caret/<span class="number">1      </span><span class="doccomment">/// bitwise and logical XOR
+    </span><span class="string">"^="          </span><span class="kw">pub struct </span>CaretEq/<span class="number">2    </span><span class="doccomment">/// bitwise XOR assignment
+    </span><span class="string">":"           </span><span class="kw">pub struct </span>Colon/<span class="number">1      </span><span class="doccomment">/// various separators
+    </span><span class="string">","           </span><span class="kw">pub struct </span>Comma/<span class="number">1      </span><span class="doccomment">/// various separators
+    </span><span class="string">"$"           </span><span class="kw">pub struct </span>Dollar/<span class="number">1     </span><span class="doccomment">/// macros
+    </span><span class="string">"."           </span><span class="kw">pub struct </span>Dot/<span class="number">1        </span><span class="doccomment">/// field access, tuple index
+    </span><span class="string">".."          </span><span class="kw">pub struct </span>DotDot/<span class="number">2     </span><span class="doccomment">/// range, struct expressions, patterns, range patterns
+    </span><span class="string">"..."         </span><span class="kw">pub struct </span>DotDotDot/<span class="number">3  </span><span class="doccomment">/// variadic functions, range patterns
+    </span><span class="string">"..="         </span><span class="kw">pub struct </span>DotDotEq/<span class="number">3   </span><span class="doccomment">/// inclusive range, range patterns
+    </span><span class="string">"="           </span><span class="kw">pub struct </span>Eq/<span class="number">1         </span><span class="doccomment">/// assignment, attributes, various type definitions
+    </span><span class="string">"=="          </span><span class="kw">pub struct </span>EqEq/<span class="number">2       </span><span class="doccomment">/// equal
+    </span><span class="string">"=&gt;"          </span><span class="kw">pub struct </span>FatArrow/<span class="number">2   </span><span class="doccomment">/// match arms, macros
+    </span><span class="string">"&gt;="          </span><span class="kw">pub struct </span>Ge/<span class="number">2         </span><span class="doccomment">/// greater than or equal to, generics
+    </span><span class="string">"&gt;"           </span><span class="kw">pub struct </span>Gt/<span class="number">1         </span><span class="doccomment">/// greater than, generics, paths
+    </span><span class="string">"&lt;-"          </span><span class="kw">pub struct </span>LArrow/<span class="number">2     </span><span class="doccomment">/// unused
+    </span><span class="string">"&lt;="          </span><span class="kw">pub struct </span>Le/<span class="number">2         </span><span class="doccomment">/// less than or equal to
+    </span><span class="string">"&lt;"           </span><span class="kw">pub struct </span>Lt/<span class="number">1         </span><span class="doccomment">/// less than, generics, paths
+    </span><span class="string">"-"           </span><span class="kw">pub struct </span>Minus/<span class="number">1      </span><span class="doccomment">/// subtraction, negation
+    </span><span class="string">"-="          </span><span class="kw">pub struct </span>MinusEq/<span class="number">2    </span><span class="doccomment">/// subtraction assignment
+    </span><span class="string">"!="          </span><span class="kw">pub struct </span>Ne/<span class="number">2         </span><span class="doccomment">/// not equal
+    </span><span class="string">"!"           </span><span class="kw">pub struct </span>Not/<span class="number">1        </span><span class="doccomment">/// bitwise and logical NOT, macro calls, inner attributes, never type, negative impls
+    </span><span class="string">"|"           </span><span class="kw">pub struct </span>Or/<span class="number">1         </span><span class="doccomment">/// bitwise and logical OR, closures, patterns in match, if let, and while let
+    </span><span class="string">"|="          </span><span class="kw">pub struct </span>OrEq/<span class="number">2       </span><span class="doccomment">/// bitwise OR assignment
+    </span><span class="string">"||"          </span><span class="kw">pub struct </span>OrOr/<span class="number">2       </span><span class="doccomment">/// lazy OR, closures
+    </span><span class="string">"::"          </span><span class="kw">pub struct </span>PathSep/<span class="number">2    </span><span class="doccomment">/// path separator
+    </span><span class="string">"%"           </span><span class="kw">pub struct </span>Percent/<span class="number">1    </span><span class="doccomment">/// remainder
+    </span><span class="string">"%="          </span><span class="kw">pub struct </span>PercentEq/<span class="number">2  </span><span class="doccomment">/// remainder assignment
+    </span><span class="string">"+"           </span><span class="kw">pub struct </span>Plus/<span class="number">1       </span><span class="doccomment">/// addition, trait bounds, macro Kleene matcher
+    </span><span class="string">"+="          </span><span class="kw">pub struct </span>PlusEq/<span class="number">2     </span><span class="doccomment">/// addition assignment
+    </span><span class="string">"#"           </span><span class="kw">pub struct </span>Pound/<span class="number">1      </span><span class="doccomment">/// attributes
+    </span><span class="string">"?"           </span><span class="kw">pub struct </span>Question/<span class="number">1   </span><span class="doccomment">/// question mark operator, questionably sized, macro Kleene matcher
+    </span><span class="string">"-&gt;"          </span><span class="kw">pub struct </span>RArrow/<span class="number">2     </span><span class="doccomment">/// function return type, closure return type, function pointer type
+    </span><span class="string">";"           </span><span class="kw">pub struct </span>Semi/<span class="number">1       </span><span class="doccomment">/// terminator for various items and statements, array types
+    </span><span class="string">"&lt;&lt;"          </span><span class="kw">pub struct </span>Shl/<span class="number">2        </span><span class="doccomment">/// shift left, nested generics
+    </span><span class="string">"&lt;&lt;="         </span><span class="kw">pub struct </span>ShlEq/<span class="number">3      </span><span class="doccomment">/// shift left assignment
+    </span><span class="string">"&gt;&gt;"          </span><span class="kw">pub struct </span>Shr/<span class="number">2        </span><span class="doccomment">/// shift right, nested generics
+    </span><span class="string">"&gt;&gt;="         </span><span class="kw">pub struct </span>ShrEq/<span class="number">3      </span><span class="doccomment">/// shift right assignment, nested generics
+    </span><span class="string">"/"           </span><span class="kw">pub struct </span>Slash/<span class="number">1      </span><span class="doccomment">/// division
+    </span><span class="string">"/="          </span><span class="kw">pub struct </span>SlashEq/<span class="number">2    </span><span class="doccomment">/// division assignment
+    </span><span class="string">"*"           </span><span class="kw">pub struct </span>Star/<span class="number">1       </span><span class="doccomment">/// multiplication, dereference, raw pointers, macro Kleene matcher, use wildcards
+    </span><span class="string">"*="          </span><span class="kw">pub struct </span>StarEq/<span class="number">2     </span><span class="doccomment">/// multiplication assignment
+    </span><span class="string">"~"           </span><span class="kw">pub struct </span>Tilde/<span class="number">1      </span><span class="doccomment">/// unused since before Rust 1.0
 </span>}
 
 <span class="macro">define_delimiters! </span>{
@@ -2016,7 +2017,7 @@
 
 <span class="comment">// Not public API.
 </span><span class="attr">#[doc(hidden)]
-#[cfg(feature = <span class="string">&quot;parsing&quot;</span>)]
+#[cfg(feature = <span class="string">"parsing"</span>)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>parsing {
     <span class="kw">use </span><span class="kw">crate</span>::buffer::Cursor;
     <span class="kw">use </span><span class="kw">crate</span>::error::{Error, <span class="prelude-ty">Result</span>};
@@ -2030,7 +2031,7 @@
                     <span class="kw">return </span><span class="prelude-val">Ok</span>((ident.span(), rest));
                 }
             }
-            <span class="prelude-val">Err</span>(cursor.error(<span class="macro">format!</span>(<span class="string">&quot;expected `{}`&quot;</span>, token)))
+            <span class="prelude-val">Err</span>(cursor.error(<span class="macro">format!</span>(<span class="string">"expected `{}`"</span>, token)))
         })
     }
 
@@ -2070,7 +2071,7 @@
                 }
             }
 
-            <span class="prelude-val">Err</span>(Error::new(spans[<span class="number">0</span>], <span class="macro">format!</span>(<span class="string">&quot;expected `{}`&quot;</span>, token)))
+            <span class="prelude-val">Err</span>(Error::new(spans[<span class="number">0</span>], <span class="macro">format!</span>(<span class="string">"expected `{}`"</span>, token)))
         })
     }
 
@@ -2096,7 +2097,7 @@
 
 <span class="comment">// Not public API.
 </span><span class="attr">#[doc(hidden)]
-#[cfg(feature = <span class="string">&quot;printing&quot;</span>)]
+#[cfg(feature = <span class="string">"printing"</span>)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>printing {
     <span class="kw">use </span>proc_macro2::{Delimiter, Group, Ident, Punct, Spacing, Span, TokenStream};
     <span class="kw">use </span>quote::TokenStreamExt;

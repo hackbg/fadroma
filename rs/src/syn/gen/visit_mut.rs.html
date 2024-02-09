@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/syn-2.0.23/src/gen/visit_mut.rs`."><title>visit_mut.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="syn" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/syn-2.0.23/src/gen/visit_mut.rs`."><title>visit_mut.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="syn" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -3506,17 +3507,17 @@
 // It is not intended for manual editing.
 
 </span><span class="attr">#![allow(unused_variables)]
-#[cfg(any(feature = <span class="string">&quot;full&quot;</span>, feature = <span class="string">&quot;derive&quot;</span>))]
+#[cfg(any(feature = <span class="string">"full"</span>, feature = <span class="string">"derive"</span>))]
 </span><span class="kw">use </span><span class="kw">crate</span>::punctuated::Punctuated;
 <span class="kw">use crate</span>::<span class="kw-2">*</span>;
 <span class="kw">use </span>proc_macro2::Span;
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="macro">macro_rules! </span>full {
     (<span class="macro-nonterminal">$e</span>:expr) =&gt; {
         <span class="macro-nonterminal">$e
     </span>};
 }
-<span class="attr">#[cfg(all(feature = <span class="string">&quot;derive&quot;</span>, not(feature = <span class="string">&quot;full&quot;</span>)))]
+<span class="attr">#[cfg(all(feature = <span class="string">"derive"</span>, not(feature = <span class="string">"full"</span>)))]
 </span><span class="macro">macro_rules! </span>full {
     (<span class="macro-nonterminal">$e</span>:expr) =&gt; {
         <span class="macro">unreachable!</span>()
@@ -3532,412 +3533,412 @@
 ///
 /// [module documentation]: self
 </span><span class="kw">pub trait </span>VisitMut {
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_abi_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Abi) {
         visit_abi_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_angle_bracketed_generic_arguments_mut(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         i: <span class="kw-2">&amp;mut </span>AngleBracketedGenericArguments,
     ) {
         visit_angle_bracketed_generic_arguments_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_arm_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Arm) {
         visit_arm_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_assoc_const_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>AssocConst) {
         visit_assoc_const_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_assoc_type_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>AssocType) {
         visit_assoc_type_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_attr_style_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>AttrStyle) {
         visit_attr_style_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_attribute_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Attribute) {
         visit_attribute_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_bare_fn_arg_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>BareFnArg) {
         visit_bare_fn_arg_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_bare_variadic_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>BareVariadic) {
         visit_bare_variadic_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_bin_op_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>BinOp) {
         visit_bin_op_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_block_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Block) {
         visit_block_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_bound_lifetimes_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>BoundLifetimes) {
         visit_bound_lifetimes_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_const_param_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ConstParam) {
         visit_const_param_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_constraint_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Constraint) {
         visit_constraint_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;derive&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"derive"</span>)]
     </span><span class="kw">fn </span>visit_data_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Data) {
         visit_data_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;derive&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"derive"</span>)]
     </span><span class="kw">fn </span>visit_data_enum_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>DataEnum) {
         visit_data_enum_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;derive&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"derive"</span>)]
     </span><span class="kw">fn </span>visit_data_struct_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>DataStruct) {
         visit_data_struct_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;derive&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"derive"</span>)]
     </span><span class="kw">fn </span>visit_data_union_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>DataUnion) {
         visit_data_union_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;derive&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"derive"</span>)]
     </span><span class="kw">fn </span>visit_derive_input_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>DeriveInput) {
         visit_derive_input_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_expr_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Expr) {
         visit_expr_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_array_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprArray) {
         visit_expr_array_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_assign_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprAssign) {
         visit_expr_assign_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_async_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprAsync) {
         visit_expr_async_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_await_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprAwait) {
         visit_expr_await_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_expr_binary_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprBinary) {
         visit_expr_binary_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_block_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprBlock) {
         visit_expr_block_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_break_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprBreak) {
         visit_expr_break_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_expr_call_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprCall) {
         visit_expr_call_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_expr_cast_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprCast) {
         visit_expr_cast_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_closure_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprClosure) {
         visit_expr_closure_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_const_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprConst) {
         visit_expr_const_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_continue_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprContinue) {
         visit_expr_continue_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_expr_field_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprField) {
         visit_expr_field_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_for_loop_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprForLoop) {
         visit_expr_for_loop_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_expr_group_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprGroup) {
         visit_expr_group_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_if_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprIf) {
         visit_expr_if_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_expr_index_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprIndex) {
         visit_expr_index_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_infer_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprInfer) {
         visit_expr_infer_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_let_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprLet) {
         visit_expr_let_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_expr_lit_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprLit) {
         visit_expr_lit_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_loop_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprLoop) {
         visit_expr_loop_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_expr_macro_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprMacro) {
         visit_expr_macro_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_match_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprMatch) {
         visit_expr_match_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_method_call_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprMethodCall) {
         visit_expr_method_call_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_expr_paren_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprParen) {
         visit_expr_paren_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_expr_path_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprPath) {
         visit_expr_path_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_range_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprRange) {
         visit_expr_range_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_reference_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprReference) {
         visit_expr_reference_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_repeat_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprRepeat) {
         visit_expr_repeat_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_return_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprReturn) {
         visit_expr_return_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_struct_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprStruct) {
         visit_expr_struct_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_try_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprTry) {
         visit_expr_try_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_try_block_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprTryBlock) {
         visit_expr_try_block_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_tuple_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprTuple) {
         visit_expr_tuple_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_expr_unary_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprUnary) {
         visit_expr_unary_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_unsafe_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprUnsafe) {
         visit_expr_unsafe_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_while_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprWhile) {
         visit_expr_while_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_expr_yield_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ExprYield) {
         visit_expr_yield_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_field_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Field) {
         visit_field_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_field_mutability_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>FieldMutability) {
         visit_field_mutability_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_field_pat_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>FieldPat) {
         visit_field_pat_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_field_value_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>FieldValue) {
         visit_field_value_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_fields_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Fields) {
         visit_fields_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_fields_named_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>FieldsNamed) {
         visit_fields_named_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_fields_unnamed_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>FieldsUnnamed) {
         visit_fields_unnamed_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_file_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>File) {
         visit_file_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_fn_arg_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>FnArg) {
         visit_fn_arg_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_foreign_item_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ForeignItem) {
         visit_foreign_item_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_foreign_item_fn_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ForeignItemFn) {
         visit_foreign_item_fn_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_foreign_item_macro_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ForeignItemMacro) {
         visit_foreign_item_macro_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_foreign_item_static_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ForeignItemStatic) {
         visit_foreign_item_static_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_foreign_item_type_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ForeignItemType) {
         visit_foreign_item_type_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_generic_argument_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>GenericArgument) {
         visit_generic_argument_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_generic_param_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>GenericParam) {
         visit_generic_param_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_generics_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Generics) {
         visit_generics_mut(<span class="self">self</span>, i);
     }
     <span class="kw">fn </span>visit_ident_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Ident) {
         visit_ident_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_impl_item_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ImplItem) {
         visit_impl_item_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_impl_item_const_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ImplItemConst) {
         visit_impl_item_const_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_impl_item_fn_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ImplItemFn) {
         visit_impl_item_fn_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_impl_item_macro_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ImplItemMacro) {
         visit_impl_item_macro_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_impl_item_type_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ImplItemType) {
         visit_impl_item_type_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_impl_restriction_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ImplRestriction) {
         visit_impl_restriction_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_index_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Index) {
         visit_index_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_item_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Item) {
         visit_item_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_item_const_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ItemConst) {
         visit_item_const_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_item_enum_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ItemEnum) {
         visit_item_enum_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_item_extern_crate_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ItemExternCrate) {
         visit_item_extern_crate_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_item_fn_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ItemFn) {
         visit_item_fn_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_item_foreign_mod_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ItemForeignMod) {
         visit_item_foreign_mod_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_item_impl_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ItemImpl) {
         visit_item_impl_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_item_macro_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ItemMacro) {
         visit_item_macro_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_item_mod_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ItemMod) {
         visit_item_mod_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_item_static_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ItemStatic) {
         visit_item_static_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_item_struct_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ItemStruct) {
         visit_item_struct_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_item_trait_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ItemTrait) {
         visit_item_trait_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_item_trait_alias_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ItemTraitAlias) {
         visit_item_trait_alias_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_item_type_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ItemType) {
         visit_item_type_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_item_union_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ItemUnion) {
         visit_item_union_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_item_use_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ItemUse) {
         visit_item_use_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_label_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Label) {
         visit_label_mut(<span class="self">self</span>, i);
     }
     <span class="kw">fn </span>visit_lifetime_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Lifetime) {
         visit_lifetime_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_lifetime_param_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>LifetimeParam) {
         visit_lifetime_param_mut(<span class="self">self</span>, i);
     }
@@ -3965,298 +3966,298 @@
     <span class="kw">fn </span>visit_lit_str_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>LitStr) {
         visit_lit_str_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_local_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Local) {
         visit_local_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_local_init_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>LocalInit) {
         visit_local_init_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_macro_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Macro) {
         visit_macro_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_macro_delimiter_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>MacroDelimiter) {
         visit_macro_delimiter_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_member_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Member) {
         visit_member_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_meta_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Meta) {
         visit_meta_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_meta_list_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>MetaList) {
         visit_meta_list_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_meta_name_value_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>MetaNameValue) {
         visit_meta_name_value_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_parenthesized_generic_arguments_mut(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         i: <span class="kw-2">&amp;mut </span>ParenthesizedGenericArguments,
     ) {
         visit_parenthesized_generic_arguments_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_pat_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Pat) {
         visit_pat_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_pat_ident_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>PatIdent) {
         visit_pat_ident_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_pat_or_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>PatOr) {
         visit_pat_or_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_pat_paren_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>PatParen) {
         visit_pat_paren_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_pat_reference_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>PatReference) {
         visit_pat_reference_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_pat_rest_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>PatRest) {
         visit_pat_rest_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_pat_slice_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>PatSlice) {
         visit_pat_slice_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_pat_struct_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>PatStruct) {
         visit_pat_struct_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_pat_tuple_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>PatTuple) {
         visit_pat_tuple_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_pat_tuple_struct_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>PatTupleStruct) {
         visit_pat_tuple_struct_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_pat_type_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>PatType) {
         visit_pat_type_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_pat_wild_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>PatWild) {
         visit_pat_wild_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_path_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Path) {
         visit_path_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_path_arguments_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>PathArguments) {
         visit_path_arguments_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_path_segment_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>PathSegment) {
         visit_path_segment_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_predicate_lifetime_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>PredicateLifetime) {
         visit_predicate_lifetime_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_predicate_type_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>PredicateType) {
         visit_predicate_type_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_qself_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>QSelf) {
         visit_qself_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_range_limits_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>RangeLimits) {
         visit_range_limits_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_receiver_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Receiver) {
         visit_receiver_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_return_type_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>ReturnType) {
         visit_return_type_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_signature_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Signature) {
         visit_signature_mut(<span class="self">self</span>, i);
     }
     <span class="kw">fn </span>visit_span_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Span) {
         visit_span_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_static_mutability_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>StaticMutability) {
         visit_static_mutability_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_stmt_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Stmt) {
         visit_stmt_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_stmt_macro_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>StmtMacro) {
         visit_stmt_macro_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_trait_bound_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TraitBound) {
         visit_trait_bound_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_trait_bound_modifier_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TraitBoundModifier) {
         visit_trait_bound_modifier_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_trait_item_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TraitItem) {
         visit_trait_item_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_trait_item_const_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TraitItemConst) {
         visit_trait_item_const_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_trait_item_fn_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TraitItemFn) {
         visit_trait_item_fn_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_trait_item_macro_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TraitItemMacro) {
         visit_trait_item_macro_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_trait_item_type_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TraitItemType) {
         visit_trait_item_type_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_type_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Type) {
         visit_type_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_type_array_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TypeArray) {
         visit_type_array_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_type_bare_fn_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TypeBareFn) {
         visit_type_bare_fn_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_type_group_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TypeGroup) {
         visit_type_group_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_type_impl_trait_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TypeImplTrait) {
         visit_type_impl_trait_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_type_infer_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TypeInfer) {
         visit_type_infer_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_type_macro_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TypeMacro) {
         visit_type_macro_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_type_never_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TypeNever) {
         visit_type_never_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_type_param_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TypeParam) {
         visit_type_param_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_type_param_bound_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TypeParamBound) {
         visit_type_param_bound_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_type_paren_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TypeParen) {
         visit_type_paren_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_type_path_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TypePath) {
         visit_type_path_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_type_ptr_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TypePtr) {
         visit_type_ptr_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_type_reference_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TypeReference) {
         visit_type_reference_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_type_slice_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TypeSlice) {
         visit_type_slice_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_type_trait_object_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TypeTraitObject) {
         visit_type_trait_object_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_type_tuple_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>TypeTuple) {
         visit_type_tuple_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_un_op_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>UnOp) {
         visit_un_op_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_use_glob_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>UseGlob) {
         visit_use_glob_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_use_group_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>UseGroup) {
         visit_use_group_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_use_name_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>UseName) {
         visit_use_name_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_use_path_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>UsePath) {
         visit_use_path_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_use_rename_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>UseRename) {
         visit_use_rename_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_use_tree_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>UseTree) {
         visit_use_tree_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+    <span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
     </span><span class="kw">fn </span>visit_variadic_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Variadic) {
         visit_variadic_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_variant_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Variant) {
         visit_variant_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_vis_restricted_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>VisRestricted) {
         visit_vis_restricted_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_visibility_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>Visibility) {
         visit_visibility_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_where_clause_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>WhereClause) {
         visit_where_clause_mut(<span class="self">self</span>, i);
     }
-    <span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+    <span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
     </span><span class="kw">fn </span>visit_where_predicate_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>, i: <span class="kw-2">&amp;mut </span>WherePredicate) {
         visit_where_predicate_mut(<span class="self">self</span>, i);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_abi_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Abi)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4266,7 +4267,7 @@
         v.visit_lit_str_mut(it);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_angle_bracketed_generic_arguments_mut&lt;V&gt;(
     v: <span class="kw-2">&amp;mut </span>V,
     node: <span class="kw-2">&amp;mut </span>AngleBracketedGenericArguments,
@@ -4282,7 +4283,7 @@
     }
     <span class="macro">skip!</span>(node.gt_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_arm_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Arm)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4299,7 +4300,7 @@
     v.visit_expr_mut(<span class="kw-2">&amp;mut *</span>node.body);
     <span class="macro">skip!</span>(node.comma);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_assoc_const_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>AssocConst)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4311,7 +4312,7 @@
     <span class="macro">skip!</span>(node.eq_token);
     v.visit_expr_mut(<span class="kw-2">&amp;mut </span>node.value);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_assoc_type_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>AssocType)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4323,7 +4324,7 @@
     <span class="macro">skip!</span>(node.eq_token);
     v.visit_type_mut(<span class="kw-2">&amp;mut </span>node.ty);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_attr_style_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>AttrStyle)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4335,7 +4336,7 @@
         }
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_attribute_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Attribute)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4345,7 +4346,7 @@
     <span class="macro">skip!</span>(node.bracket_token);
     v.visit_meta_mut(<span class="kw-2">&amp;mut </span>node.meta);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_bare_fn_arg_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>BareFnArg)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4359,7 +4360,7 @@
     }
     v.visit_type_mut(<span class="kw-2">&amp;mut </span>node.ty);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_bare_variadic_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>BareVariadic)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4374,7 +4375,7 @@
     <span class="macro">skip!</span>(node.dots);
     <span class="macro">skip!</span>(node.comma);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_bin_op_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>BinOp)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4466,7 +4467,7 @@
         }
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_block_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Block)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4476,7 +4477,7 @@
         v.visit_stmt_mut(it);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_bound_lifetimes_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>BoundLifetimes)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4489,7 +4490,7 @@
     }
     <span class="macro">skip!</span>(node.gt_token);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_const_param_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ConstParam)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4506,7 +4507,7 @@
         v.visit_expr_mut(it);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_constraint_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Constraint)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4521,7 +4522,7 @@
         v.visit_type_param_bound_mut(it);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;derive&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"derive"</span>)]
 </span><span class="kw">pub fn </span>visit_data_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Data)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4538,7 +4539,7 @@
         }
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;derive&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"derive"</span>)]
 </span><span class="kw">pub fn </span>visit_data_enum_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>DataEnum)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4550,7 +4551,7 @@
         v.visit_variant_mut(it);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;derive&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"derive"</span>)]
 </span><span class="kw">pub fn </span>visit_data_struct_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>DataStruct)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4559,7 +4560,7 @@
     v.visit_fields_mut(<span class="kw-2">&amp;mut </span>node.fields);
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;derive&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"derive"</span>)]
 </span><span class="kw">pub fn </span>visit_data_union_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>DataUnion)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4567,7 +4568,7 @@
     <span class="macro">skip!</span>(node.union_token);
     v.visit_fields_named_mut(<span class="kw-2">&amp;mut </span>node.fields);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;derive&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"derive"</span>)]
 </span><span class="kw">pub fn </span>visit_derive_input_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>DeriveInput)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4580,7 +4581,7 @@
     v.visit_generics_mut(<span class="kw-2">&amp;mut </span>node.generics);
     v.visit_data_mut(<span class="kw-2">&amp;mut </span>node.data);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_expr_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Expr)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4705,7 +4706,7 @@
         }
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_array_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprArray)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4719,7 +4720,7 @@
         v.visit_expr_mut(it);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_assign_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprAssign)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4731,7 +4732,7 @@
     <span class="macro">skip!</span>(node.eq_token);
     v.visit_expr_mut(<span class="kw-2">&amp;mut *</span>node.right);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_async_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprAsync)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4743,7 +4744,7 @@
     <span class="macro">skip!</span>(node.capture);
     v.visit_block_mut(<span class="kw-2">&amp;mut </span>node.block);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_await_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprAwait)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4755,7 +4756,7 @@
     <span class="macro">skip!</span>(node.dot_token);
     <span class="macro">skip!</span>(node.await_token);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_expr_binary_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprBinary)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4767,7 +4768,7 @@
     v.visit_bin_op_mut(<span class="kw-2">&amp;mut </span>node.op);
     v.visit_expr_mut(<span class="kw-2">&amp;mut *</span>node.right);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_block_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprBlock)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4780,7 +4781,7 @@
     }
     v.visit_block_mut(<span class="kw-2">&amp;mut </span>node.block);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_break_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprBreak)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4796,7 +4797,7 @@
         v.visit_expr_mut(<span class="kw-2">&amp;mut **</span>it);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_expr_call_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprCall)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4811,7 +4812,7 @@
         v.visit_expr_mut(it);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_expr_cast_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprCast)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4823,7 +4824,7 @@
     <span class="macro">skip!</span>(node.as_token);
     v.visit_type_mut(<span class="kw-2">&amp;mut *</span>node.ty);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_closure_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprClosure)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4847,7 +4848,7 @@
     v.visit_return_type_mut(<span class="kw-2">&amp;mut </span>node.output);
     v.visit_expr_mut(<span class="kw-2">&amp;mut *</span>node.body);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_const_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprConst)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4858,7 +4859,7 @@
     <span class="macro">skip!</span>(node.const_token);
     v.visit_block_mut(<span class="kw-2">&amp;mut </span>node.block);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_continue_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprContinue)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4871,7 +4872,7 @@
         v.visit_lifetime_mut(it);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_expr_field_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprField)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4883,7 +4884,7 @@
     <span class="macro">skip!</span>(node.dot_token);
     v.visit_member_mut(<span class="kw-2">&amp;mut </span>node.member);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_for_loop_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprForLoop)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4900,7 +4901,7 @@
     v.visit_expr_mut(<span class="kw-2">&amp;mut *</span>node.expr);
     v.visit_block_mut(<span class="kw-2">&amp;mut </span>node.body);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_expr_group_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprGroup)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4911,7 +4912,7 @@
     <span class="macro">skip!</span>(node.group_token);
     v.visit_expr_mut(<span class="kw-2">&amp;mut *</span>node.expr);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_if_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprIf)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4927,7 +4928,7 @@
         v.visit_expr_mut(<span class="kw-2">&amp;mut *</span>(it).<span class="number">1</span>);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_expr_index_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprIndex)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4939,7 +4940,7 @@
     <span class="macro">skip!</span>(node.bracket_token);
     v.visit_expr_mut(<span class="kw-2">&amp;mut *</span>node.index);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_infer_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprInfer)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4949,7 +4950,7 @@
     }
     <span class="macro">skip!</span>(node.underscore_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_let_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprLet)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4962,7 +4963,7 @@
     <span class="macro">skip!</span>(node.eq_token);
     v.visit_expr_mut(<span class="kw-2">&amp;mut *</span>node.expr);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_expr_lit_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprLit)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4972,7 +4973,7 @@
     }
     v.visit_lit_mut(<span class="kw-2">&amp;mut </span>node.lit);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_loop_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprLoop)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4986,7 +4987,7 @@
     <span class="macro">skip!</span>(node.loop_token);
     v.visit_block_mut(<span class="kw-2">&amp;mut </span>node.body);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_expr_macro_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprMacro)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -4996,7 +4997,7 @@
     }
     v.visit_macro_mut(<span class="kw-2">&amp;mut </span>node.mac);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_match_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprMatch)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5011,7 +5012,7 @@
         v.visit_arm_mut(it);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_method_call_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprMethodCall)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5031,7 +5032,7 @@
         v.visit_expr_mut(it);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_expr_paren_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprParen)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5042,7 +5043,7 @@
     <span class="macro">skip!</span>(node.paren_token);
     v.visit_expr_mut(<span class="kw-2">&amp;mut *</span>node.expr);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_expr_path_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprPath)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5055,7 +5056,7 @@
     }
     v.visit_path_mut(<span class="kw-2">&amp;mut </span>node.path);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_range_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprRange)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5071,7 +5072,7 @@
         v.visit_expr_mut(<span class="kw-2">&amp;mut **</span>it);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_reference_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprReference)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5083,7 +5084,7 @@
     <span class="macro">skip!</span>(node.mutability);
     v.visit_expr_mut(<span class="kw-2">&amp;mut *</span>node.expr);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_repeat_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprRepeat)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5096,7 +5097,7 @@
     <span class="macro">skip!</span>(node.semi_token);
     v.visit_expr_mut(<span class="kw-2">&amp;mut *</span>node.len);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_return_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprReturn)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5109,7 +5110,7 @@
         v.visit_expr_mut(<span class="kw-2">&amp;mut **</span>it);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_struct_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprStruct)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5131,7 +5132,7 @@
         v.visit_expr_mut(<span class="kw-2">&amp;mut **</span>it);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_try_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprTry)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5142,7 +5143,7 @@
     v.visit_expr_mut(<span class="kw-2">&amp;mut *</span>node.expr);
     <span class="macro">skip!</span>(node.question_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_try_block_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprTryBlock)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5153,7 +5154,7 @@
     <span class="macro">skip!</span>(node.try_token);
     v.visit_block_mut(<span class="kw-2">&amp;mut </span>node.block);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_tuple_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprTuple)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5167,7 +5168,7 @@
         v.visit_expr_mut(it);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_expr_unary_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprUnary)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5178,7 +5179,7 @@
     v.visit_un_op_mut(<span class="kw-2">&amp;mut </span>node.op);
     v.visit_expr_mut(<span class="kw-2">&amp;mut *</span>node.expr);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_unsafe_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprUnsafe)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5189,7 +5190,7 @@
     <span class="macro">skip!</span>(node.unsafe_token);
     v.visit_block_mut(<span class="kw-2">&amp;mut </span>node.block);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_while_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprWhile)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5204,7 +5205,7 @@
     v.visit_expr_mut(<span class="kw-2">&amp;mut *</span>node.cond);
     v.visit_block_mut(<span class="kw-2">&amp;mut </span>node.body);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_expr_yield_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ExprYield)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5217,7 +5218,7 @@
         v.visit_expr_mut(<span class="kw-2">&amp;mut **</span>it);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_field_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Field)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5233,7 +5234,7 @@
     <span class="macro">skip!</span>(node.colon_token);
     v.visit_type_mut(<span class="kw-2">&amp;mut </span>node.ty);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_field_mutability_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>FieldMutability)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5242,7 +5243,7 @@
         FieldMutability::None =&gt; {}
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_field_pat_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>FieldPat)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5254,7 +5255,7 @@
     <span class="macro">skip!</span>(node.colon_token);
     v.visit_pat_mut(<span class="kw-2">&amp;mut *</span>node.pat);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_field_value_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>FieldValue)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5266,7 +5267,7 @@
     <span class="macro">skip!</span>(node.colon_token);
     v.visit_expr_mut(<span class="kw-2">&amp;mut </span>node.expr);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_fields_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Fields)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5281,7 +5282,7 @@
         Fields::Unit =&gt; {}
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_fields_named_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>FieldsNamed)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5292,7 +5293,7 @@
         v.visit_field_mut(it);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_fields_unnamed_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>FieldsUnnamed)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5303,7 +5304,7 @@
         v.visit_field_mut(it);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_file_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>File)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5316,7 +5317,7 @@
         v.visit_item_mut(it);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_fn_arg_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>FnArg)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5330,7 +5331,7 @@
         }
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_foreign_item_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ForeignItem)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5353,7 +5354,7 @@
         }
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_foreign_item_fn_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ForeignItemFn)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5365,7 +5366,7 @@
     v.visit_signature_mut(<span class="kw-2">&amp;mut </span>node.sig);
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_foreign_item_macro_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ForeignItemMacro)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5376,7 +5377,7 @@
     v.visit_macro_mut(<span class="kw-2">&amp;mut </span>node.mac);
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_foreign_item_static_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ForeignItemStatic)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5392,7 +5393,7 @@
     v.visit_type_mut(<span class="kw-2">&amp;mut *</span>node.ty);
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_foreign_item_type_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ForeignItemType)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5406,7 +5407,7 @@
     v.visit_generics_mut(<span class="kw-2">&amp;mut </span>node.generics);
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_generic_argument_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>GenericArgument)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5432,7 +5433,7 @@
         }
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_generic_param_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>GenericParam)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5449,7 +5450,7 @@
         }
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_generics_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Generics)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5472,7 +5473,7 @@
     v.visit_span_mut(<span class="kw-2">&amp;mut </span>span);
     node.set_span(span);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_impl_item_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ImplItem)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5495,7 +5496,7 @@
         }
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_impl_item_const_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ImplItemConst)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5514,7 +5515,7 @@
     v.visit_expr_mut(<span class="kw-2">&amp;mut </span>node.expr);
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_impl_item_fn_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ImplItemFn)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5527,7 +5528,7 @@
     v.visit_signature_mut(<span class="kw-2">&amp;mut </span>node.sig);
     v.visit_block_mut(<span class="kw-2">&amp;mut </span>node.block);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_impl_item_macro_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ImplItemMacro)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5538,7 +5539,7 @@
     v.visit_macro_mut(<span class="kw-2">&amp;mut </span>node.mac);
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_impl_item_type_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ImplItemType)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5555,14 +5556,14 @@
     v.visit_type_mut(<span class="kw-2">&amp;mut </span>node.ty);
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_impl_restriction_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ImplRestriction)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
 {
     <span class="kw">match </span><span class="kw-2">*</span>node {}
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_index_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Index)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5570,7 +5571,7 @@
     <span class="macro">skip!</span>(node.index);
     v.visit_span_mut(<span class="kw-2">&amp;mut </span>node.span);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_item_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Item)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5626,7 +5627,7 @@
         }
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_item_const_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ItemConst)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5644,7 +5645,7 @@
     v.visit_expr_mut(<span class="kw-2">&amp;mut *</span>node.expr);
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_item_enum_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ItemEnum)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5662,7 +5663,7 @@
         v.visit_variant_mut(it);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_item_extern_crate_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ItemExternCrate)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5680,7 +5681,7 @@
     }
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_item_fn_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ItemFn)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5692,7 +5693,7 @@
     v.visit_signature_mut(<span class="kw-2">&amp;mut </span>node.sig);
     v.visit_block_mut(<span class="kw-2">&amp;mut *</span>node.block);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_item_foreign_mod_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ItemForeignMod)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5707,7 +5708,7 @@
         v.visit_foreign_item_mut(it);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_item_impl_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ItemImpl)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5730,7 +5731,7 @@
         v.visit_impl_item_mut(it);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_item_macro_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ItemMacro)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5744,7 +5745,7 @@
     v.visit_macro_mut(<span class="kw-2">&amp;mut </span>node.mac);
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_item_mod_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ItemMod)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5764,7 +5765,7 @@
     }
     <span class="macro">skip!</span>(node.semi);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_item_static_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ItemStatic)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5782,7 +5783,7 @@
     v.visit_expr_mut(<span class="kw-2">&amp;mut *</span>node.expr);
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_item_struct_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ItemStruct)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5797,7 +5798,7 @@
     v.visit_fields_mut(<span class="kw-2">&amp;mut </span>node.fields);
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_item_trait_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ItemTrait)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5824,7 +5825,7 @@
         v.visit_trait_item_mut(it);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_item_trait_alias_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ItemTraitAlias)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5843,7 +5844,7 @@
     }
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_item_type_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ItemType)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5859,7 +5860,7 @@
     v.visit_type_mut(<span class="kw-2">&amp;mut *</span>node.ty);
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_item_union_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ItemUnion)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5873,7 +5874,7 @@
     v.visit_generics_mut(<span class="kw-2">&amp;mut </span>node.generics);
     v.visit_fields_named_mut(<span class="kw-2">&amp;mut </span>node.fields);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_item_use_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ItemUse)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5887,7 +5888,7 @@
     v.visit_use_tree_mut(<span class="kw-2">&amp;mut </span>node.tree);
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_label_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Label)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5902,7 +5903,7 @@
     v.visit_span_mut(<span class="kw-2">&amp;mut </span>node.apostrophe);
     v.visit_ident_mut(<span class="kw-2">&amp;mut </span>node.ident);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_lifetime_param_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>LifetimeParam)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5979,7 +5980,7 @@
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
 {}
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_local_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Local)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -5994,7 +5995,7 @@
     }
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_local_init_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>LocalInit)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6006,7 +6007,7 @@
         v.visit_expr_mut(<span class="kw-2">&amp;mut *</span>(it).<span class="number">1</span>);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_macro_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Macro)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6016,7 +6017,7 @@
     v.visit_macro_delimiter_mut(<span class="kw-2">&amp;mut </span>node.delimiter);
     <span class="macro">skip!</span>(node.tokens);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_macro_delimiter_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>MacroDelimiter)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6033,7 +6034,7 @@
         }
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_member_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Member)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6047,7 +6048,7 @@
         }
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_meta_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Meta)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6064,7 +6065,7 @@
         }
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_meta_list_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>MetaList)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6073,7 +6074,7 @@
     v.visit_macro_delimiter_mut(<span class="kw-2">&amp;mut </span>node.delimiter);
     <span class="macro">skip!</span>(node.tokens);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_meta_name_value_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>MetaNameValue)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6082,7 +6083,7 @@
     <span class="macro">skip!</span>(node.eq_token);
     v.visit_expr_mut(<span class="kw-2">&amp;mut </span>node.value);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_parenthesized_generic_arguments_mut&lt;V&gt;(
     v: <span class="kw-2">&amp;mut </span>V,
     node: <span class="kw-2">&amp;mut </span>ParenthesizedGenericArguments,
@@ -6097,7 +6098,7 @@
     }
     v.visit_return_type_mut(<span class="kw-2">&amp;mut </span>node.output);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_pat_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Pat)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6156,7 +6157,7 @@
         }
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_pat_ident_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>PatIdent)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6172,7 +6173,7 @@
         v.visit_pat_mut(<span class="kw-2">&amp;mut *</span>(it).<span class="number">1</span>);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_pat_or_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>PatOr)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6186,7 +6187,7 @@
         v.visit_pat_mut(it);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_pat_paren_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>PatParen)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6197,7 +6198,7 @@
     <span class="macro">skip!</span>(node.paren_token);
     v.visit_pat_mut(<span class="kw-2">&amp;mut *</span>node.pat);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_pat_reference_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>PatReference)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6209,7 +6210,7 @@
     <span class="macro">skip!</span>(node.mutability);
     v.visit_pat_mut(<span class="kw-2">&amp;mut *</span>node.pat);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_pat_rest_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>PatRest)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6219,7 +6220,7 @@
     }
     <span class="macro">skip!</span>(node.dot2_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_pat_slice_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>PatSlice)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6233,7 +6234,7 @@
         v.visit_pat_mut(it);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_pat_struct_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>PatStruct)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6254,7 +6255,7 @@
         v.visit_pat_rest_mut(it);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_pat_tuple_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>PatTuple)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6268,7 +6269,7 @@
         v.visit_pat_mut(it);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_pat_tuple_struct_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>PatTupleStruct)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6286,7 +6287,7 @@
         v.visit_pat_mut(it);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_pat_type_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>PatType)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6298,7 +6299,7 @@
     <span class="macro">skip!</span>(node.colon_token);
     v.visit_type_mut(<span class="kw-2">&amp;mut *</span>node.ty);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_pat_wild_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>PatWild)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6308,7 +6309,7 @@
     }
     <span class="macro">skip!</span>(node.underscore_token);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_path_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Path)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6319,7 +6320,7 @@
         v.visit_path_segment_mut(it);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_path_arguments_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>PathArguments)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6334,7 +6335,7 @@
         }
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_path_segment_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>PathSegment)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6342,7 +6343,7 @@
     v.visit_ident_mut(<span class="kw-2">&amp;mut </span>node.ident);
     v.visit_path_arguments_mut(<span class="kw-2">&amp;mut </span>node.arguments);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_predicate_lifetime_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>PredicateLifetime)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6354,7 +6355,7 @@
         v.visit_lifetime_mut(it);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_predicate_type_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>PredicateType)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6369,7 +6370,7 @@
         v.visit_type_param_bound_mut(it);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_qself_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>QSelf)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6380,7 +6381,7 @@
     <span class="macro">skip!</span>(node.as_token);
     <span class="macro">skip!</span>(node.gt_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_range_limits_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>RangeLimits)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6394,7 +6395,7 @@
         }
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_receiver_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Receiver)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6413,7 +6414,7 @@
     <span class="macro">skip!</span>(node.colon_token);
     v.visit_type_mut(<span class="kw-2">&amp;mut *</span>node.ty);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_return_type_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>ReturnType)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6426,7 +6427,7 @@
         }
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_signature_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Signature)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6454,7 +6455,7 @@
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
 {}
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_static_mutability_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>StaticMutability)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6466,7 +6467,7 @@
         StaticMutability::None =&gt; {}
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_stmt_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Stmt)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6487,7 +6488,7 @@
         }
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_stmt_macro_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>StmtMacro)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6498,7 +6499,7 @@
     v.visit_macro_mut(<span class="kw-2">&amp;mut </span>node.mac);
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_trait_bound_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TraitBound)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6510,7 +6511,7 @@
     }
     v.visit_path_mut(<span class="kw-2">&amp;mut </span>node.path);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_trait_bound_modifier_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TraitBoundModifier)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6522,7 +6523,7 @@
         }
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_trait_item_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TraitItem)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6545,7 +6546,7 @@
         }
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_trait_item_const_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TraitItemConst)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6564,7 +6565,7 @@
     }
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_trait_item_fn_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TraitItemFn)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6578,7 +6579,7 @@
     }
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_trait_item_macro_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TraitItemMacro)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6589,7 +6590,7 @@
     v.visit_macro_mut(<span class="kw-2">&amp;mut </span>node.mac);
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_trait_item_type_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TraitItemType)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6611,7 +6612,7 @@
     }
     <span class="macro">skip!</span>(node.semi_token);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_type_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Type)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6664,7 +6665,7 @@
         }
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_type_array_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TypeArray)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6674,7 +6675,7 @@
     <span class="macro">skip!</span>(node.semi_token);
     v.visit_expr_mut(<span class="kw-2">&amp;mut </span>node.len);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_type_bare_fn_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TypeBareFn)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6697,7 +6698,7 @@
     }
     v.visit_return_type_mut(<span class="kw-2">&amp;mut </span>node.output);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_type_group_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TypeGroup)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6705,7 +6706,7 @@
     <span class="macro">skip!</span>(node.group_token);
     v.visit_type_mut(<span class="kw-2">&amp;mut *</span>node.elem);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_type_impl_trait_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TypeImplTrait)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6716,28 +6717,28 @@
         v.visit_type_param_bound_mut(it);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_type_infer_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TypeInfer)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
 {
     <span class="macro">skip!</span>(node.underscore_token);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_type_macro_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TypeMacro)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
 {
     v.visit_macro_mut(<span class="kw-2">&amp;mut </span>node.mac);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_type_never_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TypeNever)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
 {
     <span class="macro">skip!</span>(node.bang_token);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_type_param_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TypeParam)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6756,7 +6757,7 @@
         v.visit_type_mut(it);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_type_param_bound_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TypeParamBound)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6773,7 +6774,7 @@
         }
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_type_paren_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TypeParen)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6781,7 +6782,7 @@
     <span class="macro">skip!</span>(node.paren_token);
     v.visit_type_mut(<span class="kw-2">&amp;mut *</span>node.elem);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_type_path_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TypePath)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6791,7 +6792,7 @@
     }
     v.visit_path_mut(<span class="kw-2">&amp;mut </span>node.path);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_type_ptr_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TypePtr)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6801,7 +6802,7 @@
     <span class="macro">skip!</span>(node.mutability);
     v.visit_type_mut(<span class="kw-2">&amp;mut *</span>node.elem);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_type_reference_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TypeReference)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6813,7 +6814,7 @@
     <span class="macro">skip!</span>(node.mutability);
     v.visit_type_mut(<span class="kw-2">&amp;mut *</span>node.elem);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_type_slice_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TypeSlice)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6821,7 +6822,7 @@
     <span class="macro">skip!</span>(node.bracket_token);
     v.visit_type_mut(<span class="kw-2">&amp;mut *</span>node.elem);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_type_trait_object_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TypeTraitObject)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6832,7 +6833,7 @@
         v.visit_type_param_bound_mut(it);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_type_tuple_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>TypeTuple)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6843,7 +6844,7 @@
         v.visit_type_mut(it);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_un_op_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>UnOp)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6860,14 +6861,14 @@
         }
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_use_glob_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>UseGlob)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
 {
     <span class="macro">skip!</span>(node.star_token);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_use_group_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>UseGroup)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6878,14 +6879,14 @@
         v.visit_use_tree_mut(it);
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_use_name_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>UseName)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
 {
     v.visit_ident_mut(<span class="kw-2">&amp;mut </span>node.ident);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_use_path_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>UsePath)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6894,7 +6895,7 @@
     <span class="macro">skip!</span>(node.colon2_token);
     v.visit_use_tree_mut(<span class="kw-2">&amp;mut *</span>node.tree);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_use_rename_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>UseRename)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6903,7 +6904,7 @@
     <span class="macro">skip!</span>(node.as_token);
     v.visit_ident_mut(<span class="kw-2">&amp;mut </span>node.rename);
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_use_tree_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>UseTree)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6926,7 +6927,7 @@
         }
     }
 }
-<span class="attr">#[cfg(feature = <span class="string">&quot;full&quot;</span>)]
+<span class="attr">#[cfg(feature = <span class="string">"full"</span>)]
 </span><span class="kw">pub fn </span>visit_variadic_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Variadic)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6941,7 +6942,7 @@
     <span class="macro">skip!</span>(node.dots);
     <span class="macro">skip!</span>(node.comma);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_variant_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Variant)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6956,7 +6957,7 @@
         v.visit_expr_mut(<span class="kw-2">&amp;mut </span>(it).<span class="number">1</span>);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_vis_restricted_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>VisRestricted)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6966,7 +6967,7 @@
     <span class="macro">skip!</span>(node.in_token);
     v.visit_path_mut(<span class="kw-2">&amp;mut *</span>node.path);
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_visibility_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>Visibility)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6981,7 +6982,7 @@
         Visibility::Inherited =&gt; {}
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_where_clause_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>WhereClause)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
@@ -6992,7 +6993,7 @@
         v.visit_where_predicate_mut(it);
     }
 }
-<span class="attr">#[cfg(any(feature = <span class="string">&quot;derive&quot;</span>, feature = <span class="string">&quot;full&quot;</span>))]
+<span class="attr">#[cfg(any(feature = <span class="string">"derive"</span>, feature = <span class="string">"full"</span>))]
 </span><span class="kw">pub fn </span>visit_where_predicate_mut&lt;V&gt;(v: <span class="kw-2">&amp;mut </span>V, node: <span class="kw-2">&amp;mut </span>WherePredicate)
 <span class="kw">where
     </span>V: VisitMut + <span class="question-mark">?</span>Sized,
