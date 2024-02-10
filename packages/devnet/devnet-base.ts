@@ -17,7 +17,7 @@ export const packageRoot = new Path(
 /** Version of Fadroma in use. */
 export const {
   name: packageName, version: packageVersion,
-} = new SyncFS.File(packageRoot, '..', 'package.json').setFormat(FileFormat.JSON).load() as {
+} = new SyncFS.File(packageRoot, 'package.json').setFormat(FileFormat.JSON).load() as {
   name: string, version: string
 }
 
