@@ -56,7 +56,7 @@ services:
     HOST:   "unix:///var/run/docker.sock"
     MIRROR: "http://127.0.0.1:5000"
   commands:
-    - nohup dockerd --dns 1.1.1.1 --rootless=true --bridge=none --iptables=false --data-root "$DATA" --host="$HOST" --registry-mirror "$MIRROR" &
+    - dockerd --dns 1.1.1.1 --rootless=true --bridge=none --iptables=false --data-root "$DATA" --host="$HOST" --registry-mirror "$MIRROR"
 steps:
 - name: submodules
   image: alpine/git
