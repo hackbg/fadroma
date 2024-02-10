@@ -53,10 +53,9 @@ services:
   environment:
     # Temporary docker daemon:
     DATA:   "/var/lib/docker"
-    HOST:   "unix:///var/run/docker.sock"
     MIRROR: "http://127.0.0.1:5000"
   commands:
-    - dockerd --dns 1.1.1.1 --rootless=true --bridge=none --iptables=false --data-root "$DATA" --host="$HOST" --registry-mirror "$MIRROR"
+    - dockerd --dns 1.1.1.1 --rootless=true --bridge=none --iptables=false --data-root "$DATA" --registry-mirror "$MIRROR"
 steps:
 - name: submodules
   image: alpine/git
