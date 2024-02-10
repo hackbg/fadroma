@@ -5,12 +5,8 @@ import { Suite } from '@hackbg/ensuite'
 export default new Suite([
   ['agent',   () => import('./packages/agent/agent.test')],
   ['stores',  () => import('./stores.test')],
-  ['scrt',    () =>
-    //@ts-ignore
-    import('./scrt/scrt.test')],
-  ['cw',      () =>
-    //@ts-ignore
-    import('./cw/cw.test')],
+  ['scrt',    () => import('./packages/scrt/scrt.test')],
+  ['cw',      () => import('./packages/cw/cw.test')],
   //['oci',     () =>
     //@ts-ignore
     //import('./oci/oci.test')],
