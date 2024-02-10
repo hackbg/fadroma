@@ -57,7 +57,13 @@ steps:
 - name: test
   image: ghcr.io/hackbg/fadroma:v2
   volumes: [ { name: cache, path: "/var/build/cache" } ]
+  environment:
+    # Temporary docker daemon:
+    DATA:   "/var/lib/docker"
+    HOST:   "unix:///var/run/docker.sock"
+    MIRROR: "http://127.0.0.1:5000"
   commands:
+  - nohup dockerd --dns 1.1.1.1 --rootless=true --bridge=none --iptables=false --data-root "$DATA" --host="$HOST" --registry-mirror "$MIRROR" &
   - export BRANCH="$(cat BRANCH | tr '/' '_' | tr '\n' ' ')"
   - echo $BRANCH
 
