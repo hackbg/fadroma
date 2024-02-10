@@ -50,6 +50,7 @@ trigger: { event: [ push ], branch: [ v2 ] }
 services:
 - name: docker
   image: docker:24.0.7-alpine3.18
+  privileged: true
   environment:
     # Temporary docker daemon:
     DATA:   "/var/lib/docker"
