@@ -3,7 +3,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import { Suite } from '@hackbg/ensuite'
 export default new Suite([
-  ['agent',   () => import('./agent/agent.test')],
+  ['agent',   () => import('./packages/agent/agent.test')],
   ['stores',  () => import('./stores.test')],
   ['scrt',    () =>
     //@ts-ignore
@@ -16,7 +16,7 @@ export default new Suite([
     //import('./oci/oci.test')],
 
   // When running sequentially, these should go last, as they are the slowest.
-  ['devnet',  () => import('./devnet/devnet.test')],
-  ['compile', () => import('./compile/compile.test')],
-  ['create',  () => import('./create/create.test')],
+  ['devnet',  () => import('./packages/devnet/devnet.test')],
+  ['compile', () => import('./packages/compile/compile.test')],
+  ['create',  () => import('./packages/create/create.test')],
 ])
