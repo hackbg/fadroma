@@ -4,8 +4,8 @@
     "*.dist.*",
     "node_modules",
     "toolbox/ganesha",
-    "cw/cosmjs-esm",
-    "scrt/secretjs-esm"
+    "packages/cosmjs-esm",
+    "packages/secretjs-esm"
   ],
   "compilerOptions": {
     "target": "esnext",
