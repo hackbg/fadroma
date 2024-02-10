@@ -68,7 +68,7 @@ steps:
   image: ghcr.io/hackbg/fadroma:v2
   volumes: [ { name: cache, path: "/data/ci-cache" } ]
   environment:
-    DOCKER_HOST: "tcp://docker"
+    DOCKER_HOST: "tcp://docker:2375"
   commands:
   - export BRANCH="$(cat BRANCH | tr '/' '_' | tr '\n' ' ')"
   - echo $BRANCH
