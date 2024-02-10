@@ -19,7 +19,7 @@ authors = [
 ]
 
 [lib]
-path = "lib/lib.rs"
+path = "crates/fadroma/lib.rs"
 
 [package.metadata.docs.rs]
 rustc-args = ["--cfg", "docsrs"]
@@ -43,10 +43,10 @@ staking = ["secret-cosmwasm-std/staking"]
 secret-cosmwasm-std = { version = "1.1.11", default-features = false, optional = true }
 
 # Procedural macro crates
-fadroma-dsl = { version = "0.8.0", path = "./proc/fadroma-dsl" }
-fadroma-derive-canonize = { version = "0.3.5", path = "./proc/fadroma-derive-canonize" }
-fadroma-derive-serde = { version = "0.3.0", path = "./proc/fadroma-derive-serde" }
-fadroma-proc-auth = { version = "0.1.1", path = "./proc/fadroma-proc-auth" }
+fadroma-dsl = { version = "0.8.0", path = "./crates/fadroma-dsl" }
+fadroma-derive-canonize = { version = "0.3.5", path = "./crates/fadroma-derive-canonize" }
+fadroma-derive-serde = { version = "0.3.0", path = "./crates/fadroma-derive-serde" }
+fadroma-proc-auth = { version = "0.1.1", path = "./crates/fadroma-proc-auth" }
 
 # Dependencies
 serde = { version = "1.0.114", default-features = false, features = ["derive"] }
