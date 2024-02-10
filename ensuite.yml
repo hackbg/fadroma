@@ -14,11 +14,6 @@ coverage:
     - "*/*.cli.cjs"
     - "*.cli.cjs"
 
-    - "agent/test.ts"
-    - "cw/cosmjs-esm"
-
-    - "devnet/devnet.init.mjs"
-
     - "dist/**/*"
 
     - "docs"
@@ -28,13 +23,15 @@ coverage:
     - "fadroma.browser.ts"
     - "fadroma.cli.cjs"
     - "fixtures/**/*"
-    - "ops/build.impl.mjs"
-    - "schema"
-    - "scrt/secretjs-esm"
-    - "shim/**/*"
-    - "spec/**/*"
     - "toolbox/**/*"
     - "typedoc-theme.tsx"
+
+    - "packages/agent/test.ts"
+    - "packages/cosmjs-esm"
+    - "packages/secretjs-esm"
+    - "packages/devnet/devnet.init.mjs"
+    - "packages/schema"
+    - "packages/shim/**/*"
 
 header:
   title: Fadroma
