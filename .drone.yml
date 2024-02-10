@@ -13,21 +13,21 @@ steps:
 - name: docs
   image: ghcr.io/hackbg/fadroma:v2
   volumes:
-  - { name: cache, path: /var/build/cache }
+  - { name: cache, path: /data/ci-cache }
   - { name: docs, path: /var/www/docs.hack.bg }
   commands:
   - export BRANCH="$(cat BRANCH | tr '/' '_' | tr '\n' ' ')"
   - echo $BRANCH
 
-  - mkdir -vp "/var/build/cache/fadroma-docs-$BRANCH"
+  - mkdir -vp "/data/ci-cache/fadroma-docs-$BRANCH"
   - rm -rvf node_modules
-  - ln -vs "/var/build/cache/fadroma-docs-$BRANCH" node_modules
+  - ln -vs "/data/ci-cache/fadroma-docs-$BRANCH" node_modules
   - touch node_modules/.magic
 
-  - mkdir -vp "/var/build/cache/pnpm-store-v3"
+  - mkdir -vp "/data/ci-cache/pnpm-store-v3"
   - rm -rvf ~/.local/share/pnpm
   - mkdir -p ~/.local/share/pnpm/store
-  - ln -s "/var/build/cache/pnpm-store-v3" ~/.local/share/pnpm/store/v3
+  - ln -s "/data/ci-cache/pnpm-store-v3" ~/.local/share/pnpm/store/v3
 
   - corepack enable
   - pnpm i --no-frozen-lockfile --strict-peer-dependencies
@@ -40,13 +40,23 @@ steps:
   environment:
     FORCE_COLOR: 2
 volumes:
-- { name: cache, host: { path: /var/build/cache } }
+- { name: cache, host: { path: /data/ci-cache } }
 - { name: docs,  host: { path: /var/www/docs.hack.bg } }
 ---
 kind: pipeline
 type: docker
 name: test
 trigger: { event: [ push ], branch: [ v2 ] }
+services:
+- name: docker
+  image: docker:24.0.7-alpine3.18
+  environment:
+    # Temporary docker daemon:
+    DATA:   "/var/lib/docker"
+    HOST:   "unix:///var/run/docker.sock"
+    MIRROR: "http://127.0.0.1:5000"
+  commands:
+    - nohup dockerd --dns 1.1.1.1 --rootless=true --bridge=none --iptables=false --data-root "$DATA" --host="$HOST" --registry-mirror "$MIRROR" &
 steps:
 - name: submodules
   image: alpine/git
@@ -56,30 +66,26 @@ steps:
   - cat BRANCH
 - name: test
   image: ghcr.io/hackbg/fadroma:v2
-  volumes: [ { name: cache, path: "/var/build/cache" } ]
+  volumes: [ { name: cache, path: "/data/ci-cache" } ]
   environment:
-    # Temporary docker daemon:
-    DATA:   "/var/lib/docker"
-    HOST:   "unix:///var/run/docker.sock"
-    MIRROR: "http://127.0.0.1:5000"
+    DOCKER_HOST: "tcp://docker"
   commands:
-  - nohup dockerd --dns 1.1.1.1 --rootless=true --bridge=none --iptables=false --data-root "$DATA" --host="$HOST" --registry-mirror "$MIRROR" &
   - export BRANCH="$(cat BRANCH | tr '/' '_' | tr '\n' ' ')"
   - echo $BRANCH
 
-  - mkdir -vp "/var/build/cache/fadroma-test-$BRANCH"
+  - mkdir -vp "/data/ci-cache/fadroma-test-$BRANCH"
   - rm -rvf node_modules
-  - ln -vs "/var/build/cache/fadroma-test-$BRANCH" node_modules
+  - ln -vs "/data/ci-cache/fadroma-test-$BRANCH" node_modules
   - touch node_modules/.magic
 
-  - mkdir -vp "/var/build/cache/pnpm-store-v3"
+  - mkdir -vp "/data/ci-cache/pnpm-store-v3"
   - rm -rvf ~/.local/share/pnpm
   - mkdir -p ~/.local/share/pnpm/store
-  - ln -s "/var/build/cache/pnpm-store-v3" ~/.local/share/pnpm/store/v3
+  - ln -s "/data/ci-cache/pnpm-store-v3" ~/.local/share/pnpm/store/v3
 
   - pnpm i --no-frozen-lockfile --strict-peer-dependencies
   - pnpm cov all
   environment:
     FORCE_COLOR: 2
 volumes:
-- { name: cache, host: { path: /var/build/cache } }
+- { name: cache, host: { path: /data/ci-cache } }
