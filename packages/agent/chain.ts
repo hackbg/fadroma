@@ -129,10 +129,6 @@ export abstract class Connection extends Endpoint {
     return (this.constructor as Function & {gasToken: Token.Native}).gasToken?.id
   }
 
-  get height (): Promise<number> {
-    return this.doGetHeight()
-  }
-
   /** Time to ping for next block. */
   blockInterval = 250
 
@@ -173,7 +169,17 @@ export abstract class Connection extends Endpoint {
 
   abstract doGetHeight (): Promise<number>
 
+  get height (): Promise<number> {
+    this.log.debug('Querying block height')
+    return this.doGetHeight()
+  }
+
   abstract doGetBlockInfo (): Promise<unknown>
+
+  get block (): Promise<unknown> {
+    this.log.debug('Querying block info')
+    return this.doGetBlockInfo()
+  }
 
   /** Get the code id of a given address. */
   getCodeId (contract: Address|{ address: Address }): Promise<Deploy.CodeId> {
