@@ -9,14 +9,14 @@ import * as Deploy from './deploy'
 import * as Token from './token'
 import * as Store from './store'
 
-// HACK: this class has an alternate implementation for non-browser environments.
-// This is because Next.js tries to parse the dynamic import('node:...') calls
-// in the fetch methods. (Which were made dynamic exactly to avoid such a
-// dual-implementation situation but it is what it is.) So it defaults to the
-// version that can only fetch from URL using the global fetch method, and when
-// the library is loaded through the non-browser entrypoint, it gets substituted
-// to the version which can also load code from disk. (Ugh.)
 import { CompiledCode } from './program.browser'
+/** The `CompiledCode` class has an alternate implementation for non-browser environments.
+  * This is because Next.js tries to parse the dynamic `import('node:...')` calls used by
+  * the `fetch` methods. (Which were made dynamic exactly to avoid such a dual-implementation
+  * situation in the first place - but Next is smart and adds a problem where there isn't one.)
+  * So, it defaults to the version that can only fetch from URL using the global fetch method;
+  * but the non-browser entrypoint substitutes `CompiledCode` in `_$_HACK_$_` with the
+  * version which can also load code from disk (`LocalCompiledCode`). Ugh. */
 export const _$_HACK_$_ = { CompiledCode }
 
 export type ChainId = string

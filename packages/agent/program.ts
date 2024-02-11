@@ -24,4 +24,3 @@ export class LocalCompiledCode extends CompiledCode {
   }
 
 }
-

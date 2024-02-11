@@ -8,7 +8,7 @@ import type { Connection, ChainId, Label, Message, Address, TxHash } from './cha
 import * as Token from './token'
 import type * as Store from './store'
 import type { CodeHash, Compiler } from './program.browser'
-import { SourceCode, RustSourceCode, CompiledCode } from './program'
+import { SourceCode, RustSourceCode, CompiledCode } from './program.browser'
 
 /** A code ID, identifying uploaded code on a chain. */
 export type CodeId = string
