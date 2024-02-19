@@ -40,16 +40,51 @@ export * as OKP4      from './okp4/okp4'
 export * as Osmosis   from './osmosis/osmosis'
 export * as Namada    from './namada/namada'
 
+import { Core } from '@fadroma/agent'
 import CLI from '@hackbg/cmds'
 import { CWConsole } from './cw-base'
 import { CWConnection } from './cw-connection'
 const console = new CWConsole()
 export default class CWCLI extends CLI {
+
   constructor (...args: ConstructorParameters<typeof CLI>) {
     super(...args)
     this.log.label = ``
   }
-  connect = this.command({
+
+  bech32 = this.command({
+    name: 'bech32',
+    info: 'create a random bech32 address',
+    args: 'PREFIX [LENGTH]'
+  }, (prefix: string, length: string|number = "20") => {
+    if (!prefix) {
+      console.error('Pass a prefix to generate address')
+      process.exit(1)
+    }
+    if (isNaN(Number(length))) {
+      console.error(`Not a number: ${length}. Pass a valid length.`)
+      process.exit(1)
+    }
+    console.log(Core.randomBech32(prefix, Number(length)))
+  })
+
+  bech32m = this.command({
+    name: 'bech32m',
+    info: 'create a random bech32m address',
+    args: 'PREFIX [LENGTH]'
+  }, (prefix: string, length: string|number = "20") => {
+    if (!prefix) {
+      console.error('Pass a prefix to generate address')
+      process.exit(1)
+    }
+    if (isNaN(Number(length))) {
+      console.error(`Not a number: ${length}. Pass a valid length.`)
+      process.exit(1)
+    }
+    console.log(Core.randomBech32m(prefix, Number(length)))
+  })
+
+  check = this.command({
     name: 'check',
     info: 'try connecting to a RPC endpoint',
     args: 'RPC_URL [TIMEOUT_SEC]'
@@ -75,5 +110,22 @@ export default class CWCLI extends CLI {
     clearTimeout(timer)
     console.log(api)
     console.log('Connected successfully.')
+  })
+
+  validators = this.command({
+    name: 'validators',
+    info: 'list validators for a RPC endpoint',
+    args: 'BECH32_PREFIX RPC_URL'
+  }, async (prefix: string, url: string) => {
+    if (!url) {
+      console.error('Required argument: RPC_URL')
+      process.exit(1)
+    }
+    if (!prefix) {
+      console.error('Required argument: BECH32_PREFIX')
+      process.exit(1)
+    }
+    const connection = new CWConnection({ url })
+    console.log(await connection.getValidators({ prefix }))
   })
 }

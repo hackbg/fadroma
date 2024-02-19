@@ -22,6 +22,7 @@ export class CWSignerIdentity extends CWIdentity {
     this.signer = signer
   }
   sign () {
+    throw new Error("unimplemented")
   }
 }
 

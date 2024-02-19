@@ -15,6 +15,7 @@ console.log(colors.green('l e v e l t h e l a n d s c a p e  2021-∞'))
 import * as Dotenv from 'dotenv'
 Dotenv.config()
 const CLI = await import("./cw.dist.js").catch(async e=>{
+  new Console().debug('Compiling TypeScript...')
   await import("@ganesha/esbuild")
   const t0 = performance.now()
   const module = await import("./cw.ts")

@@ -34,6 +34,7 @@ export async function testCWChain () {
     Identity:   CW.OKP4.MnemonicIdentity,
     code:       fixture('cw-null.wasm')
   })
+  console.log(await (alice as CW.OKP4.Connection).getValidators())
   //new CW.OKP4.Connection({ signer: {}, mnemonic: 'x' } as any)
   //throws(()=>new CW.OKP4.Connection({ address: 'foo', mnemonic: [
     //'define abandon palace resource estate elevator',

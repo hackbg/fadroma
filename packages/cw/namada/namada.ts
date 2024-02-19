@@ -7,7 +7,7 @@ class NamadaMnemonicIdentity extends CWMnemonicIdentity {
     super({ ...defaults, ...properties||{} })
   }
 }
-const defaults = { coinType: 118, bech32Prefix: 'tnam1', hdAccountIndex: 0, }
+const defaults = { coinType: 118, bech32Prefix: 'tnam', hdAccountIndex: 0, }
 export {
   NamadaConnection       as Connection,
   NamadaMnemonicIdentity as MnemonicIdentity
@@ -16,6 +16,12 @@ export {
 export const chainIds = { testnet: 'luminara.4d6026bc59ee20d9664d3' }
 
 export const testnets = new Set([ 'https://rpc.luminara.icu' ])
+
+export const faucets = {
+  'luminara.4d6026bc59ee20d9664d3': new Set([
+    'https://faucet.luminara.icu/'
+  ])
+}
 
 /** Connect to Namada in testnet mode. */
 export const testnet = (options: Partial<NamadaConnection> = {}): NamadaConnection => {

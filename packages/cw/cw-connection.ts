@@ -4,6 +4,8 @@ import { CosmWasmClient, SigningCosmWasmClient, serializeSignDoc } from '@hackbg
 import type { Block, StdFee } from '@hackbg/cosmjs-esm'
 import type { CWMnemonicIdentity, CWSignerIdentity } from './cw-identity'
 import { CWConsole as Console, CWError as Error, bold, assign } from './cw-base'
+import { ripemd160 } from "@noble/hashes/ripemd160"
+import { sha256 } from "@noble/hashes/sha256"
 
 const assertApi =
   ({ api }: { api?: CWConnection["api"] }): NonNullable<CWConnection["api"]> => {
@@ -232,7 +234,7 @@ export class CWConnection extends Chain.Connection {
     })
   }
 
-  /** Stargate implementation of querying a smart contract. */
+  /** Call a query method of a contract. */
   async doQuery <U> (
     contract: Address|{ address: Address }, message: Message
   ): Promise<U> {
@@ -250,6 +252,49 @@ export class CWConnection extends Chain.Connection {
   batch (): Chain.Batch<this> {
     return new CWBatch({ connection: this }) as unknown as Chain.Batch<this>
   }
+
+  /** Return a list of validators for this chain. */
+  getValidators ({
+    metadata = true,
+    prefix   = this.bech32Prefix,
+  }: {
+    metadata?: boolean
+    prefix?:   string
+  } = {}) {
+    const { log } = this
+    return assertApi(this).then(async api=>{
+      const {tmClient} = api as any
+      let {blockHeight, total, validators} = await tmClient.validatorsAll();
+      // Sort validators by voting power in descending order.
+      validators = validators.sort((a,b)=>(
+        (a.votingPower < b.votingPower) ?  1 :
+        (a.votingPower > b.votingPower) ? -1 : 0
+      ))
+      for (let validator of validators) {
+        const address = Core.bech32.encode(
+          prefix,
+          Core.bech32.toWords(ripemd160(Core.sha256(validator.pubkey.data)))
+        )
+        log.br()
+          .info('Validator:        ', bold(address))
+          .info('Address (hex):    ', bold(Core.base16.encode(validator.address)))
+          .info('Public key:       ', bold(Core.base16.encode(validator.pubkey.data)))
+          .info('Voting power:     ', bold(String(validator.votingPower)))
+          .info('Proposer priority:', bold(String(validator.proposerPriority)))
+        if (metadata) {
+          console.log(await api.getValidator(address))
+        }
+      }
+      log.br().info('Total validators:', bold(String(validators.length)))
+      if (validators.length < total) {
+        this.log.warn(`Failed to fetch all validators! Fetched ${validators.length} out of ${total}`)
+      }
+      if (validators.length > total) {
+        this.log.warn(`Fetched too many validators?! Fetched ${validators.length} but total is ${total}`)
+      }
+    })
+  }
+
 }
 
 /** Transaction batch for CosmWasm-enabled chains. */
