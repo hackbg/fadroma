@@ -340,7 +340,7 @@ importers:
         specifier: workspace:*
         version: link:../agent
       '@hackbg/cosmjs-esm':
-        specifier: workspace:1.0.0-rc.34
+        specifier: workspace:*
         version: link:../cosmjs-esm
       '@noble/curves':
         specifier: ^1.2.0

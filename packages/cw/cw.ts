@@ -126,6 +126,15 @@ export default class CWCLI extends CLI {
       process.exit(1)
     }
     const connection = new CWConnection({ url })
-    console.log(await connection.getValidators({ prefix }))
+    const validators = await connection.getValidators({ prefix })
+    for (const validator of validators) {
+      this.log.br()
+        .info('Validator:        ', Core.bold(validator.address))
+        .info('Address (hex):    ', Core.bold(validator.addressHex))
+        .info('Public key:       ', Core.bold(validator.pubKeyHex))
+        .info('Voting power:     ', Core.bold(String(validator.votingPower)))
+        .info('Proposer priority:', Core.bold(String(validator.proposerPriority)))
+    }
+    this.log.br().info('Total validators:', Core.bold(String(validators.length)))
   })
 }

@@ -275,33 +275,33 @@ export class CWConnection extends Chain.Connection {
     return assertApi(this).then(async api=>{
       const client = await this.txClient
       let {blockHeight, total, validators} = await client.validatorsAll();
-      // Sort validators by voting power in descending order.
-      validators = [...validators].sort((a,b)=>(
-        (a.votingPower < b.votingPower) ?  1 :
-        (a.votingPower > b.votingPower) ? -1 : 0
-      ))
-      for (let validator of validators) {
-        const address = Core.bech32.encode(
-          prefix,
-          Core.bech32.toWords(ripemd160(Core.sha256(validator.pubkey.data)))
-        )
-        log.br()
-          .info('Validator:        ', bold(address))
-          .info('Address (hex):    ', bold(Core.base16.encode(validator.address)))
-          .info('Public key:       ', bold(Core.base16.encode(validator.pubkey.data)))
-          .info('Voting power:     ', bold(String(validator.votingPower)))
-          .info('Proposer priority:', bold(String(validator.proposerPriority)))
-        //if (metadata) {
-          //console.log(await api.getValidator(address))
-        //}
-      }
-      log.br().info('Total validators:', bold(String(validators.length)))
+      // Warn on count mismatch.
       if (validators.length < total) {
         this.log.warn(`Failed to fetch all validators! Fetched ${validators.length} out of ${total}`)
       }
       if (validators.length > total) {
         this.log.warn(`Fetched too many validators?! Fetched ${validators.length} but total is ${total}`)
       }
+      // Sort validators by voting power in descending order.
+      validators = [...validators].sort((a,b)=>(
+        (a.votingPower < b.votingPower) ?  1 :
+        (a.votingPower > b.votingPower) ? -1 : 0
+      ))
+      const result = []
+      for (let validator of validators) {
+        const address = Core.bech32.encode(
+          prefix,
+          Core.bech32.toWords(ripemd160(Core.sha256(validator.pubkey.data)))
+        )
+        result.push({
+          address,
+          addressHex:       Core.base16.encode(validator.address),
+          pubKeyHex:        Core.base16.encode(validator.pubkey.data),
+          votingPower:      validator.votingPower,
+          proposerPriority: validator.proposerPriority,
+        })
+      }
+      return result
     })
   }
 
