@@ -253,6 +253,16 @@ export class CWConnection extends Chain.Connection {
     return new CWBatch({ connection: this }) as unknown as Chain.Batch<this>
   }
 
+  /** Handle to the API's internal query client. */
+  get qClient (): Promise<ReturnType<CosmWasmClient["getQueryClient"]>> {
+    return Promise.resolve(this.api).then(api=>(api as any)?.queryClient)
+  }
+
+  /** Handle to the API's internal Tendermint transaction client. */
+  get txClient (): Promise<ReturnType<CosmWasmClient["getTmClient"]>> {
+    return Promise.resolve(this.api).then(api=>(api as any)?.tmClient)
+  }
+
   /** Return a list of validators for this chain. */
   getValidators ({
     metadata = true,
@@ -263,10 +273,10 @@ export class CWConnection extends Chain.Connection {
   } = {}) {
     const { log } = this
     return assertApi(this).then(async api=>{
-      const {tmClient} = api as any
-      let {blockHeight, total, validators} = await tmClient.validatorsAll();
+      const client = await this.txClient
+      let {blockHeight, total, validators} = await client.validatorsAll();
       // Sort validators by voting power in descending order.
-      validators = validators.sort((a,b)=>(
+      validators = [...validators].sort((a,b)=>(
         (a.votingPower < b.votingPower) ?  1 :
         (a.votingPower > b.votingPower) ? -1 : 0
       ))
@@ -281,9 +291,9 @@ export class CWConnection extends Chain.Connection {
           .info('Public key:       ', bold(Core.base16.encode(validator.pubkey.data)))
           .info('Voting power:     ', bold(String(validator.votingPower)))
           .info('Proposer priority:', bold(String(validator.proposerPriority)))
-        if (metadata) {
-          console.log(await api.getValidator(address))
-        }
+        //if (metadata) {
+          //console.log(await api.getValidator(address))
+        //}
       }
       log.br().info('Total validators:', bold(String(validators.length)))
       if (validators.length < total) {
