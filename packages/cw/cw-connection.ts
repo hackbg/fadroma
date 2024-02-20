@@ -265,7 +265,7 @@ export class CWConnection extends Chain.Connection {
 
   /** Return a list of validators for this chain. */
   getValidators ({
-    metadata = true,
+    metadata = false,
     prefix   = this.bech32Prefix,
   }: {
     metadata?: boolean
