@@ -1,19 +1,19 @@
-import { API, Amino } from '@hackbg/cosmjs-esm'
+import { Amino } from '@hackbg/cosmjs-esm'
 import { Core, Chain } from '@fadroma/agent'
 import { CWError as Error, bold, bip32, bip39, bip39EN, bech32, base64 } from './cw-base'
-import type { ProtoSigning } from '@hackbg/cosmjs-esm'
+import type { Signing } from '@hackbg/cosmjs-esm'
 import { ripemd160 } from "@noble/hashes/ripemd160"
 import { sha256 } from "@noble/hashes/sha256"
 import { secp256k1 } from "@noble/curves/secp256k1"
 import { numberToBytesBE } from "@noble/curves/abstract/utils"
 
 export class CWIdentity extends Chain.Identity {
-  declare signer: ProtoSigning.OfflineSigner
+  declare signer: Signing.OfflineSigner
 }
 
 export class CWSignerIdentity extends CWIdentity {
   constructor ({ signer, ...properties }: Partial<Chain.Identity & {
-    signer: ProtoSigning.OfflineSigner
+    signer: Signing.OfflineSigner
   }>) {
     super(properties)
     if (!signer) {

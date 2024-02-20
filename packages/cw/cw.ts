@@ -16,6 +16,8 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
+export * as CosmJS from '@hackbg/cosmjs-esm'
+
 export {
   CWError            as Error,
   CWConsole          as Console,

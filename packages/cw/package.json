@@ -11,7 +11,7 @@
     "okp4/*.ts",
     "osmosis/*.ts"
   ],
-  "version": "1.0.0-rc.22",
+  "version": "1.0.0-rc.23",
   "license": "AGPL-3.0-only",
   "keywords": [ "cosmwasm", "interchain", "okp4" ],
   "description": "CosmJS Stargate integration for Fadroma.",
@@ -22,11 +22,11 @@
     "@noble/curves":      "^1.2.0"
   },
   "scripts": {
-    "check": "time tsc --noEmit",
-    "test": "time ensuite cw.test.ts",
-    "cov": "time ensuite-cov -r text -r lcov -- cw.test.ts",
+    "check":  "time tsc --noEmit",
+    "test":   "time ensuite cw.test.ts",
+    "cov":    "time ensuite-cov -r text -r lcov -- cw.test.ts",
     "schema": "./schema/cw-gen-types.cjs",
-    "clean": "rm -rf .ubik *.dist.*",
+    "clean":  "rm -rf .ubik *.dist.*",
 
     "release":        "time sh -c 'pnpm clean && pnpm i && pnpm check && pnpm cov all && ubik release --otp 123123'",
     "release:fast":   "time sh -c 'pnpm clean && pnpm i && pnpm check && ubik release --otp 123123'",
