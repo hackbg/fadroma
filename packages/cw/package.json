@@ -11,7 +11,7 @@
     "okp4/*.ts",
     "osmosis/*.ts"
   ],
-  "version": "1.0.0-rc.20",
+  "version": "1.0.0-rc.21",
   "license": "AGPL-3.0-only",
   "keywords": [ "cosmwasm", "interchain", "okp4" ],
   "description": "CosmJS Stargate integration for Fadroma.",
