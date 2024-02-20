@@ -5,13 +5,13 @@
     "entryPointStrategy": "packages",
     "entryPoints": [
       "./fadroma.ts",
-      "./agent",
-      "./scrt",
-      "./cw",
-      "./oci",
-      "./create",
-      "./compile",
-      "./devnet",
+      "./packages/agent",
+      "./packages/scrt",
+      "./packages/cw",
+      "./packages/oci",
+      "./packages/create",
+      "./packages/compile",
+      "./packages/devnet",
       "./toolbox/ganesha",
       "./toolbox/ensuite",
       "./toolbox/cmds",
@@ -21,7 +21,7 @@
       "./toolbox/oops",
       "./toolbox/port",
       "./toolbox/repo",
-      "./cw/cosmjs-esm",
-      "./scrt/secretjs-esm"
+      "./packages/cosmjs-esm",
+      "./packages/secretjs-esm"
     ]
 }

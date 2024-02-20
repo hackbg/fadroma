@@ -1,19 +1,19 @@
-import { CosmWasmClient, SigningCosmWasmClient, serializeSignDoc } from '@hackbg/cosmjs-esm'
+import { API, Amino } from '@hackbg/cosmjs-esm'
 import { Core, Chain } from '@fadroma/agent'
 import { CWError as Error, bold, bip32, bip39, bip39EN, bech32, base64 } from './cw-base'
-import type { OfflineSigner } from '@hackbg/cosmjs-esm'
+import type { ProtoSigning } from '@hackbg/cosmjs-esm'
 import { ripemd160 } from "@noble/hashes/ripemd160"
 import { sha256 } from "@noble/hashes/sha256"
 import { secp256k1 } from "@noble/curves/secp256k1"
 import { numberToBytesBE } from "@noble/curves/abstract/utils"
 
 export class CWIdentity extends Chain.Identity {
-  declare signer: OfflineSigner
+  declare signer: ProtoSigning.OfflineSigner
 }
 
 export class CWSignerIdentity extends CWIdentity {
   constructor ({ signer, ...properties }: Partial<Chain.Identity & {
-    signer: OfflineSigner
+    signer: ProtoSigning.OfflineSigner
   }>) {
     super(properties)
     if (!signer) {
@@ -100,7 +100,7 @@ export class CWMnemonicIdentity extends CWIdentity {
           this.log.warn(`Received address ${bold(address)} that did not match`)
             .warn(` generated address ${address}, ignoring them`)
         }
-        const { r, s } = secp256k1.sign(sha256(serializeSignDoc(signed)), privateKey)
+        const { r, s } = secp256k1.sign(sha256(Amino.serializeSignDoc(signed)), privateKey)
         return {
           signed,
           signature: encodeSecp256k1Signature(pubkey, new Uint8Array([

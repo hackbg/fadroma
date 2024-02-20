@@ -1,11 +1,11 @@
 import { Core, Chain, Deploy } from '@fadroma/agent'
 import type { Address, Message, CodeId, CodeHash, Token } from '@fadroma/agent'
-import { CosmWasmClient, SigningCosmWasmClient, serializeSignDoc } from '@hackbg/cosmjs-esm'
-import type { Block, StdFee } from '@hackbg/cosmjs-esm'
 import type { CWMnemonicIdentity, CWSignerIdentity } from './cw-identity'
 import { CWConsole as Console, CWError as Error, bold, assign } from './cw-base'
 import { ripemd160 } from "@noble/hashes/ripemd160"
 import { sha256 } from "@noble/hashes/sha256"
+
+import { API, Amino, Cosmos } from '@hackbg/cosmjs-esm'
 
 const assertApi =
   ({ api }: { api?: CWConnection["api"] }): NonNullable<CWConnection["api"]> => {
@@ -24,7 +24,7 @@ export class CWConnection extends Chain.Connection {
   /** The account index in the HD derivation path */
   hdAccountIndex?: number
   /** API connects asynchronously, so API handle is a promise of either variant. */
-  declare api: Promise<CosmWasmClient|SigningCosmWasmClient>
+  declare api: Promise<API.CosmWasmClient|API.SigningCosmWasmClient>
   /** A supported method of authentication. */
   declare identity: CWMnemonicIdentity|CWSignerIdentity
 
@@ -34,17 +34,17 @@ export class CWConnection extends Chain.Connection {
     if (this.url) {
       if (this.identity?.signer) {
         this.log.debug('Connecting via', bold(this.url))
-        this.api = SigningCosmWasmClient.connectWithSigner(this.url, this.identity.signer)
+        this.api = API.SigningCosmWasmClient.connectWithSigner(this.url, this.identity.signer)
       } else {
         this.log.debug('Connecting anonymously via', bold(this.url))
-        this.api = CosmWasmClient.connect(this.url)
+        this.api = API.CosmWasmClient.connect(this.url)
       }
     } else {
       this.log.warn('No connection url.')
     }
   }
 
-  doGetBlockInfo (): Promise<Block> {
+  doGetBlockInfo (): Promise<API.Block> {
     return assertApi(this).then(api=>api.getBlock())
   }
 
@@ -132,10 +132,10 @@ export class CWConnection extends Chain.Connection {
     options?:  Parameters<Chain.Connection["doSend"]>[2]
   ) {
     return assertApi(this).then(api=>{
-      if (!(api as SigningCosmWasmClient)?.sendTokens) {
+      if (!(api as API.SigningCosmWasmClient)?.sendTokens) {
         throw new Error("can't send tokens with an unauthenticated agent")
       }
-      return (api as SigningCosmWasmClient).sendTokens(
+      return (api as API.SigningCosmWasmClient).sendTokens(
         this.address!,
         recipient as string,
         amounts,
@@ -159,10 +159,10 @@ export class CWConnection extends Chain.Connection {
     }
     return assertApi(this)
       .then(api=>{
-        if (!(api as SigningCosmWasmClient)?.upload) {
+        if (!(api as API.SigningCosmWasmClient)?.upload) {
           throw new Error("can't upload contract with an unauthenticated agent")
         }
-        return (api as SigningCosmWasmClient).upload(
+        return (api as API.SigningCosmWasmClient).upload(
           this.address!, data, this.fees?.upload || 'auto', "Uploaded by Fadroma"
         )
       })
@@ -184,15 +184,15 @@ export class CWConnection extends Chain.Connection {
       throw new Error("can't instantiate contract without sender address")
     }
     const api = await assertApi(this)
-    if (!(api as SigningCosmWasmClient)?.instantiate) {
+    if (!(api as API.SigningCosmWasmClient)?.instantiate) {
       throw new Error("can't instantiate contract without authorizing the agent")
     }
-    const result = await (api as SigningCosmWasmClient).instantiate(
+    const result = await (api as API.SigningCosmWasmClient).instantiate(
       this.address!,
       Number(codeId),
       options.initMsg,
       options.label!,
-      options.initFee as StdFee || 'auto',
+      options.initFee as Amino.StdFee || 'auto',
       { admin: this.address, funds: options.initSend, memo: options.initMemo }
     )
     return {
@@ -225,10 +225,10 @@ export class CWConnection extends Chain.Connection {
       throw new Error("can't execute transaction without sender address")
     }
     return assertApi(this).then(api=>{
-      if (!(api as SigningCosmWasmClient)?.execute) {
+      if (!(api as API.SigningCosmWasmClient)?.execute) {
         throw new Error("can't execute transaction without authorizing the agent")
       }
-      return (api as SigningCosmWasmClient).execute(
+      return (api as API.SigningCosmWasmClient).execute(
         this.address!, contract.address, message, execFee, execMemo, execSend
       )
     })
@@ -254,12 +254,12 @@ export class CWConnection extends Chain.Connection {
   }
 
   /** Handle to the API's internal query client. */
-  get qClient (): Promise<ReturnType<CosmWasmClient["getQueryClient"]>> {
+  get qClient (): Promise<ReturnType<API.CosmWasmClient["getQueryClient"]>> {
     return Promise.resolve(this.api).then(api=>(api as any)?.queryClient)
   }
 
   /** Handle to the API's internal Tendermint transaction client. */
-  get txClient (): Promise<ReturnType<CosmWasmClient["getTmClient"]>> {
+  get txClient (): Promise<ReturnType<API.CosmWasmClient["getTmClient"]>> {
     return Promise.resolve(this.api).then(api=>(api as any)?.tmClient)
   }
 
@@ -293,15 +293,34 @@ export class CWConnection extends Chain.Connection {
           prefix,
           Core.bech32.toWords(ripemd160(Core.sha256(validator.pubkey.data)))
         )
-        result.push({
+        const info = {
           address,
           addressHex:       Core.base16.encode(validator.address),
           pubKeyHex:        Core.base16.encode(validator.pubkey.data),
           votingPower:      validator.votingPower,
           proposerPriority: validator.proposerPriority,
-        })
+        }
+        result.push(info)
+        if (metadata) {
+          const metadataResult = await this.getValidatorMetadata(address)
+          console.log({metadataResult})
+        }
       }
       return result
+    })
+  }
+
+  getValidatorMetadata (address: Address) {
+    const { log } = this
+    return assertApi(this).then(async api=>{
+      const client = await this.qClient
+      const { value } = await client.queryAbci(
+        '/cosmos.staking.v1beta1.Query/Validator',
+        Cosmos.Staking.v1beta1.Query.QueryValidatorRequest.encode({
+          validatorAddr: address
+        }).finish()
+      )
+      return Cosmos.Staking.v1beta1.Query.QueryValidatorResponse.decode(value)
     })
   }
 

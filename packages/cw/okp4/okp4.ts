@@ -8,7 +8,6 @@ import { LawStone, lawStoneCodeIds } from './okp4-law-stone'
 
 import type { Uint128, Address, ChainId, CodeId } from '@fadroma/agent'
 import { Core, Chain, Token } from '@fadroma/agent'
-import type { CosmWasmClient } from '@hackbg/cosmjs-esm'
 
 export * from './okp4-cognitarium'
 export * from './okp4-objectarium'
