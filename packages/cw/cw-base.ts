@@ -1,3 +1,4 @@
+import CLI from '@hackbg/cmds'
 import { Core } from '@fadroma/agent'
 export class CWError extends Core.Error {}
 export class CWConsole extends Core.Console { label = '@fadroma/cw' }
@@ -10,3 +11,6 @@ export const {
   bech32,
   base64,
 } = Core
+
+class CWBaseCLI extends CLI {}
+export { CWBaseCLI as CLI }

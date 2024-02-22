@@ -1,3 +1,4 @@
+import { CLI } from '../cw-base'
 import { CWError as Error } from '../cw-base'
 import { CWConnection, CWBatch } from '../cw-connection'
 import { CWMnemonicIdentity } from '../cw-identity'
@@ -13,24 +14,7 @@ export * from './okp4-cognitarium'
 export * from './okp4-objectarium'
 export * from './okp4-law-stone'
 
-export const chainIds = { testnet: 'okp4-nemeton-1', }
-
-export const testnets = new Set([ 'https://okp4-testnet-rpc.polkachu.com/' ])
-
-/** Connect to OKP4 in testnet mode. */
-export const testnet = (options: Partial<OKP4Connection> = {}): OKP4Connection => {
-  return new OKP4Connection({
-    chainId: chainIds.testnet, url: Core.pickRandom(testnets), ...options||{}
-  })
-}
-
-const defaults = { coinType: 118, bech32Prefix: 'okp4', hdAccountIndex: 0, }
-
-class OKP4MnemonicIdentity extends CWMnemonicIdentity {
-  constructor (properties?: { mnemonic?: string } & Partial<CWMnemonicIdentity>) {
-    super({ ...defaults, ...properties||{} })
-  }
-}
+class OKP4CLI extends CLI {}
 
 /** Connection for OKP4. */
 class OKP4Connection extends CWConnection {
@@ -117,7 +101,27 @@ class OKP4Connection extends CWConnection {
   //}
 }
 
+class OKP4MnemonicIdentity extends CWMnemonicIdentity {
+  constructor (properties?: { mnemonic?: string } & Partial<CWMnemonicIdentity>) {
+    super({ ...defaults, ...properties||{} })
+  }
+}
+
+const defaults = { coinType: 118, bech32Prefix: 'okp4', hdAccountIndex: 0, }
+
 export {
+  OKP4CLI              as CLI,
   OKP4Connection       as Connection,
   OKP4MnemonicIdentity as MnemonicIdentity,
+}
+
+export const chainIds = { testnet: 'okp4-nemeton-1', }
+
+export const testnets = new Set([ 'https://okp4-testnet-rpc.polkachu.com/' ])
+
+/** Connect to OKP4 in testnet mode. */
+export const testnet = (options: Partial<OKP4Connection> = {}): OKP4Connection => {
+  return new OKP4Connection({
+    chainId: chainIds.testnet, url: Core.pickRandom(testnets), ...options||{}
+  })
 }

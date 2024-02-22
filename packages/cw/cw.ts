@@ -35,18 +35,14 @@ export {
   encodeSecp256k1Signature
 } from './cw-identity'
 
-export * as Archway   from './archway/archway'
-export * as Axelar    from './axelar/axelar'
-export * as Injective from './injective/injective'
-export * as OKP4      from './okp4/okp4'
-export * as Osmosis   from './osmosis/osmosis'
-export * as Namada    from './namada/namada'
+export * from './cw-chains'
 
+import * as Chains from './cw-chains'
 import { Core } from '@fadroma/agent'
 import CLI from '@hackbg/cmds'
 import { CWConsole } from './cw-base'
 import { CWConnection } from './cw-connection'
-const console = new CWConsole()
+
 export default class CWCLI extends CLI {
 
   constructor (...args: ConstructorParameters<typeof CLI>) {
@@ -54,177 +50,39 @@ export default class CWCLI extends CLI {
     this.log.label = ``
   }
 
-  bech32 = this.command({
-    name: 'random-bech32',
-    info: 'create a random bech32 address',
-    args: 'PREFIX [LENGTH]'
-  }, (prefix: string, length: string|number = "20") => {
-    if (!prefix) {
-      console.error('Pass a prefix to generate address')
-      process.exit(1)
-    }
-    if (isNaN(Number(length))) {
-      console.error(`Not a number: ${length}. Pass a valid length.`)
-      process.exit(1)
-    }
-    console.log(Core.randomBech32(prefix, Number(length)))
-  })
-
-  bech32m = this.command({
-    name: 'random-bech32m',
-    info: 'create a random bech32m address',
-    args: 'PREFIX [LENGTH]'
-  }, (prefix: string, length: string|number = "20") => {
-    if (!prefix) {
-      console.error('Pass a prefix to generate address')
-      process.exit(1)
-    }
-    if (isNaN(Number(length))) {
-      console.error(`Not a number: ${length}. Pass a valid length.`)
-      process.exit(1)
-    }
-    console.log(Core.randomBech32m(prefix, Number(length)))
-  })
-
-  bech32ToHex = this.command({
-    name: 'from-bech32',
-    info: 'convert a bech32 address to a hex string',
-    args: 'ADDRESS'
-  }, (address: string) => {
-    if (!address) {
-      console.error('Pass an address to convert it to hexadecimal.')
-      process.exit(1)
-    }
-    let prefix, words
-    try {
-      ;({ prefix, words } = Core.bech32.decode(address))
-    } catch (e) {
-      console.error('Failed to decode this address.')
-      console.error(e.message)
-      process.exit(1)
-    }
-    console
-      .info('Prefix:  ', Core.bold(prefix))
-      .info('Words:   ', Core.bold(Core.base16.encode(new Uint8Array(words))))
-      .log('Original:', Core.bold(Core.base16.encode(new Uint8Array(Core.bech32m.fromWords(words)))))
-  })
-
-  bech32mToHex = this.command({
-    name: 'from-bech32m',
-    info: 'convert a bech32m address to a hex string',
-    args: 'ADDRESS'
-  }, (address: string) => {
-    if (!address) {
-      console.error('Pass an address to convert it to hexadecimal.')
-      process.exit(1)
-    }
-    let prefix, words
-    try {
-      ;({ prefix, words } = Core.bech32m.decode(address))
-    } catch (e) {
-      console.error('Failed to decode this address.')
-      console.error(e.message)
-      process.exit(1)
-    }
-    console
-      .info('Prefix:  ', Core.bold(prefix))
-      .info('Words:   ', Core.bold(Core.base16.encode(new Uint8Array(words))))
-      .log('Original:', Core.bold(Core.base16.encode(new Uint8Array(Core.bech32m.fromWords(words)))))
-  })
-
-  hexToBech32 = this.command({
-    name: 'to-bech32',
-    info: 'convert a hex string to a bech32 address',
-    args: 'PREFIX DATA'
-  }, (prefix: string, data: string) => {
-    if (!prefix) {
-      console.error('Pass a prefix and a valid hex string to generate bech32')
-      process.exit(1)
-    }
-    let dataBin
-    try {
-      dataBin = Core.base16.decode(data.toUpperCase())
-    } catch (e) {
-      console.error('Pass a prefix and a valid hex string to generate bech32')
-      process.exit(1)
-    }
-    console
-      .info('input: ', Core.bold(data))
-      .log('bech32:', Core.bold(Core.bech32.encode(prefix, Core.bech32.toWords(dataBin))))
-  })
-
-  hexToBech32m = this.command({
-    name: 'to-bech32m',
-    info: 'convert a hex string to a bech32m address',
-    args: 'PREFIX DATA'
-  }, (prefix: string, data: string) => {
-    if (!prefix) {
-      console.error('Pass a prefix and a valid hex string to generate bech32m')
-      process.exit(1)
-    }
-    let dataBin
-    try {
-      dataBin = Core.base16.decode(data.toUpperCase())
-    } catch (e) {
-      console.error('Pass a prefix and a valid hex string to generate bech32m')
-      process.exit(1)
-    }
-    console
-      .info('input:  ', Core.bold(data))
-      .log('bech32m:', Core.bold(Core.bech32m.encode(prefix, Core.bech32m.toWords(dataBin))))
-  })
+  archway   = this.commands('archway',   'commands for Archway',   new Chains.Archway.CLI())
+  axelar    = this.commands('axelar',    'commands for Axelar',    new Chains.Axelar.CLI())
+  injective = this.commands('injective', 'commands for Injective', new Chains.Injective.CLI())
+  namada    = this.commands('namada',    'commands for Namada',    new Chains.Namada.CLI())
+  okp4      = this.commands('okp4',      'commands for OKP4',      new Chains.OKP4.CLI())
+  osmosis   = this.commands('osmosis',   'commands for Osmosis',   new Chains.Osmosis.CLI())
 
   check = this.command({
     name: 'check',
-    info: 'try connecting to a RPC endpoint',
+    info: 'check if there is a working RPC endpoint at a given URL',
     args: 'RPC_URL [TIMEOUT_SEC]'
   }, async (url: string, timeout: number = 5) => {
     if (!url) {
-      console.error('Required argument: RPC_URL')
+      this.log.error(Core.bold('Pass a RPC URL to connect.'))
       process.exit(1)
     }
     const connection = new CWConnection({ url })
-    console.info(`Will exit with error code if not connected in ${timeout}s.`)
+    this.log.info(`Will exit with error code if not connected in ${timeout}s.`)
     const timer = setTimeout(()=>{
-      console.error(`Failed to connect in ${timeout}s.`)
+      this.log.error(`Failed to connect in ${timeout}s.`)
       process.exit(1)
     }, timeout * 1000)
     let api
     try {
       api = await connection.api
     } catch (e) {
-      console.error(e.stack)
-      console.error(`Failed to connect because of the above error.`)
+      this.log.error(e.stack)
+      this.log.error(Core.bold(`Failed to connect because of the above error.`))
       process.exit(1)
     }
     clearTimeout(timer)
-    console.log(api)
-    console.log('Connected successfully.')
+    this.log.log(api)
+    this.log.log('Connected successfully.')
   })
 
-  validators = this.command({
-    name: 'validators',
-    info: 'list validators for a RPC endpoint',
-    args: 'BECH32_PREFIX RPC_URL'
-  }, async (prefix: string, url: string) => {
-    if (!url) {
-      console.error('Required argument: RPC_URL')
-      process.exit(1)
-    }
-    if (!prefix) {
-      console.error('Required argument: BECH32_PREFIX')
-      process.exit(1)
-    }
-    const connection = new CWConnection({ url })
-    const validators = await connection.getValidators({ prefix })
-    for (const validator of validators) {
-      this.log.br()
-        .info('Validator:        ', Core.bold(validator.address))
-        .info('Address (hex):    ', Core.bold(validator.addressHex))
-        .info('Public key:       ', Core.bold(validator.pubKeyHex))
-        .info('Voting power:     ', Core.bold(String(validator.votingPower)))
-        .info('Proposer priority:', Core.bold(String(validator.proposerPriority)))
-    }
-    this.log.br().info('Total validators:', Core.bold(String(validators.length)))
-  })
 }
