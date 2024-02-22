@@ -55,7 +55,7 @@ export default class CWCLI extends CLI {
   }
 
   bech32 = this.command({
-    name: 'bech32',
+    name: 'random-bech32',
     info: 'create a random bech32 address',
     args: 'PREFIX [LENGTH]'
   }, (prefix: string, length: string|number = "20") => {
@@ -71,7 +71,7 @@ export default class CWCLI extends CLI {
   })
 
   bech32m = this.command({
-    name: 'bech32m',
+    name: 'random-bech32m',
     info: 'create a random bech32m address',
     args: 'PREFIX [LENGTH]'
   }, (prefix: string, length: string|number = "20") => {
@@ -84,6 +84,94 @@ export default class CWCLI extends CLI {
       process.exit(1)
     }
     console.log(Core.randomBech32m(prefix, Number(length)))
+  })
+
+  bech32ToHex = this.command({
+    name: 'from-bech32',
+    info: 'convert a bech32 address to a hex string',
+    args: 'ADDRESS'
+  }, (address: string) => {
+    if (!address) {
+      console.error('Pass an address to convert it to hexadecimal.')
+      process.exit(1)
+    }
+    let prefix, words
+    try {
+      ;({ prefix, words } = Core.bech32.decode(address))
+    } catch (e) {
+      console.error('Failed to decode this address.')
+      console.error(e.message)
+      process.exit(1)
+    }
+    console
+      .info('Prefix:  ', Core.bold(prefix))
+      .info('Words:   ', Core.bold(Core.base16.encode(new Uint8Array(words))))
+      .log('Original:', Core.bold(Core.base16.encode(new Uint8Array(Core.bech32m.fromWords(words)))))
+  })
+
+  bech32mToHex = this.command({
+    name: 'from-bech32m',
+    info: 'convert a bech32m address to a hex string',
+    args: 'ADDRESS'
+  }, (address: string) => {
+    if (!address) {
+      console.error('Pass an address to convert it to hexadecimal.')
+      process.exit(1)
+    }
+    let prefix, words
+    try {
+      ;({ prefix, words } = Core.bech32m.decode(address))
+    } catch (e) {
+      console.error('Failed to decode this address.')
+      console.error(e.message)
+      process.exit(1)
+    }
+    console
+      .info('Prefix:  ', Core.bold(prefix))
+      .info('Words:   ', Core.bold(Core.base16.encode(new Uint8Array(words))))
+      .log('Original:', Core.bold(Core.base16.encode(new Uint8Array(Core.bech32m.fromWords(words)))))
+  })
+
+  hexToBech32 = this.command({
+    name: 'to-bech32',
+    info: 'convert a hex string to a bech32 address',
+    args: 'PREFIX DATA'
+  }, (prefix: string, data: string) => {
+    if (!prefix) {
+      console.error('Pass a prefix and a valid hex string to generate bech32')
+      process.exit(1)
+    }
+    let dataBin
+    try {
+      dataBin = Core.base16.decode(data.toUpperCase())
+    } catch (e) {
+      console.error('Pass a prefix and a valid hex string to generate bech32')
+      process.exit(1)
+    }
+    console
+      .info('input: ', Core.bold(data))
+      .log('bech32:', Core.bold(Core.bech32.encode(prefix, Core.bech32.toWords(dataBin))))
+  })
+
+  hexToBech32m = this.command({
+    name: 'to-bech32m',
+    info: 'convert a hex string to a bech32m address',
+    args: 'PREFIX DATA'
+  }, (prefix: string, data: string) => {
+    if (!prefix) {
+      console.error('Pass a prefix and a valid hex string to generate bech32m')
+      process.exit(1)
+    }
+    let dataBin
+    try {
+      dataBin = Core.base16.decode(data.toUpperCase())
+    } catch (e) {
+      console.error('Pass a prefix and a valid hex string to generate bech32m')
+      process.exit(1)
+    }
+    console
+      .info('input:  ', Core.bold(data))
+      .log('bech32m:', Core.bold(Core.bech32m.encode(prefix, Core.bech32m.toWords(dataBin))))
   })
 
   check = this.command({
