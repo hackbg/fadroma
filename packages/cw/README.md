@@ -2,7 +2,7 @@
 
 # Fadroma Agent for CosmWasm
 
-[![](https://img.shields.io/npm/v/@fadroma/scrt?color=%2365b34c&label=%40fadroma%2Fscrt&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/scrt)
+[![](https://img.shields.io/npm/v/@fadroma/cw?color=%2365b34c&label=%40fadroma%2Fcw&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/cw)
 
 This package lets you use Fadroma Agent on most CosmWasm-enabled networks.
 For Secret Network, see `@fadroma/cw` instead.
