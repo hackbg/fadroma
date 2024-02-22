@@ -1,9 +1,10 @@
 {
+  "bin": { "fadroma-agent": "agent.cli.mjs" },
   "name": "@fadroma/agent",
   "type": "module",
   "main": "agent.ts",
   "browser": "agent.browser.ts",
-  "version": "2.0.0-rc.23",
+  "version": "2.0.0-rc.24",
   "license": "AGPL-3.0-only",
   "files": [ "*.ts", "!*.test.*" ],
   "keywords": [ "cosmwasm", "scrt", "secret network", "interchain" ],
@@ -20,6 +21,7 @@
   },
   "dependencies": {
     "@hackbg/4mat": "workspace:^",
+    "@hackbg/cmds": "workspace:*",
     "@hackbg/dump": "workspace:^1.0.1",
     "@hackbg/hide": "^1",
     "@hackbg/into": "^1.0.1",

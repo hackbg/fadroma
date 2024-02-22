@@ -113,6 +113,9 @@ importers:
       '@hackbg/4mat':
         specifier: workspace:^
         version: link:../../toolbox/4mat
+      '@hackbg/cmds':
+        specifier: workspace:*
+        version: link:../../toolbox/cmds
       '@hackbg/dump':
         specifier: workspace:^1.0.1
         version: link:../../toolbox/dump
@@ -339,6 +342,9 @@ importers:
       '@fadroma/agent':
         specifier: workspace:*
         version: link:../agent
+      '@hackbg/cmds':
+        specifier: workspace:*
+        version: link:../../toolbox/cmds
       '@hackbg/cosmjs-esm':
         specifier: workspace:*
         version: link:../cosmjs-esm
