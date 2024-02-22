@@ -290,9 +290,9 @@ export class CWConnection extends Chain.Connection {
       ))
       const result = []
       for (let validator of validators) {
-        const address = Core.bech32.encode(
+        const address = Core.bech32m.encode(
           prefix,
-          Core.bech32.toWords(ripemd160(Core.sha256(validator.pubkey.data)))
+          Core.bech32m.toWords(ripemd160(Core.sha256(validator.pubkey.data)))
         )
         const info = {
           address,
