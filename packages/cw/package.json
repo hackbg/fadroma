@@ -21,7 +21,8 @@
     "@hackbg/cosmjs-esm": "workspace:*",
     "@hackbg/cmds":       "workspace:*",
     "@noble/hashes":      "^1.3.2",
-    "@noble/curves":      "^1.2.0"
+    "@noble/curves":      "^1.2.0",
+    "borsh":              "^2.0.0"
   },
   "scripts": {
     "check":  "time tsc --noEmit",

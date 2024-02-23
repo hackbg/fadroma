@@ -290,10 +290,14 @@ export class CWConnection extends Chain.Connection {
       ))
       const result = []
       for (let validator of validators) {
-        const address = Core.bech32m.encode(
+        const address = Core.bech32.encode(
           prefix,
-          Core.bech32m.toWords(ripemd160(Core.sha256(validator.pubkey.data)))
+          Core.bech32.toWords(validator.address)
         )
+        //const address = Core.bech32m.encode(
+          //prefix,
+          //Core.bech32m.toWords(ripemd160(Core.sha256(validator.pubkey.data)))
+        //)
         const info = {
           address,
           addressHex:       Core.base16.encode(validator.address),
@@ -311,7 +315,7 @@ export class CWConnection extends Chain.Connection {
     })
   }
 
-  getValidatorMetadata (address: Address) {
+  getValidatorMetadata (address: Address): unknown {
     const { log } = this
     return assertApi(this).then(async api=>{
       const client = await this.qClient

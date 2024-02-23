@@ -12,5 +12,10 @@ export const {
   base64,
 } = Core
 
-class CWBaseCLI extends CLI {}
+class CWBaseCLI extends CLI {
+  constructor (...args: ConstructorParameters<typeof CLI>) {
+    super(...args)
+    this.log.label = ``
+  }
+}
 export { CWBaseCLI as CLI }
