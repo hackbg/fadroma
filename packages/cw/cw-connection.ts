@@ -259,6 +259,13 @@ export class CWConnection extends Chain.Connection {
     return Promise.resolve(this.api).then(api=>(api as any)?.queryClient)
   }
 
+  async abciQuery (path, params = new Uint8Array()) {
+    const client = await this.qClient
+    this.log.debug('ABCI query:', path)
+    const { value } = await client.queryAbci(path, params)
+    return value
+  }
+
   /** Handle to the API's internal Tendermint transaction client. */
   get txClient (): Promise<ReturnType<CosmWasmClient["getTmClient"]>> {
     return Promise.resolve(this.api).then(api=>(api as any)?.tmClient)

@@ -2,11 +2,10 @@ import { CLI } from '../cw-base'
 import { Core } from '@fadroma/agent'
 import type { Address } from '@fadroma/agent'
 import { CWConnection, CWBatch } from '../cw-connection'
-import { CWMnemonicIdentity } from '../cw-identity'
 import { brailleDump } from '@hackbg/dump'
-import * as Borsh from 'borsh'
-import Borshes from './namada-borsh'
-import Addresses from './namada-address'
+import { NamadaConnection } from './namada-connection'
+import { NamadaMnemonicIdentity } from './namada-identity'
+export * from './namada-proposal'
 
 /** Namada CLI commands. */
 class NamadaCLI extends CLI {
@@ -108,71 +107,7 @@ type ValidatorMetaData = {
   avatar:         string|null
 }
 
-type Proposal = {
-  id:                 string,
-  proposal_type:      "pgf_steward" | "pgf_payment" | "default";
-  author:             string,
-  start_epoch:        bigint,
-  end_epoch:          bigint,
-  grace_epoch:        bigint,
-  content_json:       string,
-  status:             "ongoing" | "finished" | "upcoming"
-  result:             "passed" | "rejected"
-  total_voting_power: string,
-  total_yay_power:    string,
-  total_nay_power:    string,
-}
 
-async function abciQuery (client, path, params = new Uint8Array) {
-  const { value } = await client.queryAbci(path, params)
-  return value
-}
-
-class NamadaConnection extends CWConnection {
-
-  async getValidatorMetadata (address: Address): Promise<{
-    metadata: ValidatorMetaData
-    state: any
-  }> {
-    const client = await this.qClient
-    const [
-      metadata,
-      /*commission,*/
-      state,
-    ] = await Promise.all([
-      `/vp/pos/validator/metadata/${address}`,
-      //`/vp/pos/validator/commission/${address}`, // TODO
-      `/vp/pos/validator/state/${address}`,
-    ].map(path => abciQuery(client, path)))
-    return {
-      metadata: Borsh.deserialize(Borshes.ValidatorMetaData, metadata) as ValidatorMetaData,
-      state: Borsh.deserialize(Borshes.ValidatorState, state) as any
-      //commission: Borsh.deserialize(Borshes.CommissionPair, commission),
-    }
-  }
-
-  async getProposalCount () {
-    const client = await this.qClient
-    const counter = await abciQuery(client, `/shell/value/#${Addresses.Governance}/counter`)
-    return Borsh.deserialize('u64', counter) as bigint
-  }
-
-  async getProposalInfo (number: Number) {
-    const client = await this.qClient
-    const info = await abciQuery(client, `/vp/governance/proposal/${number}`)
-    console.log({info})
-    return Borsh.deserialize(Borshes.Proposal, info)
-  }
-
-}
-
-class NamadaMnemonicIdentity extends CWMnemonicIdentity {
-  constructor (properties?: { mnemonic?: string } & Partial<CWMnemonicIdentity>) {
-    super({ ...defaults, ...properties||{} })
-  }
-}
-
-const defaults = { coinType: 118, bech32Prefix: 'tnam', hdAccountIndex: 0, }
 
 export {
   NamadaCLI              as CLI,

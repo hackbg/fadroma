@@ -8,12 +8,13 @@
     "packages/secretjs-esm"
   ],
   "compilerOptions": {
-    "target": "esnext",
-    "module": "esnext",
-    "moduleResolution": "node",
-    "esModuleInterop": true,
+    "target":                       "esnext",
+    "module":                       "esnext",
+    "moduleResolution":             "node",
+    "esModuleInterop":              true,
     "allowSyntheticDefaultImports": true,
-    "noEmitOnError": true,
-    "skipLibCheck": true
+    "noEmitOnError":                true,
+    "skipLibCheck":                 true,
+    "experimentalDecorators":       true
   }
 }

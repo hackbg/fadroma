@@ -22,7 +22,10 @@
     "@hackbg/cmds":       "workspace:*",
     "@noble/hashes":      "^1.3.2",
     "@noble/curves":      "^1.2.0",
-    "borsh":              "^2.0.0"
+    "borsh":              "^2.0.0",
+    "borsher":            "^1.2.1",
+    "@dao-xyz/borsh":     "^5.2.1",
+    "bignumber.js":       "^9.1.2"
   },
   "scripts": {
     "check":  "time tsc --noEmit",
