@@ -40,11 +40,21 @@ export class GovernanceParameters {
   minProposalGraceEpochs:  bigint
   constructor (data: Partial<GovernanceParameters> = {}) {
     Core.assignCamelCase(this, data, Object.keys(governanceParametersSchemaFields))
+    if (
+      ((this.minProposalFund as any) instanceof Array) ||
+      ((this.minProposalFund as any) instanceof Uint8Array)
+    ) {
+      const bytes = this.minProposalFund as unknown as Array<number>
+      this.minProposalFund = 0n
+      for (let i = bytes.length - 1; i >= 0; i--) {
+        this.minProposalFund = this.minProposalFund * 256n + BigInt(bytes[i])
+      }
+    }
   }
 }
 
 const governanceParametersSchemaFields = {
-  min_proposal_fund:          Schema.u128,
+  min_proposal_fund:          Schema.Array(Schema.u8, 32),
   max_proposal_code_size:     Schema.u64,
   min_proposal_voting_period: Schema.u64,
   max_proposal_period:        Schema.u64,
