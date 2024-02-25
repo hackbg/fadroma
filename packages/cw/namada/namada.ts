@@ -73,13 +73,15 @@ class NamadaCLI extends CLI {
     const connection = new NamadaConnection({ url })
     const parameters = await connection.getGovernanceParameters()
     this.log
-      .log('Minimum proposal fund:',          parameters.minProposalFund)
-      .log('Minimum proposal voting period:', parameters.minProposalVotingPeriod)
-      .log('Minimum proposal grace epochs:',  parameters.minProposalGraceEpochs)
       .log()
-      .log('Maximum proposal period:',        parameters.maxProposalPeriod)
-      .log('Maximum proposal content size:',  parameters.maxProposalContentSize)
-      .log('Maximum proposal code size:',     parameters.maxProposalCodeSize)
+      .log('Minimum proposal fund:         ', Core.bold(parameters.minProposalFund))
+      .log('Minimum proposal voting period:', Core.bold(parameters.minProposalVotingPeriod))
+      .log('Minimum proposal grace epochs: ', Core.bold(parameters.minProposalGraceEpochs))
+      .log()
+      .log('Maximum proposal period:       ', Core.bold(parameters.maxProposalPeriod))
+      .log('Maximum proposal content size: ', Core.bold(parameters.maxProposalContentSize))
+      .log('Maximum proposal code size:    ', Core.bold(parameters.maxProposalCodeSize))
+      .log()
   })
 
   proposalCount = this.command({
