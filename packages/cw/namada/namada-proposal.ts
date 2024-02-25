@@ -9,6 +9,7 @@ const Schema = Borsher.BorshSchema
 
 export async function getGovernanceParameters (connection: Connection) {
   const binary = await connection.abciQuery(`/vp/governance/parameters`)
+  return GovernanceParameters.fromBorsh(binary)
 }
 
 export async function getProposalCount (connection: Connection) {
@@ -17,23 +18,33 @@ export async function getProposalCount (connection: Connection) {
 }
 
 export async function getProposalInfo (connection: Connection, id: number) {
-  const [
-    proposal,
-    votes,
-    result
-  ] = await Promise.all([
+  const [ proposal, votes, result ] = await Promise.all([
     connection.abciQuery(`/vp/governance/proposal/${id}`),
     connection.abciQuery(`/vp/governance/proposal/${id}/votes`),
     connection.abciQuery(`/vp/governance/stored_proposal_result/${id}`),
   ])
   return {
-    proposal: Proposal.deserialize(proposal),
+    proposal: Proposal.fromBorsh(proposal),
     votes:    votes,
     result:   result,
   }
 }
 
+export class GovernanceParameters {
+  static fromBorsh = binary => new this(Borsher.borshDeserialize(governanceParametersSchema, binary))
+  minProposalFund:         string
+  maxProposalCodeSize:     bigint
+  minProposalVotingPeriod: bigint
+  maxProposalPeriod:       bigint
+  maxProposalContentSize:  bigint
+  minProposalGraceEpochs:  bigint
+  constructor (data: Partial<GovernanceParameters> = {}) {
+    Core.assignCamelCase(this, data, Object.keys(governanceParametersSchemaFields))
+  }
+}
+
 export class Proposal {
+  static fromBorsh = binary => new this(Borsher.borshDeserialize(proposalSchema, binary))
   id!:               string
   content!:          Map<string, string>
   author!:           unknown
@@ -52,12 +63,24 @@ export class Proposal {
   async voteYay () { throw new Error("not implemented") }
   async voteNay () { throw new Error("not implemented") }
   async abstain () { throw new Error("not implemented") }
-  static deserialize = binary => new this(Borsher.borshDeserialize(proposalSchema, binary))
 }
 
 export class ProposalVotes extends Array {
-  static deserialize = binary => new this(Borsher.borshDeserialize(Schema.Vec(voteSchema), binary))
+  static fromBorsh = binary => new this(Borsher.borshDeserialize(Schema.Vec(voteSchema), binary))
 }
+
+const governanceParametersSchemaFields = {
+  min_proposal_fund:          Schema.String,
+  max_proposal_code_size:     Schema.u64,
+  min_proposal_voting_period: Schema.u64,
+  max_proposal_period:        Schema.u64,
+  max_proposal_content_size:  Schema.u64,
+  min_proposal_grace_epochs:  Schema.u64
+}
+
+const governanceParametersSchema = Schema.Struct(
+  governanceParametersSchemaFields
+)
 
 const proposalStatusSchema = Schema.Enum({
   Pending: Schema.Unit,
@@ -126,4 +149,6 @@ const proposalSchemaFields = {
   grace_epoch:        Schema.u64,
 }
 
-const proposalSchema = Schema.Option(Schema.Struct(proposalSchemaFields))
+const proposalSchema = Schema.Option(Schema.Struct(
+  proposalSchemaFields
+))

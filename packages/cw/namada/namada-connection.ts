@@ -15,7 +15,7 @@ import type { ValidatorMetaData } from './namada-validator'
 
 export class NamadaConnection extends CWConnection {
 
-  async getValidatorMetadata (address: Address) {
+  getValidatorMetadata (address: Address) {
     return getValidatorMetadata(this, address)
   }
 
@@ -32,4 +32,3 @@ export class NamadaConnection extends CWConnection {
   }
 
 }
-

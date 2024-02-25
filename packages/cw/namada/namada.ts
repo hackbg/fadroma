@@ -61,6 +61,27 @@ class NamadaCLI extends CLI {
     process.exit(0)
   })
 
+  governanceParameters = this.command({
+    name: 'governance-parameters',
+    info: 'get governance parameters',
+    args: 'RPC_URL',
+  }, async (url: string) => {
+    if (!url) {
+      this.log.error(Core.bold('Pass a RPC URL to query governance parameters.'))
+      process.exit(1)
+    }
+    const connection = new NamadaConnection({ url })
+    const parameters = await connection.getGovernanceParameters()
+    this.log
+      .log('Minimum proposal fund:',          parameters.minProposalFund)
+      .log('Minimum proposal voting period:', parameters.minProposalVotingPeriod)
+      .log('Minimum proposal grace epochs:',  parameters.minProposalGraceEpochs)
+      .log()
+      .log('Maximum proposal period:',        parameters.maxProposalPeriod)
+      .log('Maximum proposal content size:',  parameters.maxProposalContentSize)
+      .log('Maximum proposal code size:',     parameters.maxProposalCodeSize)
+  })
+
   proposalCount = this.command({
     name: 'proposal-count',
     info: 'get number of last proposal',
