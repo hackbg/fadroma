@@ -42,8 +42,7 @@ class NamadaCLI extends CLI {
       process.exit(1)
     }
     const connection = new NamadaConnection({ url })
-    const { metadata, state } = await connection.getValidatorMetadata(address)
-    console.log({state})
+    const { metadata } = await connection.getValidatorMetadata(address)
     this.log.br()
       .log('Address:     ', Core.bold(address))
       .log('Email:       ', Core.bold(metadata.email))
@@ -90,10 +89,21 @@ class NamadaCLI extends CLI {
       process.exit(1)
     }
     const connection = new NamadaConnection({ url })
-    const proposal = await connection.getProposalInfo(Number(number))
+    const {proposal, votes, result} = await connection.getProposalInfo(Number(number))
+    console.log({votes, result})
     this.log
-      .log('Proposal:', Core.bold(number))
-      .log(proposal)
+      .log('Proposal:   ', Core.bold(number))
+      .log('Author:     ', Core.bold(JSON.stringify(proposal.author)))
+      .log('Type:       ', Core.bold(JSON.stringify(proposal.type)))
+      .log('Start epoch:', Core.bold(proposal.votingStartEpoch))
+      .log('End epoch:  ', Core.bold(proposal.votingEndEpoch))
+      .log('Grace epoch:', Core.bold(proposal.graceEpoch))
+      .log('Content:    ')
+    for (const [key, value] of proposal.content.entries()) {
+      this.log
+        .log(`  ${Core.bold(key)}:`)
+        .log(`    ${value}`)
+    }
     process.exit(0)
   })
 
@@ -106,8 +116,6 @@ type ValidatorMetaData = {
   discord_handle: string|null
   avatar:         string|null
 }
-
-
 
 export {
   NamadaCLI              as CLI,
