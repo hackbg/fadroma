@@ -121,8 +121,6 @@ class NamadaCLI extends CLI {
       .log('Start epoch:', Core.bold(proposal.votingStartEpoch))
       .log('End epoch:  ', Core.bold(proposal.votingEndEpoch))
       .log('Grace epoch:', Core.bold(proposal.graceEpoch))
-      .log('Votes:      ', Core.bold(votes.length))
-      .info('Use the', Core.bold('proposal-votes'), 'command to see individual votes.')
       .log()
       .log('Content:    ')
     for (const [key, value] of proposal.content.entries()) {
@@ -130,7 +128,17 @@ class NamadaCLI extends CLI {
         .log(`  ${Core.bold(key)}:`)
         .log(`    ${value}`)
     }
-    console.log({result})
+    this.log
+      .log()
+      .log('Votes:          ', Core.bold(votes.length))
+      .log('Result:         ', Core.bold(JSON.stringify(result.result)))
+      .log('  Tally type:   ', Core.bold(JSON.stringify(result.tallyType)))
+      .log('  Total voting: ', Core.bold(result.totalVotingPower))
+      .log('  Total yay:    ', Core.bold(result.totalYayPower))
+      .log('  Total nay:    ', Core.bold(result.totalNayPower))
+      .log('  Total abstain:', Core.bold(result.totalAbstainPower))
+      .log()
+      .info('Use the', Core.bold('proposal-votes'), 'command to see individual votes.')
     process.exit(0)
   })
 

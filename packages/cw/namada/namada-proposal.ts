@@ -1,5 +1,6 @@
 import * as Borsher from 'borsher'
 import { addressSchema, InternalAddresses } from './namada-address'
+import { u256Schema, decodeU256Fields } from './namada-u256'
 import { Core } from '@fadroma/agent'
 import BigNumber from "bignumber.js"
 
@@ -11,6 +12,33 @@ export async function getGovernanceParameters (connection: Connection) {
   const binary = await connection.abciQuery(`/vp/governance/parameters`)
   return GovernanceParameters.fromBorsh(binary)
 }
+
+export class GovernanceParameters {
+  static fromBorsh = binary => new this(Borsher.borshDeserialize(governanceParametersSchema, binary))
+  minProposalFund:         bigint
+  maxProposalCodeSize:     bigint
+  minProposalVotingPeriod: bigint
+  maxProposalPeriod:       bigint
+  maxProposalContentSize:  bigint
+  minProposalGraceEpochs:  bigint
+  constructor (data: Partial<GovernanceParameters> = {}) {
+    Core.assignCamelCase(this, data, Object.keys(governanceParametersSchemaFields))
+    decodeU256Fields(this, ["minProposalFund"])
+  }
+}
+
+const governanceParametersSchemaFields = {
+  min_proposal_fund:          u256Schema,
+  max_proposal_code_size:     Schema.u64,
+  min_proposal_voting_period: Schema.u64,
+  max_proposal_period:        Schema.u64,
+  max_proposal_content_size:  Schema.u64,
+  min_proposal_grace_epochs:  Schema.u64
+}
+
+const governanceParametersSchema = Schema.Struct(
+  governanceParametersSchemaFields
+)
 
 export async function getProposalCount (connection: Connection) {
   const binary = await connection.abciQuery(`/shell/value/#${InternalAddresses.Governance}/counter`)
@@ -26,45 +54,9 @@ export async function getProposalInfo (connection: Connection, id: number) {
   return {
     proposal: Proposal.fromBorsh(proposal),
     votes:    ProposalVotes.fromBorsh(votes),
-    result:   result,
+    result:   ProposalResult.fromBorsh(result),
   }
 }
-
-export class GovernanceParameters {
-  static fromBorsh = binary => new this(Borsher.borshDeserialize(governanceParametersSchema, binary))
-  minProposalFund:         bigint
-  maxProposalCodeSize:     bigint
-  minProposalVotingPeriod: bigint
-  maxProposalPeriod:       bigint
-  maxProposalContentSize:  bigint
-  minProposalGraceEpochs:  bigint
-  constructor (data: Partial<GovernanceParameters> = {}) {
-    Core.assignCamelCase(this, data, Object.keys(governanceParametersSchemaFields))
-    if (
-      ((this.minProposalFund as any) instanceof Array) ||
-      ((this.minProposalFund as any) instanceof Uint8Array)
-    ) {
-      const bytes = this.minProposalFund as unknown as Array<number>
-      this.minProposalFund = 0n
-      for (let i = bytes.length - 1; i >= 0; i--) {
-        this.minProposalFund = this.minProposalFund * 256n + BigInt(bytes[i])
-      }
-    }
-  }
-}
-
-const governanceParametersSchemaFields = {
-  min_proposal_fund:          Schema.Array(Schema.u8, 32),
-  max_proposal_code_size:     Schema.u64,
-  min_proposal_voting_period: Schema.u64,
-  max_proposal_period:        Schema.u64,
-  max_proposal_content_size:  Schema.u64,
-  min_proposal_grace_epochs:  Schema.u64
-}
-
-const governanceParametersSchema = Schema.Struct(
-  governanceParametersSchemaFields
-)
 
 export class Proposal {
   static fromBorsh = binary => new this(Borsher.borshDeserialize(proposalSchema, binary))
@@ -75,11 +67,6 @@ export class Proposal {
   votingStartEpoch!: bigint
   votingEndEpoch!:   bigint
   graceEpoch!:       bigint
-  //status!:           ProposalStatus
-  //result!:           ProposalResult
-  //totalVotingPower!: BigNumber
-  //totalYayPower!:    BigNumber
-  //totalNayPower!:    BigNumber
   constructor (data: Partial<Proposal> = {}) {
     Core.assignCamelCase(this, data, Object.keys(proposalSchemaFields))
   }
@@ -155,18 +142,44 @@ const proposalStatusSchema = Schema.Enum({
   Ended:   Schema.Unit,
 })
 
-const proposalResultSchema = Schema.Struct({
+export class ProposalResult {
+  static fromBorsh = binary => new this(Borsher.borshDeserialize(proposalResultSchema, binary))
+  result:
+    | { Passed:   {} }
+    | { Rejected: {} }
+  tallyType:
+    | { TwoThirds:                  {} }
+    | { OneHalfOverOneThird:        {} }
+    | { LessOneHalfOverOneThirdNay: {} }
+  totalVotingPower:  bigint
+  totalYayPower:     bigint
+  totalNayPower:     bigint
+  totalAbstainPower: bigint
+  constructor (data: Partial<ProposalResult> = {}) {
+    Core.assignCamelCase(this, data, Object.keys(proposalResultSchemaFields))
+    decodeU256Fields(this, [
+      "totalVotingPower",
+      "totalYayPower",
+      "totalNayPower",
+      "totalAbstainPower",
+    ])
+  }
+}
+
+const proposalResultSchemaFields = {
   result:                       Schema.Enum({
     Passed:                     Schema.Unit,
     Rejected:                   Schema.Unit,
   }),
   tally_type:                   Schema.Enum({
     TwoThirds:                  Schema.Unit,
-    OneHalfOverOneThis:         Schema.Unit,
+    OneHalfOverOneThird:        Schema.Unit,
     LessOneHalfOverOneThirdNay: Schema.Unit,
   }),
-  total_voting_power:           Schema.String,
-  total_yay_power:              Schema.String,
-  total_nay_power:              Schema.String,
-  total_abstain_power:          Schema.String
-})
+  total_voting_power:           u256Schema,
+  total_yay_power:              u256Schema,
+  total_nay_power:              u256Schema,
+  total_abstain_power:          u256Schema,
+}
+
+const proposalResultSchema = Schema.Struct(proposalResultSchemaFields)
