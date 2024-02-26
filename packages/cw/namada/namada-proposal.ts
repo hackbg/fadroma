@@ -155,6 +155,7 @@ export class ProposalResult {
   totalYayPower:     bigint
   totalNayPower:     bigint
   totalAbstainPower: bigint
+  totalVoted:        bigint
   constructor (data: Partial<ProposalResult> = {}) {
     Core.assignCamelCase(this, data, Object.keys(proposalResultSchemaFields))
     decodeU256Fields(this, [
@@ -163,6 +164,7 @@ export class ProposalResult {
       "totalNayPower",
       "totalAbstainPower",
     ])
+    this.totalVoted = this.totalYayPower + this.totalNayPower + this.totalAbstainPower
   }
 }
 
