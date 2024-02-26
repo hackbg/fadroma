@@ -25,7 +25,7 @@ export async function getProposalInfo (connection: Connection, id: number) {
   ])
   return {
     proposal: Proposal.fromBorsh(proposal),
-    votes:    votes,
+    votes:    ProposalVotes.fromBorsh(votes),
     result:   result,
   }
 }
@@ -127,9 +127,27 @@ const proposalSchema = Schema.Option(Schema.Struct(
   proposalSchemaFields
 ))
 
-export class ProposalVotes extends Array {
-  static fromBorsh = binary => new this(Borsher.borshDeserialize(Schema.Vec(voteSchema), binary))
+export class ProposalVotes extends Array<Vote> {
+  static fromBorsh = binary => new this(
+    ...Borsher.borshDeserialize(Schema.Vec(voteSchema), binary) as Array<any>
+  )
 }
+
+export type Vote = {
+  validator: { Established: number[] } | { Implicit: number[] }
+  delegator: { Established: number[] } | { Implicit: number[] }
+  data:      { Yay: {} } | { Nay: {} } | { Abstain: {} }
+}
+
+const voteSchema = Schema.Struct({
+  validator: addressSchema,
+  delegator: addressSchema,
+  data:      Schema.Enum({
+    Yay:     Schema.Unit,
+    Nay:     Schema.Unit,
+    Abstain: Schema.Unit
+  }),
+})
 
 const proposalStatusSchema = Schema.Enum({
   Pending: Schema.Unit,
@@ -151,14 +169,4 @@ const proposalResultSchema = Schema.Struct({
   total_yay_power:              Schema.String,
   total_nay_power:              Schema.String,
   total_abstain_power:          Schema.String
-})
-
-const voteSchema = Schema.Struct({
-  validator: addressSchema,
-  delegator: addressSchema,
-  data:      Schema.Enum({
-    Yay:     Schema.Unit,
-    Nay:     Schema.Unit,
-    Abstain: Schema.Unit
-  }),
 })

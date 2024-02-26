@@ -112,8 +112,8 @@ class NamadaCLI extends CLI {
       process.exit(1)
     }
     const connection = new NamadaConnection({ url })
-    const {proposal, votes, result} = await connection.getProposalInfo(Number(number))
-    console.log({votes, result})
+    const {proposal, result} = await connection.getProposalInfo(Number(number))
+    console.log({result})
     this.log
       .log('Proposal:   ', Core.bold(number))
       .log('Author:     ', Core.bold(JSON.stringify(proposal.author)))
@@ -126,6 +126,40 @@ class NamadaCLI extends CLI {
       this.log
         .log(`  ${Core.bold(key)}:`)
         .log(`    ${value}`)
+    }
+    process.exit(0)
+  })
+
+  proposalVotes = this.command({
+    name: 'proposal-votes',
+    info: 'list of individual votes for a proposal',
+    args: 'RPC_URL NUMBER'
+  }, async (url: string, number: string) => {
+    if (!url || !number || isNaN(Number(number))) {
+      this.log.error(Core.bold('Pass a RPC URL and proposal number to query proposal votes.'))
+      process.exit(1)
+    }
+    const connection = new NamadaConnection({ url })
+    const {proposal, votes, result} = await connection.getProposalInfo(Number(number))
+    this.log
+      .log('Proposal:   ', Core.bold(number))
+      .log('Author:     ', Core.bold(JSON.stringify(proposal.author)))
+      .log('Type:       ', Core.bold(JSON.stringify(proposal.type)))
+      .log('Start epoch:', Core.bold(proposal.votingStartEpoch))
+      .log('End epoch:  ', Core.bold(proposal.votingEndEpoch))
+      .log('Grace epoch:', Core.bold(proposal.graceEpoch))
+      .log('Content:    ')
+    for (const [key, value] of proposal.content.entries()) {
+      this.log
+        .log(`  ${Core.bold(key)}:`)
+        .log(`    ${value}`)
+    }
+    for (const vote of votes) {
+      this.log
+        .log()
+        .log(`Vote:`, Core.bold(JSON.stringify(vote.data)))
+        .log(`  Validator:`, Core.bold(JSON.stringify(vote.validator)))
+        .log(`  Delegator:`, Core.bold(JSON.stringify(vote.delegator)))
     }
     process.exit(0)
   })
