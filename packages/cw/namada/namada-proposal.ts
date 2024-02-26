@@ -9,6 +9,7 @@ import BigNumber from "bignumber.js"
 type Connection = { abciQuery: (path: string)=>Promise<Uint8Array> }
 
 const Schema = Borsher.BorshSchema
+const Error = Core.Error
 
 export async function getGovernanceParameters (connection: Connection) {
   const binary = await connection.abciQuery(`/vp/governance/parameters`)
@@ -122,85 +123,36 @@ export class ProposalVotes extends Array<Vote> {
       validator: NamadaAddress
       delegator: NamadaAddress
       data:      { Yay: {} } | { Nay: {} } | { Abstain: {} }
-    }>).map(decodeVote)
+    }>).map(vote => new Vote(vote))
   )
 }
 
-export const decodeVote = (vote: {
-  validator: NamadaAddress
-  delegator: NamadaAddress
-  data:      { Yay: {} } | { Nay: {} } | { Abstain: {} }
-}) => {
-  if (Object.keys(vote.data).length !== 1) {
-    throw new Error("vote.data variant must have exactly 1 key")
-  }
-  const { Yay, Nay, Abstain } = vote.data as any
-  if (Yay) {
-    return new VoteYay(vote)
-  }
-  if (Nay) {
-    return new VoteNay(vote)
-  }
-  if (Abstain) {
-    return new VoteAbstain(vote)
-  }
-  throw new Core.Error("vote.data variant must be one of: Established, Implicit, Internal")
-}
+const votes = new Set(['Yay', 'Nay', 'Abstain'])
 
 export class Vote {
   validator: Address
   delegator: Address
-  constructor ({ validator, delegator }) {
+  data: { Yay: {} } | { Nay: {} } | { Abstain: {} }
+  constructor ({ validator, delegator, data }) {
+    if (Object.keys(data).length !== 1) {
+      throw new Error("vote.data variant must have exactly 1 key")
+    }
+    if (!votes.has(Object.keys(data)[0])) {
+      throw new Error("vote.data variant must be one of: Established, Implicit, Internal")
+    }
     this.validator = validator
     this.delegator = delegator
-  }
-  get value (): 'Yay'|'Nay'|'Abstain' {
-    throw new Error("use a subclass of Vote")
-  }
-}
-
-export class VoteYay extends Vote {
-  get isYay () {
-    return true
-  }
-  get isNay () {
-    return false
-  }
-  get isAbstain () {
-    return false
+    this.data = data
   }
   get value () {
-    return 'Yay' as 'Yay'
-  }
-}
-
-export class VoteNay extends Vote {
-  get isYay () {
-    return false
-  }
-  get isNay () {
-    return true
-  }
-  get isAbstain () {
-    return false
-  }
-  get value () {
-    return 'Nay' as 'Nay'
-  }
-}
-
-export class VoteAbstain extends Vote {
-  get isYay () {
-    return false
-  }
-  get isNay () {
-    return false
-  }
-  get isAbstain () {
-    return true
-  }
-  get value () {
-    return 'Abstain' as 'Abstain'
+    if (typeof this.data !== 'object' || Object.keys(this.data).length !== 1) {
+      throw new Error("vote.data variant must be an object of exactly 1 key")
+    }
+    const value = Object.keys(this.data)[0]
+    if (!votes.has(value)) {
+      throw new Error("vote.data variant must be one of: Established, Implicit, Internal")
+    }
+    return value as 'Yay'|'Nay'|'Abstain'
   }
 }
 
