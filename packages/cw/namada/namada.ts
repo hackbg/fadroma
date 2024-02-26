@@ -129,34 +129,27 @@ class NamadaCLI extends CLI {
         .log(`    ${value}`)
     }
     if (result) {
-      const percent = (a: bigint, b: bigint) =>
-        ((Number(a * 10000n / b) / 100).toFixed(2) + '%').padStart(7)
       const {
-        totalYayPower,
-        totalNayPower,
-        totalAbstainPower,
-        totalVoted,
-        totalVotingPower
+        totalVotingPower,
+        turnout,           turnoutPercent,
+        totalAbstainPower, abstainPercent,
+        totalYayPower,     yayPercent,
+        totalNayPower,     nayPercent,
       } = result
       this.log
         .log()
         .log('Votes:       ', Core.bold(votes.length))
         .log('Result:      ', Core.bold(JSON.stringify(result.result)))
         .log('  Tally type:', Core.bold(JSON.stringify(result.tallyType)))
-        .log('  Yay:       ',
-             Core.bold(percent(totalYayPower, totalVoted)), `of turnout`,
-             `(${Core.bold(result.totalYayPower)})`)
-        .log('  Nay:       ',
-             Core.bold(percent(totalNayPower, totalVoted)), `of turnout`,
-             `(${Core.bold(result.totalNayPower)})`)
-        .log('  Abstain:   ',
-             Core.bold(percent(totalAbstainPower, totalVoted)), `of turnout`,
-             `(${Core.bold(result.totalAbstainPower)})`)
-        .log('  Turnout:   ',
-             Core.bold(percent(totalVoted, totalVotingPower)), `of total voting power`,
-             `(${Core.bold(result.totalVoted)})`)
-        .log('  Power:     ',
-             Core.bold(result.totalVotingPower))
+        .log('  Yay:       ', Core.bold(yayPercent),
+           `of turnout`, `(${Core.bold(totalYayPower)})`)
+        .log('  Nay:       ', Core.bold(nayPercent),
+           `of turnout`, `(${Core.bold(totalNayPower)})`)
+        .log('  Abstain:   ', Core.bold(abstainPercent),
+           `of turnout`, `(${Core.bold(totalAbstainPower)})`)
+        .log('  Turnout:   ', Core.bold(turnoutPercent),
+           `of total voting power`, `(${Core.bold(turnout)})`)
+        .log('  Power:     ', Core.bold(result.totalVotingPower))
         .log()
         .info('Use the', Core.bold('proposal-votes'), 'command to see individual votes.')
     } else {

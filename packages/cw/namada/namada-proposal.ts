@@ -144,6 +144,9 @@ const proposalStatusSchema = Schema.Enum({
   Ended:   Schema.Unit,
 })
 
+const percent = (a: bigint, b: bigint) =>
+  ((Number(a * 1000000n / b) / 10000).toFixed(2) + '%').padStart(7)
+
 export class ProposalResult {
   static fromBorsh = binary => new this(Borsher.borshDeserialize(proposalResultSchema, binary))
   result:
@@ -157,7 +160,7 @@ export class ProposalResult {
   totalYayPower:     bigint
   totalNayPower:     bigint
   totalAbstainPower: bigint
-  totalVoted:        bigint
+
   constructor (data: Partial<ProposalResult> = {}) {
     Core.assignCamelCase(this, data, Object.keys(proposalResultSchemaFields))
     decodeU256Fields(this, [
@@ -166,7 +169,22 @@ export class ProposalResult {
       "totalNayPower",
       "totalAbstainPower",
     ])
-    this.totalVoted = this.totalYayPower + this.totalNayPower + this.totalAbstainPower
+  }
+
+  get turnout () {
+    return this.totalYayPower + this.totalNayPower + this.totalAbstainPower
+  }
+  get turnoutPercent () {
+    return percent(this.turnout, this.totalVotingPower)
+  }
+  get yayPercent () {
+    return percent(this.totalYayPower, this.turnout)
+  }
+  get nayPercent () {
+    return percent(this.totalNayPower, this.turnout)
+  }
+  get abstainPercent () {
+    return percent(this.totalAbstainPower, this.turnout)
   }
 }
 

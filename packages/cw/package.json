@@ -12,9 +12,12 @@
     "okp4/*.ts",
     "osmosis/*.ts"
   ],
-  "version": "1.0.0-rc.27",
+  "version": "1.0.0-rc.28",
   "license": "AGPL-3.0-only",
-  "keywords": [ "cosmwasm", "interchain", "okp4" ],
+  "keywords": [
+    "cosmwasm", "interchain", "cosmos",
+    "archway", "axelar", "injective", "namada", "okp4", "osmosis"
+  ],
   "description": "CosmJS Stargate integration for Fadroma.",
   "dependencies": {
     "@fadroma/agent":     "workspace:*",
