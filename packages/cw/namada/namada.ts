@@ -197,7 +197,9 @@ class NamadaCLI extends CLI {
       }
       this.log.log()
     } else {
-      this.log.log().log(Core.bold("There are no votes for this proposal yet.")).log()
+      this.log.log()
+        .log(Core.bold("There are no votes for this proposal yet."))
+        .log()
     }
     process.exit(0)
   })

@@ -85,11 +85,11 @@ const addRemoveSchema = t => Schema.Enum({
 const pgfTargetSchema = Schema.Enum({
   Internal:     Schema.Struct({
     target:     addressSchema,
-    amount:     Schema.String,
+    amount:     u256Schema,
   }),
   Ibc:          Schema.Struct({
     target:     Schema.String,
-    amount:     Schema.String,
+    amount:     u256Schema,
     port_id:    Schema.String,
     channel_id: Schema.String,
   })
