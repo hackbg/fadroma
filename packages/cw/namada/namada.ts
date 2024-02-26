@@ -173,24 +173,31 @@ class NamadaCLI extends CLI {
     const connection = new NamadaConnection({ url })
     const {proposal, votes, result} = await connection.getProposalInfo(Number(number))
     this.log
+      .log()
       .log('Proposal:   ', Core.bold(number))
       .log('Author:     ', Core.bold(JSON.stringify(proposal.author)))
       .log('Type:       ', Core.bold(JSON.stringify(proposal.type)))
       .log('Start epoch:', Core.bold(proposal.votingStartEpoch))
       .log('End epoch:  ', Core.bold(proposal.votingEndEpoch))
       .log('Grace epoch:', Core.bold(proposal.graceEpoch))
+      .log()
       .log('Content:    ')
     for (const [key, value] of proposal.content.entries()) {
       this.log
         .log(`  ${Core.bold(key)}:`)
         .log(`    ${value}`)
     }
-    for (const vote of votes) {
-      this.log
-        .log()
-        .log(`Vote:`, Core.bold(JSON.stringify(vote.data)))
-        .log(`  Validator:`, Core.bold(JSON.stringify(vote.validator)))
-        .log(`  Delegator:`, Core.bold(JSON.stringify(vote.delegator)))
+    if (votes.length > 0) {
+      for (const vote of votes) {
+        this.log
+          .log()
+          .log(`Vote:`, Core.bold(vote.value))
+          .log(`  Validator:`, Core.bold(JSON.stringify(vote.validator)))
+          .log(`  Delegator:`, Core.bold(JSON.stringify(vote.delegator)))
+      }
+      this.log.log()
+    } else {
+      this.log.log().log(Core.bold("There are no votes for this proposal yet.")).log()
     }
     process.exit(0)
   })

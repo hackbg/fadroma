@@ -1,7 +1,9 @@
 import * as Borsher from 'borsher'
-import { addressSchema, InternalAddresses } from './namada-address'
-import { u256Schema, decodeU256Fields } from './namada-u256'
 import { Core } from '@fadroma/agent'
+import type { Address } from '@fadroma/agent'
+import type { Address as NamadaAddress } from './namada-address'
+import { addressSchema, InternalAddresses, decodeAddressFields } from './namada-address'
+import { u256Schema, decodeU256Fields } from './namada-u256'
 import BigNumber from "bignumber.js"
 
 type Connection = { abciQuery: (path: string)=>Promise<Uint8Array> }
@@ -64,17 +66,15 @@ export class Proposal {
   static fromBorsh = binary => new this(Borsher.borshDeserialize(proposalSchema, binary))
   id!:               string
   content!:          Map<string, string>
-  author!:           unknown
+  author!:           string
   type!:             unknown
   votingStartEpoch!: bigint
   votingEndEpoch!:   bigint
   graceEpoch!:       bigint
   constructor (data: Partial<Proposal> = {}) {
     Core.assignCamelCase(this, data, Object.keys(proposalSchemaFields))
+    decodeAddressFields(this, ["author"])
   }
-  async voteYay () { throw new Error("not implemented") }
-  async voteNay () { throw new Error("not implemented") }
-  async abstain () { throw new Error("not implemented") }
 }
 
 const addRemoveSchema = t => Schema.Enum({
@@ -118,14 +118,90 @@ const proposalSchema = Schema.Option(Schema.Struct(
 
 export class ProposalVotes extends Array<Vote> {
   static fromBorsh = binary => new this(
-    ...Borsher.borshDeserialize(Schema.Vec(voteSchema), binary) as Array<any>
+    ...(Borsher.borshDeserialize(Schema.Vec(voteSchema), binary) as Array<{
+      validator: NamadaAddress
+      delegator: NamadaAddress
+      data:      { Yay: {} } | { Nay: {} } | { Abstain: {} }
+    }>).map(decodeVote)
   )
 }
 
-export type Vote = {
-  validator: { Established: number[] } | { Implicit: number[] }
-  delegator: { Established: number[] } | { Implicit: number[] }
+export const decodeVote = (vote: {
+  validator: NamadaAddress
+  delegator: NamadaAddress
   data:      { Yay: {} } | { Nay: {} } | { Abstain: {} }
+}) => {
+  if (Object.keys(vote.data).length !== 1) {
+    throw new Error("vote.data variant must have exactly 1 key")
+  }
+  const { Yay, Nay, Abstain } = vote.data as any
+  if (Yay) {
+    return new VoteYay(vote)
+  }
+  if (Nay) {
+    return new VoteNay(vote)
+  }
+  if (Abstain) {
+    return new VoteAbstain(vote)
+  }
+  throw new Core.Error("vote.data variant must be one of: Established, Implicit, Internal")
+}
+
+export class Vote {
+  validator: Address
+  delegator: Address
+  constructor ({ validator, delegator }) {
+    this.validator = validator
+    this.delegator = delegator
+  }
+  get value (): 'Yay'|'Nay'|'Abstain' {
+    throw new Error("use a subclass of Vote")
+  }
+}
+
+export class VoteYay extends Vote {
+  get isYay () {
+    return true
+  }
+  get isNay () {
+    return false
+  }
+  get isAbstain () {
+    return false
+  }
+  get value () {
+    return 'Yay' as 'Yay'
+  }
+}
+
+export class VoteNay extends Vote {
+  get isYay () {
+    return false
+  }
+  get isNay () {
+    return true
+  }
+  get isAbstain () {
+    return false
+  }
+  get value () {
+    return 'Nay' as 'Nay'
+  }
+}
+
+export class VoteAbstain extends Vote {
+  get isYay () {
+    return false
+  }
+  get isNay () {
+    return false
+  }
+  get isAbstain () {
+    return true
+  }
+  get value () {
+    return 'Abstain' as 'Abstain'
+  }
 }
 
 const voteSchema = Schema.Struct({
