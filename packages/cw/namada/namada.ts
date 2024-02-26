@@ -112,21 +112,25 @@ class NamadaCLI extends CLI {
       process.exit(1)
     }
     const connection = new NamadaConnection({ url })
-    const {proposal, result} = await connection.getProposalInfo(Number(number))
-    console.log({result})
+    const {proposal, votes, result} = await connection.getProposalInfo(Number(number))
     this.log
+      .log()
       .log('Proposal:   ', Core.bold(number))
       .log('Author:     ', Core.bold(JSON.stringify(proposal.author)))
       .log('Type:       ', Core.bold(JSON.stringify(proposal.type)))
       .log('Start epoch:', Core.bold(proposal.votingStartEpoch))
       .log('End epoch:  ', Core.bold(proposal.votingEndEpoch))
       .log('Grace epoch:', Core.bold(proposal.graceEpoch))
+      .log('Votes:      ', Core.bold(votes.length))
+      .info('Use the', Core.bold('proposal-votes'), 'command to see individual votes.')
+      .log()
       .log('Content:    ')
     for (const [key, value] of proposal.content.entries()) {
       this.log
         .log(`  ${Core.bold(key)}:`)
         .log(`    ${value}`)
     }
+    console.log({result})
     process.exit(0)
   })
 
