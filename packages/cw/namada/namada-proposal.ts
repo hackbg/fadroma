@@ -54,7 +54,9 @@ export async function getProposalInfo (connection: Connection, id: number) {
   return {
     proposal: Proposal.fromBorsh(proposal),
     votes:    ProposalVotes.fromBorsh(votes),
-    result:   ProposalResult.fromBorsh(result),
+    result:   (result.length === 1)
+      ? null
+      : ProposalResult.fromBorsh(result),
   }
 }
 

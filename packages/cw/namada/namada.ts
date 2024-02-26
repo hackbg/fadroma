@@ -128,36 +128,43 @@ class NamadaCLI extends CLI {
         .log(`  ${Core.bold(key)}:`)
         .log(`    ${value}`)
     }
-    const percent = (a: bigint, b: bigint) =>
-      ((Number(a * 10000n / b) / 100).toFixed(2) + '%').padStart(7)
-    const {
-      totalYayPower,
-      totalNayPower,
-      totalAbstainPower,
-      totalVoted,
-      totalVotingPower
-    } = result
-    this.log
-      .log()
-      .log('Votes:       ', Core.bold(votes.length))
-      .log('Result:      ', Core.bold(JSON.stringify(result.result)))
-      .log('  Tally type:', Core.bold(JSON.stringify(result.tallyType)))
-      .log('  Yay:       ',
-           Core.bold(percent(totalYayPower, totalVoted)), `of turnout`,
-           `(${Core.bold(result.totalYayPower)})`)
-      .log('  Nay:       ',
-           Core.bold(percent(totalNayPower, totalVoted)), `of turnout`,
-           `(${Core.bold(result.totalNayPower)})`)
-      .log('  Abstain:   ',
-           Core.bold(percent(totalAbstainPower, totalVoted)), `of turnout`,
-           `(${Core.bold(result.totalAbstainPower)})`)
-      .log('  Turnout:   ',
-           Core.bold(percent(totalVoted, totalVotingPower)), `of total voting power`,
-           `(${Core.bold(result.totalVoted)})`)
-      .log('  Power:     ',
-           Core.bold(result.totalVotingPower))
-      .log()
-      .info('Use the', Core.bold('proposal-votes'), 'command to see individual votes.')
+    if (result) {
+      const percent = (a: bigint, b: bigint) =>
+        ((Number(a * 10000n / b) / 100).toFixed(2) + '%').padStart(7)
+      const {
+        totalYayPower,
+        totalNayPower,
+        totalAbstainPower,
+        totalVoted,
+        totalVotingPower
+      } = result
+      this.log
+        .log()
+        .log('Votes:       ', Core.bold(votes.length))
+        .log('Result:      ', Core.bold(JSON.stringify(result.result)))
+        .log('  Tally type:', Core.bold(JSON.stringify(result.tallyType)))
+        .log('  Yay:       ',
+             Core.bold(percent(totalYayPower, totalVoted)), `of turnout`,
+             `(${Core.bold(result.totalYayPower)})`)
+        .log('  Nay:       ',
+             Core.bold(percent(totalNayPower, totalVoted)), `of turnout`,
+             `(${Core.bold(result.totalNayPower)})`)
+        .log('  Abstain:   ',
+             Core.bold(percent(totalAbstainPower, totalVoted)), `of turnout`,
+             `(${Core.bold(result.totalAbstainPower)})`)
+        .log('  Turnout:   ',
+             Core.bold(percent(totalVoted, totalVotingPower)), `of total voting power`,
+             `(${Core.bold(result.totalVoted)})`)
+        .log('  Power:     ',
+             Core.bold(result.totalVotingPower))
+        .log()
+        .info('Use the', Core.bold('proposal-votes'), 'command to see individual votes.')
+    } else {
+      this.log
+        .log()
+        .log(Core.bold('There is no result for this proposal yet.'))
+        .log()
+    }
     process.exit(0)
   })
 
