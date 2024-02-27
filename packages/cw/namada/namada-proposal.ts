@@ -141,9 +141,10 @@ export class Vote {
     if (!votes.has(Object.keys(data)[0])) {
       throw new Error("vote.data variant must be one of: Established, Implicit, Internal")
     }
+    this.data      = data
     this.validator = validator
     this.delegator = delegator
-    this.data = data
+    decodeAddressFields(this, ["validator", "delegator"])
   }
   get value () {
     if (typeof this.data !== 'object' || Object.keys(this.data).length !== 1) {

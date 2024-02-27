@@ -59,9 +59,9 @@ class NamadaCLI extends CLI {
     const connection = new NamadaConnection({ url })
     const validatorAddresses = await connection.getValidatorAddresses()
     for (const validator of await connection.getValidatorAddresses()) {
-      this.log.log(decodeAddress(validator))
+      this.log.log(validator)
     }
-    this.log.br().info('Total validators:', Core.bold(String(validatorAddresses.size)))
+    this.log.br().info('Total validators:', Core.bold(String(validatorAddresses.length)))
     //for (const validator of await connection.getValidators({ prefix: 'tnam' })) {
       //this.log.br()
         ////.info('Validator:        ', Core.bold(validator.address))
@@ -193,7 +193,7 @@ class NamadaCLI extends CLI {
     this.log
       .log()
       .log('Proposal:   ', Core.bold(number))
-      .log('Author:     ', Core.bold(JSON.stringify(proposal.author)))
+      .log('Author:     ', Core.bold(proposal.author))
       .log('Type:       ', Core.bold(JSON.stringify(proposal.type)))
       .log('Start epoch:', Core.bold(proposal.votingStartEpoch))
       .log('End epoch:  ', Core.bold(proposal.votingEndEpoch))
@@ -269,8 +269,8 @@ class NamadaCLI extends CLI {
         this.log
           .log()
           .log(`Vote:`, Core.bold(vote.value))
-          .log(`  Validator:`, Core.bold(JSON.stringify(vote.validator)))
-          .log(`  Delegator:`, Core.bold(JSON.stringify(vote.delegator)))
+          .log(`  Validator:`, Core.bold(vote.validator))
+          .log(`  Delegator:`, Core.bold(vote.delegator))
       }
       this.log.log()
     } else {

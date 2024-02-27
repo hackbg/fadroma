@@ -94,9 +94,10 @@ export async function getTotalStaked (connection: Connection) {
 
 const totalStakeSchema = Schema.Struct({ totalStake: Schema.u64 })
 
-export async function getValidatorAddresses (connection: Connection): Promise<Set<NamadaAddress>> {
+export async function getValidatorAddresses (connection: Connection): Promise<Address[]> {
   const binary = await connection.abciQuery("/vp/pos/validator/addresses")
-  return Borsher.borshDeserialize(getValidatorsSchema, binary)
+  return [...Borsher.borshDeserialize(getValidatorsSchema, binary) as Set<Array<number>>]
+    .map(bytes=>decodeAddress(bytes))
 }
 
 const getValidatorsSchema = Schema.HashSet(addressSchema)
@@ -105,7 +106,7 @@ export async function getConsensusValidators (connection: Connection) {
   const binary = await connection.abciQuery("/vp/pos/validator_set/consensus")
   return [...Borsher.borshDeserialize(validatorSetSchema, binary) as Set<{
     bonded_stake: number[],
-    address:      NamadaAddress,
+    address:      number[],
   }>].map(({bonded_stake, address})=>({
     address:     decodeAddress(address),
     bondedStake: decodeU256(bonded_stake)
@@ -118,7 +119,7 @@ export async function getBelowCapacityValidators (connection: Connection) {
   const binary = await connection.abciQuery("/vp/pos/validator_set/below_capacity")
   return [...Borsher.borshDeserialize(validatorSetSchema, binary) as Set<{
     bonded_stake: number[],
-    address:      NamadaAddress,
+    address:      number[],
   }>].map(({bonded_stake, address})=>({
     address:     decodeAddress(address),
     bondedStake: decodeU256(bonded_stake)
