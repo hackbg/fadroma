@@ -74,6 +74,7 @@ export class Proposal {
   graceEpoch!:       bigint
   constructor (data: Partial<Proposal> = {}) {
     Core.assignCamelCase(this, data, Object.keys(proposalSchemaFields))
+    //console.log(JSON.stringify(this.author))
     decodeAddressFields(this, ["author"])
   }
 }
@@ -99,7 +100,7 @@ const pgfTargetSchema = Schema.Enum({
 const proposalSchemaFields = {
   id:                 Schema.u64,
   content:            Schema.HashMap(Schema.String, Schema.String),
-  author:             addressSchema,
+  author:             Schema.Array(Schema.u8, 21),
   type:               Schema.Enum({
     Default:          Schema.Option(Schema.String),
     PGFSteward:       Schema.HashSet(addRemoveSchema(addressSchema)),

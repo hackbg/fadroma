@@ -20,7 +20,7 @@ export async function getValidatorMetadata (connection: Connection, address: Add
   ] = await Promise.all([
     `/vp/pos/validator/metadata/${address}`,
     //`/vp/pos/validator/commission/${address}`, // TODO
-    `/vp/pos/validator/state/${address}`,
+    //`/vp/pos/validator/state/${address}`,
   ].map(path => connection.abciQuery(path)))
   return {
     metadata: BorshJS.deserialize(

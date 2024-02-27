@@ -5,7 +5,7 @@ const Schema = Borsher.BorshSchema
 export type Address =
   | { Established: number[] }
   | { Implicit:    number[] }
-  | { Internal:    number[] }
+  | { Internal:    {} }
 
 export function decodeAddressFields <T> (object: T, fields: (keyof T)[]) {
   for (const field of fields) {
@@ -19,39 +19,59 @@ export const toBech32 = (address: Address) => {
   if (Object.keys(address).length !== 1) {
     throw new Core.Error("address variant must have exactly 1 key")
   }
-  const { Established, Implicit, Internal } = address as any
-  if (Established) {
-    return Core.bech32.encode('tnam', Core.bech32.toWords(new Uint8Array(Established)))
-  }
-  if (Implicit) {
-    return Core.bech32.encode('tnam', Core.bech32.toWords(new Uint8Array(Implicit)))
-  }
-  if (Internal) {
-    return Core.bech32.encode('tnam', Core.bech32.toWords(new Uint8Array(Internal)))
-  }
-  throw new Core.Error("address variant must be one of: Established, Implicit, Internal")
+  //console.log(new Uint8Array(Borsher.borshSerialize(addressSchema, address)))
+  //const twenty = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+  //for (const key of [
+    //'Implicit',                    // 0
+    //'Established',                 // 1
+    //'Internal_PoS',                // 2
+    //'Internal_PosSlashPool',       // 3
+    //'Internal_Parameters',         // 4
+    //'Internal_Governance',         // 5
+    //'Internal_IBC',                // 6
+    //'Internal_EthBridge',          // 7
+    //'Internal_EthBridgePool',      // 8
+    //'Internal_Multitoken',         // 9
+    //'Internal_PublicGoodFundings', // 10
+    //'Internal_Erc20',              // 11
+    //'Internal_Nut',                // 12
+    //'Internal_IbcToken',           // 13
+    //'Internal_Masp',               // 14
+  //]) {
+    //const value = { [key]: twenty }
+    //const serialized = new Uint8Array(Borsher.borshSerialize(addressSchema, value))
+    ////console.log()
+    ////console.log(value, '=>', serialized)
+  //}
+  //console.trace(Core.bech32m.decodeToBytes('tnam1qqr8fld54cckvt2cc2e87z9s7eajm324usq5vkm9'))
+  //process.exit(123)
+  return Core.bech32m.encode('tnam', Core.bech32m.toWords(Borsher.borshSerialize(addressSchema, address)))
 }
 
 export const InternalAddresses = {
   Governance: "tnam1q5qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrw33g6"
 }
 
-export const addressSchema = Schema.Enum({
-  Established:     Schema.Array(Schema.u8, 20),
-  Implicit:        Schema.Array(Schema.u8, 20),
-  Internal:        Schema.Enum({
-    PoS:           Schema.Unit,
-    PosSlashPool:  Schema.Unit,
-    Parameters:    Schema.Unit,
-    Ibc:           Schema.Unit,
-    IbcToken:      Schema.Array(Schema.u8, 20),
-    Governance:    Schema.Unit,
-    EthBridge:     Schema.Unit,
-    EthBridgePool: Schema.Unit,
-    Erc20:         Schema.Array(Schema.u8, 20),
-    Nut:           Schema.Array(Schema.u8, 20),
-    Multitoken:    Schema.Unit,
-    Pgf:           Schema.Unit,
-    Masp:          Schema.Unit,
-  }),
-})
+const twentyBytes = Schema.Array(Schema.u8, 20)
+
+export const addressSchema = schemaEnum([
+  'Implicit',                    // 0
+  'Established',                 // 1
+  'Internal_PoS',                // 2
+  'Internal_PosSlashPool',       // 3
+  'Internal_Parameters',         // 4
+  'Internal_Governance',         // 5
+  'Internal_IBC',                // 6
+  'Internal_EthBridge',          // 7
+  'Internal_EthBridgePool',      // 8
+  'Internal_Multitoken',         // 9
+  'Internal_PublicGoodFundings', // 10
+  'Internal_Erc20',              // 11
+  'Internal_Nut',                // 12
+  'Internal_IbcToken',           // 13
+  'Internal_Masp',               // 14
+].map(variant=>[variant, twentyBytes]))
+
+function schemaEnum (variants: [string, Borsher.BorshSchema][]) {
+  return Schema.from({ enum: variants.map(([k, v])=>({ struct: { [k]: v.into() } })) })
+}
