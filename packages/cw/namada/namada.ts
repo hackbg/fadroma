@@ -12,6 +12,28 @@ export * from './namada-staked'
 /** Namada CLI commands. */
 class NamadaCLI extends CLI {
 
+  epoch = this.command({
+    name: "epoch",
+    info: "show current epoch",
+    args: "RPC_URL",
+  }, async (url) => {
+    const connection = new NamadaConnection({ url })
+    const epochResult = await connection.getCurrentEpoch()
+    this.log.log(epochResult)
+    process.exit(0)
+  });
+
+  totalStaked = this.command({
+    name: "total-staked",
+    info: "show total staked amount",
+    args: "RPC_URL",
+  }, async (url) => {
+    const connection = new NamadaConnection({ url })
+    const totalStaked = await connection.getTotalStaked()
+    this.log.log(totalStaked)
+    process.exit(0)
+  })
+
   stakingParameters = this.command({
     name: 'staking-parameters',
     info: 'get staking parameters',
@@ -223,27 +245,6 @@ class NamadaCLI extends CLI {
     process.exit(0)
   })
 
-  epoch = this.command({
-    name: "epoch",
-    info: "Show current epoch",
-    args: "RPC_URL",
-  }, async (url) => {
-    const connection = new NamadaConnection({ url })
-    const epochResult = await connection.getCurrentEpoch()
-    this.log.log(epochResult)
-    process.exit(0)
-  });
-
-  totalStaked = this.command({
-    name: "total-staked",
-    info: "Show total staked amount",
-    args: "RPC_URL",
-  }, async (url) => {
-    const connection = new NamadaConnection({ url })
-    const totalStaked = await connection.getTotalStaked()
-    this.log.log(totalStaked)
-    process.exit(0)
-  })
 }
 
 export {

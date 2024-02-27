@@ -1,4 +1,3 @@
-import * as BorshJS from "borsh"
 import * as Borsher from 'borsher'
 import type { Address } from '@fadroma/agent'
 import { Core } from '@fadroma/agent'
@@ -16,17 +15,11 @@ export async function getStakingParameters (connection: Connection) {
 }
 
 export class PosParams {
-  static fromBorsh = binary => new this(Borsher.borshDeserialize(Schema.Struct({
-    owned: Schema.Struct(ownedPosParamsFields),
-    max_proposal_period: Schema.u64,
-  }), binary))
+  static fromBorsh = binary => new this(Borsher.borshDeserialize(posParamsSchema, binary))
   maxProposalPeriod: bigint
-  owned: OwnedPosParams
+  owned:             OwnedPosParams
   constructor (data: Partial<PosParams> = {}) {
-    Core.assignCamelCase(this, data, [
-      "max_proposal_period",
-      "owned"
-    ])
+    Core.assignCamelCase(this, data, [ "max_proposal_period", "owned" ])
     if (!(this.owned instanceof OwnedPosParams)) {
       this.owned = new OwnedPosParams(this.owned)
     }
@@ -88,10 +81,17 @@ const ownedPosParamsFields = {
   rewards_gain_d:                     u256Schema,
 }
 
+const posParamsSchema = Schema.Struct({
+  owned: Schema.Struct(ownedPosParamsFields),
+  max_proposal_period: Schema.u64,
+})
+
 export async function getTotalStaked (connection: Connection) {
-  const totalStake = await connection.abciQuery("/vp/pos/total_stake")
-  return BorshJS.deserialize({ struct: { totalStake: "u64" } }, totalStake)
+  const binary = await connection.abciQuery("/vp/pos/total_stake")
+  return Borsher.borshDeserialize(totalStakeSchema, binary)
 }
+
+const totalStakeSchema = Schema.Struct({ totalStake: Schema.u64 })
 
 export async function getValidatorMetadata (connection: Connection, address: Address) {
   const [ metadata, commission, state ] = await Promise.all([
