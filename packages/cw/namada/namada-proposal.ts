@@ -100,7 +100,7 @@ const pgfTargetSchema = Schema.Enum({
 const proposalFields = {
   id:                 Schema.u64,
   content:            Schema.HashMap(Schema.String, Schema.String),
-  author:             Schema.Array(Schema.u8, 21),
+  author:             addressSchema,
   type:               Schema.Enum({
     Default:          Schema.Option(Schema.String),
     PGFSteward:       Schema.HashSet(addRemoveSchema(addressSchema)),
