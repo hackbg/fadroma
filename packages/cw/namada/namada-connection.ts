@@ -1,8 +1,9 @@
 import type { Address } from '@fadroma/agent'
 import { CWConnection } from '../cw-connection'
 import {
+  getStakingParameters,
   getValidatorMetadata
-} from './namada-validator'
+} from './namada-staked'
 import {
   getGovernanceParameters,
   getProposalCount,
@@ -16,6 +17,10 @@ import {
 } from "./namada-staked"
 
 export class NamadaConnection extends CWConnection {
+
+  getStakingParameters () {
+    return getStakingParameters(this)
+  }
 
   getValidatorMetadata (address: Address) {
     return getValidatorMetadata(this, address)

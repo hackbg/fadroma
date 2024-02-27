@@ -1,14 +1,30 @@
 import { CLI } from '../cw-base'
 import { Core } from '@fadroma/agent'
 import type { Address } from '@fadroma/agent'
-import { CWConnection, CWBatch } from '../cw-connection'
 import { brailleDump } from '@hackbg/dump'
+import { CWConnection, CWBatch } from '../cw-connection'
 import { NamadaConnection } from './namada-connection'
 import { NamadaMnemonicIdentity } from './namada-identity'
+
 export * from './namada-proposal'
+export * from './namada-staked'
 
 /** Namada CLI commands. */
 class NamadaCLI extends CLI {
+
+  stakingParameters = this.command({
+    name: 'staking-parameters',
+    info: 'get staking parameters',
+    args: 'RPC_URL',
+  }, async (url: string) => {
+    if (!url) {
+      this.log.error(Core.bold('Pass a RPC URL to query governance parameters.'))
+      process.exit(1)
+    }
+    const connection = new NamadaConnection({ url })
+    const parameters = await connection.getStakingParameters()
+    console.log({parameters})
+  })
 
   validators = this.command({
     name: 'validators',

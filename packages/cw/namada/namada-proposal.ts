@@ -25,12 +25,12 @@ export class GovernanceParameters {
   maxProposalContentSize:  bigint
   minProposalGraceEpochs:  bigint
   constructor (data: Partial<GovernanceParameters> = {}) {
-    Core.assignCamelCase(this, data, Object.keys(governanceParametersSchemaFields))
+    Core.assignCamelCase(this, data, Object.keys(governanceParametersFields))
     decodeU256Fields(this, ["minProposalFund"])
   }
 }
 
-const governanceParametersSchemaFields = {
+const governanceParametersFields = {
   min_proposal_fund:          u256Schema,
   max_proposal_code_size:     Schema.u64,
   min_proposal_voting_period: Schema.u64,
@@ -40,7 +40,7 @@ const governanceParametersSchemaFields = {
 }
 
 const governanceParametersSchema = Schema.Struct(
-  governanceParametersSchemaFields
+  governanceParametersFields
 )
 
 export async function getProposalCount (connection: Connection) {
@@ -73,7 +73,7 @@ export class Proposal {
   votingEndEpoch!:   bigint
   graceEpoch!:       bigint
   constructor (data: Partial<Proposal> = {}) {
-    Core.assignCamelCase(this, data, Object.keys(proposalSchemaFields))
+    Core.assignCamelCase(this, data, Object.keys(proposalFields))
     //console.log(JSON.stringify(this.author))
     decodeAddressFields(this, ["author"])
   }
@@ -97,7 +97,7 @@ const pgfTargetSchema = Schema.Enum({
   })
 })
 
-const proposalSchemaFields = {
+const proposalFields = {
   id:                 Schema.u64,
   content:            Schema.HashMap(Schema.String, Schema.String),
   author:             Schema.Array(Schema.u8, 21),
@@ -115,7 +115,7 @@ const proposalSchemaFields = {
 }
 
 const proposalSchema = Schema.Option(Schema.Struct(
-  proposalSchemaFields
+  proposalFields
 ))
 
 export class ProposalVotes extends Array<Vote> {
@@ -191,7 +191,7 @@ export class ProposalResult {
   totalAbstainPower: bigint
 
   constructor (data: Partial<ProposalResult> = {}) {
-    Core.assignCamelCase(this, data, Object.keys(proposalResultSchemaFields))
+    Core.assignCamelCase(this, data, Object.keys(proposalResultFields))
     decodeU256Fields(this, [
       "totalVotingPower",
       "totalYayPower",
@@ -217,7 +217,7 @@ export class ProposalResult {
   }
 }
 
-const proposalResultSchemaFields = {
+const proposalResultFields = {
   result:                       Schema.Enum({
     Passed:                     Schema.Unit,
     Rejected:                   Schema.Unit,
@@ -233,4 +233,4 @@ const proposalResultSchemaFields = {
   total_abstain_power:          u256Schema,
 }
 
-const proposalResultSchema = Schema.Struct(proposalResultSchemaFields)
+const proposalResultSchema = Schema.Struct(proposalResultFields)
