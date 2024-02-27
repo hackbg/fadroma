@@ -175,10 +175,10 @@ const commissionPairSchemaFields = {
 
 const commissionPairSchema = Schema.Struct(commissionPairSchemaFields)
 
-const stateSchema = schemaEnum([
+const stateSchema = Schema.Option(schemaEnum([
   ['Consensus',      Schema.Unit],
   ['BelowCapacity',  Schema.Unit],
   ['BelowThreshold', Schema.Unit],
   ['Inactive',       Schema.Unit],
   ['Jailed',         Schema.Unit],
-])
+]))

@@ -56,19 +56,19 @@ class NamadaCLI extends CLI {
       process.exit(1)
     }
     const connection = new NamadaConnection({ url })
+    const validatorAddresses = await connection.getValidatorAddresses()
     for (const validator of await connection.getValidatorAddresses()) {
-      console.log(decodeAddress(validator))
+      this.log.log(decodeAddress(validator))
     }
-    for (const validator of await connection.getValidators({ prefix: 'tnam' })) {
-      this.log.br()
-        //.info('Validator:        ', Core.bold(validator.address))
-        .info('Address (hex):    ', Core.bold(validator.addressHex))
-        .info('Public key:       ', Core.bold(validator.pubKeyHex))
-        .info('Voting power:     ', Core.bold(String(validator.votingPower)))
-        .info('Proposer priority:', Core.bold(String(validator.proposerPriority)))
-    }
-    process.exit(123)
-    this.log.br().info('Total validators:', Core.bold(String(validators.length)))
+    this.log.br().info('Total validators:', Core.bold(String(validatorAddresses.size)))
+    //for (const validator of await connection.getValidators({ prefix: 'tnam' })) {
+      //this.log.br()
+        ////.info('Validator:        ', Core.bold(validator.address))
+        //.info('Address (hex):    ', Core.bold(validator.addressHex))
+        //.info('Public key:       ', Core.bold(validator.pubKeyHex))
+        //.info('Voting power:     ', Core.bold(String(validator.votingPower)))
+        //.info('Proposer priority:', Core.bold(String(validator.proposerPriority)))
+    //}
   })
 
   validatorsConsensus = this.command({
