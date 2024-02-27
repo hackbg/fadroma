@@ -8,8 +8,12 @@ import {
   getProposalCount,
   getProposalInfo
 } from './namada-proposal'
-import { getCurrentEpoch } from "./namada-epoch";
-import { getTotalStake } from "./namada-staked";
+import {
+  getCurrentEpoch
+} from "./namada-epoch";
+import {
+  getTotalStaked
+} from "./namada-staked"
 
 export class NamadaConnection extends CWConnection {
 
@@ -29,11 +33,11 @@ export class NamadaConnection extends CWConnection {
     return getProposalInfo(this, id)
   }
 
-  getEpoch() {
-    return getCurrentEpoch(this);
+  getCurrentEpoch () {
+    return getCurrentEpoch(this)
   }
 
-  getTotalStaked() {
-    return getTotalStake(this);
+  getTotalStaked () {
+    return getTotalStaked(this)
   }
 }

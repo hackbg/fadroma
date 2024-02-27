@@ -212,7 +212,7 @@ class NamadaCLI extends CLI {
     const connection = new NamadaConnection({
         url,
     });
-    const epochResult = await connection.getEpoch();
+    const epochResult = await connection.getCurrentEpoch();
     this.log.log(epochResult);
     process.exit(0)
   });
