@@ -5,9 +5,7 @@ import { brailleDump } from '@hackbg/dump'
 import { CWConnection, CWBatch } from '../cw-connection'
 import { NamadaConnection } from './namada-connection'
 import { NamadaMnemonicIdentity } from './namada-identity'
-
-export * from './namada-proposal'
-export * from './namada-staked'
+import { decodeAddress } from './namada-address'
 
 /** Namada CLI commands. */
 class NamadaCLI extends CLI {
@@ -50,7 +48,7 @@ class NamadaCLI extends CLI {
 
   validators = this.command({
     name: 'validators',
-    info: 'query validators for a RPC endpoint',
+    info: 'query validators from a RPC endpoint',
     args: 'RPC_URL'
   }, async (url: string) => {
     if (!url) {
@@ -58,8 +56,10 @@ class NamadaCLI extends CLI {
       process.exit(1)
     }
     const connection = new NamadaConnection({ url })
-    const validators = await connection.getValidators({ prefix: 'tnam' })
-    for (const validator of validators) {
+    for (const validator of await connection.getValidatorAddresses()) {
+      console.log(decodeAddress(validator))
+    }
+    for (const validator of await connection.getValidators({ prefix: 'tnam' })) {
       this.log.br()
         //.info('Validator:        ', Core.bold(validator.address))
         .info('Address (hex):    ', Core.bold(validator.addressHex))
@@ -67,7 +67,38 @@ class NamadaCLI extends CLI {
         .info('Voting power:     ', Core.bold(String(validator.votingPower)))
         .info('Proposer priority:', Core.bold(String(validator.proposerPriority)))
     }
+    process.exit(123)
     this.log.br().info('Total validators:', Core.bold(String(validators.length)))
+  })
+
+  validatorsConsensus = this.command({
+    name: 'validators-consensus',
+    info: 'query validators that participate in the consensus set',
+    args: 'RPC_URL'
+  }, async (url: string) => {
+    if (!url) {
+      this.log.error(Core.bold('Pass a RPC URL to query validators.'))
+      process.exit(1)
+    }
+    const connection = new NamadaConnection({ url })
+    for (const validator of await connection.getConsensusValidators()) {
+      console.log(validator)
+    }
+  })
+
+  validatorsBelowCapacity = this.command({
+    name: 'validators-below-capacity',
+    info: 'query validators that are below capacity',
+    args: 'RPC_URL'
+  }, async (url: string) => {
+    if (!url) {
+      this.log.error(Core.bold('Pass a RPC URL to query validators.'))
+      process.exit(1)
+    }
+    const connection = new NamadaConnection({ url })
+    for (const validator of await connection.getBelowCapacityValidators()) {
+      console.log(validator)
+    }
   })
 
   validator = this.command({

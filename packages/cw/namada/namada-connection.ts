@@ -2,7 +2,10 @@ import type { Address } from '@fadroma/agent'
 import { CWConnection } from '../cw-connection'
 import {
   getStakingParameters,
-  getValidatorMetadata
+  getValidatorAddresses,
+  getConsensusValidators,
+  getBelowCapacityValidators,
+  getValidatorMetadata,
 } from './namada-staked'
 import {
   getGovernanceParameters,
@@ -20,6 +23,18 @@ export class NamadaConnection extends CWConnection {
 
   getStakingParameters () {
     return getStakingParameters(this)
+  }
+
+  getValidatorAddresses () {
+    return getValidatorAddresses(this)
+  }
+
+  getConsensusValidators () {
+    return getConsensusValidators(this)
+  }
+
+  getBelowCapacityValidators () {
+    return getBelowCapacityValidators(this)
   }
 
   getValidatorMetadata (address: Address) {

@@ -2,6 +2,7 @@ import * as Borsher from 'borsher'
 import type { Address } from '@fadroma/agent'
 import { Core } from '@fadroma/agent'
 import { addressSchema, InternalAddresses } from './namada-address'
+import type { Address as NamadaAddress } from './namada-address'
 import { u256Schema, decodeU256Fields } from './namada-u256'
 import { schemaEnum } from './namada-enum'
 
@@ -92,6 +93,30 @@ export async function getTotalStaked (connection: Connection) {
 }
 
 const totalStakeSchema = Schema.Struct({ totalStake: Schema.u64 })
+
+export async function getValidatorAddresses (connection: Connection): Promise<Set<NamadaAddress>> {
+  const binary = await connection.abciQuery("/vp/pos/validator/addresses")
+  return Borsher.borshDeserialize(getValidatorsSchema, binary)
+}
+
+const getValidatorsSchema = Schema.HashSet(addressSchema)
+
+export async function getConsensusValidators (connection: Connection) {
+  const binary = await connection.abciQuery("/vp/pos/validator_set/consensus")
+  return Borsher.borshDeserialize(validatorSetSchema, binary)
+}
+
+export async function getBelowCapacityValidators (connection: Connection) {
+  const binary = await connection.abciQuery("/vp/pos/validator_set/below_capacity")
+  return Borsher.borshDeserialize(validatorSetSchema, binary)
+}
+
+const validatorSetMemberFields = {
+  bonded_stake: u256Schema,
+  address:      addressSchema,
+}
+
+const validatorSetSchema = Schema.HashSet(Schema.Struct(validatorSetMemberFields))
 
 export async function getValidatorMetadata (connection: Connection, address: Address) {
   const [ metadata, commission, state ] = await Promise.all([

@@ -16,12 +16,12 @@ export type Address =
 export function decodeAddressFields <T> (object: T, fields: (keyof T)[]) {
   for (const field of fields) {
     if (typeof object[field] === 'object') {
-      (object[field] as string) = toBech32(object[field] as Address)
+      (object[field] as string) = decodeAddress(object[field] as Address)
     }
   }
 }
 
-export const toBech32 = (address: Address) => {
+export const decodeAddress = (address: Address) => {
   if (Object.keys(address).length !== 1) {
     throw new Core.Error("address variant must have exactly 1 key")
   }
