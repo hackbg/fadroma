@@ -312,6 +312,25 @@ export class CWConnection extends Chain.Connection {
           votingPower:      validator.votingPower,
           proposerPriority: validator.proposerPriority,
         }
+        //console.log({
+          //a0: info.addressHex,
+          //A1_: Core.bech32.encode(
+            //prefix,
+            //Core.bech32.toWords(validator.address)
+          //),
+          //A1M: Core.bech32m.encode(
+            //prefix,
+            //Core.bech32m.toWords(validator.address)
+          //),
+          //B1_: Core.bech32.encode(
+            //prefix,
+            //Core.bech32.toWords(ripemd160(Core.sha256(validator.pubkey.data)))
+          //),
+          //B1M: Core.bech32m.encode(
+            //prefix,
+            //Core.bech32m.toWords(ripemd160(Core.sha256(validator.pubkey.data)))
+          //)
+        //})
         result.push(info)
         if (metadata) {
           const metadataResult = await this.getValidatorMetadata(address)

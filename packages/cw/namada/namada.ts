@@ -23,7 +23,7 @@ class NamadaCLI extends CLI {
     const validators = await connection.getValidators({ prefix: 'tnam' })
     for (const validator of validators) {
       this.log.br()
-        .info('Validator:        ', Core.bold(validator.address))
+        //.info('Validator:        ', Core.bold(validator.address))
         .info('Address (hex):    ', Core.bold(validator.addressHex))
         .info('Public key:       ', Core.bold(validator.pubKeyHex))
         .info('Voting power:     ', Core.bold(String(validator.votingPower)))
@@ -42,15 +42,18 @@ class NamadaCLI extends CLI {
       process.exit(1)
     }
     const connection = new NamadaConnection({ url })
-    const { metadata } = await connection.getValidatorMetadata(address)
+    const { metadata, commission, state } = await connection.getValidatorMetadata(address)
     this.log.br()
       .log('Address:     ', Core.bold(address))
+      .log('State:       ', Core.bold(Object.keys(state)[0]))
+      .log('Commission:  ', Core.bold(commission.commissionRate))
+      .log('Max change:  ', Core.bold(commission.maxCommissionChangePerEpoch), 'per epoch')
       .log('Email:       ', Core.bold(metadata.email))
     if (metadata.website) {
       this.log('Website:     ', Core.bold(metadata.website))
     }
-    if (metadata.discord_handle) {
-      this.log('Discord:     ', Core.bold(metadata.discord_handle))
+    if (metadata.discordHandle) {
+      this.log('Discord:     ', Core.bold(metadata.discordHandle))
     }
     if (metadata.avatar) {
       this.log('Avatar:      ', Core.bold(metadata.avatar))
@@ -209,11 +212,9 @@ class NamadaCLI extends CLI {
     info: "Show current epoch",
     args: "RPC_URL",
   }, async (url) => {
-    const connection = new NamadaConnection({
-        url,
-    });
-    const epochResult = await connection.getCurrentEpoch();
-    this.log.log(epochResult);
+    const connection = new NamadaConnection({ url })
+    const epochResult = await connection.getCurrentEpoch()
+    this.log.log(epochResult)
     process.exit(0)
   });
 
@@ -222,21 +223,11 @@ class NamadaCLI extends CLI {
     info: "Show total staked amount",
     args: "RPC_URL",
   }, async (url) => {
-    const connection = new NamadaConnection({
-        url,
-    });
-    const totalStaked = await connection.getTotalStaked();
-    this.log.log(totalStaked);
+    const connection = new NamadaConnection({ url })
+    const totalStaked = await connection.getTotalStaked()
+    this.log.log(totalStaked)
     process.exit(0)
-  });
-}
-
-type ValidatorMetaData = {
-  email:          string
-  description:    string|null
-  website:        string|null
-  discord_handle: string|null
-  avatar:         string|null
+  })
 }
 
 export {

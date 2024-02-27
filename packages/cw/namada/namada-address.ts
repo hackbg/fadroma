@@ -1,5 +1,7 @@
 import { Core } from '@fadroma/agent'
 import * as Borsher from 'borsher'
+import { schemaEnum } from './namada-enum'
+
 const Schema = Borsher.BorshSchema
 
 new Core.Console()
@@ -75,7 +77,3 @@ export const addressSchema = schemaEnum([
   'Internal_IbcToken',           // 13
   'Internal_Masp',               // 14
 ].map(variant=>[variant, twentyBytes]))
-
-function schemaEnum (variants: [string, Borsher.BorshSchema][]) {
-  return Schema.from({ enum: variants.map(([k, v])=>({ struct: { [k]: v.into() } })) })
-}
