@@ -2,6 +2,10 @@ import { Core } from '@fadroma/agent'
 import * as Borsher from 'borsher'
 const Schema = Borsher.BorshSchema
 
+new Core.Console()
+  .warn('Namada addresses are returned in uncertain form by the node.')
+  .warn('See https://github.com/anoma/namada/issues/2731 for details.')
+
 export type Address =
   | { Established: number[] }
   | { Implicit:    number[] }
