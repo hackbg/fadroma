@@ -1,7 +1,4 @@
-import * as BorshJS from 'borsh'
-import * as BorshTS from '@dao-xyz/borsh'
 import type { Address } from '@fadroma/agent'
-import { Core } from '@fadroma/agent'
 import { CWConnection } from '../cw-connection'
 import {
   getValidatorMetadata
@@ -11,7 +8,8 @@ import {
   getProposalCount,
   getProposalInfo
 } from './namada-proposal'
-import type { ValidatorMetaData } from './namada-validator'
+import { getCurrentEpoch } from "./namada-epoch";
+import { getTotalStake } from "./namada-staked";
 
 export class NamadaConnection extends CWConnection {
 
@@ -31,4 +29,11 @@ export class NamadaConnection extends CWConnection {
     return getProposalInfo(this, id)
   }
 
+  getEpoch() {
+    return getCurrentEpoch(this);
+  }
+
+  getTotalStaked() {
+    return getTotalStake(this);
+  }
 }
