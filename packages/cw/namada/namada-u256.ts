@@ -16,3 +16,11 @@ export function decodeU256Fields <T> (object: T, fields: (keyof T)[]) {
     }
   }
 }
+
+export function decodeU256 (bytes: number[]) {
+  let number = 0n
+  for (let i = bytes.length - 1; i >= 0; i--) {
+    number = number * 256n + BigInt(bytes[i])
+  }
+  return number
+}

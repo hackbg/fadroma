@@ -1,9 +1,9 @@
 import * as Borsher from 'borsher'
 import type { Address } from '@fadroma/agent'
 import { Core } from '@fadroma/agent'
-import { addressSchema, InternalAddresses } from './namada-address'
+import { addressSchema, InternalAddresses, decodeAddress } from './namada-address'
 import type { Address as NamadaAddress } from './namada-address'
-import { u256Schema, decodeU256Fields } from './namada-u256'
+import { u256Schema, decodeU256, decodeU256Fields } from './namada-u256'
 import { schemaEnum } from './namada-enum'
 
 const Schema = Borsher.BorshSchema
@@ -103,12 +103,28 @@ const getValidatorsSchema = Schema.HashSet(addressSchema)
 
 export async function getConsensusValidators (connection: Connection) {
   const binary = await connection.abciQuery("/vp/pos/validator_set/consensus")
-  return Borsher.borshDeserialize(validatorSetSchema, binary)
+  return [...Borsher.borshDeserialize(validatorSetSchema, binary) as Set<{
+    bonded_stake: number[],
+    address:      NamadaAddress,
+  }>].map(({bonded_stake, address})=>({
+    address:     decodeAddress(address),
+    bondedStake: decodeU256(bonded_stake)
+  })).sort((a, b)=> (a.bondedStake > b.bondedStake) ? -1
+                  : (a.bondedStake < b.bondedStake) ?  1
+                  : 0)
 }
 
 export async function getBelowCapacityValidators (connection: Connection) {
   const binary = await connection.abciQuery("/vp/pos/validator_set/below_capacity")
-  return Borsher.borshDeserialize(validatorSetSchema, binary)
+  return [...Borsher.borshDeserialize(validatorSetSchema, binary) as Set<{
+    bonded_stake: number[],
+    address:      NamadaAddress,
+  }>].map(({bonded_stake, address})=>({
+    address:     decodeAddress(address),
+    bondedStake: decodeU256(bonded_stake)
+  })).sort((a, b)=> (a.bondedStake > b.bondedStake) ? -1
+                  : (a.bondedStake < b.bondedStake) ?  1
+                  : 0)
 }
 
 const validatorSetMemberFields = {

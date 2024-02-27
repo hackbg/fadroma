@@ -44,6 +44,7 @@ class NamadaCLI extends CLI {
     const connection = new NamadaConnection({ url })
     const parameters = await connection.getStakingParameters()
     console.log({parameters})
+    process.exit(0)
   })
 
   validators = this.command({
@@ -69,6 +70,7 @@ class NamadaCLI extends CLI {
         //.info('Voting power:     ', Core.bold(String(validator.votingPower)))
         //.info('Proposer priority:', Core.bold(String(validator.proposerPriority)))
     //}
+    process.exit(0)
   })
 
   validatorsConsensus = this.command({
@@ -81,9 +83,10 @@ class NamadaCLI extends CLI {
       process.exit(1)
     }
     const connection = new NamadaConnection({ url })
-    for (const validator of await connection.getConsensusValidators()) {
-      console.log(validator)
+    for (const {address, bondedStake} of await connection.getConsensusValidators()) {
+      this.log.log(Core.bold(address), bondedStake.toString())
     }
+    process.exit(0)
   })
 
   validatorsBelowCapacity = this.command({
@@ -96,9 +99,10 @@ class NamadaCLI extends CLI {
       process.exit(1)
     }
     const connection = new NamadaConnection({ url })
-    for (const validator of await connection.getBelowCapacityValidators()) {
-      console.log(validator)
+    for (const {address, bondedStake} of await connection.getBelowCapacityValidators()) {
+      this.log.log(Core.bold(address), bondedStake.toString())
     }
+    process.exit(0)
   })
 
   validator = this.command({
@@ -154,6 +158,7 @@ class NamadaCLI extends CLI {
       .log('Maximum proposal content size: ', Core.bold(parameters.maxProposalContentSize))
       .log('Maximum proposal code size:    ', Core.bold(parameters.maxProposalCodeSize))
       .log()
+    process.exit(0)
   })
 
   proposalCount = this.command({
