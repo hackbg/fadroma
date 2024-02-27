@@ -204,6 +204,31 @@ class NamadaCLI extends CLI {
     process.exit(0)
   })
 
+  epoch = this.command({
+    name: "epoch",
+    info: "Show current epoch",
+    args: "RPC_URL",
+  }, async (url) => {
+    const connection = new NamadaConnection({
+        url,
+    });
+    const epochResult = await connection.getEpoch();
+    this.log.log(epochResult);
+    process.exit(0)
+  });
+
+  totalStaked = this.command({
+    name: "total-staked",
+    info: "Show total staked amount",
+    args: "RPC_URL",
+  }, async (url) => {
+    const connection = new NamadaConnection({
+        url,
+    });
+    const totalStaked = await connection.getTotalStaked();
+    this.log.log(totalStaked);
+    process.exit(0)
+  });
 }
 
 type ValidatorMetaData = {
