@@ -20,7 +20,10 @@ export class PosParams {
   maxProposalPeriod: bigint
   owned:             OwnedPosParams
   constructor (data: Partial<PosParams> = {}) {
-    Core.assignCamelCase(this, data, [ "max_proposal_period", "owned" ])
+    Core.assignCamelCase(this, data, [
+      "max_proposal_period",
+      "owned"
+    ])
     if (!(this.owned instanceof OwnedPosParams)) {
       this.owned = new OwnedPosParams(this.owned)
     }
@@ -135,16 +138,20 @@ const validatorSetMemberFields = {
 
 const validatorSetSchema = Schema.HashSet(Schema.Struct(validatorSetMemberFields))
 
-export async function getValidatorMetadata (connection: Connection, address: Address) {
-  const [ metadata, commission, state ] = await Promise.all([
+export async function getValidator (connection: Connection, address: Address) {
+  const [ metadata, commission, state, stake, consensusKey ] = await Promise.all([
     `/vp/pos/validator/metadata/${address}`,
     `/vp/pos/validator/commission/${address}`,
     `/vp/pos/validator/state/${address}`,
+    `/vp/pos/validator/stake/${address}`,
+    `/vp/pos/validator/consensus_key/${address}`,
   ].map(path => connection.abciQuery(path)))
   return {
     metadata:   ValidatorMetaData.fromBorsh(metadata),
     commission: CommissionPair.fromBorsh(commission),
     state:      Borsher.borshDeserialize(stateSchema, state),
+    stake:      decodeU256(Borsher.borshDeserialize(stakeSchema, stake)),
+    consensusKey
   }
 }
 
@@ -199,3 +206,5 @@ const stateSchema = Schema.Option(schemaEnum([
   ['Inactive',       Schema.Unit],
   ['Jailed',         Schema.Unit],
 ]))
+
+const stakeSchema = Schema.Option(u256Schema)

@@ -12,7 +12,7 @@ class NamadaCLI extends CLI {
 
   epoch = this.command({
     name: "epoch",
-    info: "show current epoch",
+    info: "query current epoch number",
     args: "RPC_URL",
   }, async (url) => {
     if (!url) {
@@ -27,7 +27,7 @@ class NamadaCLI extends CLI {
 
   totalStaked = this.command({
     name: "total-staked",
-    info: "show total staked amount",
+    info: "query total staked amount",
     args: "RPC_URL",
   }, async (url) => {
     if (!url) {
@@ -42,7 +42,7 @@ class NamadaCLI extends CLI {
 
   stakingParameters = this.command({
     name: 'staking-parameters',
-    info: 'get staking parameters',
+    info: 'query staking parameters',
     args: 'RPC_URL',
   }, async (url: string) => {
     if (!url) {
@@ -55,9 +55,9 @@ class NamadaCLI extends CLI {
     process.exit(0)
   })
 
-  validators = this.command({
-    name: 'validators',
-    info: 'query validators from a RPC endpoint',
+  validatorList = this.command({
+    name: 'validator-list',
+    info: 'query all validator addresses',
     args: 'RPC_URL'
   }, async (url: string) => {
     if (!url) {
@@ -81,7 +81,7 @@ class NamadaCLI extends CLI {
     process.exit(0)
   })
 
-  validatorsConsensus = this.command({
+  validatorSetConsensus = this.command({
     name: 'validators-consensus',
     info: 'query validators that participate in the consensus set',
     args: 'RPC_URL'
@@ -97,7 +97,7 @@ class NamadaCLI extends CLI {
     process.exit(0)
   })
 
-  validatorsBelowCapacity = this.command({
+  validatorSetBelowCapacity = this.command({
     name: 'validators-below-capacity',
     info: 'query validators that are below capacity',
     args: 'RPC_URL'
@@ -113,6 +113,56 @@ class NamadaCLI extends CLI {
     process.exit(0)
   })
 
+  validators = this.command({
+    name: 'validators',
+    info: 'query metadata for each validator',
+    args: 'RPC_URL'
+  }, async (url: string) => {
+    if (!url) {
+      this.log.error(Core.bold('Pass a RPC URL to query validators.'))
+      process.exit(1)
+    }
+    const connection = new NamadaConnection({ url })
+    const [ validatorAddresses, baseMetadata ] = await Promise.all([
+      connection.getValidatorAddresses(),
+      connection.getValidators({ prefix: 'tnam' })
+    ])
+    this.log.br()
+    const addresses = await connection.getValidatorAddresses()
+    for (const i in addresses) {
+      const address = addresses[i]
+      this.log.info(`(${Number(i)+1}/${addresses.length})`)
+      const {
+        metadata, commission, state, stake, consensusKey
+      } = await connection.getValidator(address)
+      this.log
+        .log('Validator:    ', Core.bold(address))
+        .log('State:        ', Core.bold(Object.keys(state)[0]))
+        .log('Stake:        ', Core.bold(stake))
+        .log('Commission:   ', Core.bold(commission.commissionRate))
+        .log('Max change:   ', Core.bold(commission.maxCommissionChangePerEpoch), 'per epoch')
+        .log('Email:        ', Core.bold(metadata.email||''))
+        .log('Website:      ', Core.bold(metadata.website||''))
+        .log('Discord:      ', Core.bold(metadata.discordHandle||''))
+        .log('Avatar:       ', Core.bold(metadata.avatar||''))
+        .log('Description:  ', Core.bold(metadata.description||''))
+        .log('Consensus key:', Core.bold(JSON.stringify(consensusKey)))
+        .br()
+    }
+    this.log
+      .br()
+      .info('Total validators:', Core.bold(String(validatorAddresses.length)))
+    //for (const validator of await connection.getValidators({ prefix: 'tnam' })) {
+      //this.log.br()
+        ////.info('Validator:        ', Core.bold(validator.address))
+        //.info('Address (hex):    ', Core.bold(validator.addressHex))
+        //.info('Public key:       ', Core.bold(validator.pubKeyHex))
+        //.info('Voting power:     ', Core.bold(String(validator.votingPower)))
+        //.info('Proposer priority:', Core.bold(String(validator.proposerPriority)))
+    //}
+    process.exit(0)
+  })
+
   validator = this.command({
     name: 'validator',
     info: 'query info about a validator',
@@ -123,7 +173,7 @@ class NamadaCLI extends CLI {
       process.exit(1)
     }
     const connection = new NamadaConnection({ url })
-    const { metadata, commission, state } = await connection.getValidatorMetadata(address)
+    const { metadata, commission, state } = await connection.getValidator(address)
     this.log.br()
       .log('Address:     ', Core.bold(address))
       .log('State:       ', Core.bold(Object.keys(state)[0]))
@@ -147,7 +197,7 @@ class NamadaCLI extends CLI {
 
   governanceParameters = this.command({
     name: 'governance-parameters',
-    info: 'get governance parameters',
+    info: 'query governance parameters',
     args: 'RPC_URL',
   }, async (url: string) => {
     if (!url) {
@@ -171,7 +221,7 @@ class NamadaCLI extends CLI {
 
   proposalCount = this.command({
     name: 'proposal-count',
-    info: 'get number of last proposal',
+    info: 'query number of last proposal',
     args: 'RPC_URL'
   }, async (url: string) => {
     if (!url) {
@@ -189,7 +239,7 @@ class NamadaCLI extends CLI {
 
   proposal = this.command({
     name: 'proposal',
-    info: 'get info about a proposal by number',
+    info: 'query info about a proposal by number',
     args: 'RPC_URL NUMBER'
   }, async (url: string, number: string) => {
     if (!url || !number || isNaN(Number(number))) {
@@ -248,7 +298,7 @@ class NamadaCLI extends CLI {
 
   proposalVotes = this.command({
     name: 'proposal-votes',
-    info: 'list of individual votes for a proposal',
+    info: 'query list of individual votes for a proposal',
     args: 'RPC_URL NUMBER'
   }, async (url: string, number: string) => {
     if (!url || !number || isNaN(Number(number))) {
