@@ -15,6 +15,10 @@ class NamadaCLI extends CLI {
     info: "show current epoch",
     args: "RPC_URL",
   }, async (url) => {
+    if (!url) {
+      this.log.error(Core.bold('Pass a RPC URL to query the epoch.'))
+      process.exit(1)
+    }
     const connection = new NamadaConnection({ url })
     const epochResult = await connection.getCurrentEpoch()
     this.log.log(epochResult)
@@ -26,6 +30,10 @@ class NamadaCLI extends CLI {
     info: "show total staked amount",
     args: "RPC_URL",
   }, async (url) => {
+    if (!url) {
+      this.log.error(Core.bold('Pass a RPC URL to query total tokens staked.'))
+      process.exit(1)
+    }
     const connection = new NamadaConnection({ url })
     const totalStaked = await connection.getTotalStaked()
     this.log.log(totalStaked)
