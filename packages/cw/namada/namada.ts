@@ -6,6 +6,7 @@ import { CWConnection, CWBatch } from '../cw-connection'
 import { NamadaConnection } from './namada-connection'
 import { NamadaMnemonicIdentity } from './namada-identity'
 import { decodeAddress } from './namada-address'
+import { ripemd160 } from "@noble/hashes/ripemd160"
 
 /** Namada CLI commands. */
 class NamadaCLI extends CLI {
@@ -128,6 +129,11 @@ class NamadaCLI extends CLI {
       connection.getValidators({ prefix: 'tnam' })
     ])
     this.log.br()
+    const validators = baseMetadata.reduce((a,x)=>Object.assign(a, { [x.addressHex]: x }), {})
+    for (const key in validators) {
+      console.log(key, await connection.abciQuery(`/vp/pos/validator_by_tm_addr/${key}`))
+    }
+    process.exit(123)
     const addresses = await connection.getValidatorAddresses()
     for (const i in addresses) {
       const address = addresses[i]
@@ -140,13 +146,18 @@ class NamadaCLI extends CLI {
         .log('State:        ', Core.bold(Object.keys(state)[0]))
         .log('Stake:        ', Core.bold(stake))
         .log('Commission:   ', Core.bold(commission.commissionRate))
-        .log('Max change:   ', Core.bold(commission.maxCommissionChangePerEpoch), 'per epoch')
+        .log('  Max change: ', Core.bold(commission.maxCommissionChangePerEpoch), 'per epoch')
         .log('Email:        ', Core.bold(metadata.email||''))
         .log('Website:      ', Core.bold(metadata.website||''))
         .log('Discord:      ', Core.bold(metadata.discordHandle||''))
         .log('Avatar:       ', Core.bold(metadata.avatar||''))
         .log('Description:  ', Core.bold(metadata.description||''))
-        .log('Consensus key:', Core.bold(JSON.stringify(consensusKey)))
+      const keyType = Object.keys(consensusKey)[0]
+      const keyValue = new Uint8Array(consensusKey[keyType])
+      const consensusAddress = Core.base16.encode(Core.sha256(keyValue).slice(0, 20))
+      this.log
+        .log('Consensus pubkey: ', Core.bold('('+keyType+')'), Core.bold(Core.base16.encode(keyValue)))
+        .log('Consensus address:', Core.bold(consensusAddress), validators[consensusAddress], validators)
         .br()
     }
     this.log

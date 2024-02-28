@@ -6,17 +6,20 @@ export class ScrtError extends Core.Error {}
 export class ScrtConsole extends Core.Console { label = '@fadroma/scrt' }
 export const console = new ScrtConsole()
 export const {
+  Bip32,
+  Bip39,
+  Bip39EN,
+  Ed25519,
+  SHA256,
+  Secp256k1,
   assign,
   base16,
   base64,
   bech32,
-  bip32,
-  bip39,
-  bip39EN,
   bold,
   brailleDump,
   colors,
   into,
-  randomBech32,
   randomBase64,
+  randomBech32,
 } = Core

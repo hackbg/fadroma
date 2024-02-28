@@ -2,7 +2,7 @@ import { Chain } from '@fadroma/agent'
 import type { ChainId } from '@fadroma/agent'
 import { SecretNetworkClient, Wallet } from '@hackbg/secretjs-esm'
 import type { EncryptionUtils } from '@hackbg/secretjs-esm'
-import { ScrtError as Error, bold, colors, assign, bip39, bip39EN } from './scrt-base'
+import { ScrtError as Error, bold, colors, assign, Bip39, Bip39EN } from './scrt-base'
 
 export abstract class ScrtIdentity extends Chain.Identity {
   abstract getApi ({chainId, url}: {chainId: ChainId, url: string|URL}): SecretNetworkClient
@@ -27,7 +27,7 @@ export class ScrtSignerIdentity extends ScrtIdentity {
 export class ScrtMnemonicIdentity extends ScrtIdentity {
   wallet: Wallet
   constructor ({
-    mnemonic = bip39.generateMnemonic(bip39EN),
+    mnemonic = Bip39.generateMnemonic(Bip39EN),
     wallet = new Wallet(mnemonic),
     ...properties
   }: Partial<ScrtMnemonicIdentity & {

@@ -12,7 +12,7 @@
     "okp4/*.ts",
     "osmosis/*.ts"
   ],
-  "version": "1.0.0-rc.35",
+  "version": "1.0.0-rc.36",
   "license": "AGPL-3.0-only",
   "keywords": [
     "cosmwasm", "interchain", "cosmos",
@@ -23,12 +23,7 @@
     "@fadroma/agent":     "workspace:*",
     "@hackbg/cosmjs-esm": "workspace:*",
     "@hackbg/cmds":       "workspace:*",
-    "@noble/hashes":      "^1.3.2",
-    "@noble/curves":      "^1.2.0",
-    "borsh":              "^2.0.0",
-    "borsher":            "^1.2.1",
-    "@dao-xyz/borsh":     "^5.2.1",
-    "bignumber.js":       "^9.1.2"
+    "borsher":            "^1.2.1"
   },
   "scripts": {
     "check":  "time tsc --noEmit",

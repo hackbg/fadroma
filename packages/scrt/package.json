@@ -3,15 +3,13 @@
   "type": "module",
   "main": "scrt.ts",
   "files": [ "*.ts", "!*.test.*" ],
-  "version": "11.0.0-rc.30",
+  "version": "11.0.0-rc.31",
   "license": "AGPL-3.0-only",
   "keywords": [ "cosmwasm", "scrt", "secret network", "interchain" ],
   "description": "Fadroma support for Secret Network. Provides a SecretJS-based implementation of the base classes in @fadroma/agent to operate smart contracts on the Secret Network.",
   "dependencies": {
     "@fadroma/agent":       "workspace:*",
-    "@hackbg/secretjs-esm": "workspace:*",
-    "@noble/secp256k1":     "^2.0.0",
-    "@noble/ed25519":       "^2.0.0"
+    "@hackbg/secretjs-esm": "workspace:*"
   },
   "scripts": {
     "check": "time tsc --noEmit",

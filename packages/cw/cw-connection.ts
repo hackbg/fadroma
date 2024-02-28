@@ -2,6 +2,7 @@ import { Core, Chain, Deploy } from '@fadroma/agent'
 import type { Address, Message, CodeId, CodeHash, Token } from '@fadroma/agent'
 import type { CWMnemonicIdentity, CWSignerIdentity } from './cw-identity'
 import { CWConsole as Console, CWError as Error, bold, assign } from './cw-base'
+import { CWBatch } from './cw-batch'
 import { ripemd160 } from "@noble/hashes/ripemd160"
 import { sha256 } from "@noble/hashes/sha256"
 
@@ -297,9 +298,9 @@ export class CWConnection extends Chain.Connection {
       ))
       const result = []
       for (let validator of validators) {
-        const address = Core.bech32.encode(
+        const address = Core.bech32m.encode(
           prefix,
-          Core.bech32.toWords(validator.address)
+          Core.bech32m.toWords(validator.address)
         )
         //const address = Core.bech32m.encode(
           //prefix,
@@ -308,6 +309,7 @@ export class CWConnection extends Chain.Connection {
         const info = {
           address,
           addressHex:       Core.base16.encode(validator.address),
+          addressBytes:     validator.address,
           pubKeyHex:        Core.base16.encode(validator.pubkey.data),
           votingPower:      validator.votingPower,
           proposerPriority: validator.proposerPriority,
@@ -333,7 +335,7 @@ export class CWConnection extends Chain.Connection {
         //})
         result.push(info)
         if (metadata) {
-          const metadataResult = await this.getValidatorMetadata(address)
+          const metadataResult = await this.getValidatorInfo(address)
           console.log({metadataResult})
         }
       }
@@ -341,7 +343,7 @@ export class CWConnection extends Chain.Connection {
     })
   }
 
-  getValidatorMetadata (address: Address): unknown {
+  getValidatorInfo (address: Address): unknown {
     const { log } = this
     return assertApi(this).then(async api=>{
       const client = await this.qClient
@@ -355,27 +357,4 @@ export class CWConnection extends Chain.Connection {
     })
   }
 
-}
-
-/** Transaction batch for CosmWasm-enabled chains. */
-export class CWBatch extends Chain.Batch<CWConnection> {
-  upload (
-    code:    Parameters<Chain.Batch<Chain.Connection>["upload"]>[0],
-    options: Parameters<Chain.Batch<Chain.Connection>["upload"]>[1]
-  ) {
-    return this
-  }
-  instantiate (
-    code:    Parameters<Chain.Batch<Chain.Connection>["instantiate"]>[0],
-    options: Parameters<Chain.Batch<Chain.Connection>["instantiate"]>[1]
-  ) {
-    return this
-  }
-  execute (
-    contract: Parameters<Chain.Batch<Chain.Connection>["execute"]>[0],
-    options:  Parameters<Chain.Batch<Chain.Connection>["execute"]>[1]
-  ) {
-    return this
-  }
-  async submit () {}
 }

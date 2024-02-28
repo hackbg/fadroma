@@ -1,7 +1,7 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { assign, Console, Error, base16, sha256, randomBech32 } from './core'
+import { assign, Console, Error, base16, SHA256, randomBech32 } from './core'
 import type { ChainId, Address, Message, Label, TxHash } from './chain'
 import { Connection, Backend, Batch, Identity } from './chain'
 import type { CodeHash } from './program.browser'
@@ -162,7 +162,9 @@ export class StubBackend extends Backend {
     genesisAccounts: Record<string, string|number>
   }>) {
     super(properties as Partial<Backend>)
-    assign(this, properties, ["chainId", "lastCodeId", "uploads", "instances", "gasToken", "prefix"])
+    assign(this, properties, [
+      "chainId", "lastCodeId", "uploads", "instances", "gasToken", "prefix"
+    ])
     for (const [name, balance] of Object.entries(properties?.genesisAccounts||{})) {
       const address = randomBech32(this.prefix)
       const balances = this.balances.get(address) || {}
@@ -172,7 +174,9 @@ export class StubBackend extends Backend {
     }
   }
 
-  async connect (parameter: string|Partial<Identity & { mnemonic?: string }> = {}): Promise<Connection> {
+  async connect (
+    parameter: string|Partial<Identity & { mnemonic?: string }> = {}
+  ): Promise<Connection> {
     if (typeof parameter === 'string') {
       parameter = await this.getIdentity(parameter)
     }
@@ -217,13 +221,15 @@ export class StubBackend extends Backend {
     this.lastCodeId++
     const codeId = String(this.lastCodeId)
     const chainId = this.chainId
-    const codeHash = base16.encode(sha256(codeData)).toLowerCase()
+    const codeHash = base16.encode(SHA256(codeData)).toLowerCase()
     const upload = { codeId, chainId, codeHash, codeData, instances: new Set<string>() }
     this.uploads.set(codeId, upload)
     return upload
   }
 
-  async instantiate (creator: Address, codeId: CodeId, options: unknown): Promise<Partial<ContractInstance> & {
+  async instantiate (
+    creator: Address, codeId: CodeId, options: unknown
+  ): Promise<Partial<ContractInstance> & {
     address: Address
   }> {
     const address = randomBech32(this.prefix)

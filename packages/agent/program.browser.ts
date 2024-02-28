@@ -1,4 +1,4 @@
-import { Console, Logged, assign, bold, base16, sha256 } from './core'
+import { Console, Logged, assign, bold, base16, SHA256 } from './core'
 
 /** The default Git ref when not specified. */
 export const HEAD = 'HEAD'
@@ -269,6 +269,6 @@ export class CompiledCode {
   }
 
   static toCodeHash (data: Uint8Array): string {
-    return base16.encode(sha256(data)).toLowerCase()
+    return base16.encode(SHA256(data)).toLowerCase()
   }
 }

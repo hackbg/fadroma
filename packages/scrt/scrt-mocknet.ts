@@ -6,16 +6,17 @@ import {
   base16,
   base64,
   bech32,
-  bip39,
-  bip39EN, 
+  Bip39,
+  Bip39EN,
   bold,
   brailleDump,
   randomBech32,
   into,
+  Secp256k1,
+  Ed25519,
+  SHA256
 } from './scrt-base'
 import { Wallet } from '@hackbg/secretjs-esm'
-import * as secp256k1 from '@noble/secp256k1'
-import * as ed25519   from '@noble/ed25519'
 
 /** Chain instance containing a local mocknet. */
 class ScrtMocknetConnection extends Stub.StubConnection {
@@ -142,7 +143,7 @@ class ScrtMocknetBackend extends Stub.StubBackend {
     this.balances = new Map()
     for (const [name, balance] of Object.entries(args.genesisAccounts||{})) {
       const account = this.accounts.get(name) || {} as any
-      account.mnemonic = bip39.generateMnemonic(bip39EN)
+      account.mnemonic = Bip39.generateMnemonic(Bip39EN)
       account.address = new Wallet(account.mnemonic).address
       this.accounts.set(name, account)
       const balances = this.balances.get(account.address) || {}
@@ -354,7 +355,7 @@ class ScrtMocknetBackend extends Stub.StubBackend {
   getIdentity (name: string): Promise<Chain.Identity> {
     return Promise.resolve(new ScrtMnemonicIdentity({
       name,
-      ...this.accounts.get(name) 
+      ...this.accounts.get(name)
     }))
   }
 
@@ -712,7 +713,7 @@ class ScrtMocknetContract<V extends ScrtCWVersion> {
           const memory     = refresh()
           const message    = readBuffer(memory, msg)
           const privateKey = readBuffer(memory, priv)
-          const signature  = secp256k1.sign(message, privateKey)
+          const signature  = Secp256k1.sign(message, privateKey)
           return passBuffer(memory, signature.toCompactRawBytes())
         },
         secp256k1_verify (hashPointer: Pointer, sig: Pointer, pub: Pointer) {
@@ -720,13 +721,13 @@ class ScrtMocknetContract<V extends ScrtCWVersion> {
           const hash      = readBuffer(memory, hashPointer)
           const signature = readBuffer(memory, sig)
           const publicKey = readBuffer(memory, pub)
-          const valid     = secp256k1.verify(signature, hash, publicKey)
+          const valid     = Secp256k1.verify(signature, hash, publicKey)
           return valid ? 1 : 0
         },
         secp256k1_recover_pubkey (hashPointer: Pointer, sig: Pointer, param: Pointer) {
           const memory        = refresh()
           const hash          = readBuffer(memory, hashPointer)
-          const signature     = secp256k1.Signature.fromCompact(readBuffer(memory, sig))
+          const signature     = Secp256k1.Signature.fromCompact(readBuffer(memory, sig))
           const recoveryParam = readBuffer(memory, param)
           const recovered     = signature.recoverPublicKey(hash)
           log.warn('sec256k1_recover_pubkey: not implemented')
@@ -737,7 +738,7 @@ class ScrtMocknetContract<V extends ScrtCWVersion> {
           const memory    = refresh()
           const message   = readBuffer(memory, msg)
           const privKey   = readBuffer(memory, priv)
-          const signature = ed25519.sign(message, privKey)
+          const signature = Ed25519.sign(message, privKey)
           return passBuffer(memory, signature)
           log.warn('stub: ed25519_sign')
           return 0
@@ -747,7 +748,7 @@ class ScrtMocknetContract<V extends ScrtCWVersion> {
           const message   = readBuffer(memory, msg)
           const signature = readBuffer(memory, sig)
           const pubKey    = readBuffer(memory, pub)
-          const valid     = ed25519.verify(signature, message, pubKey)
+          const valid     = Ed25519.verify(signature, message, pubKey)
           return valid ? 1 : 0
         },
         ed25519_batch_verify (msgs: Pointer, sigs: Pointer, pubs: Pointer) {
@@ -822,7 +823,7 @@ interface Allocator {
   deallocate? (ptr: Pointer): void
 }
 
-export const codeHashForBlob = (blob: Uint8Array) => base16.encode(Core.sha256(blob))
+export const codeHashForBlob = (blob: Uint8Array) => base16.encode(SHA256(blob))
 
 const decoder = new TextDecoder()
 declare class TextDecoder { decode (data: any): string }

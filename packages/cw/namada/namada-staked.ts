@@ -147,11 +147,11 @@ export async function getValidator (connection: Connection, address: Address) {
     `/vp/pos/validator/consensus_key/${address}`,
   ].map(path => connection.abciQuery(path)))
   return {
-    metadata:   ValidatorMetaData.fromBorsh(metadata),
-    commission: CommissionPair.fromBorsh(commission),
-    state:      Borsher.borshDeserialize(stateSchema, state),
-    stake:      decodeU256(Borsher.borshDeserialize(stakeSchema, stake)),
-    consensusKey
+    metadata:     ValidatorMetaData.fromBorsh(metadata),
+    commission:   CommissionPair.fromBorsh(commission),
+    state:        Borsher.borshDeserialize(stateSchema, state),
+    stake:        decodeU256(Borsher.borshDeserialize(stakeSchema, stake)),
+    consensusKey: Borsher.borshDeserialize(consensusKeySchema, consensusKey)
   }
 }
 
@@ -208,3 +208,8 @@ const stateSchema = Schema.Option(schemaEnum([
 ]))
 
 const stakeSchema = Schema.Option(u256Schema)
+
+const consensusKeySchema = Schema.Option(schemaEnum([
+  ['Ed25519',   Schema.Array(Schema.u8, 32)],
+  ['Secp256k1', Schema.Array(Schema.u8, 33)],
+]))
