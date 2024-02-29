@@ -5,46 +5,43 @@ import { Amino, Proto } from '@hackbg/cosmjs-esm'
 type Connection = {
   log: Core.Console,
   abciQuery: (path: string, args?: Uint8Array) => Promise<Uint8Array>
-  tendermintClient: Promise<{ validatorsAll }>
+  tendermintClient: Promise<{ validators, validatorsAll }>
   bech32Prefix?: string
 }
 
 export async function getValidators <V extends typeof CWValidator> (
   connection: Connection,
-  { metadata, Validator = CWValidator as V }: {
-    metadata?: boolean,
-    Validator?: V
+  { pagination, metadata, Validator = CWValidator as V }: {
+    pagination?: [number, number],
+    metadata?:   boolean,
+    Validator?:  V
   } = {}
 ): Promise<Array<InstanceType<V>>> {
   const tendermintClient = await connection.tendermintClient
-  const validatorsResponse = await tendermintClient.validatorsAll()
-  const {blockHeight, total} = validatorsResponse
-  let {validators} = validatorsResponse
-  // Warn on count mismatch.
-  if (validators.length < total) {
-    connection.log.warn(
-      `Failed to fetch all validators!`,
-      `Fetched ${validators.length} out of ${total}`
-    )
-  }
-  if (validators.length > total) {
-    connection.log.warn(
-      `Fetched too many validators?!`,
-      `Fetched ${validators.length} but total is ${total}`
-    )
+  let response
+  if (pagination && (pagination as Array<number>).length !== 0) {
+    if (pagination.length !== 2) {
+      throw new Error("pagination format: [page, per_page]")
+    }
+    response = await tendermintClient.validators({
+      page:     pagination[0],
+      per_page: pagination[1],
+    })
+  } else {
+    response = await tendermintClient.validatorsAll()
   }
   // Sort validators by voting power in descending order.
-  validators = [...validators].sort((a,b)=>(
+  const validators = [...response.validators].sort((a,b)=>(
     (a.votingPower < b.votingPower) ?  1 :
     (a.votingPower > b.votingPower) ? -1 : 0
   ))
   const result = []
-  for (let validator of validators) {
+  for (const { address, pubkey, votingPower, proposerPriority } of validators) {
     const info = new Validator({
-      address:          Core.base16.encode(validator.address),
-      publicKey:        validator.pubkey.data,
-      votingPower:      validator.votingPower,
-      proposerPriority: validator.proposerPriority,
+      address: Core.base16.encode(address),
+      publicKey: pubkey.data,
+      votingPower,
+      proposerPriority,
     })
     result.push(info)
     if (metadata) {

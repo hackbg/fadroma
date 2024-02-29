@@ -124,14 +124,15 @@ class NamadaCLI extends CLI {
       process.exit(1)
     }
     const connection = new NamadaConnection({ url })
-    const validators = await connection.getValidators({ metadata: false })
+    const validators = await connection.getValidators({
+      metadata: false,
+    })
     for (const i in validators) {
       const validator = validators[i]
       this.log.br()
       await validator.fetchMetadata(connection)
       this.log.br()
       validator.print()
-      this.log.br()
       this.log.info(`(${Number(i)+1}/${validators.length})`)
     }
     process.exit(0)
@@ -154,7 +155,7 @@ class NamadaCLI extends CLI {
     process.exit(0)
   })
 
-  stakedByValidator = this.command({
+  validatorStake = this.command({
     name: "validator-stake",
     info: "query staked amount by validator",
     args: "RPC_URL ADDRESS"

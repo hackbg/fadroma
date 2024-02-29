@@ -12,7 +12,7 @@ const Schema = Borsher.BorshSchema
 type Connection = {
   log: Core.Console,
   abciQuery: (path: string, args?: Uint8Array) => Promise<Uint8Array>
-  tendermintClient: Promise<{ validatorsAll }>
+  tendermintClient: Promise<{ validators, validatorsAll }>
 };
 
 export async function getStakingParameters (connection: Connection) {

@@ -31,7 +31,10 @@ export class NamadaConnection extends CWConnection {
     return getValidatorAddresses(this)
   }
 
-  getValidators (options?: { metadata?: boolean }) {
+  getValidators (options?: {
+    metadata?:   boolean,
+    pagination?: [number, number]
+  }) {
     return getValidators(this, options)
   }
 
