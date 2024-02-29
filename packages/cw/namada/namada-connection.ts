@@ -34,6 +34,8 @@ export class NamadaConnection extends CWConnection {
   getValidators (options?: {
     details?:    boolean,
     pagination?: [number, number]
+    allStates?:  boolean,
+    addresses?:  string[],
   }) {
     return getValidators(this, options)
   }

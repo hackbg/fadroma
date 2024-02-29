@@ -116,7 +116,7 @@ class NamadaCLI extends CLI {
 
   validators = this.command({
     name: 'validators',
-    info: 'query metadata for each validator',
+    info: 'query metadata for each consensus validator',
     args: 'RPC_URL'
   }, async (url: string) => {
     if (!url) {
@@ -132,6 +132,47 @@ class NamadaCLI extends CLI {
       this.log.br()
       validator.print()
       this.log.info(`(${Number(i)+1}/${validators.length})`)
+    }
+    process.exit(0)
+  })
+
+  validatorsAll = this.command({
+    name: 'validators-all',
+    info: 'query metadata for all validators',
+    args: 'RPC_URL PAGE PER_PAGE'
+  }, async (url: string, page: number, perPage: number) => {
+    page = Number(page)
+    perPage = Number(perPage)
+    if (!url || isNaN(page) || isNaN(perPage)) {
+      this.log.error(Core.bold('Pass a RPC URL, page number, and page size to query validators.'))
+      process.exit(1)
+    }
+    if (page < 1) {
+      this.log.error(Core.bold('Pages start from 1.'))
+      process.exit(1)
+    }
+    if (perPage < 1) {
+      this.log.error(Core.bold('Need to specify at least 1 result per page'))
+      process.exit(1)
+    }
+    const connection = new NamadaConnection({ url })
+    const allValidators = await connection.getValidators({ allStates: true, details: false })
+    this.log.info(`Total validators: ${allValidators.length}`)
+    const maxPage = Math.floor(allValidators.length / perPage) + 1
+    if (page > maxPage) {
+      this.log.error(`Max page: ${maxPage}`)
+      process.exit(1)
+    }
+    this.log(`Querying info for validators from #${(page-1)*perPage+1} to #${page*perPage+1}...`)
+    const details = await connection.getValidators({
+      addresses: allValidators.map(validator=>validator.namadaAddress),
+      allStates: true,
+      pagination: [ page, perPage ],
+      details: true
+    })
+    for (const validator of details) {
+      this.log.br()
+      validator.print(this.log)
     }
     process.exit(0)
   })

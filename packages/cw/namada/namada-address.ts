@@ -51,10 +51,10 @@ export const decodeAddress = (address: number[]|Uint8Array) => {
   address = [...address]
   if (address[0] === 0) {
     address[0] = 1
-    console.warn('Fixing discriminant 0 to 1 in address')
+    //console.warn('Fixing discriminant 0 to 1 in address')
   } else if (address[0] === 1) {
     address[0] = 0
-    console.warn('Fixing discriminant 1 to 0 in address')
+    //console.warn('Fixing discriminant 1 to 0 in address')
   }
   return Core.bech32m.encode('tnam', Core.bech32m.toWords(new Uint8Array([...address])))
 }

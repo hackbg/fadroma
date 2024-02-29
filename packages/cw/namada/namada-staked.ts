@@ -103,11 +103,38 @@ export async function getTotalStaked (connection: Connection) {
 const totalStakeSchema = Schema.Struct({ totalStake: Schema.u64 })
 
 export async function getValidators (
-  connection: Connection, options?: Partial<Parameters<typeof Staking.getValidators>[1]>
+  connection: Connection,
+  options?: Partial<Parameters<typeof Staking.getValidators>[1]> & {
+    addresses?: string[],
+    allStates?: boolean
+  }
 ) {
-  return Staking.getValidators(connection, {
-    ...options, Validator: NamadaValidator
-  }) as unknown as Promise<NamadaValidator[]>
+  if (options.allStates) {
+    let { addresses } = options
+    addresses ??= await getValidatorAddresses(connection)
+    if (options.pagination && (options.pagination as Array<number>).length !== 0) {
+      if (options.pagination.length !== 2) {
+        throw new Error("pagination format: [page, per_page]")
+      }
+      const [page, perPage] = options.pagination
+      addresses = addresses.slice((page - 1)*perPage, page*perPage)
+    }
+    const validators = addresses.map(address=>NamadaValidator.fromNamadaAddress(address))
+    if (options.details) {
+      if (!options.pagination) {
+        throw new Error("set pagination to not bombard the node")
+      }
+      await Promise.all(validators.map(validator=>validator.fetchDetails(connection)))
+    }
+    return validators
+  } else {
+    if (options.addresses) {
+      throw new Error("addresses option is only for caching with allStates")
+    }
+    return Staking.getValidators(connection, {
+      ...options, Validator: NamadaValidator
+    }) as unknown as Promise<NamadaValidator[]>
+  }
 }
 
 export class NamadaValidator extends Staking.Validator {
@@ -118,12 +145,11 @@ export class NamadaValidator extends Staking.Validator {
   state:         unknown
   stake:         bigint
   async fetchDetails (connection: Connection) {
-    //await super.fetchDetails(connection)
     if (!this.namadaAddress) {
       const addressBinary = await connection.abciQuery(`/vp/pos/validator_by_tm_addr/${this.address}`)
       this.namadaAddress = decodeAddress(addressBinary.slice(1))
     }
-    await Promise.all([
+    const requests = [
       connection.abciQuery(`/vp/pos/validator/metadata/${this.namadaAddress}`)
         .then(binary => this.metadata   = ValidatorMetaData.fromBorsh(binary)),
       connection.abciQuery(`/vp/pos/validator/commission/${this.namadaAddress}`)
@@ -132,13 +158,22 @@ export class NamadaValidator extends Staking.Validator {
         .then(binary => this.state      = Borsher.borshDeserialize(stateSchema, binary)),
       connection.abciQuery(`/vp/pos/validator/stake/${this.namadaAddress}`)
         .then(binary => this.stake      = decodeU256(Borsher.borshDeserialize(stakeSchema, binary))),
-    ])
+    ]
+    if (this.namadaAddress && !this.publicKey) {
+      requests.push(connection.abciQuery(`/vp/pos/validator/consensus_key/${this.namadaAddress}`)
+        .then(binary => this.publicKey  = Core.base16.encode(binary.slice(1))))
+    }
+    if (this.namadaAddress && !this.address) {
+      connection.log.warn("consensus address when fetching all validators: not implemented")
+    }
+    await Promise.all(requests)
     return this
   }
   print (console = new Core.Console()) {
     console
       .log('Validator:      ', Core.bold(this.namadaAddress))
       .log('  Address:      ', Core.bold(this.address))
+      .log('  Public key:   ', Core.bold(this.publicKey))
       .log('  State:        ', Core.bold(Object.keys(this.state)[0]))
       .log('  Stake:        ', Core.bold(this.stake))
       .log('  Voting power: ', Core.bold(this.votingPower))
