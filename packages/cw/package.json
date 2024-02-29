@@ -23,6 +23,7 @@
     "@fadroma/agent":     "workspace:*",
     "@hackbg/cosmjs-esm": "workspace:*",
     "@hackbg/cmds":       "workspace:*",
+    "borsh":              "^2.0.0",
     "borsher":            "^1.2.1"
   },
   "scripts": {

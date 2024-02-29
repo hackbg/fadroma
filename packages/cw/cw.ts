@@ -16,32 +16,23 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
+import * as Chains from './cw-chains'
+import { Core } from '@fadroma/agent'
+import CLI from '@hackbg/cmds'
+import { CWConsole } from './cw-base'
+import { CWConnection } from './cw-connection'
+
 export * as CosmJS from '@hackbg/cosmjs-esm'
-
-export {
-  CWError            as Error,
-  CWConsole          as Console,
-} from './cw-base'
-
-export {
-  CWConnection       as Connection,
-  CWBatch            as Batch,
-} from './cw-connection'
-
+export { CWError as Error, CWConsole as Console } from './cw-base'
+export { CWConnection as Connection } from './cw-connection'
+export { CWBatch as Batch } from './cw-batch'
 export {
   CWIdentity         as Identity,
   CWSignerIdentity   as SignerIdentity,
   CWMnemonicIdentity as MnemonicIdentity,
   encodeSecp256k1Signature
 } from './cw-identity'
-
 export * from './cw-chains'
-
-import * as Chains from './cw-chains'
-import { Core } from '@fadroma/agent'
-import CLI from '@hackbg/cmds'
-import { CWConsole } from './cw-base'
-import { CWConnection } from './cw-connection'
 
 export default class CWCLI extends CLI {
 

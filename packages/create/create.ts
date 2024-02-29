@@ -3,7 +3,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import type { ChainId } from '@fadroma/agent'
 import { Core, Deploy } from '@fadroma/agent'
-const { Error, bold, timestamp, bip39, bip39EN } = Core
+const { Error, bold, timestamp, Bip39, Bip39EN } = Core
 const { Deployment, ContractCode } = Deploy
 
 import type { Path } from '@hackbg/file'
@@ -200,7 +200,7 @@ export class Project extends ProjectDirectory {
 
     this.envFile.save([
       '# FADROMA_MNEMONIC=your mainnet mnemonic',
-      `FADROMA_TESTNET_MNEMONIC=${bip39.generateMnemonic(bip39EN)}`,
+      `FADROMA_TESTNET_MNEMONIC=${Bip39.generateMnemonic(Bip39EN)}`,
       ``,
       `# Just remove these two when pulsar-3 is ready:`,
       `FADROMA_SCRT_TESTNET_CHAIN_ID=pulsar-2`,

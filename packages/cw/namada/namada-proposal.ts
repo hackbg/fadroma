@@ -4,7 +4,6 @@ import type { Address } from '@fadroma/agent'
 import type { Address as NamadaAddress } from './namada-address'
 import { addressSchema, InternalAddresses, decodeAddressFields } from './namada-address'
 import { u256Schema, decodeU256Fields } from './namada-u256'
-import BigNumber from "bignumber.js"
 
 type Connection = { abciQuery: (path: string)=>Promise<Uint8Array> }
 

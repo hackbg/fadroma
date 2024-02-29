@@ -3,8 +3,6 @@ import type { Address, Message, CodeId, CodeHash, Token } from '@fadroma/agent'
 import type { CWMnemonicIdentity, CWSignerIdentity } from './cw-identity'
 import { CWConsole as Console, CWError as Error, bold, assign } from './cw-base'
 import { CWBatch } from './cw-batch'
-import { ripemd160 } from "@noble/hashes/ripemd160"
-import { sha256 } from "@noble/hashes/sha256"
 
 import { Amino, Proto, CosmWasmClient, SigningCosmWasmClient } from '@hackbg/cosmjs-esm'
 import type { Block } from '@hackbg/cosmjs-esm'
@@ -298,14 +296,7 @@ export class CWConnection extends Chain.Connection {
       ))
       const result = []
       for (let validator of validators) {
-        const address = Core.bech32m.encode(
-          prefix,
-          Core.bech32m.toWords(validator.address)
-        )
-        //const address = Core.bech32m.encode(
-          //prefix,
-          //Core.bech32m.toWords(ripemd160(Core.sha256(validator.pubkey.data)))
-        //)
+        const address = Core.bech32m.encode(prefix, Core.bech32m.toWords(validator.address))
         const info = {
           address,
           addressHex:       Core.base16.encode(validator.address),
@@ -314,25 +305,6 @@ export class CWConnection extends Chain.Connection {
           votingPower:      validator.votingPower,
           proposerPriority: validator.proposerPriority,
         }
-        //console.log({
-          //a0: info.addressHex,
-          //A1_: Core.bech32.encode(
-            //prefix,
-            //Core.bech32.toWords(validator.address)
-          //),
-          //A1M: Core.bech32m.encode(
-            //prefix,
-            //Core.bech32m.toWords(validator.address)
-          //),
-          //B1_: Core.bech32.encode(
-            //prefix,
-            //Core.bech32.toWords(ripemd160(Core.sha256(validator.pubkey.data)))
-          //),
-          //B1M: Core.bech32m.encode(
-            //prefix,
-            //Core.bech32m.toWords(ripemd160(Core.sha256(validator.pubkey.data)))
-          //)
-        //})
         result.push(info)
         if (metadata) {
           const metadataResult = await this.getValidatorInfo(address)

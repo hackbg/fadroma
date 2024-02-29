@@ -1,6 +1,7 @@
 import { CLI } from '../cw-base'
 import { CWError as Error } from '../cw-base'
-import { CWConnection, CWBatch } from '../cw-connection'
+import { CWBatch } from '../cw-batch'
+import { CWConnection } from '../cw-connection'
 import { CWMnemonicIdentity } from '../cw-identity'
 
 import { Objectarium, objectariumCodeIds } from './okp4-objectarium'

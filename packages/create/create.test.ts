@@ -4,7 +4,7 @@
 import assert from 'node:assert'
 import type { ChainId } from '@fadroma/agent'
 import { Core, Deploy, Stub } from '@fadroma/agent'
-const { Error, bold, timestamp, bip39, bip39EN } = Core
+const { Error, bold, timestamp, Bip39, Bip39EN } = Core
 const { Deployment, ContractCode } = Deploy
 
 import { tmpDir, TestProjectDeployment } from '@fadroma/fixtures'
