@@ -9,13 +9,13 @@ type Connection = {
   bech32Prefix?: string
 }
 
-export async function getValidators (
+export async function getValidators <V extends typeof CWValidator> (
   connection: Connection,
-  { metadata, Validator = CWValidator }: {
+  { metadata, Validator = CWValidator as V }: {
     metadata?: boolean,
-    Validator?: typeof CWValidator
+    Validator?: V
   } = {}
-): Promise<Array<CWValidator>> {
+): Promise<Array<InstanceType<V>>> {
   const tendermintClient = await connection.tendermintClient
   const validatorsResponse = await tendermintClient.validatorsAll()
   const {blockHeight, total} = validatorsResponse
@@ -41,7 +41,7 @@ export async function getValidators (
   const result = []
   for (let validator of validators) {
     const info = new Validator({
-      address:          validator.address,
+      address:          Core.base16.encode(validator.address),
       publicKey:        validator.pubkey.data,
       votingPower:      validator.votingPower,
       proposerPriority: validator.proposerPriority,
@@ -71,8 +71,12 @@ class CWValidator {
     }
     this.publicKey = publicKey
     this.address = address
-    this.votingPower = BigInt(votingPower)
-    this.proposerPriority = BigInt(proposerPriority)
+    if (votingPower) {
+      this.votingPower = BigInt(votingPower)
+    }
+    if (proposerPriority) {
+      this.proposerPriority = BigInt(proposerPriority)
+    }
   }
 
   get publicKeyBytes () {

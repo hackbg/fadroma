@@ -3,9 +3,9 @@ import { CWConnection } from '../cw-connection'
 import {
   getStakingParameters,
   getValidators,
+  getValidatorsConsensus,
+  getValidatorsBelowCapacity,
   getValidatorAddresses,
-  getConsensusValidators,
-  getBelowCapacityValidators,
   getValidator,
   getValidatorStake,
 } from './namada-staked'
@@ -27,20 +27,20 @@ export class NamadaConnection extends CWConnection {
     return getStakingParameters(this)
   }
 
-  getValidators () {
-    return getValidators(this)
-  }
-
   getValidatorAddresses () {
     return getValidatorAddresses(this)
   }
 
-  getConsensusValidators () {
-    return getConsensusValidators(this)
+  getValidators (options?: { metadata?: boolean }) {
+    return getValidators(this, options)
   }
 
-  getBelowCapacityValidators () {
-    return getBelowCapacityValidators(this)
+  getValidatorsConsensus () {
+    return getValidatorsConsensus(this)
+  }
+
+  getValidatorsBelowCapacity () {
+    return getValidatorsBelowCapacity(this)
   }
 
   getValidator (address: Address) {

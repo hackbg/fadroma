@@ -102,43 +102,58 @@ export async function getTotalStaked (connection: Connection) {
 
 const totalStakeSchema = Schema.Struct({ totalStake: Schema.u64 })
 
-export async function getValidators (connection: Connection) {
+export async function getValidators (
+  connection: Connection,
+  options: { metadata?: boolean } = {}
+) {
   return Staking.getValidators(connection, {
-    metadata: true,
+    ...options,
     Validator: NamadaValidator
-  })
+  }) as unknown as Promise<NamadaValidator[]>
 }
 
-class NamadaValidator extends Staking.Validator {
-  metadata:     ValidatorMetaData
-  commission:   CommissionPair
-  state:        unknown
-  stake:        bigint
-  consensusKey: { Ed25519: {} } | { Secp256k1: {} }
+export class NamadaValidator extends Staking.Validator {
+  static fromNamadaAddress = (namadaAddress: string) => Object.assign(new this({}), { namadaAddress })
+  namadaAddress: Address
+  metadata:      ValidatorMetaData
+  commission:    CommissionPair
+  state:         unknown
+  stake:         bigint
   async fetchMetadata (connection: Connection) {
     //await super.fetchMetadata(connection)
-    console.log(this.publicKey)
-    console.log(this.publicKeyBytes)
-    console.log(Core.SHA256(this.publicKeyBytes).slice(0,20))
-    console.log(await connection.abciQuery(`/vp/post/validator/validator_by_tm_addr/${this.publicKeyHash}`))
-    process.exit(123)
+    if (!this.namadaAddress) {
+      const addressBinary = await connection.abciQuery(`/vp/pos/validator_by_tm_addr/${this.address}`)
+      this.namadaAddress = decodeAddress(addressBinary.slice(1))
+    }
     await Promise.all([
-      connection.abciQuery(`/vp/pos/validator/metadata/${this.address}`)
+      connection.abciQuery(`/vp/pos/validator/metadata/${this.namadaAddress}`)
         .then(binary => this.metadata   = ValidatorMetaData.fromBorsh(binary)),
-      connection.abciQuery(`/vp/pos/validator/commission/${this.address}`)
+      connection.abciQuery(`/vp/pos/validator/commission/${this.namadaAddress}`)
         .then(binary => this.commission = CommissionPair.fromBorsh(binary)),
-      connection.abciQuery(`/vp/pos/validator/state/${this.address}`)
+      connection.abciQuery(`/vp/pos/validator/state/${this.namadaAddress}`)
         .then(binary => this.state      = Borsher.borshDeserialize(stateSchema, binary)),
-      connection.abciQuery(`/vp/pos/validator/stake/${this.address}`)
+      connection.abciQuery(`/vp/pos/validator/stake/${this.namadaAddress}`)
         .then(binary => this.stake      = decodeU256(Borsher.borshDeserialize(stakeSchema, binary))),
-      connection.abciQuery(`/vp/pos/validator/consensus_key/${this.address}`)
-        .then(binary => this.publicKey  = Borsher.borshDeserialize(consensusKeySchema, binary)),
     ])
     return this
   }
+  print (console = new Core.Console()) {
+    console
+      .log('Validator:      ', Core.bold(this.namadaAddress))
+      .log('  Address:      ', Core.bold(this.address))
+      .log('  State:        ', Core.bold(Object.keys(this.state)[0]))
+      .log('  Stake:        ', Core.bold(this.stake))
+      .log('  Voting power: ', Core.bold(this.votingPower))
+      .log('  Priority:     ', Core.bold(this.proposerPriority))
+      .log('  Commission:   ', Core.bold(this.commission.commissionRate))
+      .log('    Max change: ', Core.bold(this.commission.maxCommissionChangePerEpoch), 'per epoch')
+      .log('Email:          ', Core.bold(this.metadata?.email||''))
+      .log('Website:        ', Core.bold(this.metadata?.website||''))
+      .log('Discord:        ', Core.bold(this.metadata?.discordHandle||''))
+      .log('Avatar:         ', Core.bold(this.metadata?.avatar||''))
+      .log('Description:    ', Core.bold(this.metadata?.description||''))
+  }
 }
-
-export { NamadaValidator as Validator }
 
 export async function getValidatorAddresses (connection: Connection): Promise<Address[]> {
   const binary = await connection.abciQuery("/vp/pos/validator/addresses")
@@ -148,7 +163,7 @@ export async function getValidatorAddresses (connection: Connection): Promise<Ad
 
 const getValidatorsSchema = Schema.HashSet(addressSchema)
 
-export async function getConsensusValidators (connection: Connection) {
+export async function getValidatorsConsensus (connection: Connection) {
   const binary = await connection.abciQuery("/vp/pos/validator_set/consensus")
   return [...Borsher.borshDeserialize(validatorSetSchema, binary) as Set<{
     bonded_stake: number[],
@@ -161,7 +176,7 @@ export async function getConsensusValidators (connection: Connection) {
                   : 0)
 }
 
-export async function getBelowCapacityValidators (connection: Connection) {
+export async function getValidatorsBelowCapacity (connection: Connection) {
   const binary = await connection.abciQuery("/vp/pos/validator_set/below_capacity")
   return [...Borsher.borshDeserialize(validatorSetSchema, binary) as Set<{
     bonded_stake: number[],
@@ -182,20 +197,7 @@ const validatorSetMemberFields = {
 const validatorSetSchema = Schema.HashSet(Schema.Struct(validatorSetMemberFields))
 
 export async function getValidator (connection: Connection, address: Address) {
-  const [ metadata, commission, state, stake, consensusKey ] = await Promise.all([
-    `/vp/pos/validator/metadata/${address}`,
-    `/vp/pos/validator/commission/${address}`,
-    `/vp/pos/validator/state/${address}`,
-    `/vp/pos/validator/stake/${address}`,
-    `/vp/pos/validator/consensus_key/${address}`,
-  ].map(path => connection.abciQuery(path)))
-  return {
-    metadata:     ValidatorMetaData.fromBorsh(metadata),
-    commission:   CommissionPair.fromBorsh(commission),
-    state:        Borsher.borshDeserialize(stateSchema, state),
-    stake:        decodeU256(Borsher.borshDeserialize(stakeSchema, stake)),
-    consensusKey: Borsher.borshDeserialize(consensusKeySchema, consensusKey)
-  }
+  return await NamadaValidator.fromNamadaAddress(address).fetchMetadata(connection)
 }
 
 export async function getValidatorStake(connection: Connection, address: Address) {
@@ -213,7 +215,9 @@ export class ValidatorMetaData {
   discordHandle: string|null
   avatar:        string|null
   constructor (data: Partial<ValidatorMetaData> = {}) {
-    Core.assignCamelCase(this, data, Object.keys(validatorMetaDataSchemaFields))
+    if (data) {
+      Core.assignCamelCase(this, data, Object.keys(validatorMetaDataSchemaFields))
+    }
   }
 }
 

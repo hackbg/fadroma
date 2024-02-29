@@ -92,7 +92,7 @@ class NamadaCLI extends CLI {
       process.exit(1)
     }
     const connection = new NamadaConnection({ url })
-    for (const {address, bondedStake} of await connection.getConsensusValidators()) {
+    for (const {address, bondedStake} of await connection.getValidatorsConsensus()) {
       this.log.log(Core.bold(address), bondedStake.toString())
     }
     process.exit(0)
@@ -108,7 +108,7 @@ class NamadaCLI extends CLI {
       process.exit(1)
     }
     const connection = new NamadaConnection({ url })
-    for (const {address, bondedStake} of await connection.getBelowCapacityValidators()) {
+    for (const {address, bondedStake} of await connection.getValidatorsBelowCapacity()) {
       this.log.log(Core.bold(address), bondedStake.toString())
     }
     process.exit(0)
@@ -124,55 +124,16 @@ class NamadaCLI extends CLI {
       process.exit(1)
     }
     const connection = new NamadaConnection({ url })
-    const validatorList = await connection.getValidators()
-    console.log({validatorList})
-    process.exit(123)
-    const [ validatorAddresses, baseMetadata ] = await Promise.all([
-      connection.getValidatorAddresses(),
-      connection.getValidators()
-    ])
-    this.log.br()
-    const validators = baseMetadata.reduce((a,x)=>Object.assign(a, { [x.addressHex]: x }), {})
-    for (const key in validators) {
-      console.log(key, await connection.abciQuery(`/vp/pos/validator_by_tm_addr/${key}`))
+    const validators = await connection.getValidators({ metadata: false })
+    for (const i in validators) {
+      const validator = validators[i]
+      this.log.br()
+      await validator.fetchMetadata(connection)
+      this.log.br()
+      validator.print()
+      this.log.br()
+      this.log.info(`(${Number(i)+1}/${validators.length})`)
     }
-    const addresses = await connection.getValidatorAddresses()
-    for (const i in addresses) {
-      const address = addresses[i]
-      this.log.info(`(${Number(i)+1}/${addresses.length})`)
-      const {
-        metadata, commission, state, stake, consensusKey
-      } = await connection.getValidator(address)
-      this.log
-        .log('Validator:    ', Core.bold(address))
-        .log('State:        ', Core.bold(Object.keys(state)[0]))
-        .log('Stake:        ', Core.bold(stake))
-        .log('Commission:   ', Core.bold(commission.commissionRate))
-        .log('  Max change: ', Core.bold(commission.maxCommissionChangePerEpoch), 'per epoch')
-        .log('Email:        ', Core.bold(metadata.email||''))
-        .log('Website:      ', Core.bold(metadata.website||''))
-        .log('Discord:      ', Core.bold(metadata.discordHandle||''))
-        .log('Avatar:       ', Core.bold(metadata.avatar||''))
-        .log('Description:  ', Core.bold(metadata.description||''))
-      const keyType = Object.keys(consensusKey)[0]
-      const keyValue = new Uint8Array(consensusKey[keyType])
-      const consensusAddress = Core.base16.encode(Core.SHA256(keyValue).slice(0, 20))
-      this.log
-        .log('Consensus pubkey: ', Core.bold('('+keyType+')'), Core.bold(Core.base16.encode(keyValue)))
-        .log('Consensus address:', Core.bold(consensusAddress), validators[consensusAddress], validators)
-        .br()
-    }
-    this.log
-      .br()
-      .info('Total validators:', Core.bold(String(validatorAddresses.length)))
-    //for (const validator of await connection.getValidators({ prefix: 'tnam' })) {
-      //this.log.br()
-        ////.info('Validator:        ', Core.bold(validator.address))
-        //.info('Address (hex):    ', Core.bold(validator.addressHex))
-        //.info('Public key:       ', Core.bold(validator.pubKeyHex))
-        //.info('Voting power:     ', Core.bold(String(validator.votingPower)))
-        //.info('Proposer priority:', Core.bold(String(validator.proposerPriority)))
-    //}
     process.exit(0)
   })
 
@@ -186,25 +147,21 @@ class NamadaCLI extends CLI {
       process.exit(1)
     }
     const connection = new NamadaConnection({ url })
-    const { metadata, commission, state } = await connection.getValidator(address)
+    const validator = await connection.getValidator(address)
     this.log.br()
-      .log('Address:     ', Core.bold(address))
-      .log('State:       ', Core.bold(Object.keys(state)[0]))
-      .log('Commission:  ', Core.bold(commission.commissionRate))
-      .log('Max change:  ', Core.bold(commission.maxCommissionChangePerEpoch), 'per epoch')
-      .log('Email:       ', Core.bold(metadata.email))
-    if (metadata.website) {
-      this.log('Website:     ', Core.bold(metadata.website))
-    }
-    if (metadata.discordHandle) {
-      this.log('Discord:     ', Core.bold(metadata.discordHandle))
-    }
-    if (metadata.avatar) {
-      this.log('Avatar:      ', Core.bold(metadata.avatar))
-    }
-    if (metadata.description) {
-      this.log('Description: ', Core.bold(metadata.description))
-    }
+    validator.print(this.log)
+    this.log.br()
+    process.exit(0)
+  })
+
+  stakedByValidator = this.command({
+    name: "validator-stake",
+    info: "query staked amount by validator",
+    args: "RPC_URL ADDRESS"
+  }, async(url, address) => {
+    const connection = new NamadaConnection({ url })
+    const stakedByAddress = await connection.getValidatorStake(address)
+    this.log.log(stakedByAddress)
     process.exit(0)
   })
 
@@ -349,17 +306,6 @@ class NamadaCLI extends CLI {
         .log(Core.bold("There are no votes for this proposal yet."))
         .log()
     }
-    process.exit(0)
-  })
-
-  stakedByValidator = this.command({
-    name: "staked-by-validator",
-    info: "Show staked amount by validator",
-    args: "RPC_URL ADDRESS"
-  }, async(url, address) => {
-    const connection = new NamadaConnection({ url })
-    const stakedByAddress = await connection.getValidatorStake(address)
-    this.log.log(stakedByAddress)
     process.exit(0)
   })
 }
