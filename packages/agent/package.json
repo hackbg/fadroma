@@ -11,8 +11,8 @@
   "description": "Isomorphic base layer for implementing dAPI clients. See @fadroma/scrt for Secret Network support.",
   "scripts": {
     "check": "tsc --noEmit",
-    "test": "time ensuite agent.test.ts",
-    "cov": "time ensuite-cov -r text -r lcov -- agent.test.ts",
+    "test":  "time ensuite agent.test.ts",
+    "cov":   "time ensuite-cov -r text -r lcov -- agent.test.ts",
     "clean": "rm -rf .ubik *.dist.*",
 
     "release":        "time sh -c 'pnpm clean && pnpm i && pnpm check && pnpm cov all && ubik release --otp 123123'",

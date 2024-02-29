@@ -1,8 +1,14 @@
-import * as BorshJS from "borsh"
+import * as Borsher from 'borsher'
+
+const Schema = Borsher.BorshSchema
 
 type Connection = { abciQuery: (path: string) => Promise<Uint8Array> }
 
 export async function getCurrentEpoch (connection: Connection) {
-  const epoch = await connection.abciQuery("/shell/epoch")
-  return BorshJS.deserialize({ struct: { epoch: "u64" } }, epoch)
+  const binary = await connection.abciQuery("/shell/epoch")
+  return Borsher.borshDeserialize(epochSchema, binary)
 }
+
+const epochSchema = Schema.Struct({
+  epoch: Schema.u64
+})

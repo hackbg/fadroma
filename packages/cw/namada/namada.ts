@@ -124,9 +124,12 @@ class NamadaCLI extends CLI {
       process.exit(1)
     }
     const connection = new NamadaConnection({ url })
+    const validatorList = await connection.getValidators()
+    console.log({validatorList})
+    process.exit(123)
     const [ validatorAddresses, baseMetadata ] = await Promise.all([
       connection.getValidatorAddresses(),
-      connection.getValidators({ prefix: 'tnam' })
+      connection.getValidators()
     ])
     this.log.br()
     const validators = baseMetadata.reduce((a,x)=>Object.assign(a, { [x.addressHex]: x }), {})

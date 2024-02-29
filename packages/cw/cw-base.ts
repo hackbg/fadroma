@@ -13,6 +13,10 @@ export const {
   Bip39EN,
   bech32,
   base64,
+  RIPEMD160,
+  SHA256,
+  Secp256k1,
+  numberToBytesBE
 } = Core
 
 class CWBaseCLI extends CLI {
@@ -22,4 +26,6 @@ class CWBaseCLI extends CLI {
   }
 }
 
-export { CWBaseCLI as CLI }
+export {
+  CWBaseCLI as CLI
+}

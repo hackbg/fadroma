@@ -1,7 +1,19 @@
 import { Amino } from '@hackbg/cosmjs-esm'
-import { Core, Chain } from '@fadroma/agent'
-import { CWError as Error, bold, Bip32, Bip39, Bip39EN, bech32, base64 } from './cw-base'
 import type { Signing } from '@hackbg/cosmjs-esm'
+import { Core, Chain } from '@fadroma/agent'
+import {
+  CWError as Error,
+  bold,
+  Bip32,
+  Bip39,
+  Bip39EN,
+  bech32, 
+  base64,
+  RIPEMD160,
+  SHA256,
+  Secp256k1,
+  numberToBytesBE
+} from './cw-base'
 
 export class CWIdentity extends Chain.Identity {
   declare signer: Signing.OfflineSigner
@@ -72,10 +84,8 @@ export class CWMnemonicIdentity extends CWIdentity {
     if (!privateKey) {
       throw new Error("failed to derive key pair")
     }
-    const pubkey = Core.Secp256k1.getPublicKey(new Uint8Array(privateKey), true);
-    const address = bech32.encode(
-      this.bech32Prefix, bech32.toWords(Core.RIPEMD160(Core.SHA256(pubkey)))
-    )
+    const pubkey = Secp256k1.getPublicKey(new Uint8Array(privateKey), true);
+    const address = bech32.encode(this.bech32Prefix, bech32.toWords(RIPEMD160(SHA256(pubkey))))
     if (this.address && this.address !== address) {
       throw new Error(
         `address ${address} generated from mnemonic did not match ${this.address}`
@@ -98,9 +108,7 @@ export class CWMnemonicIdentity extends CWIdentity {
           this.log.warn(`Received address ${bold(address)} that did not match`)
             .warn(` generated address ${address}, ignoring them`)
         }
-        const { r, s } = Core.Secp256k1.sign(
-          Core.SHA256(Amino.serializeSignDoc(signed)), privateKey
-        )
+        const { r, s } = Secp256k1.sign(SHA256(Amino.serializeSignDoc(signed)), privateKey)
         return {
           signed,
           signature: encodeSecp256k1Signature(pubkey, new Uint8Array([
