@@ -6,6 +6,7 @@ import {
   getConsensusValidators,
   getBelowCapacityValidators,
   getValidator,
+  getValidatorStake,
 } from './namada-staked'
 import {
   getGovernanceParameters,
@@ -59,5 +60,9 @@ export class NamadaConnection extends CWConnection {
 
   getTotalStaked () {
     return getTotalStaked(this)
+  }
+
+  getValidatorStake(address: Address) {
+    return getValidatorStake(this, address)
   }
 }
