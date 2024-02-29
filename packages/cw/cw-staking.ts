@@ -11,9 +11,9 @@ type Connection = {
 
 export async function getValidators <V extends typeof CWValidator> (
   connection: Connection,
-  { pagination, metadata, Validator = CWValidator as V }: {
+  { pagination, details, Validator = CWValidator as V }: {
     pagination?: [number, number],
-    metadata?:   boolean,
+    details?:    boolean,
     Validator?:  V
   } = {}
 ): Promise<Array<InstanceType<V>>> {
@@ -44,8 +44,8 @@ export async function getValidators <V extends typeof CWValidator> (
       proposerPriority,
     })
     result.push(info)
-    if (metadata) {
-      await info.fetchMetadata(connection)
+    if (details) {
+      await info.fetchDetails(connection)
     }
   }
   return result
@@ -83,7 +83,7 @@ class CWValidator {
     return Core.base16.encode(Core.SHA256(this.publicKeyBytes).slice(0, 20))
   }
 
-  async fetchMetadata (connection: Connection): Promise<this> {
+  async fetchDetails (connection: Connection): Promise<this> {
     console.log(this)
     const request = Proto.Cosmos.Staking.v1beta1.Query.QueryValidatorRequest.encode({
       validatorAddr: this.address

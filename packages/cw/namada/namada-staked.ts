@@ -103,12 +103,10 @@ export async function getTotalStaked (connection: Connection) {
 const totalStakeSchema = Schema.Struct({ totalStake: Schema.u64 })
 
 export async function getValidators (
-  connection: Connection,
-  options: { metadata?: boolean } = {}
+  connection: Connection, options?: Partial<Parameters<typeof Staking.getValidators>[1]>
 ) {
   return Staking.getValidators(connection, {
-    ...options,
-    Validator: NamadaValidator
+    ...options, Validator: NamadaValidator
   }) as unknown as Promise<NamadaValidator[]>
 }
 
@@ -119,8 +117,8 @@ export class NamadaValidator extends Staking.Validator {
   commission:    CommissionPair
   state:         unknown
   stake:         bigint
-  async fetchMetadata (connection: Connection) {
-    //await super.fetchMetadata(connection)
+  async fetchDetails (connection: Connection) {
+    //await super.fetchDetails(connection)
     if (!this.namadaAddress) {
       const addressBinary = await connection.abciQuery(`/vp/pos/validator_by_tm_addr/${this.address}`)
       this.namadaAddress = decodeAddress(addressBinary.slice(1))
@@ -197,7 +195,7 @@ const validatorSetMemberFields = {
 const validatorSetSchema = Schema.HashSet(Schema.Struct(validatorSetMemberFields))
 
 export async function getValidator (connection: Connection, address: Address) {
-  return await NamadaValidator.fromNamadaAddress(address).fetchMetadata(connection)
+  return await NamadaValidator.fromNamadaAddress(address).fetchDetails(connection)
 }
 
 export async function getValidatorStake(connection: Connection, address: Address) {

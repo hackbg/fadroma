@@ -1,7 +1,6 @@
 import type { CosmWasmClient, SigningCosmWasmClient } from '@hackbg/cosmjs-esm'
 import { Deploy } from '@fadroma/agent'
 import type { Address, CodeId, Chain, Message, Token } from '@fadroma/agent'
-import { bold } from './cw-base'
 import { Amino } from '@hackbg/cosmjs-esm'
 
 type API = CosmWasmClient|Promise<CosmWasmClient>

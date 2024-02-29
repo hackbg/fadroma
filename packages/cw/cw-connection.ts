@@ -1,7 +1,7 @@
 import { Core, Chain, Deploy } from '@fadroma/agent'
 import type { Address, Message, CodeId, CodeHash, Token } from '@fadroma/agent'
 import type { CWMnemonicIdentity, CWSignerIdentity } from './cw-identity'
-import { CWConsole as Console, CWError as Error, bold, assign } from './cw-base'
+import { CWConsole as Console, CWError as Error } from './cw-base'
 import { CWBatch } from './cw-batch'
 
 import { Amino, Proto, CosmWasmClient, SigningCosmWasmClient } from '@hackbg/cosmjs-esm'
@@ -44,13 +44,13 @@ export class CWConnection extends Chain.Connection {
 
   constructor (properties: Partial<CWConnection>) {
     super(properties)
-    assign(this, properties, [ 'coinType', 'bech32Prefix', 'hdAccountIndex' ])
+    Core.assign(this, properties, [ 'coinType', 'bech32Prefix', 'hdAccountIndex' ])
     if (this.url) {
       if (this.identity?.signer) {
-        this.log.debug('Connecting via', bold(this.url))
+        this.log.debug('Connecting via', Core.bold(this.url))
         this.api = SigningCosmWasmClient.connectWithSigner(this.url, this.identity.signer)
       } else {
-        this.log.debug('Connecting anonymously via', bold(this.url))
+        this.log.debug('Connecting anonymously via', Core.bold(this.url))
         this.api = CosmWasmClient.connect(this.url)
       }
     } else {
@@ -181,17 +181,17 @@ export class CWConnection extends Chain.Connection {
     return new CWBatch({ connection: this }) as unknown as Chain.Batch<this>
   }
 
-  getValidators ({ metadata = false }: {
-    metadata?: boolean
+  getValidators ({ details = false }: {
+    details?: boolean
   } = {}) {
-    return this.tendermintClient.then(()=>getValidators(this, { metadata }))
+    return this.tendermintClient.then(()=>getValidators(this, { details }))
   }
 
-  getValidatorInfo (address: Address): Promise<unknown> {
+  getValidator (address: Address): Promise<unknown> {
     return Promise.all([
       this.queryClient,
       this.tendermintClient
-    ]).then(()=>new Validator({ address }).fetchMetadata(this))
+    ]).then(()=>new Validator({ address }).fetchDetails(this))
   }
 }
 

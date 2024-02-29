@@ -1,8 +1,8 @@
 import { Amino } from '@hackbg/cosmjs-esm'
 import type { Signing } from '@hackbg/cosmjs-esm'
 import { Core, Chain } from '@fadroma/agent'
-import {
-  CWError as Error,
+import { CWError as Error } from './cw-base'
+const {
   bold,
   Bip32,
   Bip39,
@@ -13,7 +13,7 @@ import {
   SHA256,
   Secp256k1,
   numberToBytesBE
-} from './cw-base'
+} = Core
 
 export class CWIdentity extends Chain.Identity {
   declare signer: Signing.OfflineSigner

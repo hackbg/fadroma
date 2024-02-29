@@ -124,13 +124,11 @@ class NamadaCLI extends CLI {
       process.exit(1)
     }
     const connection = new NamadaConnection({ url })
-    const validators = await connection.getValidators({
-      metadata: false,
-    })
+    const validators = await connection.getValidators({ details: false })
     for (const i in validators) {
       const validator = validators[i]
       this.log.br()
-      await validator.fetchMetadata(connection)
+      await validator.fetchDetails(connection)
       this.log.br()
       validator.print()
       this.log.info(`(${Number(i)+1}/${validators.length})`)

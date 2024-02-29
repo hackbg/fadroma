@@ -1,6 +1,6 @@
 import type { CosmWasmClient, SigningCosmWasmClient } from '@hackbg/cosmjs-esm'
 import type { Address, Token, Chain } from '@fadroma/agent'
-import { bold } from './cw-base'
+import { Core } from '@fadroma/agent'
 
 type API = CosmWasmClient|Promise<CosmWasmClient>
 
@@ -12,9 +12,9 @@ export async function getBalance (
     throw new Error('getBalance: pass (token, address)')
   }
   if (address === this.address) {
-    this.log.debug('Querying', bold(token), 'balance')
+    this.log.debug('Querying', Core.bold(token), 'balance')
   } else {
-    this.log.debug('Querying', bold(token), 'balance of', bold(address))
+    this.log.debug('Querying', Core.bold(token), 'balance of', Core.bold(address))
   }
   const { amount } = await api.getBalance(address!, token!)
   return amount
