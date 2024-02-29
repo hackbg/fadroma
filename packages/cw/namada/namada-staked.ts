@@ -155,6 +155,13 @@ export async function getValidator (connection: Connection, address: Address) {
   }
 }
 
+export async function getValidatorStake(connection: Connection, address: Address) {
+  const totalStake = await connection.abciQuery(`/vp/pos/validator/stake/${address}`)
+  return Borsher.borshDeserialize(validatorStakeSchema, totalStake)
+}
+
+const validatorStakeSchema = Schema.Option(Schema.Struct({ stake: Schema.u128 }))
+
 export class ValidatorMetaData {
   static fromBorsh = binary => new this(Borsher.borshDeserialize(validatorMetaDataSchema, binary))
   email:         string

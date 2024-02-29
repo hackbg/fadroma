@@ -350,6 +350,16 @@ class NamadaCLI extends CLI {
     process.exit(0)
   })
 
+  stakedByValidator = this.command({
+    name: "staked-by-validator",
+    info: "Show staked amount by validator",
+    args: "RPC_URL ADDRESS"
+  }, async(url, address) => {
+    const connection = new NamadaConnection({ url })
+    const stakedByAddress = await connection.getValidatorStake(address)
+    this.log.log(stakedByAddress)
+    process.exit(0)
+  })
 }
 
 export {
