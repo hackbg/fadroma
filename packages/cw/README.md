@@ -20,6 +20,22 @@ unified into a single package, [`@hackbg/cosmjs-esm`](https://www.npmjs.com/pack
 However, availability of chain-specific features is subject to implementation
 within `@fadroma/cw`. For now, we have basic support for OKP4's chain-specific features.
 
+### Namada
+
+```typescript
+import { Chains } from '@fadroma/cw'
+const namada = Chains.Namada.testnet()
+const namada = Chains.Namada.testnet({ url: '...' })
+```
+
+### OKP4
+
+```typescript
+import { Chains } from '@fadroma/cw'
+const namada = Chains.OKP4.testnet()
+const namada = Chains.OKP4.testnet({ url: '...' })
+```
+
 ```typescript
 // TODO add example for connecting to generic CW-enabled chain
 ```
