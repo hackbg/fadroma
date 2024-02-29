@@ -1,11 +1,19 @@
 import { Amino } from '@hackbg/cosmjs-esm'
-import { Core, Chain } from '@fadroma/agent'
-import { CWError as Error, bold, bip32, bip39, bip39EN, bech32, base64 } from './cw-base'
 import type { Signing } from '@hackbg/cosmjs-esm'
-import { ripemd160 } from "@noble/hashes/ripemd160"
-import { sha256 } from "@noble/hashes/sha256"
-import { secp256k1 } from "@noble/curves/secp256k1"
-import { numberToBytesBE } from "@noble/curves/abstract/utils"
+import { Core, Chain } from '@fadroma/agent'
+import {
+  CWError as Error,
+  bold,
+  Bip32,
+  Bip39,
+  Bip39EN,
+  bech32, 
+  base64,
+  RIPEMD160,
+  SHA256,
+  Secp256k1,
+  numberToBytesBE
+} from './cw-base'
 
 export class CWIdentity extends Chain.Identity {
   declare signer: Signing.OfflineSigner
@@ -62,22 +70,22 @@ export class CWMnemonicIdentity extends CWIdentity {
     let generatedMnemonic = false
     if (!mnemonic) {
       if (generateMnemonic) {
-        mnemonic = bip39.generateMnemonic(bip39EN)
+        mnemonic = Bip39.generateMnemonic(Bip39EN)
         generatedMnemonic = true
       } else {
         throw new Error("mnemonic is not set")
       }
     }
     // Derive keypair and address from mnemonic
-    const seed = bip39.mnemonicToSeedSync(mnemonic)
-    const node = bip32.HDKey.fromMasterSeed(seed)
+    const seed = Bip39.mnemonicToSeedSync(mnemonic)
+    const node = Bip32.HDKey.fromMasterSeed(seed)
     const secretHD = node.derive(`m/44'/${this.coinType}'/0'/0/${this.hdAccountIndex}`)
     const privateKey = secretHD.privateKey
     if (!privateKey) {
       throw new Error("failed to derive key pair")
     }
-    const pubkey = secp256k1.getPublicKey(new Uint8Array(privateKey), true);
-    const address = bech32.encode(this.bech32Prefix, bech32.toWords(ripemd160(sha256(pubkey))))
+    const pubkey = Secp256k1.getPublicKey(new Uint8Array(privateKey), true);
+    const address = bech32.encode(this.bech32Prefix, bech32.toWords(RIPEMD160(SHA256(pubkey))))
     if (this.address && this.address !== address) {
       throw new Error(
         `address ${address} generated from mnemonic did not match ${this.address}`
@@ -100,7 +108,7 @@ export class CWMnemonicIdentity extends CWIdentity {
           this.log.warn(`Received address ${bold(address)} that did not match`)
             .warn(` generated address ${address}, ignoring them`)
         }
-        const { r, s } = secp256k1.sign(sha256(Amino.serializeSignDoc(signed)), privateKey)
+        const { r, s } = Secp256k1.sign(SHA256(Amino.serializeSignDoc(signed)), privateKey)
         return {
           signed,
           signature: encodeSecp256k1Signature(pubkey, new Uint8Array([

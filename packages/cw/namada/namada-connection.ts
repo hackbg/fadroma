@@ -2,6 +2,7 @@ import type { Address } from '@fadroma/agent'
 import { CWConnection } from '../cw-connection'
 import {
   getStakingParameters,
+  getValidators,
   getValidatorAddresses,
   getConsensusValidators,
   getBelowCapacityValidators,
@@ -23,6 +24,10 @@ export class NamadaConnection extends CWConnection {
 
   getStakingParameters () {
     return getStakingParameters(this)
+  }
+
+  getValidators () {
+    return getValidators(this)
   }
 
   getValidatorAddresses () {

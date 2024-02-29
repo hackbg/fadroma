@@ -2,11 +2,10 @@ import { CLI } from '../cw-base'
 import { Core } from '@fadroma/agent'
 import type { Address } from '@fadroma/agent'
 import { brailleDump } from '@hackbg/dump'
-import { CWConnection, CWBatch } from '../cw-connection'
+import { CWConnection } from '../cw-connection'
 import { NamadaConnection } from './namada-connection'
 import { NamadaMnemonicIdentity } from './namada-identity'
 import { decodeAddress } from './namada-address'
-import { ripemd160 } from "@noble/hashes/ripemd160"
 
 /** Namada CLI commands. */
 class NamadaCLI extends CLI {
@@ -124,16 +123,18 @@ class NamadaCLI extends CLI {
       process.exit(1)
     }
     const connection = new NamadaConnection({ url })
+    const validatorList = await connection.getValidators()
+    console.log({validatorList})
+    process.exit(123)
     const [ validatorAddresses, baseMetadata ] = await Promise.all([
       connection.getValidatorAddresses(),
-      connection.getValidators({ prefix: 'tnam' })
+      connection.getValidators()
     ])
     this.log.br()
     const validators = baseMetadata.reduce((a,x)=>Object.assign(a, { [x.addressHex]: x }), {})
     for (const key in validators) {
       console.log(key, await connection.abciQuery(`/vp/pos/validator_by_tm_addr/${key}`))
     }
-    process.exit(123)
     const addresses = await connection.getValidatorAddresses()
     for (const i in addresses) {
       const address = addresses[i]
@@ -154,7 +155,7 @@ class NamadaCLI extends CLI {
         .log('Description:  ', Core.bold(metadata.description||''))
       const keyType = Object.keys(consensusKey)[0]
       const keyValue = new Uint8Array(consensusKey[keyType])
-      const consensusAddress = Core.base16.encode(Core.sha256(keyValue).slice(0, 20))
+      const consensusAddress = Core.base16.encode(Core.SHA256(keyValue).slice(0, 20))
       this.log
         .log('Consensus pubkey: ', Core.bold('('+keyType+')'), Core.bold(Core.base16.encode(keyValue)))
         .log('Consensus address:', Core.bold(consensusAddress), validators[consensusAddress], validators)

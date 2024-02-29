@@ -17,17 +17,9 @@
 **/
 
 export * as CosmJS from '@hackbg/cosmjs-esm'
-
-export {
-  CWError            as Error,
-  CWConsole          as Console,
-} from './cw-base'
-
-export {
-  CWConnection       as Connection,
-  CWBatch            as Batch,
-} from './cw-connection'
-
+export { CWError as Error, CWConsole as Console } from './cw-base'
+export { CWConnection as Connection } from './cw-connection'
+export { CWBatch as Batch } from './cw-batch'
 export {
   CWIdentity         as Identity,
   CWSignerIdentity   as SignerIdentity,

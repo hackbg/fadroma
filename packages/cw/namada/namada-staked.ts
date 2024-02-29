@@ -5,10 +5,15 @@ import { addressSchema, InternalAddresses, decodeAddress } from './namada-addres
 import type { Address as NamadaAddress } from './namada-address'
 import { u256Schema, decodeU256, decodeU256Fields } from './namada-u256'
 import { schemaEnum } from './namada-enum'
+import * as Staking from '../cw-staking'
 
 const Schema = Borsher.BorshSchema
 
-type Connection = { abciQuery: (path: string) => Promise<Uint8Array> };
+type Connection = {
+  log: Core.Console,
+  abciQuery: (path: string, args?: Uint8Array) => Promise<Uint8Array>
+  tendermintClient: Promise<{ validatorsAll }>
+};
 
 export async function getStakingParameters (connection: Connection) {
   const binary = await connection.abciQuery("/vp/pos/pos_params")
@@ -96,6 +101,44 @@ export async function getTotalStaked (connection: Connection) {
 }
 
 const totalStakeSchema = Schema.Struct({ totalStake: Schema.u64 })
+
+export async function getValidators (connection: Connection) {
+  return Staking.getValidators(connection, {
+    metadata: true,
+    Validator: NamadaValidator
+  })
+}
+
+class NamadaValidator extends Staking.Validator {
+  metadata:     ValidatorMetaData
+  commission:   CommissionPair
+  state:        unknown
+  stake:        bigint
+  consensusKey: { Ed25519: {} } | { Secp256k1: {} }
+  async fetchMetadata (connection: Connection) {
+    //await super.fetchMetadata(connection)
+    console.log(this.publicKey)
+    console.log(this.publicKeyBytes)
+    console.log(Core.SHA256(this.publicKeyBytes).slice(0,20))
+    console.log(await connection.abciQuery(`/vp/post/validator/validator_by_tm_addr/${this.publicKeyHash}`))
+    process.exit(123)
+    await Promise.all([
+      connection.abciQuery(`/vp/pos/validator/metadata/${this.address}`)
+        .then(binary => this.metadata   = ValidatorMetaData.fromBorsh(binary)),
+      connection.abciQuery(`/vp/pos/validator/commission/${this.address}`)
+        .then(binary => this.commission = CommissionPair.fromBorsh(binary)),
+      connection.abciQuery(`/vp/pos/validator/state/${this.address}`)
+        .then(binary => this.state      = Borsher.borshDeserialize(stateSchema, binary)),
+      connection.abciQuery(`/vp/pos/validator/stake/${this.address}`)
+        .then(binary => this.stake      = decodeU256(Borsher.borshDeserialize(stakeSchema, binary))),
+      connection.abciQuery(`/vp/pos/validator/consensus_key/${this.address}`)
+        .then(binary => this.publicKey  = Borsher.borshDeserialize(consensusKeySchema, binary)),
+    ])
+    return this
+  }
+}
+
+export { NamadaValidator as Validator }
 
 export async function getValidatorAddresses (connection: Connection): Promise<Address[]> {
   const binary = await connection.abciQuery("/vp/pos/validator/addresses")
