@@ -91,7 +91,7 @@ export class CWConnection extends Chain.Connection {
     token:   string = this.defaultDenom,
     address: Address|undefined = this.address
   ): Promise<string> {
-    return getBalance({ address: this.address, api: withApi(this) }, token, address)
+    return getBalance({ log: this.log, address: this.address, api: withApi(this) }, token, address)
   }
 
   doGetCodes () {
@@ -123,7 +123,7 @@ export class CWConnection extends Chain.Connection {
     amounts:   Token.ICoin[],
     options?:  Parameters<Chain.Connection["doSend"]>[2]
   ) {
-    return send({ address: this.address, api: withSigningApi(this) }, recipient, amounts, options)
+    return send({ log: this.log, address: this.address, api: withSigningApi(this) }, recipient, amounts, options)
   }
 
   doSendMany (

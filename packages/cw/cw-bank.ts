@@ -4,20 +4,21 @@ import { Core } from '@fadroma/agent'
 
 type Connection = {
   address: Address,
+  log: Core.Console
   api: CosmWasmClient|Promise<CosmWasmClient>
 }
 
 export async function getBalance (
-  { api, address }: Connection, token: string, queriedAddress: Address = address
+  { api, log, address }: Connection, token: string, queriedAddress: Address = address
 ) {
   api = await Promise.resolve(api)
   if (!queriedAddress) {
     throw new Error('getBalance: need address')
   }
   if (queriedAddress === address) {
-    this.log.debug('Querying', Core.bold(token), 'balance')
+    log.debug('Querying', Core.bold(token), 'balance')
   } else {
-    this.log.debug('Querying', Core.bold(token), 'balance of', Core.bold(queriedAddress))
+    log.debug('Querying', Core.bold(token), 'balance of', Core.bold(queriedAddress))
   }
   const { amount } = await api.getBalance(queriedAddress!, token!)
   return amount
@@ -25,6 +26,7 @@ export async function getBalance (
 
 type SigningConnection = {
   address: Address,
+  log: Core.Console
   api: SigningCosmWasmClient|Promise<SigningCosmWasmClient>
 }
 
