@@ -20,8 +20,30 @@ import {
 import {
   getTotalStaked
 } from "./namada-staked"
+import {
+  getPGFParameters,
+  getPGFStewards,
+  getPGFFundings,
+  isPGFSteward
+} from "./namada-pgf"
 
 export class NamadaConnection extends CWConnection {
+
+  getPGFParameters () {
+    return getPGFParameters(this)
+  }
+
+  getPGFStewards () {
+    return getPGFStewards(this)
+  }
+
+  getPGFFundings () {
+    return getPGFFundings(this)
+  }
+
+  isPGFSteward (address: Address) {
+    return isPGFSteward(this)
+  }
 
   getStakingParameters () {
     return getStakingParameters(this)

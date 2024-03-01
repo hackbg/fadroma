@@ -26,6 +26,21 @@ class NamadaCLI extends CLI {
     process.exit(0)
   });
 
+  pgf = this.command({
+    name: "pgf",
+    info: "query pgf parameters",
+    args: "RPC_URL"
+  }, async (url) => {
+    if (!url) {
+      this.log.error(Core.bold('Pass a RPC URL to query the epoch.'))
+      process.exit(1)
+    }
+    const connection = new NamadaConnection({ url })
+    const pgfParameters = await connection.getPGFParameters()
+    this.log.log(pgfParameters)
+    process.exit(0)
+  })
+
   totalStaked = this.command({
     name: "total-staked",
     info: "query total staked amount",
