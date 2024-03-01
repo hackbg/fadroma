@@ -21,7 +21,12 @@ import {
   getLabel,
   upload,
   instantiate,
-  execute
+  execute,
+  query
+} from './cw-compute'
+
+import type {
+  SigningConnection
 } from './cw-compute'
 
 import {
@@ -44,23 +49,31 @@ export class CWConnection extends Chain.Connection {
 
   constructor (properties: Partial<CWConnection>) {
     super(properties)
-    Core.assign(this, properties, [ 'coinType', 'bech32Prefix', 'hdAccountIndex' ])
-    if (this.url) {
-      if (this.identity?.signer) {
-        this.log.debug('Connecting via', Core.bold(this.url))
-        this.api = SigningCosmWasmClient.connectWithSigner(this.url, this.identity.signer)
-      } else {
-        this.log.debug('Connecting anonymously via', Core.bold(this.url))
-        this.api = CosmWasmClient.connect(this.url)
-      }
+    Core.assign(this, properties, [
+      'coinType',
+      'bech32Prefix',
+      'hdAccountIndex'
+    ])
+    if (!this.url) {
+      throw new Error('No connection URL.')
+    }
+    if (this.identity?.signer) {
+      this.log.debug('Connecting and authenticating via', Core.bold(this.url))
+      this.api = SigningCosmWasmClient.connectWithSigner(this.url, this.identity.signer)
     } else {
-      this.log.warn('No connection url.')
+      this.log.debug('Connecting anonymously via', Core.bold(this.url))
+      this.api = CosmWasmClient.connect(this.url)
     }
   }
 
   /** Handle to the API's internal query client. */
   get queryClient (): Promise<ReturnType<CosmWasmClient["getQueryClient"]>> {
-    return withApi(this).then(api=>(api as any)?.queryClient)
+    return Promise.resolve(this.api).then(api=>(api as any)?.queryClient)
+  }
+
+  /** Handle to the API's internal Tendermint transaction client. */
+  get tendermintClient (): Promise<ReturnType<CosmWasmClient["getTmClient"]>> {
+    return Promise.resolve(this.api).then(api=>(api as any)?.tmClient)
   }
 
   abciQuery (path, params = new Uint8Array()) {
@@ -71,19 +84,14 @@ export class CWConnection extends Chain.Connection {
     })
   }
 
-  /** Handle to the API's internal Tendermint transaction client. */
-  get tendermintClient (): Promise<ReturnType<CosmWasmClient["getTmClient"]>> {
-    return withApi(this).then(api=>(api as any)?.tmClient)
-  }
-
   doGetBlockInfo (): Promise<Block> {
-    return withApi(this).then(api=>api.getBlock())
+    return Promise.resolve(this.api)
+      .then(api=>api.getBlock())
   }
 
   doGetHeight () {
-    return this.doGetBlockInfo().then(
-      (info: { header: { height?: number } } = { header: {} })=>Number(info.header.height)
-    )
+    return this.doGetBlockInfo().
+      then((info: { header: { height?: number } } = { header: {} }) => Number(info.header.height))
   }
 
   /** Query native token balance. */
@@ -91,31 +99,31 @@ export class CWConnection extends Chain.Connection {
     token:   string = this.defaultDenom,
     address: Address|undefined = this.address
   ): Promise<string> {
-    return getBalance({ log: this.log, address: this.address, api: withApi(this) }, token, address)
+    return getBalance(this, token, address)
   }
 
   doGetCodes () {
-    return getCodes(withApi(this))
+    return getCodes(this)
   }
 
   doGetCodeId (address: Address): Promise<CodeId> {
-    return getCodeId(withApi(this), address)
+    return getCodeId(this, address)
   }
 
   doGetContractsByCodeId (id: CodeId): Promise<Iterable<{address: Address}>> {
-    return getContractsByCodeId(withApi(this), id)
+    return getContractsByCodeId(this, id)
   }
 
   doGetCodeHashOfAddress (address: Address): Promise<CodeHash> {
-    return getCodeHashOfAddress(withApi(this), address)
+    return getCodeHashOfAddress(this, address)
   }
 
   doGetCodeHashOfCodeId (codeId: CodeId): Promise<CodeHash> {
-    return getCodeHashOfCodeId(withApi(this), codeId)
+    return getCodeHashOfCodeId(this, codeId)
   }
 
   async getLabel (address: Address): Promise<string> {
-    return getLabel(withApi(this), address)
+    return getLabel(this, address)
   }
 
   async doSend (
@@ -123,21 +131,21 @@ export class CWConnection extends Chain.Connection {
     amounts:   Token.ICoin[],
     options?:  Parameters<Chain.Connection["doSend"]>[2]
   ) {
-    return send({ log: this.log, address: this.address, api: withSigningApi(this) }, recipient, amounts, options)
+    return send(this as SigningConnection, recipient, amounts, options)
   }
 
   doSendMany (
     outputs: [Address, Token.ICoin[]][],
     options?: Parameters<Chain.Connection["doSendMany"]>[1]
   ): Promise<void|unknown> {
-    throw new Error('not implemented')
+    throw new Error('doSendMany: not implemented')
   }
 
   async doUpload (data: Uint8Array): Promise<Partial<Deploy.UploadedCode>> {
     if (!this.address) {
       throw new Error("can't upload contract without sender address")
     }
-    return upload(withSigningApi(this), data)
+    return upload(this as SigningConnection, data)
   }
 
   async doInstantiate (
@@ -146,7 +154,7 @@ export class CWConnection extends Chain.Connection {
     if (!this.address) {
       throw new Error("can't instantiate contract without sender address")
     }
-    return instantiate(withSigningApi(this), codeId, options)
+    return instantiate(this as SigningConnection, codeId, options)
   }
 
   async doExecute (
@@ -160,21 +168,13 @@ export class CWConnection extends Chain.Connection {
       throw new Error("can't execute transaction without sender address")
     }
     options.execFee ??= 'auto'
-    return execute(withSigningApi(this), contract, message, options)
+    return execute(this as SigningConnection, contract, message, options)
   }
 
   async doQuery <U> (
     contract: Address|{ address: Address }, message: Message
   ): Promise<U> {
-    if (typeof contract === 'string') {
-      contract = { address: contract }
-    }
-    if (!contract.address) {
-      throw new Error('no contract address')
-    }
-    return withApi(this).then(api=>{
-      return api.queryContractSmart((contract as { address: Address }).address, message) as U
-    })
+    return query(this, contract, message)
   }
 
   batch (): Chain.Batch<this> {
@@ -194,19 +194,3 @@ export class CWConnection extends Chain.Connection {
     ]).then(()=>new Validator({ address }).fetchDetails(this))
   }
 }
-
-const withApi =
-  ({ api }: { api?: CWConnection["api"] }): Promise<CosmWasmClient> => {
-    if (!api) {
-      throw new Error('no api')
-    }
-    return Promise.resolve(api)
-  }
-
-const withSigningApi =
-  ({ api }: { api?: CWConnection["api"] }): Promise<SigningCosmWasmClient> => {
-    if (!api) {
-      throw new Error('no api')
-    }
-    return Promise.resolve(api as unknown as SigningCosmWasmClient)
-  }
