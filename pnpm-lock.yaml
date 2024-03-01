@@ -196,8 +196,8 @@ importers:
         specifier: ^4.2.0
         version: 4.2.0(typescript@5.3.3)
       '@hackbg/ubik':
-        specifier: ^2.0.8
-        version: 2.0.8
+        specifier: ^4.0.0-rc.1
+        version: link:../../toolbox/ubik
       '@istanbuljs/nyc-config-typescript':
         specifier: ^1.0.2
         version: 1.0.2(nyc@15.1.0)
@@ -928,7 +928,7 @@ importers:
         version: link:oxc
       '@hackbg/ubik':
         specifier: ^3.0.1
-        version: link:../ubik
+        version: 3.0.1
       rimraf:
         specifier: ^5.0.5
         version: 5.0.5
@@ -962,7 +962,7 @@ importers:
     devDependencies:
       '@hackbg/ubik':
         specifier: ^3.0.1
-        version: link:../../ubik
+        version: 3.0.1
 
   toolbox/ganesha/esbuild-wasm:
     dependencies:
@@ -978,7 +978,7 @@ importers:
     devDependencies:
       '@hackbg/ubik':
         specifier: ^3.0.1
-        version: link:../../ubik
+        version: 3.0.1
 
   toolbox/ganesha/oxc:
     dependencies:
@@ -991,7 +991,7 @@ importers:
     devDependencies:
       '@hackbg/ubik':
         specifier: ^3.0.1
-        version: link:../../ubik
+        version: 3.0.1
 
   toolbox/hide: {}
 
@@ -1250,11 +1250,11 @@ packages:
   /@babel/helper-validator-identifier@7.22.20:
     resolution: {integrity: sha512-Y4OZ+ytlatR8AI+8KZfKuL5urKp7qey08ha31L8b3BwewJAoJamTzyvxPR/5D+KkdJCGPq/+8TukHBlY10FX9A==}
     engines: {node: '>=6.9.0'}
-    dev: true
 
   /@babel/helper-validator-identifier@7.22.5:
     resolution: {integrity: sha512-aJXu+6lErq8ltp+JhkJUfk1MTGyuA4v7f3pA+BJ5HLfNC6nAQ0Cpi9uOquUj8Hehg0aUiHzWQbOVJGao6ztBAQ==}
     engines: {node: '>=6.9.0'}
+    dev: false
 
   /@babel/helper-validator-option@7.22.15:
     resolution: {integrity: sha512-bMn7RmyFjY/mdECUbgn9eoSY4vqvacUnS9i9vGAGttgFWesO6B4CYWA7XlpbWgBt71iv/hfbPlynohStqnu5hA==}
@@ -1289,20 +1289,12 @@ packages:
       '@babel/types': 7.22.11
     dev: false
 
-  /@babel/parser@7.22.11:
-    resolution: {integrity: sha512-R5zb8eJIBPJriQtbH/htEQy4k7E2dHWlD2Y2VT07JCzwYZHBxV5ZYtM0UhXSNMT74LyxuM+b1jdL7pSesXbC/g==}
-    engines: {node: '>=6.0.0'}
-    hasBin: true
-    dependencies:
-      '@babel/types': 7.22.11
-
   /@babel/parser@7.23.3:
     resolution: {integrity: sha512-uVsWNvlVsIninV2prNz/3lHCb+5CJ+e+IUBfbjToAHODtfGYLfCFuY4AU7TskI+dAKk+njsPiBjq1gKTvZOBaw==}
     engines: {node: '>=6.0.0'}
     hasBin: true
     dependencies:
       '@babel/types': 7.23.3
-    dev: true
 
   /@babel/plugin-syntax-async-generators@7.8.4(@babel/core@7.23.3):
     resolution: {integrity: sha512-tycmZxkGfZaxhMRbXlPXuVFpdWlXpir2W4AMhSJgRKzk/eDlIXOhb2LHWoLpDF7TEHylV5zNhykX6KAgHJmTNw==}
@@ -1481,6 +1473,7 @@ packages:
       '@babel/helper-string-parser': 7.22.5
       '@babel/helper-validator-identifier': 7.22.5
       to-fast-properties: 2.0.0
+    dev: false
 
   /@babel/types@7.23.3:
     resolution: {integrity: sha512-OZnvoH2l8PK5eUvEcUyCt/sXgr/h+UWpVuBbOljwcrAgUl6lpchoQ++PHGyQy1AtYnVA6CEq3y5xeEI10brpXw==}
@@ -1489,7 +1482,6 @@ packages:
       '@babel/helper-string-parser': 7.22.5
       '@babel/helper-validator-identifier': 7.22.20
       to-fast-properties: 2.0.0
-    dev: true
 
   /@balena/dockerignore@1.0.2:
     resolution: {integrity: sha512-wMue2Sy4GAVTk6Ic4tJVcnfdau+gx2EnG7S+uAEe+TWJFqE4YoWN4/H8MSLj4eYJKxGg26lZwboEniNiNwZQ6Q==}
@@ -2173,6 +2165,23 @@ packages:
       mkdirp: 3.0.1
       node-fetch: 3.3.2
       recast: 0.23.4
+      rimraf: 5.0.5
+    dev: true
+
+  /@hackbg/ubik@3.0.1:
+    resolution: {integrity: sha512-t/NLtLgSdYX6DthWj2VuX2lGDWi5wBliX2vpTzQDtpfQ6KZ9qqe/lDPGbYiyDsS6nVo5HmEMS9Sys+BvlyPPbQ==}
+    hasBin: true
+    dependencies:
+      '@babel/parser': 7.23.3
+      '@hackbg/logs': link:toolbox/logs
+      acorn: 8.11.2
+      acorn-walk: 8.3.0
+      astring: 1.8.6
+      fast-glob: 3.3.2
+      mkdirp: 3.0.1
+      node-fetch: 3.3.2
+      recast: 0.23.4
+      resolve.exports: 2.0.2
       rimraf: 5.0.5
     dev: true
 
@@ -4110,7 +4119,7 @@ packages:
     resolution: {integrity: sha512-GAwkz0AihzY5bkwIY5QDR+LvsRQgB/B+1foMPvi0FZPMl5fjD7ICiznUiBdLYMH1QYe6vqu4gWYytZOccLouFw==}
     engines: {node: '>= 10.0.0'}
     dependencies:
-      '@babel/types': 7.22.11
+      '@babel/types': 7.23.3
 
   /bach@1.2.0:
     resolution: {integrity: sha512-bZOOfCb3gXBXbTFXq3OZtGR88LwGeJvzu6szttaIzymOTS4ZttBNOWSv7aLZja2EMycKtRYV0Oa8SNKH/zkxvg==}
@@ -5051,8 +5060,8 @@ packages:
   /constantinople@4.0.1:
     resolution: {integrity: sha512-vCrqcSIq4//Gx74TXXCGnHpulY1dskqLTFGDmhrGxzeXL8lF8kvXv6mpNWlJj1uD4DW23D4ljAqbY4RRaaUZIw==}
     dependencies:
-      '@babel/parser': 7.22.11
-      '@babel/types': 7.22.11
+      '@babel/parser': 7.23.3
+      '@babel/types': 7.23.3
 
   /constants-browserify@1.0.0:
     resolution: {integrity: sha512-xFxOwqIzR/e1k1gLiWEophSCMqXcwVHIH7akf7b/vxcUeGunlj3hvZaaqxwHsTgn+IndtkQJgSztIDWeumWJDQ==}
@@ -13123,8 +13132,8 @@ packages:
     resolution: {integrity: sha512-RNGKj82nUPg3g5ygxkQl0R937xLyho1J24ItRCBTr/m1YnZkzJy1hUiHUJrc/VlsDQzsCnInEGSg3bci0Lmd4w==}
     engines: {node: '>= 10.0.0'}
     dependencies:
-      '@babel/parser': 7.22.11
-      '@babel/types': 7.22.11
+      '@babel/parser': 7.23.3
+      '@babel/types': 7.23.3
       assert-never: 1.2.1
       babel-walk: 3.0.0-canary-5
 
