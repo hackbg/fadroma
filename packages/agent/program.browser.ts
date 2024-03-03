@@ -250,7 +250,10 @@ export class CompiledCode {
   }
 
   protected async doFetch () {
-    const request = await fetch(this.codePath)
+    if (!this.codePath) {
+      throw new Error("can't fetch: codePath not set")
+    }
+    const request = await fetch(this.codePath!)
     const response = await request.arrayBuffer()
     return new Uint8Array(response)
   }

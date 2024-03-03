@@ -52,10 +52,10 @@ export async function getValidators <V extends typeof CWValidator> (
 }
 
 class CWValidator {
-  address:          string
-  publicKey:        string
-  votingPower:      bigint
-  proposerPriority: bigint
+  address:           string
+  publicKey:         string
+  votingPower?:      bigint
+  proposerPriority?: bigint
 
   constructor ({ address, publicKey, votingPower, proposerPriority }: {
     address?:          Address
@@ -66,8 +66,8 @@ class CWValidator {
     if ((publicKey instanceof Uint8Array)||(publicKey instanceof Array)) {
       publicKey = Core.base16.encode(new Uint8Array(publicKey))
     }
-    this.publicKey = publicKey
-    this.address = address
+    this.publicKey = publicKey!
+    this.address = address!
     if (votingPower) {
       this.votingPower = BigInt(votingPower)
     }

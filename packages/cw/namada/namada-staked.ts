@@ -36,22 +36,22 @@ export class PosParams {
 }
 
 class OwnedPosParams {
-  maxValidatorSlots:             bigint
-  pipelineLen:                   bigint
-  unbondingLen:                  bigint
-  tmVotesPerToken:               bigint
-  blockProposerReward:           bigint
-  blockVoteReward:               bigint
-  maxInflationRate:              bigint
-  targetStakedRatio:             bigint
-  duplicateVoteMinSlashRate:     bigint
-  lightClientAttackMinSlashRate: bigint
-  cubicSlashingWindowLength:     bigint
-  validatorStakeThreshold:       bigint
-  livenessWindowCheck:           bigint
-  livenessThreshold:             bigint
-  rewardsGainP:                  bigint
-  rewardsGainD:                  bigint
+  maxValidatorSlots!:             bigint
+  pipelineLen!:                   bigint
+  unbondingLen!:                  bigint
+  tmVotesPerToken!:               bigint
+  blockProposerReward!:           bigint
+  blockVoteReward!:               bigint
+  maxInflationRate!:              bigint
+  targetStakedRatio!:             bigint
+  duplicateVoteMinSlashRate!:     bigint
+  lightClientAttackMinSlashRate!: bigint
+  cubicSlashingWindowLength!:     bigint
+  validatorStakeThreshold!:       bigint
+  livenessWindowCheck!:           bigint
+  livenessThreshold!:             bigint
+  rewardsGainP!:                  bigint
+  rewardsGainD!:                  bigint
   constructor (data: Partial<OwnedPosParams> = {}) {
     Core.assignCamelCase(this, data, Object.keys(ownedPosParamsFields))
     decodeU256Fields(this, [
@@ -104,10 +104,10 @@ const totalStakeSchema = Schema.Struct({ totalStake: Schema.u64 })
 
 export async function getValidators (
   connection: Connection,
-  options?: Partial<Parameters<typeof Staking.getValidators>[1]> & {
+  options: Partial<Parameters<typeof Staking.getValidators>[1]> & {
     addresses?: string[],
     allStates?: boolean
-  }
+  } = {}
 ) {
   if (options.allStates) {
     let { addresses } = options
@@ -139,11 +139,11 @@ export async function getValidators (
 
 export class NamadaValidator extends Staking.Validator {
   static fromNamadaAddress = (namadaAddress: string) => Object.assign(new this({}), { namadaAddress })
-  namadaAddress: Address
-  metadata:      ValidatorMetaData
-  commission:    CommissionPair
-  state:         unknown
-  stake:         bigint
+  namadaAddress!: Address
+  metadata!:      ValidatorMetaData
+  commission!:    CommissionPair
+  state!:         unknown
+  stake!:         bigint
   async fetchDetails (connection: Connection) {
     if (!this.namadaAddress) {
       const addressBinary = await connection.abciQuery(`/vp/pos/validator_by_tm_addr/${this.address}`)
