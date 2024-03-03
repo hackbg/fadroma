@@ -4,7 +4,7 @@
   "type": "module",
   "main": "agent.ts",
   "browser": "agent.browser.ts",
-  "version": "2.0.0-rc.38",
+  "version": "2.0.0-rc.39",
   "license": "AGPL-3.0-only",
   "files": [ "*.ts", "!*.test.*" ],
   "keywords": [ "cosmwasm", "scrt", "secret network", "interchain" ],
@@ -23,9 +23,9 @@
     "@hackbg/4mat": "workspace:^",
     "@hackbg/cmds": "workspace:*",
     "@hackbg/dump": "workspace:^1.0.1",
-    "@hackbg/hide": "^1",
-    "@hackbg/into": "^1.0.1",
-    "@hackbg/logs": "workspace:^2.3.1",
+    "@hackbg/hide": "workspace:^1.0.4",
+    "@hackbg/into": "workspace:^1.0.1",
+    "@hackbg/logs": "workspace:^2.3.2",
     "@hackbg/oops": "workspace:^1.1"
   }
 }

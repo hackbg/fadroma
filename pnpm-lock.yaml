@@ -123,13 +123,13 @@ importers:
         specifier: workspace:^1.0.1
         version: link:../../toolbox/dump
       '@hackbg/hide':
-        specifier: ^1
+        specifier: workspace:^1.0.4
         version: link:../../toolbox/hide
       '@hackbg/into':
-        specifier: ^1.0.1
+        specifier: workspace:^1.0.1
         version: link:../../toolbox/into
       '@hackbg/logs':
-        specifier: workspace:^2.3.1
+        specifier: workspace:^2.3.2
         version: link:../../toolbox/logs
       '@hackbg/oops':
         specifier: workspace:^1.1
@@ -1000,10 +1000,10 @@ importers:
   toolbox/logs:
     dependencies:
       '@hackbg/allo':
-        specifier: workspace:^
+        specifier: workspace:^1.0.3
         version: link:../allo
       '@hackbg/hide':
-        specifier: workspace:^
+        specifier: workspace:^1.0.4
         version: link:../hide
       chalk:
         specifier: ^4.1.2
