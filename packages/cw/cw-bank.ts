@@ -9,7 +9,7 @@ type Connection = {
 }
 
 export async function getBalance (
-  { api, log, address }: Connection, token: string, queriedAddress: Address = address
+  { api, log, address }: Connection, token: string, queriedAddress: Address|undefined = address
 ) {
   api = await Promise.resolve(api)
   if (!queriedAddress) {

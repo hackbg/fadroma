@@ -22,8 +22,8 @@ export async function getStakingParameters (connection: Connection) {
 
 export class PosParams {
   static fromBorsh = binary => new this(Borsher.borshDeserialize(posParamsSchema, binary))
-  maxProposalPeriod: bigint
-  owned:             OwnedPosParams
+  maxProposalPeriod!: bigint
+  owned!:             OwnedPosParams
   constructor (data: Partial<PosParams> = {}) {
     Core.assignCamelCase(this, data, [
       "max_proposal_period",
@@ -242,11 +242,11 @@ const validatorStakeSchema = Schema.Option(Schema.Struct({ stake: Schema.u128 })
 
 export class ValidatorMetaData {
   static fromBorsh = binary => new this(Borsher.borshDeserialize(validatorMetaDataSchema, binary))
-  email:         string
-  description:   string|null
-  website:       string|null
-  discordHandle: string|null
-  avatar:        string|null
+  email!:         string
+  description!:   string|null
+  website!:       string|null
+  discordHandle!: string|null
+  avatar!:        string|null
   constructor (data: Partial<ValidatorMetaData> = {}) {
     if (data) {
       Core.assignCamelCase(this, data, Object.keys(validatorMetaDataSchemaFields))
@@ -268,8 +268,8 @@ const validatorMetaDataSchema = Schema.Option(Schema.Struct(
 
 export class CommissionPair {
   static fromBorsh = binary => new this(Borsher.borshDeserialize(commissionPairSchema, binary))
-  commissionRate:              bigint
-  maxCommissionChangePerEpoch: bigint
+  commissionRate!:              bigint
+  maxCommissionChangePerEpoch!: bigint
   constructor (data: Partial<CommissionPair> = {}) {
     Core.assignCamelCase(this, data, Object.keys(commissionPairSchemaFields))
     decodeU256Fields(this, [
