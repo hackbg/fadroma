@@ -14,9 +14,9 @@ export async function getPGFParameters (connection: Connection) {
 
 export class PGFParameters {
   static fromBorsh = binary => new this(Borsher.borshDeserialize(pgfParametersSchema, binary))
-  stewards:              Set<Address>
-  pgfInflationRate:      bigint
-  stewardsInflationRate: bigint
+  stewards!:              Set<Address>
+  pgfInflationRate!:      bigint
+  stewardsInflationRate!: bigint
   constructor (data: Partial<PGFParameters> = {}) {
     Core.assignCamelCase(this, data, Object.keys(pgfParametersFields))
     decodeU256Fields(this, [

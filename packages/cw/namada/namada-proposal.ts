@@ -17,12 +17,12 @@ export async function getGovernanceParameters (connection: Connection) {
 
 export class GovernanceParameters {
   static fromBorsh = binary => new this(Borsher.borshDeserialize(governanceParametersSchema, binary))
-  minProposalFund:         bigint
-  maxProposalCodeSize:     bigint
-  minProposalVotingPeriod: bigint
-  maxProposalPeriod:       bigint
-  maxProposalContentSize:  bigint
-  minProposalGraceEpochs:  bigint
+  minProposalFund!:         bigint
+  maxProposalCodeSize!:     bigint
+  minProposalVotingPeriod!: bigint
+  maxProposalPeriod!:       bigint
+  maxProposalContentSize!:  bigint
+  minProposalGraceEpochs!:  bigint
   constructor (data: Partial<GovernanceParameters> = {}) {
     Core.assignCamelCase(this, data, Object.keys(governanceParametersFields))
     decodeU256Fields(this, ["minProposalFund"])
@@ -178,17 +178,17 @@ const percent = (a: bigint, b: bigint) =>
 
 export class ProposalResult {
   static fromBorsh = binary => new this(Borsher.borshDeserialize(proposalResultSchema, binary))
-  result:
+  result!:
     | { Passed:   {} }
     | { Rejected: {} }
-  tallyType:
+  tallyType!:
     | { TwoThirds:                  {} }
     | { OneHalfOverOneThird:        {} }
     | { LessOneHalfOverOneThirdNay: {} }
-  totalVotingPower:  bigint
-  totalYayPower:     bigint
-  totalNayPower:     bigint
-  totalAbstainPower: bigint
+  totalVotingPower!:  bigint
+  totalYayPower!:     bigint
+  totalNayPower!:     bigint
+  totalAbstainPower!: bigint
 
   constructor (data: Partial<ProposalResult> = {}) {
     Core.assignCamelCase(this, data, Object.keys(proposalResultFields))

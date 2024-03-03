@@ -154,7 +154,7 @@ export async function execute (
     address!,
     contract.address,
     message,
-    execFee,
+    execFee!,
     execMemo,
     execSend
   )

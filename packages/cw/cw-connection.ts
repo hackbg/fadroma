@@ -79,7 +79,7 @@ export class CWConnection extends Chain.Connection {
   abciQuery (path, params = new Uint8Array()) {
     return this.queryClient.then(async client=>{
       this.log.debug('ABCI query:', path)
-      const { value } = await client.queryAbci(path, params)
+      const { value } = await client!.queryAbci(path, params)
       return value
     })
   }

@@ -3,7 +3,7 @@ import type { Address, Token, Chain } from '@fadroma/agent'
 import { Core } from '@fadroma/agent'
 
 type Connection = {
-  address: Address,
+  address?: Address,
   log: Core.Console
   api: CosmWasmClient|Promise<CosmWasmClient>
 }
