@@ -12,7 +12,7 @@ const Schema = Borsher.BorshSchema
 type Connection = {
   log: Core.Console,
   abciQuery: (path: string, args?: Uint8Array) => Promise<Uint8Array>
-  tendermintClient?: Promise<{ validators, validatorsAll }>
+  tendermintClient: Promise<{ validators, validatorsAll }|undefined>
 };
 
 export async function getStakingParameters (connection: Connection) {
@@ -174,7 +174,7 @@ export class NamadaValidator extends Staking.Validator {
       .log('Validator:      ', Core.bold(this.namadaAddress))
       .log('  Address:      ', Core.bold(this.address))
       .log('  Public key:   ', Core.bold(this.publicKey))
-      .log('  State:        ', Core.bold(Object.keys(this.state)[0]))
+      .log('  State:        ', Core.bold(Object.keys(this.state as object)[0]))
       .log('  Stake:        ', Core.bold(this.stake))
       .log('  Voting power: ', Core.bold(this.votingPower))
       .log('  Priority:     ', Core.bold(this.proposerPriority))
