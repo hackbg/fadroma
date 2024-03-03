@@ -5,7 +5,7 @@ import { Amino, Proto } from '@hackbg/cosmjs-esm'
 type Connection = {
   log: Core.Console,
   abciQuery: (path: string, args?: Uint8Array) => Promise<Uint8Array>
-  tendermintClient: Promise<{ validators, validatorsAll }>
+  tendermintClient?: Promise<{ validators, validatorsAll }>
   bech32Prefix?: string
 }
 
@@ -17,7 +17,7 @@ export async function getValidators <V extends typeof CWValidator> (
     Validator?:  V
   } = {}
 ): Promise<Array<InstanceType<V>>> {
-  const tendermintClient = await connection.tendermintClient
+  const tendermintClient = await connection.tendermintClient!
   let response
   if (pagination && (pagination as Array<number>).length !== 0) {
     if (pagination.length !== 2) {
@@ -35,14 +35,14 @@ export async function getValidators <V extends typeof CWValidator> (
     (a.votingPower < b.votingPower) ?  1 :
     (a.votingPower > b.votingPower) ? -1 : 0
   ))
-  const result = []
+  const result: Array<InstanceType<V>> = []
   for (const { address, pubkey, votingPower, proposerPriority } of validators) {
     const info = new Validator({
       address: Core.base16.encode(address),
       publicKey: pubkey.data,
       votingPower,
       proposerPriority,
-    })
+    }) as InstanceType<V>
     result.push(info)
     if (details) {
       await info.fetchDetails(connection)
