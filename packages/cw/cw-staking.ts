@@ -1,16 +1,10 @@
 import { Core } from '@fadroma/agent'
 import type { Address } from '@fadroma/agent'
 import { Amino, Proto } from '@hackbg/cosmjs-esm'
-
-type Connection = {
-  log: Core.Console,
-  abciQuery: (path: string, args?: Uint8Array) => Promise<Uint8Array>
-  tendermintClient?: Promise<{ validators, validatorsAll }>
-  bech32Prefix?: string
-}
+import type { CWConnection } from './cw-connection'
 
 export async function getValidators <V extends typeof CWValidator> (
-  connection: Connection,
+  connection: CWConnection,
   { pagination, details, Validator = CWValidator as V }: {
     pagination?: [number, number],
     details?:    boolean,
@@ -83,7 +77,7 @@ class CWValidator {
     return Core.base16.encode(Core.SHA256(this.publicKeyBytes).slice(0, 20))
   }
 
-  async fetchDetails (connection: Connection): Promise<this> {
+  async fetchDetails (connection: CWConnection): Promise<this> {
     console.log(this)
     const request = Proto.Cosmos.Staking.v1beta1.Query.QueryValidatorRequest.encode({
       validatorAddr: this.address
