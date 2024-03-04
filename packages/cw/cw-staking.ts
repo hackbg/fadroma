@@ -17,12 +17,12 @@ export async function getValidators <V extends typeof CWValidator> (
     if (pagination.length !== 2) {
       throw new Error("pagination format: [page, per_page]")
     }
-    response = await tendermintClient.validators({
+    response = await tendermintClient!.validators({
       page:     pagination[0],
       per_page: pagination[1],
     })
   } else {
-    response = await tendermintClient.validatorsAll()
+    response = await tendermintClient!.validatorsAll()
   }
   // Sort validators by voting power in descending order.
   const validators = [...response.validators].sort((a,b)=>(
