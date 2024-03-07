@@ -214,3 +214,7 @@ export class ProposalResult extends fromBorshStruct({
     return percent(this.totalAbstainPower, this.turnout)
   }
 }
+
+export class InitProposal extends fromBorshStruct({}) {}
+
+export class VoteProposal extends fromBorshStruct({}) {}

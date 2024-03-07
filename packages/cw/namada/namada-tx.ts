@@ -3,7 +3,30 @@ import * as Borsher from 'borsher'
 import { schemaEnum, enumVariant } from './namada-enum'
 import { addressSchema, decodeAddress } from './namada-address'
 import { u256Schema } from './namada-u256'
-import * as Inner from './namada-tx-inner'
+import { fromBorshStruct } from './namada-struct'
+import {
+  BecomeValidator,
+  Bond,
+  ConsensusKeyChange,
+  CommissionChange,
+  MetaDataChange,
+  ClaimRewards,
+  DeactivateValidator,
+  ReactivateValidator,
+  Redelegation,
+  Unbond,
+  UnjailValidator,
+  Withdraw
+} from './namada-pos'
+import {
+  ResignSteward,
+  UpdateStewardCommission
+} from './namada-pgf'
+import {
+  InitProposal,
+  VoteProposal
+} from './namada-gov'
+
 const Schema = Borsher.BorshSchema
 
 const hashSchema = Schema.Array(Schema.u8, 32)
@@ -602,53 +625,53 @@ export class NamadaDecryptedTransaction extends NamadaTransaction {
     }
     switch (tag) {
       case "tx_become_validator.wasm":
-        return Inner.TXBecomeValidator.fromBorsh(binary)
+        return BecomeValidator.fromBorsh(binary)
       case "tx_bond.wasm":
-        return Inner.TXBond.fromBorsh(binary)
+        return Bond.fromBorsh(binary)
       case "tx_bridge_pool.wasm":
-        return Inner.TXBridgePool.fromBorsh(binary)
+        return BridgePool.fromBorsh(binary)
       case "tx_change_consensus_key.wasm":
-        return Inner.TXChangeConsensusKey.fromBorsh(binary)
+        return ConsensusKeyChange.fromBorsh(binary)
       case "tx_change_validator_commission.wasm":
-        return Inner.TXChangeValidatorCommission.fromBorsh(binary)
+        return CommissionChange.fromBorsh(binary)
       case "tx_change_validator_metadata.wasm":
-        return Inner.TXChangeValidatorMetadata.fromBorsh(binary)
+        return MetaDataChange.fromBorsh(binary)
       case "tx_claim_rewards.wasm":
-        return Inner.TXClaimRewards.fromBorsh(binary)
+        return ClaimRewards.fromBorsh(binary)
       case "tx_deactivate_validator.wasm":
-        return Inner.TXDeactivateValidator.fromBorsh(binary)
+        return DeactivateValidator.fromBorsh(binary)
       case "tx_ibc.wasm":
-        return Inner.TXIBC.fromBorsh(binary)
+        return IBC.fromBorsh(binary)
       case "tx_init_account.wasm":
-        return Inner.TXInitAccount.fromBorsh(binary)
+        return InitAccount.fromBorsh(binary)
       case "tx_init_proposal.wasm":
-        return Inner.TXInitProposal.fromBorsh(binary)
+        return InitProposal.fromBorsh(binary)
       case "tx_reactivate_validator.wasm":
-        return Inner.TXReactivateValidator.fromBorsh(binary)
+        return ReactivateValidator.fromBorsh(binary)
       case "tx_redelegate.wasm":
-        return Inner.TXRedelegate.fromBorsh(binary)
+        return Redelegation.fromBorsh(binary)
       case "tx_resign_steward.wasm":
-        return Inner.TXResignSteward.fromBorsh(binary)
+        return ResignSteward.fromBorsh(binary)
       case "tx_reveal_pk.wasm":
-        return Inner.TXRevealPK.fromBorsh(binary)
+        return RevealPK.fromBorsh(binary)
       case "tx_transfer.wasm":
-        return Inner.TXTransfer.fromBorsh(binary)
+        return Transfer.fromBorsh(binary)
       case "tx_unbond.wasm":
-        return Inner.TXUnbond.fromBorsh(binary)
+        return Unbond.fromBorsh(binary)
       case "tx_unjail_validator.wasm":
-        return Inner.TXUnjailValidator.fromBorsh(binary)
+        return UnjailValidator.fromBorsh(binary)
       case "tx_update_account.wasm":
-        return Inner.TXUpdateAccount.fromBorsh(binary)
+        return UpdateAccount.fromBorsh(binary)
       case "tx_update_steward_commission.wasm":
-        return Inner.TXUpdateStewardCommission.fromBorsh(binary)
+        return UpdateStewardCommission.fromBorsh(binary)
       case "tx_vote_proposal.wasm":
-        return Inner.TXVoteProposal.fromBorsh(binary)
+        return VoteProposal.fromBorsh(binary)
       case "tx_withdraw.wasm":
-        return Inner.TXWithdraw.fromBorsh(binary)
+        return Withdraw.fromBorsh(binary)
       case "vp_implicit.wasm":
-        return Inner.VPImplicit.fromBorsh(binary)
+        return VPImplicit.fromBorsh(binary)
       case "vp_user.wasm":
-        return Inner.VPUser.fromBorsh(binary)
+        return VPUser.fromBorsh(binary)
     }
     throw new Core.Error(`Unsupported inner transaction type: ${tag}`)
   }
@@ -669,3 +692,46 @@ export class NamadaProtocolTransaction extends NamadaTransaction {
     this.txType = 'Protocol'
   }
 }
+
+export class InitAccount extends fromBorshStruct({
+  public_keys:  Schema.Vec(publicKeySchema),
+  vp_code_hash: Schema.Array(Schema.u8, 32),
+  threshold:    Schema.u8,
+}) {
+  publicKeys
+  vpCodeHash
+  threshold
+}
+
+export class UpdateAccount extends fromBorshStruct({
+  addr:         addressSchema,
+  vp_code_hash: Schema.Option(Schema.Array(Schema.u8, 32)),
+  public_keys:  Schema.Vec(publicKeySchema),
+  threshold:    Schema.Option(Schema.u8)
+}) {}
+
+export class RevealPK extends fromBorshStruct({}) {}
+
+export class Transfer extends fromBorshStruct({
+  source:   addressSchema,
+  target:   addressSchema,
+  token:    addressSchema,
+  amount:   denominatedAmountSchema,
+  key:      Schema.Option(Schema.String),
+  shielded: Schema.Option(Schema.Array(Schema.u8, 32))
+}) {
+  source
+  target
+  token
+  amount
+  key
+  shielded
+}
+
+export class VPImplicit extends fromBorshStruct({}) {}
+
+export class VPUser extends fromBorshStruct({}) {}
+
+export class BridgePool extends fromBorshStruct({}) {}
+
+export class IBC extends fromBorshStruct({}) {}

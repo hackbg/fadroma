@@ -34,15 +34,13 @@ export async function getPGFStewards (connection: Connection) {
   throw new Error("not implemented")
 }
 
-class PGFSteward extends fromBorshStruct({}) {
-}
+class PGFSteward extends fromBorshStruct({}) { /*TODO*/ }
 
 export async function getPGFFundings (connection: Connection) {
   throw new Error("not implemented")
 }
 
-class PGFFunding extends fromBorshStruct({}) {
-}
+class PGFFunding extends fromBorshStruct({}) { /*TODO*/ }
 
 export async function isPGFSteward (connection: Connection) {
   throw new Error("not implemented")
@@ -55,6 +53,10 @@ export class UpdateStewardCommission extends fromBorshStruct({
   steward:    Address
   commission: Map<string, bigint>
 }
+
+export class ResignSteward extends fromBorshStruct({
+  steward: addressSchema,
+}) {}
 
 export {
   PGFParameters as Parameters,
