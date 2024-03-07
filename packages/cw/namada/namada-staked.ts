@@ -6,6 +6,7 @@ import type { Address as NamadaAddress } from './namada-address'
 import { u256Schema, decodeU256, decodeU256Fields } from './namada-u256'
 import { schemaEnum } from './namada-enum'
 import type { NamadaConnection } from './namada-connection'
+import { fromBorshStruct } from './namada-struct'
 import * as Staking from '../cw-staking'
 
 const Schema = Borsher.BorshSchema
@@ -13,57 +14,6 @@ const Schema = Borsher.BorshSchema
 export async function getStakingParameters (connection: NamadaConnection) {
   const binary = await connection.abciQuery("/vp/pos/pos_params")
   return PosParams.fromBorsh(binary)
-}
-
-export class PosParams {
-  static fromBorsh = binary => new this(Borsher.borshDeserialize(posParamsSchema, binary))
-  maxProposalPeriod!: bigint
-  owned!:             OwnedPosParams
-  constructor (data: Partial<PosParams> = {}) {
-    Core.assignCamelCase(this, data, [
-      "max_proposal_period",
-      "owned"
-    ])
-    if (!(this.owned instanceof OwnedPosParams)) {
-      this.owned = new OwnedPosParams(this.owned)
-    }
-  }
-}
-
-class OwnedPosParams {
-  maxValidatorSlots!:             bigint
-  pipelineLen!:                   bigint
-  unbondingLen!:                  bigint
-  tmVotesPerToken!:               bigint
-  blockProposerReward!:           bigint
-  blockVoteReward!:               bigint
-  maxInflationRate!:              bigint
-  targetStakedRatio!:             bigint
-  duplicateVoteMinSlashRate!:     bigint
-  lightClientAttackMinSlashRate!: bigint
-  cubicSlashingWindowLength!:     bigint
-  validatorStakeThreshold!:       bigint
-  livenessWindowCheck!:           bigint
-  livenessThreshold!:             bigint
-  rewardsGainP!:                  bigint
-  rewardsGainD!:                  bigint
-  constructor (data: Partial<OwnedPosParams> = {}) {
-    Core.assignCamelCase(this, data, Object.keys(ownedPosParamsFields))
-    decodeU256Fields(this, [
-      "tmVotesPerToken",
-      "blockProposerReward",
-      "blockVoteReward",
-      "maxInflationRate",
-      "targetStakedRatio",
-      "duplicateVoteMinSlashRate",
-      "lightClientAttackMinSlashRate",
-      "validatorStakeThreshold",
-      "livenessWindowCheck",
-      "livenessThreshold",
-      "rewardsGainP",
-      "rewardsGainD",
-    ])
-  }
 }
 
 const ownedPosParamsFields = {
@@ -85,10 +35,55 @@ const ownedPosParamsFields = {
   rewards_gain_d:                     u256Schema,
 }
 
-const posParamsSchema = Schema.Struct({
+export class PosParams extends fromBorshStruct({
   owned: Schema.Struct(ownedPosParamsFields),
   max_proposal_period: Schema.u64,
-})
+}) {
+  maxProposalPeriod!: bigint
+  owned!:             OwnedPosParams
+  constructor (data) {
+    super(data)
+    if (!(this.owned instanceof OwnedPosParams)) {
+      this.owned = new OwnedPosParams(this.owned)
+    }
+  }
+}
+
+class OwnedPosParams extends fromBorshStruct(ownedPosParamsFields) {
+  maxValidatorSlots!:             bigint
+  pipelineLen!:                   bigint
+  unbondingLen!:                  bigint
+  tmVotesPerToken!:               bigint
+  blockProposerReward!:           bigint
+  blockVoteReward!:               bigint
+  maxInflationRate!:              bigint
+  targetStakedRatio!:             bigint
+  duplicateVoteMinSlashRate!:     bigint
+  lightClientAttackMinSlashRate!: bigint
+  cubicSlashingWindowLength!:     bigint
+  validatorStakeThreshold!:       bigint
+  livenessWindowCheck!:           bigint
+  livenessThreshold!:             bigint
+  rewardsGainP!:                  bigint
+  rewardsGainD!:                  bigint
+  constructor (data) {
+    super(data)
+    decodeU256Fields(this, [
+      "tmVotesPerToken",
+      "blockProposerReward",
+      "blockVoteReward",
+      "maxInflationRate",
+      "targetStakedRatio",
+      "duplicateVoteMinSlashRate",
+      "lightClientAttackMinSlashRate",
+      "validatorStakeThreshold",
+      "livenessWindowCheck",
+      "livenessThreshold",
+      "rewardsGainP",
+      "rewardsGainD",
+    ])
+  }
+}
 
 export async function getTotalStaked (connection: NamadaConnection) {
   const binary = await connection.abciQuery("/vp/pos/total_stake")
@@ -146,9 +141,9 @@ export class NamadaValidator extends Staking.Validator {
     }
     const requests = [
       connection.abciQuery(`/vp/pos/validator/metadata/${this.namadaAddress}`)
-        .then(binary => this.metadata   = ValidatorMetaData.fromBorsh(binary)),
+        .then(binary => this.metadata   = ValidatorMetaData.fromBorsh(binary) as ValidatorMetaData),
       connection.abciQuery(`/vp/pos/validator/commission/${this.namadaAddress}`)
-        .then(binary => this.commission = CommissionPair.fromBorsh(binary)),
+        .then(binary => this.commission = CommissionPair.fromBorsh(binary) as CommissionPair),
       connection.abciQuery(`/vp/pos/validator/state/${this.namadaAddress}`)
         .then(binary => this.state      = Borsher.borshDeserialize(stateSchema, binary)),
       connection.abciQuery(`/vp/pos/validator/stake/${this.namadaAddress}`)
@@ -235,51 +230,34 @@ export async function getValidatorStake(connection: NamadaConnection, address: A
 
 const validatorStakeSchema = Schema.Option(Schema.Struct({ stake: Schema.u128 }))
 
-export class ValidatorMetaData {
-  static fromBorsh = binary => new this(Borsher.borshDeserialize(validatorMetaDataSchema, binary))
-  email!:         string
-  description!:   string|null
-  website!:       string|null
-  discordHandle!: string|null
-  avatar!:        string|null
-  constructor (data: Partial<ValidatorMetaData> = {}) {
-    if (data) {
-      Core.assignCamelCase(this, data, Object.keys(validatorMetaDataSchemaFields))
-    }
-  }
-}
-
-const validatorMetaDataSchemaFields = {
+export class ValidatorMetaData extends fromBorshStruct({
   email:          Schema.String,
   description:    Schema.Option(Schema.String),
   website:        Schema.Option(Schema.String),
   discord_handle: Schema.Option(Schema.String),
   avatar:         Schema.Option(Schema.String),
+}) {
+  email!:         string
+  description!:   string|null
+  website!:       string|null
+  discordHandle!: string|null
+  avatar!:        string|null
 }
 
-const validatorMetaDataSchema = Schema.Option(Schema.Struct(
-  validatorMetaDataSchemaFields
-))
-
-export class CommissionPair {
-  static fromBorsh = binary => new this(Borsher.borshDeserialize(commissionPairSchema, binary))
+export class CommissionPair extends fromBorshStruct({
+  commission_rate:                 u256Schema,
+  max_commission_change_per_epoch: u256Schema,
+}) {
   commissionRate!:              bigint
   maxCommissionChangePerEpoch!: bigint
-  constructor (data: Partial<CommissionPair> = {}) {
-    Core.assignCamelCase(this, data, Object.keys(commissionPairSchemaFields))
+  constructor (data) {
+    super(data)
     decodeU256Fields(this, [
       'commissionRate',
       'maxCommissionChangePerEpoch',
     ])
   }
 }
-
-const commissionPairSchemaFields = {
-  commission_rate:                 u256Schema,
-  max_commission_change_per_epoch: u256Schema,
-}
-
-const commissionPairSchema = Schema.Struct(commissionPairSchemaFields)
 
 const stateSchema = Schema.Option(schemaEnum([
   ['Consensus',      Schema.Unit],
@@ -295,3 +273,111 @@ const consensusKeySchema = Schema.Option(schemaEnum([
   ['Ed25519',   Schema.Array(Schema.u8, 32)],
   ['Secp256k1', Schema.Array(Schema.u8, 33)],
 ]))
+
+export class BecomeValidator extends fromBorshStruct({
+  address:                    addressSchema,
+  consensus_key:              PublicKey,
+  eth_cold_key:               PublicKey,
+  eth_hot_key:                PublicKey,
+  protocol_key:               PublicKey,
+  commission_rate:            Dec,
+  max_commission_rate_change: Dec,
+  email:                      Schema.String,
+  description:                Schema.Option(Schema.String),
+  website:                    Schema.Option(Schema.String),
+  discord_handle:             Schema.Option(Schema.String),
+  avatar:                     Schema.Option(Schema.String)
+}) {
+  address
+  consensusKey
+  ethColdKey
+  ethHotKey
+  protocolKey
+  commissionRate
+  maxCommissionRateChange
+  email
+  description
+  website
+  discordHandle
+  avatar
+}
+
+export class Bond extends fromBorshStruct({
+  validator: addressSchema,
+  amount:    Amount,
+  source:    Schema.Option(addressSchema)
+}) {
+  validator: Address
+  amount:    bigint
+  source:    null|Address
+}
+
+export class ClaimRewards extends fromBorshStruct({
+  validator: addressSchema,
+  source:    Schema.Option(addressSchema)
+}) {
+  validator: Address
+  source:    null|Address
+}
+
+export class ConsensusKeyChange extends fromBorshStruct({
+  validator:     addressSchema,
+  consensus_key: publicKeySchema,
+}) {
+  validator:     Address
+  consensusKey:  PublicKey
+}
+
+export class CommissionChange extends fromBorshStruct({
+  validator: addressSchema,
+  new_rate:  Dec
+}) {
+  validator: Address
+  newRate:   bigint
+}
+
+export class MetaDataChange extends fromBorshStruct({
+  validator:       addressSchema,
+  email:           Schema.Option(Schema.String),
+  description:     Schema.Option(Schema.String),
+  website:         Schema.Option(Schema.String),
+  discord_handle:  Schema.Option(Schema.String),
+  avatar:          Schema.Option(Schema.String),
+  commission_rate: Schema.Option(Dec),
+}) {
+  validator:      Address
+  email:          null|string
+  description:    null|string
+  website:        null|string
+  discordHandle:  null|string
+  avatar:         null|string
+  commissionRate: null|string
+}
+
+export class Redelegation extends fromBorshStruct({
+  src_validator:  addressSchema,
+  dest_validator: addressSchema,
+  owner:          addressSchema,
+  amount:         Amount
+}) {
+  srcValidator:   Address
+  destValidator:  Address
+  owner:          Address
+  amount:         bigint
+}
+
+export class Unbond extends fromBorshStruct({}) {}
+
+export class Withdraw extends fromBorshStruct({
+  validator: addressSchema,
+  source:    Schema.Option(addressSchema),
+}) {
+  validator: Address
+  source:    null|Address
+}
+
+export class DeactivateValidator extends fromBorshStruct({}) {}
+
+export class ReactivateValidator extends fromBorshStruct({}) {}
+
+export class UnjailValidator extends fromBorshStruct({}) {}
