@@ -104,7 +104,12 @@ const noteSchema = Schema.Struct({
 })
 
 const merklePathSchema = Schema.Struct({
-  auth_path: Schema.Vec([Node, bool]),
+  auth_path: Schema.Vec(Schema.Struct({
+    _0:      Schema.Struct({
+      repr:  Schema.Array(Schema.u8, 32)
+    }),
+    _1:      Schema.bool
+  })),
   position:  Schema.u64
 })
 
