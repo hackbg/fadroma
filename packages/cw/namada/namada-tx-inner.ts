@@ -63,29 +63,52 @@ export class TXBridgePool {
   static fromBorsh = (binary: Uint8Array) => new this(
     deserialize(txBridgePoolSchema, binary)
   )
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(txBridgePoolFields))
+  }
 }
 
-const txChangeConsensusKeyFields = {}
+const txChangeConsensusKeyFields = {
+  validator:     addressSchema,
+  consensus_key: PublicKey,
+}
 const txChangeConsensusKeySchema = Schema.Struct(txChangeConsensusKeyFields)
 export class TXChangeConsensusKey {
   static fromBorsh = (binary: Uint8Array) => new this(
     deserialize(txChangeConsensusKeySchema, binary)
   )
-  validator
-  consensusKey
+  validator:    Address
+  consensusKey: PublicKey
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(txChangeConsensusKeyFields))
+  }
 }
 
-const txChangeValidatorCommissionFields = {}
+const txChangeValidatorCommissionFields = {
+  validator: addressSchema,
+  newRaw:    Dec
+}
 const txChangeValidatorCommissionSchema = Schema.Struct(txChangeValidatorCommissionFields)
 export class TXChangeValidatorCommission {
   static fromBorsh = (binary: Uint8Array) => new this(
     deserialize(txChangeValidatorCommissionSchema, binary)
   )
-  validator
-  newRate
+  validator: Address
+  newRate:   Dec
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(txChangeValidatorCommissionFields))
+  }
 }
 
-const txChangeValidatorMetadataFields = {}
+const txChangeValidatorMetadataFields = {
+  validator:       Address,
+  email:           Schema.Option(Schema.String),
+  description:     Schema.Option(Schema.String),
+  website:         Schema.Option(Schema.String),
+  discord_handle:  Schema.Option(Schema.String),
+  avatar:          Schema.Option(Schema.String),
+  commission_rate: Schema.Option(Dec),
+}
 const txChangeValidatorMetadataSchema = Schema.Struct(txChangeValidatorMetadataFields)
 export class TXChangeValidatorMetadata {
   static fromBorsh = (binary: Uint8Array) => new this(
@@ -98,9 +121,15 @@ export class TXChangeValidatorMetadata {
   discordHandle
   avatar
   commissionRate
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(txChangeValidatorMetadataFields))
+  }
 }
 
-const txClaimRewardsFields = {}
+const txClaimRewardsFields = {
+  validator: addressSchema,
+  source:    Schema.Option(addressSchema)
+}
 const txClaimRewardsSchema = Schema.Struct(txClaimRewardsFields)
 export class TXClaimRewards {
   static fromBorsh = (binary: Uint8Array) => new this(
@@ -108,6 +137,9 @@ export class TXClaimRewards {
   )
   validator
   source
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(txClaimRewardsFields))
+  }
 }
 
 const txDeactivateValidatorFields = {}
@@ -116,6 +148,9 @@ export class TXDeactivateValidator {
   static fromBorsh = (binary: Uint8Array) => new this(
     deserialize(txDeactivateValidatorSchema, binary)
   )
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(txDeactivateValidatorFields))
+  }
 }
 
 const txIBCFields = {}
@@ -124,6 +159,9 @@ export class TXIBC {
   static fromBorsh = (binary: Uint8Array) => new this(
     deserialize(txIBCSchema, binary)
   )
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(txIBCFields))
+  }
 }
 
 const txInitAccountFields = {}
@@ -132,6 +170,9 @@ export class TXInitAccount {
   static fromBorsh = (binary: Uint8Array) => new this(
     deserialize(txInitAccountSchema, binary)
   )
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(txInitAccountFields))
+  }
 }
 
 const txInitProposalFields = {}
@@ -140,6 +181,9 @@ export class TXInitProposal {
   static fromBorsh = (binary: Uint8Array) => new this(
     deserialize(txInitProposalSchema, binary)
   )
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(txInitProposalFields))
+  }
 }
 
 const txReactivateValidatorFields = {}
@@ -148,6 +192,9 @@ export class TXReactivateValidator {
   static fromBorsh = (binary: Uint8Array) => new this(
     deserialize(txReactivateValidatorSchema, binary)
   )
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(txReactivateValidatorFields))
+  }
 }
 
 const txRedelegateFields = {}
@@ -156,6 +203,9 @@ export class TXRedelegate {
   static fromBorsh = (binary: Uint8Array) => new this(
     deserialize(txRedelegateSchema, binary)
   )
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(txRedelegateFields))
+  }
 }
 
 const txResignStewardFields = {}
@@ -164,6 +214,9 @@ export class TXResignSteward {
   static fromBorsh = (binary: Uint8Array) => new this(
     deserialize(txResignStewardSchema, binary)
   )
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(txResignStewardFields))
+  }
 }
 
 const txRevealPKFields = {}
@@ -172,6 +225,9 @@ export class TXRevealPK {
   static fromBorsh = (binary: Uint8Array) => new this(
     deserialize(txRevealPKSchema, binary)
   )
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(txRevealPKFields))
+  }
 }
 
 const txTransferFields = {}
@@ -180,6 +236,9 @@ export class TXTransfer {
   static fromBorsh = (binary: Uint8Array) => new this(
     deserialize(txTransferSchema, binary)
   )
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(txTransferFields))
+  }
 }
 
 const txUnbondFields = {}
@@ -188,6 +247,9 @@ export class TXUnbond {
   static fromBorsh = (binary: Uint8Array) => new this(
     deserialize(txUnbondSchema, binary)
   )
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(txUnbondFields))
+  }
 }
 
 const txUnjailValidatorFields = {}
@@ -196,6 +258,9 @@ export class TXUnjailValidator {
   static fromBorsh = (binary: Uint8Array) => new this(
     deserialize(txUnjailValidatorSchema, binary)
   )
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(txUnjailValidatorFields))
+  }
 }
 
 const txUpdateAccountFields = {}
@@ -204,6 +269,9 @@ export class TXUpdateAccount {
   static fromBorsh = (binary: Uint8Array) => new this(
     deserialize(txUpdateAccountSchema, binary)
   )
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(txUpdateAccountFields))
+  }
 }
 
 const txUpdateStewardCommissionFields = {}
@@ -212,6 +280,9 @@ export class TXUpdateStewardCommission {
   static fromBorsh = (binary: Uint8Array) => new this(
     deserialize(txUpdateStewardCommissionSchema, binary)
   )
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(txUpdateStewardCommissionFields))
+  }
 }
 
 const txVoteProposalFields = {}
@@ -220,6 +291,9 @@ export class TXVoteProposal {
   static fromBorsh = (binary: Uint8Array) => new this(
     deserialize(txVoteProposalSchema, binary)
   )
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(txVoteProposalFields))
+  }
 }
 
 const txWithdrawFields = {}
@@ -228,6 +302,9 @@ export class TXWithdraw {
   static fromBorsh = (binary: Uint8Array) => new this(
     deserialize(txWithdrawSchema, binary)
   )
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(txWithdrawFields))
+  }
 }
 
 const vpImplicitFields = {}
@@ -236,6 +313,9 @@ export class VPImplicit {
   static fromBorsh = (binary: Uint8Array) => new this(
     deserialize(vpImplicitSchema, binary)
   )
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(vpImplicitFields))
+  }
 }
 
 const vpUserFields = {}
@@ -244,4 +324,7 @@ export class VPUser {
   static fromBorsh = (binary: Uint8Array) => new this(
     deserialize(vpUserSchema, binary)
   )
+  constructor (data) {
+    Core.assignCamelCase(this, data, Object.keys(vpUserFields))
+  }
 }
