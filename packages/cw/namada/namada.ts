@@ -25,6 +25,8 @@ export {
   NamadaProtocolTransaction  as ProtocolTransaction
 }
 
+export * as InnerTransaction from './namada-tx-inner'
+
 export const chainIds = {
   testnet: 'luminara.4d6026bc59ee20d9664d3'
 }

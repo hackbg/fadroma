@@ -1,8 +1,9 @@
+import { Core } from '@fadroma/agent'
 import * as Borsher from 'borsher'
 import { schemaEnum, enumVariant } from './namada-enum'
 import { addressSchema, decodeAddress } from './namada-address'
 import { u256Schema } from './namada-u256'
-import { Core } from '@fadroma/agent'
+import * as Inner from './namada-tx-inner'
 const Schema = Borsher.BorshSchema
 
 const hashSchema = Schema.Array(Schema.u8, 32)
@@ -589,56 +590,67 @@ export class NamadaDecryptedTransaction extends NamadaTransaction {
     if (!tag) {
       throw new Core.Error('Could not find a tagged code section in this transaction.')
     }
+    let binary
+    for (const section of this.sections) {
+      if (section instanceof DataSection) {
+        binary = (section as DataSection).data
+        break
+      }
+    }
+    if (!binary) {
+      throw new Core.Error('Could not find a binary data section in this transaction.')
+    }
     switch (tag) {
       case "tx_become_validator.wasm":
-        break
+        return Inner.TXBecomeValidator.fromBorsh(binary)
       case "tx_bond.wasm":
-        break
+        return Inner.TXBond.fromBorsh(binary)
       case "tx_bridge_pool.wasm":
-        break
+        return Inner.TXBridgePool.fromBorsh(binary)
       case "tx_change_consensus_key.wasm":
-        break
+        return Inner.TXChangeConsensusKey.fromBorsh(binary)
       case "tx_change_validator_commission.wasm":
-        break
+        return Inner.TXChangeValidatorCommission.fromBorsh(binary)
       case "tx_change_validator_metadata.wasm":
-        break
+        return Inner.TXChangeValidatorMetadata.fromBorsh(binary)
       case "tx_claim_rewards.wasm":
-        break
+        return Inner.TXClaimRewards.fromBorsh(binary)
       case "tx_deactivate_validator.wasm":
-        break
+        return Inner.TXDeactivateValidator.fromBorsh(binary)
       case "tx_ibc.wasm":
-        break
+        return Inner.TXIBC.fromBorsh(binary)
       case "tx_init_account.wasm":
-        break
+        return Inner.TXInitAccount.fromBorsh(binary)
       case "tx_init_proposal.wasm":
-        break
+        return Inner.TXInitProposal.fromBorsh(binary)
       case "tx_reactivate_validator.wasm":
-        break
+        return Inner.TXReactivateValidator.fromBorsh(binary)
       case "tx_redelegate.wasm":
-        break
+        return Inner.TXRedelegate.fromBorsh(binary)
       case "tx_resign_steward.wasm":
-        break
+        return Inner.TXResignSteward.fromBorsh(binary)
       case "tx_reveal_pk.wasm":
-        break
+        return Inner.TXRevealPK.fromBorsh(binary)
       case "tx_transfer.wasm":
-        break
+        return Inner.TXTransfer.fromBorsh(binary)
       case "tx_unbond.wasm":
-        break
+        return Inner.TXUnbond.fromBorsh(binary)
       case "tx_unjail_validator.wasm":
-        break
+        return Inner.TXUnjailValidator.fromBorsh(binary)
       case "tx_update_account.wasm":
-        break
+        return Inner.TXUpdateAccount.fromBorsh(binary)
       case "tx_update_steward_commission.wasm":
-        break
+        return Inner.TXUpdateStewardCommission.fromBorsh(binary)
       case "tx_vote_proposal.wasm":
-        break
+        return Inner.TXVoteProposal.fromBorsh(binary)
       case "tx_withdraw.wasm":
-        break
+        return Inner.TXWithdraw.fromBorsh(binary)
       case "vp_implicit.wasm":
-        break
+        return Inner.VPImplicit.fromBorsh(binary)
       case "vp_user.wasm":
-        break
+        return Inner.VPUser.fromBorsh(binary)
     }
+    throw new Core.Error(`Unsupported inner transaction type: ${tag}`)
   }
 }
 
