@@ -84,9 +84,9 @@ export class CWConnection extends Chain.Connection {
     })
   }
 
-  doGetBlockInfo (): Promise<Block> {
+  doGetBlockInfo (height?: number): Promise<Block> {
     return Promise.resolve(this.api)
-      .then(api=>api.getBlock())
+      .then(api=>api.getBlock(height))
   }
 
   doGetHeight () {

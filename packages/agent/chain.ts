@@ -174,11 +174,15 @@ export abstract class Connection extends Endpoint {
     return this.doGetHeight()
   }
 
-  abstract doGetBlockInfo (): Promise<unknown>
+  abstract doGetBlockInfo (block?: number): Promise<unknown>
+
+  getBlock (block?: number): Promise<unknown> {
+    this.log.debug('Querying block info')
+    return this.doGetBlockInfo(block)
+  }
 
   get block (): Promise<unknown> {
-    this.log.debug('Querying block info')
-    return this.doGetBlockInfo()
+    return this.getBlock()
   }
 
   /** Get the code id of a given address. */

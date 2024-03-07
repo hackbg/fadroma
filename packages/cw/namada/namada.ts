@@ -6,6 +6,7 @@ import { CWConnection } from '../cw-connection'
 import { CWBatch } from '../cw-batch'
 import { NamadaConnection } from './namada-connection'
 import { NamadaMnemonicIdentity } from './namada-identity'
+import { NamadaTransaction } from './namada-tx'
 import { decodeAddress } from './namada-address'
 
 /** Namada CLI commands. */
@@ -363,12 +364,49 @@ class NamadaCLI extends CLI {
     }
     process.exit(0)
   })
+
+  index = this.command({
+    name: 'index',
+    info: 'try to decode all transactions from latest block backwards',
+    args: 'RPC_URL'
+  }, async (url: string) => {
+    if (!url) {
+      this.log.error(Core.bold('Pass a RPC URL to query validators.'))
+      process.exit(1)
+    }
+    const connection = new NamadaConnection({ url })
+    let block = await connection.getBlock()
+    this.log
+      .log('Height:', Core.bold(block.header.height))
+      .log('ID:    ', Core.bold(block.id))
+      .log('Time:  ', Core.bold(block.header.time))
+      .br()
+    let height = block.header.height
+    while (height > 0) {
+      height--
+      block = await connection.getBlock(height)
+      this.log
+        .log('Height:', Core.bold(block.header.height))
+        .log('ID:    ', Core.bold(block.id))
+        .log('Time:  ', Core.bold(block.header.time))
+        .log('Transactions:')
+      for (const i in block.txs) {
+        const tx = block.txs[i]
+        this.log
+          .log()
+          .log(JSON.stringify(NamadaTransaction.fromBorsh(tx.slice(3)), null, 2))
+      }
+      this.log.br()
+    }
+    console.log({block})
+  })
 }
 
 export {
   NamadaCLI              as CLI,
   NamadaConnection       as Connection,
-  NamadaMnemonicIdentity as MnemonicIdentity
+  NamadaMnemonicIdentity as MnemonicIdentity,
+  NamadaTransaction      as Transaction
 }
 
 export const chainIds = {
