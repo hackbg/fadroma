@@ -1,6 +1,7 @@
 import type { Address } from '@fadroma/agent'
 import { CWConnection } from '../cw-connection'
 import {
+  getTotalStaked,
   getStakingParameters,
   getValidators,
   getValidatorsConsensus,
@@ -8,18 +9,15 @@ import {
   getValidatorAddresses,
   getValidator,
   getValidatorStake,
-} from './namada-staked'
+} from './namada-pos'
 import {
   getGovernanceParameters,
   getProposalCount,
   getProposalInfo
-} from './namada-proposal'
+} from './namada-gov'
 import {
   getCurrentEpoch
 } from "./namada-epoch";
-import {
-  getTotalStaked
-} from "./namada-staked"
 import {
   getPGFParameters,
   getPGFStewards,
