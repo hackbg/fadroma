@@ -231,13 +231,12 @@ export class VoteProposal extends fromBorshStruct({
   declare id: bigint
   declare vote
   declare voter
-  declare delegations
+  declare delegations: unknown[]
   print (console) {
-    console
-      .log(Core.bold('  Decoded VoteProposal:'))
-      .log('  ID:         ', Core.bold(this.id))
-      .log('  Vote:       ', Core.bold(JSON.stringify(this.vote)))
-      .log('  Voter:      ', Core.bold(JSON.stringify(this.voter)))
-      .log('  Delegations:', Core.bold(JSON.stringify(this.delegations)))
+    console.log(Core.bold('  Decoded VoteProposal:'))
+      .log('    Proposal ID:', Core.bold(this.id))
+      .log('    Vote:       ', Core.bold(JSON.stringify(this.vote)))
+      .log('    Voter:      ', Core.bold(JSON.stringify(this.voter)))
+      .log('    Delegations:', Core.bold(JSON.stringify(this.delegations)))
   }
 }

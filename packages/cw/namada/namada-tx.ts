@@ -737,12 +737,22 @@ export class Transfer extends fromBorshStruct({
   key:      Schema.Option(Schema.String),
   shielded: Schema.Option(Schema.Array(Schema.u8, 32))
 }) {
-  source
-  target
-  token
-  amount
-  key
-  shielded
+  declare source
+  declare target
+  declare token
+  declare amount
+  declare key
+  declare shielded
+  print (console) {
+    console.log(Core.bold('  Decoded Transfer:'))
+      .log('    Source:  ', Core.bold(this.source))
+      .log('    Target:  ', Core.bold(this.target))
+      .log('    Token:   ', Core.bold(this.token))
+      .log('    Amount:  ', Core.bold(this.amount.amount))
+      .log('      Denom: ', Core.bold(this.amount.denom))
+      .log('    Key:     ', Core.bold(this.key))
+      .log('    Shielded:', Core.bold(this.shielded))
+  }
 }
 
 export class VPImplicit extends fromBorshStruct({}) {
@@ -765,6 +775,6 @@ export class BridgePool extends fromBorshStruct({}) {
 
 export class IBC extends fromBorshStruct({}) {
   print (console) {
-    throw new Error('print IBC: not implemented')
+    console.warn('decode and print IBC: not implemented')
   }
 }
