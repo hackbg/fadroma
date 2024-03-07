@@ -363,6 +363,19 @@ class NamadaCLI extends CLI {
     }
     process.exit(0)
   })
+
+
+  bond = this.command({
+    name: 'query-bond',
+    info: 'query bonds of source and validaotrs',
+    args: 'RPC_URL SOURCE VALIDATOR EPOCH'
+  }, async (url: string, source: string, validator: string, epoch: string) => {
+    const connection = new NamadaConnection({ url })
+    const validators = await connection.getBond(source, validator, Number(epoch));
+    this.log.log(validators);
+    process.exit(0)
+  })
+
 }
 
 export {

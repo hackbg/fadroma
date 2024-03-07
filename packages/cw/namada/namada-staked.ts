@@ -235,6 +235,13 @@ export async function getValidatorStake(connection: NamadaConnection, address: A
 
 const validatorStakeSchema = Schema.Option(Schema.Struct({ stake: Schema.u128 }))
 
+export async function getBond(connection: NamadaConnection, source: Address, validator: Address, delta:number) {
+  const bond = await connection.abciQuery(`/vp/pos/bond/${source}/${validator}/${delta}`)
+  return Borsher.borshDeserialize(bondDeltaSchema, bond)
+}
+
+const bondDeltaSchema = Schema.u128;
+
 export class ValidatorMetaData {
   static fromBorsh = binary => new this(Borsher.borshDeserialize(validatorMetaDataSchema, binary))
   email!:         string

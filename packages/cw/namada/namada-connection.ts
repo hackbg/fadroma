@@ -8,6 +8,7 @@ import {
   getValidatorAddresses,
   getValidator,
   getValidatorStake,
+  getBond,
 } from './namada-staked'
 import {
   getGovernanceParameters,
@@ -96,5 +97,8 @@ export class NamadaConnection extends CWConnection {
 
   getValidatorStake(address: Address) {
     return getValidatorStake(this, address)
+  }
+  getBond(source:Address, validator:Address, delta: number) {
+    return getBond(this, source, validator, delta)
   }
 }
