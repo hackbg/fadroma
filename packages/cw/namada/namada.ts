@@ -375,29 +375,29 @@ class NamadaCLI extends CLI {
       process.exit(1)
     }
     const connection = new NamadaConnection({ url })
-    let block = await connection.getBlock()
-    this.log
-      .log('Height:', Core.bold(block.header.height))
-      .log('ID:    ', Core.bold(block.id))
-      .log('Time:  ', Core.bold(block.header.time))
-      .br()
-    let height = block.header.height
-    while (height > 0) {
-      height--
+    let block
+    let height
+    do {
       block = await connection.getBlock(height)
-      this.log
-        .log('Height:', Core.bold(block.header.height))
-        .log('ID:    ', Core.bold(block.id))
-        .log('Time:  ', Core.bold(block.header.time))
-        .log('Transactions:')
+      height = block.header.height
+      this.log.log()
+        .log('Block:', Core.bold(block.header.height))
+        .log('ID:   ', Core.bold(block.id))
+        .log('Time: ', Core.bold(block.header.time))
+        .log()
+        .log(Core.bold('Transactions:'))
       for (const i in block.txs) {
-        const tx = block.txs[i]
-        this.log
-          .log()
-          .log(JSON.stringify(NamadaTransaction.fromBorsh(tx.slice(3)), null, 2))
+        //const tx = 
+        const tx = NamadaTransaction.fromBorsh(block.txs[i].slice(3))
+        this.log()
+        tx.print(this.log)
+        //this.log
+          //.log()
+          //.log(JSON.stringify(tx, null, 2))
       }
       this.log.br()
-    }
+      height--
+    } while (height > 0)
     console.log({block})
   })
 }

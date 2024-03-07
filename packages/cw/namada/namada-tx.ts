@@ -1,8 +1,127 @@
 import * as Borsher from 'borsher'
-import { schemaEnum } from './namada-enum'
+import { schemaEnum, enumVariant } from './namada-enum'
 import { addressSchema } from './namada-address'
 import { u256Schema } from './namada-u256'
+import { Core } from '@fadroma/agent'
 const Schema = Borsher.BorshSchema
+
+export class NamadaTransaction {
+  chainId!:    string
+  expiration!: string|null
+  timestamp!:  string
+  codeHash!:   string
+  dataHash!:   string
+  memoHash!:   string
+  txType!:     'Raw'|'Wrapper'|'Decrypted'|'Protocol'
+  sections!:   object[]
+  constructor (header: object, sections: object[]) {
+    const fields = Object.keys(headerFields).filter(key=>key!=='tx_type')
+    Core.assignCamelCase(this, header, Object.keys(headerFields))
+    for (const field of ['codeHash', 'dataHash', 'memoHash']) {
+      if (this[field] instanceof Uint8Array) {
+        this[field] = Core.base16.encode(this[field])
+      } else if (this[field] instanceof Array) {
+        this[field] = Core.base16.encode(new Uint8Array(this[field]))
+      }
+    }
+    this.sections = sections
+  }
+  static fromBorsh = (binary: Uint8Array) => {
+    const { header: { tx_type, ...header }, sections } =
+      Borsher.borshDeserialize(txSchema, binary) as any
+    const [txType, details] = enumVariant(tx_type)
+    switch (txType) {
+      case 'Raw':
+        return new NamadaRawTransaction(header, details, sections)
+      case 'Wrapper':
+        return new NamadaWrapperTransaction(header, details, sections)
+      case 'Decrypted':
+        return new NamadaDecryptedTransaction(header, details, sections)
+      case 'Protocol':
+        return new NamadaProtocolTransaction(header, details, sections)
+    }
+    throw new Error(
+      `Unknown transaction variant "${String(txType)}". Valid are: Raw|Wrapper|Decrypted|Protocol`
+    )
+  }
+  print (console = new Core.Console()) {
+    console
+      .log('TX type:   ', Core.bold(this.txType))
+      .log('Chain ID:  ', Core.bold(this.chainId))
+      .log('Timestamp: ', Core.bold(this.timestamp))
+      .log('Expiration:', Core.bold(this.expiration))
+      .log('Code hash: ', Core.bold(this.codeHash))
+      .log('Data hash: ', Core.bold(this.dataHash))
+      .log('Memo hash: ', Core.bold(this.memoHash))
+      .log('Sections:  ', this.sections)
+  }
+}
+
+export class NamadaRawTransaction extends NamadaTransaction {
+  txType = 'Raw' as 'Raw'
+  constructor (header: object, details: object, sections: object[]) {
+    super(header, sections)
+    this.txType = 'Raw'
+  }
+}
+
+export class NamadaWrapperTransaction extends NamadaTransaction {
+  txType = 'Wrapper' as 'Wrapper'
+  fee:                 {
+    token:             string
+    amountPerGasUnit:  {
+      amount:          bigint,
+      denomination:    number
+    },
+  }
+  pk:                  string
+  epoch:               bigint
+  gasLimit:            bigint
+  unshieldSectionHash: string|null
+  constructor (header: object, details: object, sections: object[]) {
+    super(header, sections)
+    Core.assignCamelCase(this, details, Object.keys(wrapperTransactionFields))
+    this.txType = 'Wrapper'
+  }
+}
+
+export class NamadaDecryptedTransaction extends NamadaTransaction {
+  txType = 'Decrypted' as 'Decrypted'
+  undecryptable: boolean
+  constructor (header: object, details: object, sections: object[]) {
+    super(header, sections)
+    this.txType = 'Decrypted'
+    const [variant, _] = enumVariant(details)
+    switch (variant) {
+      case 'Decrypted':
+        this.undecryptable = false
+        break
+      case 'Undecryptable':
+        this.undecryptable = true
+        break
+      default:
+        throw new Error(
+          `Invalid decrypted transaction details. Allowed: {"Decrypted":{}}|{"Undecryptable":{}}`
+        )
+    }
+  }
+}
+
+export class NamadaProtocolTransaction extends NamadaTransaction {
+  txType = 'Protocol' as 'Protocol'
+  pk: string
+  tx: |'EthereumEvents'
+      |'BridgePool'
+      |'ValidatorSetUpdate'
+      |'EthEventsVext'
+      |'BridgePoolVext'
+      |'ValSetUpdateVext'
+  constructor (header: object, details: object, sections: object[]) {
+    super(header, sections)
+    Core.assignCamelCase(this, details, Object.keys(protocolTransactionFields))
+    this.txType = 'Protocol'
+  }
+}
 
 const hashSchema = Schema.Array(Schema.u8, 32)
 
@@ -11,7 +130,33 @@ const publicKeySchema = schemaEnum([
   ['Secp256k1', Schema.Array(Schema.u8, 33)],
 ])
 
-const headerSchema = Schema.Struct({
+const wrapperTransactionFields = {
+  fee:                     Schema.Struct({
+    amount_per_gas_unit:   Schema.Struct({
+      amount:              u256Schema,
+      denomination:        Schema.u8,
+    }),
+    token:                 addressSchema,
+  }),
+  pk:                      publicKeySchema,
+  epoch:                   Schema.u64,
+  gas_limit:               Schema.u64,
+  unshield_section_hash:   Schema.Option(hashSchema),
+}
+
+const protocolTransactionFields = {
+  pk:                      publicKeySchema,
+  tx:                      schemaEnum([
+    ['EthereumEvents',     Schema.Unit],
+    ['BridgePool',         Schema.Unit],
+    ['ValidatorSetUpdate', Schema.Unit],
+    ['EthEventsVext',      Schema.Unit],
+    ['BridgePoolVext',     Schema.Unit],
+    ['ValSetUpdateVext',   Schema.Unit],
+  ]),
+}
+
+const headerFields = {
   chain_id:                    Schema.String,
   expiration:                  Schema.Option(Schema.String),
   timestamp:                   Schema.String,
@@ -20,36 +165,16 @@ const headerSchema = Schema.Struct({
   memo_hash:                   hashSchema,
   tx_type:                     schemaEnum([
     ['Raw',                    Schema.Unit],
-    ['Wrapper',                Schema.Struct({
-      fee:                     Schema.Struct({
-        amount_per_gas_unit:   Schema.Struct({
-          amount:              u256Schema,
-          denomination:        Schema.u8,
-        }),
-        token:                 addressSchema,
-      }),
-      pk:                      publicKeySchema,
-      epoch:                   Schema.u64,
-      gas_limit:               Schema.u64,
-      unshield_section_hash:   Schema.Option(hashSchema),
-    })],
+    ['Wrapper',                Schema.Struct(wrapperTransactionFields)],
     ['Decrypted',              schemaEnum([
       ['Decrypted',            Schema.Unit],
       ['Undecryptable',        Schema.Unit],
     ])],
-    ['Protocol',               Schema.Struct({
-      pk:                      publicKeySchema,
-      tx:                      schemaEnum([
-        ['EthereumEvents',     Schema.Unit],
-        ['BridgePool',         Schema.Unit],
-        ['ValidatorSetUpdate', Schema.Unit],
-        ['EthEventsVext',      Schema.Unit],
-        ['BridgePoolVext',     Schema.Unit],
-        ['ValSetUpdateVext',   Schema.Unit],
-      ]),
-    })],
+    ['Protocol',               Schema.Struct(protocolTransactionFields)],
   ])
-})
+}
+
+const headerSchema = Schema.Struct(headerFields)
 
 const codeSchema = Schema.Struct({
   salt:      Schema.Array(Schema.u8, 8),
@@ -232,13 +357,3 @@ const txSchema = Schema.Struct({
     ['Header',                  headerSchema]
   ]))
 })
-
-export class NamadaTransaction {
-  static fromBorsh = (binary: Uint8Array) => new this(Borsher.borshDeserialize(txSchema, binary))
-  header
-  sections
-  constructor (data: Partial<NamadaTransaction> = {}) {
-    console.log(data.header)
-    console.log(data.sections)
-  }
-}
