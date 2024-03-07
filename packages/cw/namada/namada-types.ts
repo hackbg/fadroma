@@ -16,7 +16,7 @@ export function fromBorshStruct (fields) {
         Core.assignCamelCase(this, data, Object.keys(fields))
       }
     }
-    print (console) {
+    print (console: Core.Console) {
       throw new Core.Error(`print ${this.constructor.name}: not implemented`)
     }
   }

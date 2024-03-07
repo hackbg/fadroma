@@ -141,14 +141,16 @@ export class Vote {
   }
 }
 
+const voteValueSchema = schemaEnum([
+  ['Yay',     Schema.Unit],
+  ['Nay',     Schema.Unit],
+  ['Abstain', Schema.Unit],
+])
+
 const voteSchema = Schema.Struct({
   validator: addressSchema,
   delegator: addressSchema,
-  data:      Schema.Enum({
-    Yay:     Schema.Unit,
-    Nay:     Schema.Unit,
-    Abstain: Schema.Unit
-  }),
+  data:      voteValueSchema,
 })
 
 const proposalStatusSchema = Schema.Enum({
@@ -220,8 +222,22 @@ export class InitProposal extends fromBorshStruct({}) {
   }
 }
 
-export class VoteProposal extends fromBorshStruct({}) {
+export class VoteProposal extends fromBorshStruct({
+  id:          Schema.u64,
+  vote:        voteValueSchema,
+  voter:       addressSchema,
+  delegations: Schema.Vec(addressSchema)
+}) {
+  declare id: bigint
+  declare vote
+  declare voter
+  declare delegations
   print (console) {
-    throw new Error('print VoteProposal: not implemented')
+    console
+      .log(Core.bold('  Decoded VoteProposal:'))
+      .log('  ID:         ', Core.bold(this.id))
+      .log('  Vote:       ', Core.bold(JSON.stringify(this.vote)))
+      .log('  Voter:      ', Core.bold(JSON.stringify(this.voter)))
+      .log('  Delegations:', Core.bold(JSON.stringify(this.delegations)))
   }
 }

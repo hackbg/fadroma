@@ -428,6 +428,7 @@ class NamadaCLI extends CLI {
         this.log()
         tx.print(this.log)
         if (tx instanceof NamadaDecryptedTransaction) {
+          this.log.log()
           tx.decodeInner().print(this.log)
         }
         //this.log
