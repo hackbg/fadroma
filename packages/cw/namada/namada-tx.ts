@@ -71,7 +71,7 @@ export class NamadaTransaction {
       case 'Protocol':
         return new NamadaProtocolTransaction(header, details, sections)
     }
-    throw new Error(
+    throw new Core.Error(
       `Unknown transaction variant "${String(txType)}". Valid are: Raw|Wrapper|Decrypted|Protocol`
     )
   }
@@ -570,9 +570,74 @@ export class NamadaDecryptedTransaction extends NamadaTransaction {
         this.undecryptable = true
         break
       default:
-        throw new Error(
+        throw new Core.Error(
           `Invalid decrypted transaction details. Allowed: {"Decrypted":{}}|{"Undecryptable":{}}`
         )
+    }
+  }
+  decodeInner () {
+    if (this.undecryptable) {
+      throw new Core.Error('This transaction is marked as undecryptable.')
+    }
+    let tag
+    for (const section of this.sections) {
+      if (section instanceof CodeSection) {
+        tag = (section as CodeSection).tag
+        break
+      }
+    }
+    if (!tag) {
+      throw new Core.Error('Could not find a tagged code section in this transaction.')
+    }
+    switch (tag) {
+      case "tx_become_validator.wasm":
+        break
+      case "tx_bond.wasm":
+        break
+      case "tx_bridge_pool.wasm":
+        break
+      case "tx_change_consensus_key.wasm":
+        break
+      case "tx_change_validator_commission.wasm":
+        break
+      case "tx_change_validator_metadata.wasm":
+        break
+      case "tx_claim_rewards.wasm":
+        break
+      case "tx_deactivate_validator.wasm":
+        break
+      case "tx_ibc.wasm":
+        break
+      case "tx_init_account.wasm":
+        break
+      case "tx_init_proposal.wasm":
+        break
+      case "tx_reactivate_validator.wasm":
+        break
+      case "tx_redelegate.wasm":
+        break
+      case "tx_resign_steward.wasm":
+        break
+      case "tx_reveal_pk.wasm":
+        break
+      case "tx_transfer.wasm":
+        break
+      case "tx_unbond.wasm":
+        break
+      case "tx_unjail_validator.wasm":
+        break
+      case "tx_update_account.wasm":
+        break
+      case "tx_update_steward_commission.wasm":
+        break
+      case "tx_vote_proposal.wasm":
+        break
+      case "tx_withdraw.wasm":
+        break
+      case "vp_implicit.wasm":
+        break
+      case "vp_user.wasm":
+        break
     }
   }
 }

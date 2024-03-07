@@ -6,8 +6,45 @@ import { CWConnection } from '../cw-connection'
 import { CWBatch } from '../cw-batch'
 import { NamadaConnection } from './namada-connection'
 import { NamadaMnemonicIdentity } from './namada-identity'
-import { NamadaTransaction } from './namada-tx'
-import { decodeAddress } from './namada-address'
+import {
+  NamadaTransaction,
+  NamadaRawTransaction,
+  NamadaWrapperTransaction,
+  NamadaDecryptedTransaction,
+  NamadaProtocolTransaction
+} from './namada-tx'
+
+export {
+  NamadaCLI                  as CLI,
+  NamadaConnection           as Connection,
+  NamadaMnemonicIdentity     as MnemonicIdentity,
+  NamadaTransaction          as Transaction,
+  NamadaRawTransaction       as RawTransaction,
+  NamadaWrapperTransaction   as WrapperTransaction,
+  NamadaDecryptedTransaction as DecryptedTransaction,
+  NamadaProtocolTransaction  as ProtocolTransaction
+}
+
+export const chainIds = {
+  testnet: 'luminara.4d6026bc59ee20d9664d3'
+}
+
+export const testnets = new Set([
+  'https://rpc.luminara.icu'
+])
+
+export const faucets = {
+  'luminara.4d6026bc59ee20d9664d3': new Set([
+    'https://faucet.luminara.icu/'
+  ])
+}
+
+/** Connect to Namada in testnet mode. */
+export const testnet = (options: Partial<NamadaConnection> = {}): NamadaConnection => {
+  return new NamadaConnection({
+    chainId: chainIds.testnet, url: Core.pickRandom(testnets), ...options||{}
+  })
+}
 
 /** Namada CLI commands. */
 class NamadaCLI extends CLI {
@@ -390,6 +427,9 @@ class NamadaCLI extends CLI {
         const tx = NamadaTransaction.fromBorsh(block.txs[i].slice(3))
         this.log()
         tx.print(this.log)
+        if (tx instanceof NamadaDecryptedTransaction) {
+          tx.decodeInner().print(this.log)
+        }
         //this.log
           //.log()
           //.log(JSON.stringify(tx, null, 2))
@@ -398,33 +438,5 @@ class NamadaCLI extends CLI {
       height--
     } while (height > 0)
     console.log({block})
-  })
-}
-
-export {
-  NamadaCLI              as CLI,
-  NamadaConnection       as Connection,
-  NamadaMnemonicIdentity as MnemonicIdentity,
-  NamadaTransaction      as Transaction
-}
-
-export const chainIds = {
-  testnet: 'luminara.4d6026bc59ee20d9664d3'
-}
-
-export const testnets = new Set([
-  'https://rpc.luminara.icu'
-])
-
-export const faucets = {
-  'luminara.4d6026bc59ee20d9664d3': new Set([
-    'https://faucet.luminara.icu/'
-  ])
-}
-
-/** Connect to Namada in testnet mode. */
-export const testnet = (options: Partial<NamadaConnection> = {}): NamadaConnection => {
-  return new NamadaConnection({
-    chainId: chainIds.testnet, url: Core.pickRandom(testnets), ...options||{}
   })
 }
