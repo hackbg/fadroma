@@ -317,8 +317,8 @@ const ciphertextSectionFields = {
 
 export class MaspTxSection extends Section {
   txid:              string
-  version:           'MASPv5'
-  consensusBranchId: 'MASP'
+  version:           bigint
+  consensusBranchId: bigint
   lockTime:          bigint
   expiryHeight:      bigint
   transparentBundle: null|{}
@@ -352,28 +352,57 @@ const txOutSchema = Schema.Struct({
   address:    Schema.Array(Schema.u8, 20)
 })
 
-const bundleSchema = Schema.Struct({
-  vin:               Schema.Vec(Schema.Struct({
-    asset_type:      assetTypeSchema,
-    value:           Schema.u64,
-    address:         Schema.Array(Schema.u8, 20),
-    transparent_sig: Schema.Unit,
-  })),
-  vout:              Schema.Vec(txOutSchema),
-  authorization:     Schema.Unit
+const extendedPointSchema = Schema.Struct({
+  u:  Schema.Array(Schema.u64, 4),
+  v:  Schema.Array(Schema.u64, 4),
+  z:  Schema.Array(Schema.u64, 4),
+  t1: Schema.Array(Schema.u64, 4),
+  t2: Schema.Array(Schema.u64, 4),
 })
 
 const maspTxSectionDataFields = {
-  version:             schemaEnum([
-    ['MASPv5',         Schema.Unit]
-  ]),
-  consensus_branch_id: schemaEnum([
-    ['MASP',           Schema.Unit]
-  ]),
+  version:             Schema.Array(Schema.u32, 2),
+  consensus_branch_id: Schema.u32,
   lock_time:           Schema.u32,
   expiry_height:       Schema.u32,
-  transparent_bundle:  Schema.Option(bundleSchema),
-  sapling_bundle:      Schema.Option(bundleSchema),
+  transparent_bundle:  Schema.Option(Schema.Struct({
+    vin:               Schema.Vec(Schema.Struct({
+      asset_type:      assetTypeSchema,
+      value:           Schema.u64,
+      address:         Schema.Array(Schema.u8, 20),
+      transparent_sig: Schema.Unit,
+    })),
+    vout:              Schema.Vec(txOutSchema),
+    authorization:     Schema.Unit
+  })),
+  sapling_bundle:      Schema.Option(Schema.Struct({
+    shielded_spends:   Schema.Vec(Schema.Struct({
+      cv:              extendedPointSchema,
+      anchor:          Schema.Array(Schema.u64, 4),
+      nullifier:       Schema.Array(Schema.u8, 32),
+      rk:              extendedPointSchema,
+      zkproof:         Schema.Array(Schema.u8, 192),
+      spend_auth_sig:  Schema.Struct({
+        rbar:          Schema.Array(Schema.u8, 32),
+        sbar:          Schema.Array(Schema.u8, 32),
+      }),
+    })),
+    shielded_converts: Schema.Vec(Schema.Struct({
+      cv:              extendedPointSchema,
+      anchor:          Schema.Array(Schema.u64, 4),
+      zkproof:         Schema.Array(Schema.u8, 192)
+    })),
+    shielded_outputs:  Schema.Vec(Schema.Struct({
+      cv:              extendedPointSchema,
+      cmu:             Schema.Array(Schema.u64, 4),
+      ephemeral_key:   Schema.Array(Schema.u8, 32),
+      enc_ciphertext:  Schema.Array(Schema.u8, 612),
+      out_ciphertext:  Schema.Array(Schema.u8, 80),
+      zkproof:         Schema.Array(Schema.u8, 192)
+    })),
+    value_balance:     Schema.i128,
+    authorization:     Schema.Unit,
+  })),
 }
 
 const maspTxSectionFields = {
@@ -415,14 +444,6 @@ export class MaspBuilderSection extends Section {
       .log('    Builder:    ', this.builder)
   }
 }
-
-const extendedPointSchema = Schema.Struct({
-  u:  Schema.Array(Schema.u64, 4),
-  v:  Schema.Array(Schema.u64, 4),
-  z:  Schema.Array(Schema.u64, 4),
-  t1: Schema.Array(Schema.u64, 4),
-  t2: Schema.Array(Schema.u64, 4),
-})
 
 const noteSchema = Schema.Struct({
   asset_type:   Schema.Struct({
