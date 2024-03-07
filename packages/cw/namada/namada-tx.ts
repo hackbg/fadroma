@@ -112,7 +112,7 @@ export class NamadaTransaction {
   sections!:   Section[]
   constructor (header: object, sections: object[]) {
     const fields = Object.keys(headerFields).filter(key=>key!=='tx_type')
-    Core.assignCamelCase(this, header, Object.keys(headerFields))
+    Core.assignCamelCase(this, header, fields)
     for (const field of ['codeHash', 'dataHash', 'memoHash']) {
       if (this[field] instanceof Uint8Array) {
         this[field] = Core.base16.encode(this[field])
@@ -123,15 +123,17 @@ export class NamadaTransaction {
     this.sections = sections.map(section=>Section.fromDecoded(section))
   }
   print (console = new Core.Console()) {
-    console
-      .log('-', Core.bold(`${this.txType} transaction:`))
+    console.log('-', Core.bold(`${this.txType} transaction:`))
       .log('  Chain ID:  ', Core.bold(this.chainId))
       .log('  Timestamp: ', Core.bold(this.timestamp))
       .log('  Expiration:', Core.bold(this.expiration))
       .log('  Code hash: ', Core.bold(this.codeHash))
       .log('  Data hash: ', Core.bold(this.dataHash))
       .log('  Memo hash: ', Core.bold(this.memoHash))
-      .log(Core.bold('  Sections:  '))
+      .log('  Sections:  ', Core.bold(this.sections?.length))
+  }
+  printSections (console = new Core.Console()) {
+    console.log(Core.bold('  Sections:  '))
     for (const section of this.sections) {
       console.log()
       section.print(console)
@@ -326,7 +328,7 @@ export class MaspTxSection extends Section {
   constructor ({ txid, data }) {
     super()
     this.txid = txid
-    Core.assignCamelCase(this, data, Object.keys(maspTxSectionDataFields))
+    Core.assignCamelCase(this, data, Object.keys(transactionDataFields))
   }
   print (console) {
     console
@@ -343,10 +345,9 @@ export class MaspTxSection extends Section {
 
 const assetTypeSchema = Schema.Struct({
   identifier: Schema.Array(Schema.u8, 32),
-  nonce:      Schema.Option(Schema.u8)
 })
 
-const txOutSchema = Schema.Struct({
+const transferTxSchema = Schema.Struct({
   asset_type: assetTypeSchema,
   value:      Schema.u64,
   address:    Schema.Array(Schema.u8, 20)
@@ -360,55 +361,46 @@ const extendedPointSchema = Schema.Struct({
   t2: Schema.Array(Schema.u64, 4),
 })
 
-const maspTxSectionDataFields = {
+const transactionDataFields = {
   version:             Schema.Array(Schema.u32, 2),
   consensus_branch_id: Schema.u32,
   lock_time:           Schema.u32,
   expiry_height:       Schema.u32,
-  transparent_bundle:  Schema.Option(Schema.Struct({
-    vin:               Schema.Vec(Schema.Struct({
-      asset_type:      assetTypeSchema,
-      value:           Schema.u64,
-      address:         Schema.Array(Schema.u8, 20),
-      transparent_sig: Schema.Unit,
-    })),
-    vout:              Schema.Vec(txOutSchema),
-    authorization:     Schema.Unit
-  })),
-  sapling_bundle:      Schema.Option(Schema.Struct({
-    shielded_spends:   Schema.Vec(Schema.Struct({
-      cv:              extendedPointSchema,
-      anchor:          Schema.Array(Schema.u64, 4),
-      nullifier:       Schema.Array(Schema.u8, 32),
-      rk:              extendedPointSchema,
-      zkproof:         Schema.Array(Schema.u8, 192),
-      spend_auth_sig:  Schema.Struct({
-        rbar:          Schema.Array(Schema.u8, 32),
-        sbar:          Schema.Array(Schema.u8, 32),
-      }),
-    })),
-    shielded_converts: Schema.Vec(Schema.Struct({
-      cv:              extendedPointSchema,
-      anchor:          Schema.Array(Schema.u64, 4),
-      zkproof:         Schema.Array(Schema.u8, 192)
-    })),
-    shielded_outputs:  Schema.Vec(Schema.Struct({
-      cv:              extendedPointSchema,
-      cmu:             Schema.Array(Schema.u64, 4),
-      ephemeral_key:   Schema.Array(Schema.u8, 32),
-      enc_ciphertext:  Schema.Array(Schema.u8, 612),
-      out_ciphertext:  Schema.Array(Schema.u8, 80),
-      zkproof:         Schema.Array(Schema.u8, 192)
-    })),
-    value_balance:     Schema.i128,
-    authorization:     Schema.Unit,
-  })),
+  transparent_vin:     Schema.Option(Schema.Vec(transferTxSchema)),
+  transparent_vout:    Schema.Option(Schema.Vec(transferTxSchema)),
+  //shielded_spends:     Schema.Option(Schema.Vec(Schema.Struct({
+    //cv:                extendedPointSchema,
+    //anchor:            Schema.Array(Schema.u64, 4),
+    //nullifier:         Schema.Array(Schema.u8, 32),
+    //rk:                extendedPointSchema,
+    //zkproof:           Schema.Array(Schema.u8, 192),
+    //spend_auth_sig:    Schema.Struct({
+      //rbar:            Schema.Array(Schema.u8, 32),
+      //sbar:            Schema.Array(Schema.u8, 32),
+    //}),
+  //}))),
+  //shielded_converts:   Schema.Option(Schema.Vec(Schema.Struct({
+    //cv:                extendedPointSchema,
+    //anchor:            Schema.Array(Schema.u64, 4),
+    //zkproof:           Schema.Array(Schema.u8, 192)
+  //}))),
+  //shielded_outputs:    Schema.Option(Schema.Vec(Schema.Struct({
+    //cv:                extendedPointSchema,
+    //cmu:               Schema.Array(Schema.u64, 4),
+    //ephemeral_key:     Schema.Array(Schema.u8, 32),
+    //enc_ciphertext:    Schema.Array(Schema.u8, 612),
+    //out_ciphertext:    Schema.Array(Schema.u8, 80),
+    //zkproof:           Schema.Array(Schema.u8, 192)
+  //}))),
+  //value_balance:       Schema.Option(Schema.i128),
+  //spend_anchor:        Schema.Option(Schema.Array(Schema.u64, 4)),
+  //convert_anchor:      Schema.Option(Schema.Array(Schema.u64, 4)),
 }
 
-const maspTxSectionFields = {
+const maspTxSectionFields = transactionDataFields /*{
   txid: Schema.Array(Schema.u8, 32),
-  data: Schema.Struct(maspTxSectionDataFields),
-}
+  data: Schema.Struct(transactionDataFields),
+}*/
 
 export class MaspBuilderSection extends Section {
   hash:                 string
@@ -493,9 +485,9 @@ const maspBuilderSectionFields = {
     expiry_height:          Schema.u32,
     transparent_builder:    Schema.Struct({
       inputs:               Schema.Vec(Schema.Struct({
-        coin:               txOutSchema
+        coin:               transferTxSchema
       })),
-      vout:                 Schema.Vec(txOutSchema)
+      vout:                 Schema.Vec(transferTxSchema)
     }),
     sapling_builder:        Schema.Struct({
       params:               Schema.Unit,

@@ -424,7 +424,10 @@ class NamadaCLI extends CLI {
         .log(Core.bold('Transactions:'))
       for (const i in block.txs) {
         //const tx = 
-        const tx = NamadaTransaction.fromBorsh(block.txs[i].slice(3))
+        console.log(block.txs[i])
+        const binary = block.txs[i].slice(3)
+        console.log(Core.brailleDump(binary))
+        const tx = NamadaTransaction.fromBorsh(binary)
         this.log()
         tx.print(this.log)
         if (tx instanceof NamadaDecryptedTransaction) {
