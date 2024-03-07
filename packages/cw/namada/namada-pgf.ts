@@ -1,10 +1,16 @@
-import type { Address } from './namada-address'
-import { addressSchema } from './namada-address'
-import { u256Schema, decodeU256Fields } from './namada-u256'
 import { Core } from '@fadroma/agent'
 import * as Borsher from 'borsher'
-import { fromBorshStruct } from './namada-struct'
-const Schema = Borsher.BorshSchema
+import type { Address } from './namada-address'
+import { addressSchema } from './namada-address'
+import {
+  Schema,
+  fromBorshStruct,
+  schemaEnum,
+  enumVariant,
+  u256Schema,
+  i256Schema,
+  decodeU256Fields
+} from './namada-types'
 
 type Connection = { abciQuery: (path: string)=>Promise<Uint8Array> }
 
@@ -48,7 +54,7 @@ export async function isPGFSteward (connection: Connection) {
 
 export class UpdateStewardCommission extends fromBorshStruct({
   steward:    addressSchema,
-  commission: Schema.HashMap(addressSchema, Dec)
+  commission: Schema.HashMap(addressSchema, i256Schema)
 }) {
   steward:    Address
   commission: Map<string, bigint>

@@ -1,9 +1,14 @@
 import { Core } from '@fadroma/agent'
 import * as Borsher from 'borsher'
-import { schemaEnum, enumVariant } from './namada-enum'
+import {
+  Schema,
+  fromBorshStruct,
+  schemaEnum,
+  enumVariant,
+  u256Schema,
+  i256Schema
+} from './namada-types'
 import { addressSchema, decodeAddress } from './namada-address'
-import { u256Schema } from './namada-u256'
-import { fromBorshStruct } from './namada-struct'
 import {
   BecomeValidator,
   Bond,
@@ -26,8 +31,6 @@ import {
   InitProposal,
   VoteProposal
 } from './namada-gov'
-
-const Schema = Borsher.BorshSchema
 
 const hashSchema = Schema.Array(Schema.u8, 32)
 
@@ -701,6 +704,9 @@ export class InitAccount extends fromBorshStruct({
   publicKeys
   vpCodeHash
   threshold
+  print (console) {
+    throw new Error('print InitAccount: not implemented')
+  }
 }
 
 export class UpdateAccount extends fromBorshStruct({
@@ -708,15 +714,26 @@ export class UpdateAccount extends fromBorshStruct({
   vp_code_hash: Schema.Option(Schema.Array(Schema.u8, 32)),
   public_keys:  Schema.Vec(publicKeySchema),
   threshold:    Schema.Option(Schema.u8)
-}) {}
+}) {
+  print (console) {
+    throw new Error('print UpdateAccount: not implemented')
+  }
+}
 
-export class RevealPK extends fromBorshStruct({}) {}
+export class RevealPK extends fromBorshStruct({}) {
+  print (console) {
+    throw new Error('print RevealPK: not implemented')
+  }
+}
 
 export class Transfer extends fromBorshStruct({
   source:   addressSchema,
   target:   addressSchema,
   token:    addressSchema,
-  amount:   denominatedAmountSchema,
+  amount:   Schema.Struct({
+    amount: i256Schema,
+    denom:  Schema.u8
+  }),
   key:      Schema.Option(Schema.String),
   shielded: Schema.Option(Schema.Array(Schema.u8, 32))
 }) {
@@ -728,10 +745,26 @@ export class Transfer extends fromBorshStruct({
   shielded
 }
 
-export class VPImplicit extends fromBorshStruct({}) {}
+export class VPImplicit extends fromBorshStruct({}) {
+  print (console) {
+    throw new Error('print VPImplicit: not implemented')
+  }
+}
 
-export class VPUser extends fromBorshStruct({}) {}
+export class VPUser extends fromBorshStruct({}) {
+  print (console) {
+    throw new Error('print VPUser: not implemented')
+  }
+}
 
-export class BridgePool extends fromBorshStruct({}) {}
+export class BridgePool extends fromBorshStruct({}) {
+  print (console) {
+    throw new Error('print BridgePool: not implemented')
+  }
+}
 
-export class IBC extends fromBorshStruct({}) {}
+export class IBC extends fromBorshStruct({}) {
+  print (console) {
+    throw new Error('print IBC: not implemented')
+  }
+}

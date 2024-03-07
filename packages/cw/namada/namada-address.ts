@@ -1,8 +1,6 @@
 import { Core } from '@fadroma/agent'
 import * as Borsher from 'borsher'
-import { schemaEnum } from './namada-enum'
-
-const Schema = Borsher.BorshSchema
+import { Schema, schemaEnum } from './namada-types'
 
 export const InternalAddresses = {
   Governance: "tnam1q5qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrw33g6"

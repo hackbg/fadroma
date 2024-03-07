@@ -3,12 +3,11 @@ import { Core } from '@fadroma/agent'
 import type { Address } from '@fadroma/agent'
 import type { Address as NamadaAddress } from './namada-address'
 import { addressSchema, InternalAddresses, decodeAddressFields } from './namada-address'
-import { u256Schema, decodeU256Fields } from './namada-u256'
-import { fromBorshStruct } from './namada-struct'
+import {
+  Schema, fromBorshStruct, schemaEnum, enumVariant, u256Schema, decodeU256Fields
+} from './namada-types'
 
 type Connection = { abciQuery: (path: string)=>Promise<Uint8Array> }
-
-const Schema = Borsher.BorshSchema
 
 export async function getGovernanceParameters (connection: Connection) {
   const binary = await connection.abciQuery(`/vp/governance/parameters`)
@@ -215,6 +214,14 @@ export class ProposalResult extends fromBorshStruct({
   }
 }
 
-export class InitProposal extends fromBorshStruct({}) {}
+export class InitProposal extends fromBorshStruct({}) {
+  print (console) {
+    throw new Error('print InitProposal: not implemented')
+  }
+}
 
-export class VoteProposal extends fromBorshStruct({}) {}
+export class VoteProposal extends fromBorshStruct({}) {
+  print (console) {
+    throw new Error('print VoteProposal: not implemented')
+  }
+}

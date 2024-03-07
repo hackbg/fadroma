@@ -3,13 +3,17 @@ import type { Address } from '@fadroma/agent'
 import { Core } from '@fadroma/agent'
 import { addressSchema, InternalAddresses, decodeAddress } from './namada-address'
 import type { Address as NamadaAddress } from './namada-address'
-import { u256Schema, decodeU256, decodeU256Fields } from './namada-u256'
-import { schemaEnum } from './namada-enum'
+import {
+  Schema,
+  fromBorshStruct,
+  schemaEnum,
+  u256Schema,
+  i256Schema,
+  decodeU256,
+  decodeU256Fields
+} from './namada-types'
 import type { NamadaConnection } from './namada-connection'
-import { fromBorshStruct } from './namada-struct'
 import * as Staking from '../cw-staking'
-
-const Schema = Borsher.BorshSchema
 
 export async function getStakingParameters (connection: NamadaConnection) {
   const binary = await connection.abciQuery("/vp/pos/pos_params")
@@ -269,19 +273,19 @@ const stateSchema = Schema.Option(schemaEnum([
 
 const stakeSchema = Schema.Option(u256Schema)
 
-const consensusKeySchema = Schema.Option(schemaEnum([
+const publicKeySchema = Schema.Option(schemaEnum([
   ['Ed25519',   Schema.Array(Schema.u8, 32)],
   ['Secp256k1', Schema.Array(Schema.u8, 33)],
 ]))
 
 export class BecomeValidator extends fromBorshStruct({
   address:                    addressSchema,
-  consensus_key:              PublicKey,
-  eth_cold_key:               PublicKey,
-  eth_hot_key:                PublicKey,
-  protocol_key:               PublicKey,
-  commission_rate:            Dec,
-  max_commission_rate_change: Dec,
+  consensus_key:              publicKeySchema,
+  eth_cold_key:               publicKeySchema,
+  eth_hot_key:                publicKeySchema,
+  protocol_key:               publicKeySchema,
+  commission_rate:            u256Schema,
+  max_commission_rate_change: u256Schema,
   email:                      Schema.String,
   description:                Schema.Option(Schema.String),
   website:                    Schema.Option(Schema.String),
@@ -304,7 +308,7 @@ export class BecomeValidator extends fromBorshStruct({
 
 export class Bond extends fromBorshStruct({
   validator: addressSchema,
-  amount:    Amount,
+  amount:    u256Schema,
   source:    Schema.Option(addressSchema)
 }) {
   validator: Address
@@ -325,12 +329,12 @@ export class ConsensusKeyChange extends fromBorshStruct({
   consensus_key: publicKeySchema,
 }) {
   validator:     Address
-  consensusKey:  PublicKey
+  consensusKey:  unknown
 }
 
 export class CommissionChange extends fromBorshStruct({
   validator: addressSchema,
-  new_rate:  Dec
+  new_rate:  i256Schema
 }) {
   validator: Address
   newRate:   bigint
@@ -343,7 +347,7 @@ export class MetaDataChange extends fromBorshStruct({
   website:         Schema.Option(Schema.String),
   discord_handle:  Schema.Option(Schema.String),
   avatar:          Schema.Option(Schema.String),
-  commission_rate: Schema.Option(Dec),
+  commission_rate: Schema.Option(i256Schema),
 }) {
   validator:      Address
   email:          null|string
@@ -358,7 +362,7 @@ export class Redelegation extends fromBorshStruct({
   src_validator:  addressSchema,
   dest_validator: addressSchema,
   owner:          addressSchema,
-  amount:         Amount
+  amount:         i256Schema
 }) {
   srcValidator:   Address
   destValidator:  Address
