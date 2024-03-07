@@ -384,7 +384,6 @@ class NamadaCLI extends CLI {
         .log('Block:', Core.bold(block.header.height))
         .log('ID:   ', Core.bold(block.id))
         .log('Time: ', Core.bold(block.header.time))
-        .log()
         .log(Core.bold('Transactions:'))
       for (const i in block.txs) {
         //const tx = 
