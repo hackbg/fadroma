@@ -1,42 +1,38 @@
-import * as Borsher from 'borsher'
 import { Core } from '@fadroma/agent'
 import type { Address } from '@fadroma/agent'
 import type { Address as NamadaAddress } from './namada-address'
 import { addressSchema, InternalAddresses, decodeAddressFields } from './namada-address'
 import {
-  Schema, fromBorshStruct, schemaEnum, enumVariant, u256Schema, decodeU256Fields
-} from './namada-types'
+  decode, Struct,
+  map, set, vec, option, struct, variants, u256, u64, string, unit
+} from '@hackbg/borshest'
 
 type Connection = { abciQuery: (path: string)=>Promise<Uint8Array> }
 
 export async function getGovernanceParameters (connection: Connection) {
   const binary = await connection.abciQuery(`/vp/governance/parameters`)
-  return GovernanceParameters.fromBorsh(binary) as GovernanceParameters
+  return GovernanceParameters.decode(binary) as GovernanceParameters
 }
 
-export class GovernanceParameters extends fromBorshStruct({
-  min_proposal_fund:          u256Schema,
-  max_proposal_code_size:     Schema.u64,
-  min_proposal_voting_period: Schema.u64,
-  max_proposal_period:        Schema.u64,
-  max_proposal_content_size:  Schema.u64,
-  min_proposal_grace_epochs:  Schema.u64
-}) {
-  minProposalFund!:         bigint
-  maxProposalCodeSize!:     bigint
-  minProposalVotingPeriod!: bigint
-  maxProposalPeriod!:       bigint
-  maxProposalContentSize!:  bigint
-  minProposalGraceEpochs!:  bigint
-  constructor (data) {
-    super(data)
-    decodeU256Fields(this, ["minProposalFund"])
-  }
+export class GovernanceParameters extends Struct(
+  ["minProposalFund",         u256],
+  ["maxProposalCodeSize",     u64],
+  ["minProposalVotingPeriod", u64],
+  ["maxProposalPeriod",       u64],
+  ["maxProposalContentSize",  u64],
+  ["minProposalGraceEpochs",  u64],
+) {
+  declare minProposalFund:         bigint
+  declare maxProposalCodeSize:     bigint
+  declare minProposalVotingPeriod: bigint
+  declare maxProposalPeriod:       bigint
+  declare maxProposalContentSize:  bigint
+  declare minProposalGraceEpochs:  bigint
 }
 
 export async function getProposalCount (connection: Connection) {
   const binary = await connection.abciQuery(`/shell/value/#${InternalAddresses.Governance}/counter`)
-  return Borsher.borshDeserialize(Schema.u64, binary) as bigint
+  return decode(u64, binary) as bigint
 }
 
 export async function getProposalInfo (connection: Connection, id: number) {
@@ -46,59 +42,55 @@ export async function getProposalInfo (connection: Connection, id: number) {
     connection.abciQuery(`/vp/governance/stored_proposal_result/${id}`),
   ])
   return {
-    proposal: Proposal.fromBorsh(proposal) as Proposal,
+    proposal: Proposal.decode(proposal) as Proposal,
     votes:    ProposalVotes.fromBorsh(votes) as ProposalVotes,
     result:   (result.length === 1)
       ? null
-      : ProposalResult.fromBorsh(result) as ProposalResult,
+      : ProposalResult.decode(result) as ProposalResult,
   }
 }
 
-const addRemoveSchema = t => Schema.Enum({
-  Add:    t,
-  Remove: t,
-})
+const addRemove = t => variants(
+  ["Add",    t],
+  ["Remove", t]
+)
 
-const pgfTargetSchema = Schema.Enum({
-  Internal:     Schema.Struct({
-    target:     addressSchema,
-    amount:     u256Schema,
-  }),
-  Ibc:          Schema.Struct({
-    target:     Schema.String,
-    amount:     u256Schema,
-    port_id:    Schema.String,
-    channel_id: Schema.String,
-  })
-})
+const pgfTarget = variants(
+  ["Internal",    struct(
+    ["target",    addressSchema],
+    ["amount",    u256],
+  )],
+  ["Ibc",         struct(
+    ["target",    string],
+    ["amount",    u256],
+    ["portId",    string],
+    ["channelId", string],
+  )]
+)
 
-export class Proposal extends fromBorshStruct({
-  id:                 Schema.u64,
-  content:            Schema.HashMap(Schema.String, Schema.String),
-  author:             addressSchema,
-  type:               Schema.Enum({
-    Default:          Schema.Option(Schema.String),
-    PGFSteward:       Schema.HashSet(addRemoveSchema(addressSchema)),
-    PGFPayment:       Schema.HashSet(Schema.Enum({
-      Continuous:     addRemoveSchema(pgfTargetSchema),
-      Retro:          pgfTargetSchema,
-    }))
-  }),
-  voting_start_epoch: Schema.u64,
-  voting_end_epoch:   Schema.u64,
-  grace_epoch:        Schema.u64,
-}) {
-  id!:               string
-  content!:          Map<string, string>
-  author!:           string
-  type!:             unknown
-  votingStartEpoch!: bigint
-  votingEndEpoch!:   bigint
-  graceEpoch!:       bigint
-  constructor (data) {
-    super(data)
-    decodeAddressFields(this, ["author"])
-  }
+export class Proposal extends Struct(
+  ["id",               u64],
+  ["content",          map(string, string)],
+  ["author",           addressSchema],
+  ["type",             variants(
+    ["Default",        option(string)],
+    ["PGFSteward",     set(addRemove(addressSchema))],
+    ["PGFPayment",     set(variants(
+      ["Continuous",   addRemove(pgfTarget)],
+      ["Retro",        pgfTarget],
+    ))]
+  )],
+  ["votingStartEpoch", u64],
+  ["votingEndEpoch",   u64],
+  ["grace_epoch",      u64],
+) {
+  declare id:               string
+  declare content:          Map<string, string>
+  declare author:           string
+  declare type:             unknown
+  declare votingStartEpoch: bigint
+  declare votingEndEpoch:   bigint
+  declare graceEpoch:       bigint
 }
 
 export class ProposalVotes extends Array<Vote> {
@@ -141,63 +133,53 @@ export class Vote {
   }
 }
 
-const voteValueSchema = schemaEnum([
-  ['Yay',     Schema.Unit],
-  ['Nay',     Schema.Unit],
-  ['Abstain', Schema.Unit],
-])
+const voteValueSchema = variants(
+  ['Yay',     unit],
+  ['Nay',     unit],
+  ['Abstain', unit],
+)
 
-const voteSchema = Schema.Struct({
-  validator: addressSchema,
-  delegator: addressSchema,
-  data:      voteValueSchema,
-})
+const voteSchema = struct(
+  ["validator", addressSchema],
+  ["delegator", addressSchema],
+  ["data",      voteValueSchema],
+)
 
-const proposalStatusSchema = Schema.Enum({
-  Pending: Schema.Unit,
-  OnGoing: Schema.Unit,
-  Ended:   Schema.Unit,
-})
+const proposalStatusSchema = variants(
+  ["Pending", unit],
+  ["OnGoing", unit],
+  ["Ended",   unit],
+)
 
 const percent = (a: bigint, b: bigint) =>
   ((Number(a * 1000000n / b) / 10000).toFixed(2) + '%').padStart(7)
 
-export class ProposalResult extends fromBorshStruct({
-  result:                       Schema.Enum({
-    Passed:                     Schema.Unit,
-    Rejected:                   Schema.Unit,
-  }),
-  tally_type:                   Schema.Enum({
-    TwoThirds:                  Schema.Unit,
-    OneHalfOverOneThird:        Schema.Unit,
-    LessOneHalfOverOneThirdNay: Schema.Unit,
-  }),
-  total_voting_power:           u256Schema,
-  total_yay_power:              u256Schema,
-  total_nay_power:              u256Schema,
-  total_abstain_power:          u256Schema,
-}) {
-  result!:
+export class ProposalResult extends Struct(
+  ["result",                       variants(
+    ["Passed",                     unit],
+    ["Rejected",                   unit],
+  )],
+  ["tallyType",                    variants(
+    ["TwoThirds",                  unit],
+    ["OneHalfOverOneThird",        unit],
+    ["LessOneHalfOverOneThirdNay", unit],
+  )],
+  ["totalVotingPower",             u256],
+  ["totalYayPower",                u256],
+  ["totalNayPower",                u256],
+  ["totalAbstainPower",            u256],
+) {
+  declare result:
     | { Passed:   {} }
     | { Rejected: {} }
-  tallyType!:
-    | { TwoThirds:                  {} }
-    | { OneHalfOverOneThird:        {} }
+  declare tallyType:
+    | { TwoThirds: {} }
+    | { OneHalfOverOneThird: {} }
     | { LessOneHalfOverOneThirdNay: {} }
-  totalVotingPower!:  bigint
-  totalYayPower!:     bigint
-  totalNayPower!:     bigint
-  totalAbstainPower!: bigint
-
-  constructor (data) {
-    super(data)
-    decodeU256Fields(this, [
-      "totalVotingPower",
-      "totalYayPower",
-      "totalNayPower",
-      "totalAbstainPower",
-    ])
-  }
+  declare totalVotingPower:  bigint
+  declare totalYayPower:     bigint
+  declare totalNayPower:     bigint
+  declare totalAbstainPower: bigint
 
   get turnout () {
     return this.totalYayPower + this.totalNayPower + this.totalAbstainPower
@@ -216,18 +198,18 @@ export class ProposalResult extends fromBorshStruct({
   }
 }
 
-export class InitProposal extends fromBorshStruct({}) {
+export class InitProposal extends Struct() {
   print (console) {
     throw new Error('print InitProposal: not implemented')
   }
 }
 
-export class VoteProposal extends fromBorshStruct({
-  id:          Schema.u64,
-  vote:        voteValueSchema,
-  voter:       addressSchema,
-  delegations: Schema.Vec(addressSchema)
-}) {
+export class VoteProposal extends Struct(
+  ['id',          u64],
+  ['vote',        voteValueSchema],
+  ['voter',       addressSchema],
+  ['delegations', vec(addressSchema)]
+) {
   declare id: bigint
   declare vote
   declare voter

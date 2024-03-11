@@ -487,6 +487,9 @@ importers:
       '@fadroma/agent':
         specifier: workspace:*
         version: link:../agent
+      '@hackbg/borshest':
+        specifier: workspace:*
+        version: link:../../toolbox/borshest
       '@hackbg/cmds':
         specifier: workspace:*
         version: link:../../toolbox/cmds
@@ -765,6 +768,8 @@ importers:
   toolbox/allo: {}
 
   toolbox/atom: {}
+
+  toolbox/borshest: {}
 
   toolbox/cmds:
     dependencies:

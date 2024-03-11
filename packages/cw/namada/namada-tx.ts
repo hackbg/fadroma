@@ -1,13 +1,5 @@
 import { Core } from '@fadroma/agent'
 import * as Borsher from 'borsher'
-import {
-  Schema,
-  fromBorshStruct,
-  schemaEnum,
-  enumVariant,
-  u256Schema,
-  i256Schema
-} from './namada-types'
 import { addressSchema, decodeAddress } from './namada-address'
 import {
   BecomeValidator,
@@ -31,63 +23,45 @@ import {
   InitProposal,
   VoteProposal
 } from './namada-gov'
-
-const hashSchema = Schema.Array(Schema.u8, 32)
-
-const publicKeySchema = schemaEnum([
-  ['Ed25519',   Schema.Array(Schema.u8, 32)],
-  ['Secp256k1', Schema.Array(Schema.u8, 33)],
-])
-
-const wrapperTransactionFields = {
-  fee:                   Schema.Struct({
-    amount_per_gas_unit: Schema.Struct({
-      amount:            u256Schema,
-      denomination:      Schema.u8,
-    }),
-    token:               addressSchema,
-  }),
-  pk:                    publicKeySchema,
-  epoch:                 Schema.u64,
-  gas_limit:             Schema.u64,
-  unshield_section_hash: Schema.Option(hashSchema),
-}
-
-const protocolTransactionFields = {
-  pk:                      publicKeySchema,
-  tx:                      schemaEnum([
-    ['EthereumEvents',     Schema.Unit],
-    ['BridgePool',         Schema.Unit],
-    ['ValidatorSetUpdate', Schema.Unit],
-    ['EthEventsVext',      Schema.Unit],
-    ['BridgePoolVext',     Schema.Unit],
-    ['ValSetUpdateVext',   Schema.Unit],
-  ]),
-}
-
-const headerFields = {
-  chain_id:             Schema.String,
-  expiration:           Schema.Option(Schema.String),
-  timestamp:            Schema.String,
-  code_hash:            hashSchema,
-  data_hash:            hashSchema,
-  memo_hash:            hashSchema,
-  tx_type:              schemaEnum([
-    ['Raw',             Schema.Unit],
-    ['Wrapper',         Schema.Struct(wrapperTransactionFields)],
-    ['Decrypted',       schemaEnum([
-      ['Decrypted',     Schema.Unit],
-      ['Undecryptable', Schema.Unit],
-    ])],
-    ['Protocol',        Schema.Struct(protocolTransactionFields)],
-  ])
-}
+import {
+  Section,
+  CodeSection,
+  DataSection,
+  ciphertextSectionFields,
+  codeSectionFields,
+  dataSectionFields,
+  headerFields,
+  maspBuilderSectionFields,
+  maspTxSectionFields,
+  protocolTransactionFields,
+  signatureSectionFields,
+  wrapperTransactionFields,
+} from './namada-tx-section'
+import {
+  array,
+  struct,
+  variants,
+  variant,
+  u8,
+  u64,
+  u256,
+  i128,
+  i256,
+  option,
+  unit,
+  string,
+  vec,
+  Struct
+} from '@hackbg/borshest'
+import type {
+  Fields
+} from '@hackbg/borshest'
 
 export class NamadaTransaction {
-  static fromBorsh = (binary: Uint8Array) => {
+  static decode = (binary: Uint8Array) => {
     const { header: { tx_type, ...header }, sections } =
       Borsher.borshDeserialize(txSchema, binary) as any
-    const [txType, details] = enumVariant(tx_type)
+    const [txType, details] = variant(tx_type)
     switch (txType) {
       case 'Raw':
         return new NamadaRawTransaction(header, details, sections)
@@ -141,431 +115,19 @@ export class NamadaTransaction {
   }
 }
 
-export class Section {
-  static fromDecoded = (section: object) => {
-    const [variant, details] = enumVariant(section)
-    switch (variant) {
-      case 'Data':
-        return new DataSection(details)
-      case 'ExtraData':
-        return new ExtraDataSection(details)
-      case 'Code':
-        return new CodeSection(details)
-      case 'Signature':
-        return new SignatureSection(details)
-      case 'Ciphertext':
-        return new CiphertextSection(details)
-      case 'MaspTx':
-        return new MaspTxSection(details)
-      case 'MaspBuilder':
-        return new MaspBuilderSection(details)
-      case 'Header':
-        return new HeaderSection(details)
-    }
-  }
-  print (console) {
-    console.log(this)
-  }
-}
-
-export class DataSection extends Section {
-  salt: string
-  data: Uint8Array
-  constructor ({ salt, data }: { salt: number[], data: number[] }) {
-    super()
-    this.salt = Core.base16.encode(new Uint8Array(salt))
-    this.data = new Uint8Array(data)
-  }
-  print (console) {
-    console
-      .log('   ', Core.bold('Data section:'))
-      .log('    Salt:', this.salt)
-      .log('    Data:', Core.base64.encode(this.data))
-  }
-}
-
-const dataSectionFields = {
-  salt: Schema.Array(Schema.u8, 8),
-  data: Schema.Vec(Schema.u8),
-}
-
-export class ExtraDataSection extends Section {
-  salt: string
-  data: Uint8Array
-  tag:  string
-  constructor ({ salt, data, tag }: { salt: number[], data: number[], tag: string }) {
-    super()
-    this.salt = Core.base16.encode(new Uint8Array(salt))
-    this.data = new Uint8Array(data)
-    this.tag  = tag
-  }
-  print (console) {
-    console
-      .log('   ', Core.bold('Extra data section:'))
-      .log('    Salt:', Core.bold(this.salt))
-      .log('    Data:', Core.bold(Core.base64.encode(this.data)))
-      .log('    Tag: ', Core.bold(this.tag))
-  }
-}
-
-export class CodeSection extends Section {
-  salt: string
-  data: Uint8Array
-  tag:  string
-  constructor ({ salt, data, tag }: { salt: number[], data: number[], tag: string }) {
-    super()
-    this.salt = Core.base16.encode(new Uint8Array(salt))
-    this.data = new Uint8Array(data)
-    this.tag  = tag
-  }
-  print (console) {
-    console
-      .log('   ', Core.bold('Code section:'))
-      .log('    Salt:', Core.bold(this.salt))
-    if (this.data.length > 0) {
-      console
-        .log('    Data:', Core.base64.encode(this.data))
-    }
-    console
-      .log('    Tag: ', Core.bold(this.tag))
-  }
-}
-
-const codeFields = {
-  salt:      Schema.Array(Schema.u8, 8),
-  code:      schemaEnum([
-    ['Hash', hashSchema],
-    ['Id',   Schema.Vec(Schema.u8)],
-  ]),
-  tag:       Schema.Option(Schema.String),
-}
-
-export class SignatureSection extends Section {
-  targets:    string[]
-  signer:     { Address: string }|{ PubKeys: string[] }
-  signatures: Array<{ Ed25519: string }|{ Secp256k1: string }>
-  constructor (
-    { targets, signer, signatures }: { targets: any[], signer: any, signatures: any[] }
-  ) {
-    super()
-    this.targets    = targets.map(target=>Core.base16.encode(new Uint8Array(target)))
-    this.signer     = signer
-    this.signatures = signatures
-  }
-  print (console) {
-    console
-      .log('   ', Core.bold('Signature section:'))
-      .log('    Targets:   ')
-    for (const target of this.targets) {
-      console.log('     ', Core.bold(target))
-    }
-    const [signerVariant, signerDetails] = enumVariant(this.signer)
-    switch (signerVariant) {
-      case 'Address':
-        console.log('    Signed by', Core.bold('address:'), Core.bold(decodeAddress(signerDetails)))
-        break
-      case 'PubKeys':
-        console.log('    Signed by', Core.bold('public keys:'))
-        for (const pubkey of signerDetails as any[]) {
-          const [variant, details] = enumVariant(pubkey)
-          console.log(
-            '     ', Core.bold(variant), Core.bold(Core.base16.encode(new Uint8Array(details)))
-          )
-        }
-        break
-      default:
-        console.warn('    Invalid signer variant:', signerVariant)
-    }
-    console.log('    Signatures:')
-    for (const [key, value] of this.signatures.entries()) {
-      const [variant, data] = enumVariant(value)
-      console.log(
-        `      #${key}`,
-        Core.bold(String(variant)),
-        Core.bold(Core.base64.encode(new Uint8Array(data)))
-      )
-    }
-  }
-}
-
-const signatureSectionFields = {
-  targets:        Schema.Vec(hashSchema),
-  signer:         schemaEnum([
-    ['Address',   addressSchema],
-    ['PubKeys',   Schema.Vec(publicKeySchema)],
-  ]),
-  signatures:     Schema.HashMap(Schema.u8, schemaEnum([
-    ['Ed25519',   Schema.Array(Schema.u8, 64)],
-    ['Secp256k1', Schema.Array(Schema.u8, 65)]
-  ]))
-}
-
-export class CiphertextSection extends Section {
-  opaque: Uint8Array
-  constructor ({ opaque }: { opaque: any }) {
-    super()
-    this.opaque = new Uint8Array(opaque)
-  }
-  print (console) {
-    console
-      .log('   ', Core.bold('Ciphertext section:'))
-      .log('    Opaque:', Core.base64.encode(this.opaque))
-  }
-}
-
-const ciphertextSectionFields = {
-  opaque: Schema.Vec(Schema.u8)
-}
-
-export class MaspTxSection extends Section {
-  txid:              string
-  version:           bigint
-  consensusBranchId: bigint
-  lockTime:          bigint
-  expiryHeight:      bigint
-  transparentBundle: null|{}
-  saplingBundle:     null|{}
-  constructor ({ txid, data }) {
-    super()
-    this.txid = txid
-    Core.assignCamelCase(this, data, Object.keys(transactionDataFields))
-  }
-  print (console) {
-    console
-      .log('   ', Core.bold('MASP transaction section:'))
-      .log('    TX ID:             ', this.txid)
-      .log('    Version:           ', this.version)
-      .log('    Consensus branch:  ', this.consensusBranchId)
-      .log('    Lock time:         ', this.lockTime)
-      .log('    Expiry height:     ', this.expiryHeight)
-      .log('    Transparent bundle:', this.transparentBundle)
-      .log('    Sapling bundle:    ', this.saplingBundle)
-  }
-}
-
-const assetTypeSchema = Schema.Struct({
-  identifier: Schema.Array(Schema.u8, 32),
-})
-
-const transferTxSchema = Schema.Struct({
-  asset_type: assetTypeSchema,
-  value:      Schema.u64,
-  address:    Schema.Array(Schema.u8, 20)
-})
-
-const extendedPointSchema = Schema.Struct({
-  u:  Schema.Array(Schema.u64, 4),
-  v:  Schema.Array(Schema.u64, 4),
-  z:  Schema.Array(Schema.u64, 4),
-  t1: Schema.Array(Schema.u64, 4),
-  t2: Schema.Array(Schema.u64, 4),
-})
-
-const transactionDataFields = {
-  version:             Schema.Array(Schema.u32, 2),
-  consensus_branch_id: Schema.u32,
-  lock_time:           Schema.u32,
-  expiry_height:       Schema.u32,
-  transparent_vin:     Schema.Option(Schema.Vec(transferTxSchema)),
-  transparent_vout:    Schema.Option(Schema.Vec(transferTxSchema)),
-  //shielded_spends:     Schema.Option(Schema.Vec(Schema.Struct({
-    //cv:                extendedPointSchema,
-    //anchor:            Schema.Array(Schema.u64, 4),
-    //nullifier:         Schema.Array(Schema.u8, 32),
-    //rk:                extendedPointSchema,
-    //zkproof:           Schema.Array(Schema.u8, 192),
-    //spend_auth_sig:    Schema.Struct({
-      //rbar:            Schema.Array(Schema.u8, 32),
-      //sbar:            Schema.Array(Schema.u8, 32),
-    //}),
-  //}))),
-  //shielded_converts:   Schema.Option(Schema.Vec(Schema.Struct({
-    //cv:                extendedPointSchema,
-    //anchor:            Schema.Array(Schema.u64, 4),
-    //zkproof:           Schema.Array(Schema.u8, 192)
-  //}))),
-  //shielded_outputs:    Schema.Option(Schema.Vec(Schema.Struct({
-    //cv:                extendedPointSchema,
-    //cmu:               Schema.Array(Schema.u64, 4),
-    //ephemeral_key:     Schema.Array(Schema.u8, 32),
-    //enc_ciphertext:    Schema.Array(Schema.u8, 612),
-    //out_ciphertext:    Schema.Array(Schema.u8, 80),
-    //zkproof:           Schema.Array(Schema.u8, 192)
-  //}))),
-  //value_balance:       Schema.Option(Schema.i128),
-  //spend_anchor:        Schema.Option(Schema.Array(Schema.u64, 4)),
-  //convert_anchor:      Schema.Option(Schema.Array(Schema.u64, 4)),
-}
-
-const maspTxSectionFields = transactionDataFields /*{
-  txid: Schema.Array(Schema.u8, 32),
-  data: Schema.Struct(transactionDataFields),
-}*/
-
-export class MaspBuilderSection extends Section {
-  hash:                 string
-  assetTypes:           Set<{
-    token:              string
-    denomination:       bigint
-    position:           'Zero'|'One'|'Two'|'Three'
-    epoch:              bigint|null
-  }>
-  metadata: {
-    spend_indices:      bigint[]
-    convert_indices:    bigint[]
-    output_indices:     bigint[]
-  }
-  builder: {
-    params:             object
-    rng:                object
-    targetHeight:       object
-    expiryHeight:       object
-    transparentBuilder: object
-    saplingBuilder:     object
-  }
-  constructor (data) {
-    super()
-    Core.assignCamelCase(this, data, Object.keys(maspBuilderSectionFields))
-  }
-  print (console) {
-    console
-      .log('   ', Core.bold('MASP builder section:'))
-      .log('    Hash:       ', this.hash)
-      .log('    Asset types:', this.assetTypes)
-      .log('    Metadata:   ', this.metadata)
-      .log('    Builder:    ', this.builder)
-  }
-}
-
-const noteSchema = Schema.Struct({
-  asset_type:   Schema.Struct({
-    identifier: Schema.Array(Schema.u8, 32),
-  }),
-  value:        Schema.u64,
-  g_d:          extendedPointSchema,
-  pk_d:         extendedPointSchema,
-  rseed:        schemaEnum([
-    ['BeforeZip212', Schema.Array(Schema.u64, 4)],
-    ['AfterZip212',  Schema.Array(Schema.u8, 32)],
-  ]),
-})
-
-const merklePathSchema = Schema.Struct({
-  auth_path: Schema.Vec(Schema.Struct({
-    _0:      Schema.Struct({
-      repr:  Schema.Array(Schema.u8, 32)
-    }),
-    _1:      Schema.bool
-  })),
-  position:  Schema.u64
-})
-
-const maspBuilderSectionFields = {
-  hash:                     hashSchema,
-  asset_types:              Schema.HashSet(Schema.Struct({
-    token:                  addressSchema,
-    denomination:           Schema.u8,
-    position:               schemaEnum([
-      ['Zero',              Schema.Unit],
-      ['One',               Schema.Unit],
-      ['Two',               Schema.Unit],
-      ['Three',             Schema.Unit],
-    ]),
-    epoch:                  Schema.Option(Schema.u64)
-  })),
-  metadata:                 Schema.Struct({
-    spend_indices:          Schema.Vec(Schema.u32),
-    convert_indices:        Schema.Vec(Schema.u32),
-    output_indices:         Schema.Vec(Schema.u32),
-  }),
-  builder:                  Schema.Struct({
-    params:                 Schema.Unit,
-    rng:                    Schema.Unit,
-    target_height:          Schema.u32,
-    expiry_height:          Schema.u32,
-    transparent_builder:    Schema.Struct({
-      inputs:               Schema.Vec(Schema.Struct({
-        coin:               transferTxSchema
-      })),
-      vout:                 Schema.Vec(transferTxSchema)
-    }),
-    sapling_builder:        Schema.Struct({
-      params:               Schema.Unit,
-      spend_anchor:         Schema.Option(Schema.Array(Schema.u64, 4)),
-      target_height:        Schema.u32,
-      value_balance:        Schema.i128,
-      convert_anchor:       Schema.Option(Schema.Array(Schema.u64, 4)),
-      spends:               Schema.Vec(Schema.Struct({
-        extsk:              Schema.Struct({
-          depth:            Schema.u8,
-          parent_fvk_tag:   Schema.Array(Schema.u8, 4),
-          child_index:      schemaEnum([
-            ['NonHardened', Schema.u32],
-            ['Hardened',    Schema.u32],
-          ]),
-          chain_code:       Schema.Array(Schema.u8, 32),
-          fbk:              Schema.Struct({
-            vk:             Schema.Struct({
-              ak:           extendedPointSchema,
-              nk:           extendedPointSchema,
-            }),
-            ovk:            Schema.Array(Schema.u8, 32),
-          }),
-          dk:               Schema.Array(Schema.u8, 32),
-        }),
-        diversifier:        Schema.Array(Schema.u8, 11),
-        note:               noteSchema,
-        alpha:              Schema.Array(Schema.u64, 4),
-        merkle_path:        merklePathSchema
-      })),
-      converts:             Schema.Vec(Schema.Struct({
-        allowed:            Schema.Struct({
-          assets:           Schema.i128,
-          generator:        extendedPointSchema
-        }),
-        value:              Schema.u64,
-        merkle_path:        merklePathSchema,
-      })),
-      outputs:              Schema.Vec(Schema.Struct({
-        ovk:                Schema.Option(Schema.Array(Schema.u8, 32)),
-        to:                 Schema.Struct({
-          pk_d:             extendedPointSchema,
-          diversifier:      Schema.Array(Schema.u8, 11)
-        }),
-        note:               noteSchema,
-        memo:               Schema.Array(Schema.u8, 512)
-      })),
-    })
-  })
-}
-
-export class HeaderSection extends Section {
-  chainId!:    string
-  expiration!: string|null
-  timestamp!:  string
-  codeHash!:   string
-  dataHash!:   string
-  memoHash!:   string
-  txType!:     object
-  constructor (data) {
-    super()
-    Core.assignCamelCase(this, data, Object.keys(headerFields))
-  }
-}
-
-const txSchema = Schema.Struct({
-  header:           Schema.Struct(headerFields),
-  sections:         Schema.Vec(schemaEnum([
-    ['Data',        Schema.Struct(dataSectionFields)],
-    ['ExtraData',   Schema.Struct(codeFields)],
-    ['Code',        Schema.Struct(codeFields)],
-    ['Signature',   Schema.Struct(signatureSectionFields)],
-    ['Ciphertext',  Schema.Struct(ciphertextSectionFields)],
-    ['MaspTx',      Schema.Struct(maspTxSectionFields)],
-    ['MaspBuilder', Schema.Struct(maspBuilderSectionFields)],
-    ['Header',      Schema.Struct(headerFields)]
-  ]))
-})
+const txSchema = [
+  ['header',        struct(...headerFields)],
+  ['sections',      vec(variants(
+    ['Data',        struct(...dataSectionFields)],
+    ['ExtraData',   struct(...codeSectionFields)],
+    ['Code',        struct(...codeSectionFields)],
+    ['Signature',   struct(...signatureSectionFields)],
+    ['Ciphertext',  struct(...ciphertextSectionFields)],
+    ['MaspTx',      struct(...maspTxSectionFields)],
+    ['MaspBuilder', struct(...maspBuilderSectionFields)],
+    ['Header',      struct(...headerFields)]
+  ))]
+]
 
 export class NamadaRawTransaction extends NamadaTransaction {
   txType = 'Raw' as 'Raw'
@@ -590,7 +152,7 @@ export class NamadaWrapperTransaction extends NamadaTransaction {
   unshieldSectionHash: string|null
   constructor (header: object, details: object, sections: object[]) {
     super(header, sections)
-    Core.assignCamelCase(this, details, Object.keys(wrapperTransactionFields))
+    Core.assignCamelCase(this, details, wrapperTransactionFields.map(x=>x[0] as string))
     this.txType = 'Wrapper'
   }
 }
@@ -601,8 +163,8 @@ export class NamadaDecryptedTransaction extends NamadaTransaction {
   constructor (header: object, details: object, sections: object[]) {
     super(header, sections)
     this.txType = 'Decrypted'
-    const [variant, _] = enumVariant(details)
-    switch (variant) {
+    const [name, _] = variant(details)
+    switch (name) {
       case 'Decrypted':
         this.undecryptable = false
         break
@@ -641,53 +203,53 @@ export class NamadaDecryptedTransaction extends NamadaTransaction {
     }
     switch (tag) {
       case "tx_become_validator.wasm":
-        return BecomeValidator.fromBorsh(binary)
+        return BecomeValidator.decode(binary)
       case "tx_bond.wasm":
-        return Bond.fromBorsh(binary)
+        return Bond.decode(binary)
       case "tx_bridge_pool.wasm":
-        return BridgePool.fromBorsh(binary)
+        return BridgePool.decode(binary)
       case "tx_change_consensus_key.wasm":
-        return ConsensusKeyChange.fromBorsh(binary)
+        return ConsensusKeyChange.decode(binary)
       case "tx_change_validator_commission.wasm":
-        return CommissionChange.fromBorsh(binary)
+        return CommissionChange.decode(binary)
       case "tx_change_validator_metadata.wasm":
-        return MetaDataChange.fromBorsh(binary)
+        return MetaDataChange.decode(binary)
       case "tx_claim_rewards.wasm":
-        return ClaimRewards.fromBorsh(binary)
+        return ClaimRewards.decode(binary)
       case "tx_deactivate_validator.wasm":
-        return DeactivateValidator.fromBorsh(binary)
+        return DeactivateValidator.decode(binary)
       case "tx_ibc.wasm":
-        return IBC.fromBorsh(binary)
+        return IBC.decode(binary)
       case "tx_init_account.wasm":
-        return InitAccount.fromBorsh(binary)
+        return InitAccount.decode(binary)
       case "tx_init_proposal.wasm":
-        return InitProposal.fromBorsh(binary)
+        return InitProposal.decode(binary)
       case "tx_reactivate_validator.wasm":
-        return ReactivateValidator.fromBorsh(binary)
+        return ReactivateValidator.decode(binary)
       case "tx_redelegate.wasm":
-        return Redelegation.fromBorsh(binary)
+        return Redelegation.decode(binary)
       case "tx_resign_steward.wasm":
-        return ResignSteward.fromBorsh(binary)
+        return ResignSteward.decode(binary)
       case "tx_reveal_pk.wasm":
-        return RevealPK.fromBorsh(binary)
+        return RevealPK.decode(binary)
       case "tx_transfer.wasm":
-        return Transfer.fromBorsh(binary)
+        return Transfer.decode(binary)
       case "tx_unbond.wasm":
-        return Unbond.fromBorsh(binary)
+        return Unbond.decode(binary)
       case "tx_unjail_validator.wasm":
-        return UnjailValidator.fromBorsh(binary)
+        return UnjailValidator.decode(binary)
       case "tx_update_account.wasm":
-        return UpdateAccount.fromBorsh(binary)
+        return UpdateAccount.decode(binary)
       case "tx_update_steward_commission.wasm":
-        return UpdateStewardCommission.fromBorsh(binary)
+        return UpdateStewardCommission.decode(binary)
       case "tx_vote_proposal.wasm":
-        return VoteProposal.fromBorsh(binary)
+        return VoteProposal.decode(binary)
       case "tx_withdraw.wasm":
-        return Withdraw.fromBorsh(binary)
+        return Withdraw.decode(binary)
       case "vp_implicit.wasm":
-        return VPImplicit.fromBorsh(binary)
+        return VPImplicit.decode(binary)
       case "vp_user.wasm":
-        return VPUser.fromBorsh(binary)
+        return VPUser.decode(binary)
     }
     throw new Core.Error(`Unsupported inner transaction type: ${tag}`)
   }
@@ -704,16 +266,16 @@ export class NamadaProtocolTransaction extends NamadaTransaction {
       |'ValSetUpdateVext'
   constructor (header: object, details: object, sections: object[]) {
     super(header, sections)
-    Core.assignCamelCase(this, details, Object.keys(protocolTransactionFields))
+    Core.assignCamelCase(this, details, protocolTransactionFields.map(x=>x[0] as string))
     this.txType = 'Protocol'
   }
 }
 
-export class InitAccount extends fromBorshStruct({
-  public_keys:  Schema.Vec(publicKeySchema),
-  vp_code_hash: Schema.Array(Schema.u8, 32),
-  threshold:    Schema.u8,
-}) {
+export class InitAccount extends Struct(
+  ['public_keys',  vec(publicKeySchema)],
+  ['vp_code_hash', array(32, u8)],
+  ['threshold',    u8],
+) {
   publicKeys
   vpCodeHash
   threshold
@@ -722,34 +284,34 @@ export class InitAccount extends fromBorshStruct({
   }
 }
 
-export class UpdateAccount extends fromBorshStruct({
-  addr:         addressSchema,
-  vp_code_hash: Schema.Option(Schema.Array(Schema.u8, 32)),
-  public_keys:  Schema.Vec(publicKeySchema),
-  threshold:    Schema.Option(Schema.u8)
-}) {
+export class UpdateAccount extends Struct(
+  ['addr',         addressSchema],
+  ['vp_code_hash', option(array(32, u8))],
+  ['public_keys',  vec(publicKeySchema)],
+  ['threshold',    option(u8)]
+) {
   print (console) {
     throw new Error('print UpdateAccount: not implemented')
   }
 }
 
-export class RevealPK extends fromBorshStruct({}) {
+export class RevealPK extends Struct() {
   print (console) {
     throw new Error('print RevealPK: not implemented')
   }
 }
 
-export class Transfer extends fromBorshStruct({
-  source:   addressSchema,
-  target:   addressSchema,
-  token:    addressSchema,
-  amount:   Schema.Struct({
-    amount: i256Schema,
-    denom:  Schema.u8
-  }),
-  key:      Schema.Option(Schema.String),
-  shielded: Schema.Option(Schema.Array(Schema.u8, 32))
-}) {
+export class Transfer extends Struct(
+  ["source",   addressSchema],
+  ["target",   addressSchema],
+  ["token",    addressSchema],
+  ["amount",   struct(
+    ["amount", i256],
+    ["denom",  u8]
+  )],
+  ["key",      option(string)],
+  ["shielded", option(array(32, u8))]
+) {
   declare source
   declare target
   declare token
@@ -768,25 +330,25 @@ export class Transfer extends fromBorshStruct({
   }
 }
 
-export class VPImplicit extends fromBorshStruct({}) {
+export class VPImplicit extends Struct() {
   print (console) {
     throw new Error('print VPImplicit: not implemented')
   }
 }
 
-export class VPUser extends fromBorshStruct({}) {
+export class VPUser extends Struct() {
   print (console) {
     throw new Error('print VPUser: not implemented')
   }
 }
 
-export class BridgePool extends fromBorshStruct({}) {
+export class BridgePool extends Struct() {
   print (console) {
     throw new Error('print BridgePool: not implemented')
   }
 }
 
-export class IBC extends fromBorshStruct({}) {
+export class IBC extends Struct() {
   print (console) {
     console.warn('decode and print IBC: not implemented')
   }
