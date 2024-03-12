@@ -1,6 +1,6 @@
 import { Core } from '@fadroma/agent'
 import * as Borsher from 'borsher'
-import { addressSchema, decodeAddress } from './namada-address'
+import { addr, decodeAddress } from './namada-address'
 import {
   BecomeValidator,
   Bond,
@@ -24,6 +24,7 @@ import {
   VoteProposal
 } from './namada-gov'
 import {
+  pubkey,
   Section,
   CodeSection,
   DataSection,
@@ -272,7 +273,7 @@ export class NamadaProtocolTransaction extends NamadaTransaction {
 }
 
 export class InitAccount extends Struct(
-  ['public_keys',  vec(publicKeySchema)],
+  ['public_keys',  vec(pubkey)],
   ['vp_code_hash', array(32, u8)],
   ['threshold',    u8],
 ) {
@@ -285,9 +286,9 @@ export class InitAccount extends Struct(
 }
 
 export class UpdateAccount extends Struct(
-  ['addr',         addressSchema],
+  ['addr',         addr],
   ['vp_code_hash', option(array(32, u8))],
-  ['public_keys',  vec(publicKeySchema)],
+  ['public_keys',  vec(pubkey)],
   ['threshold',    option(u8)]
 ) {
   print (console) {
@@ -302,9 +303,9 @@ export class RevealPK extends Struct() {
 }
 
 export class Transfer extends Struct(
-  ["source",   addressSchema],
-  ["target",   addressSchema],
-  ["token",    addressSchema],
+  ["source",   addr],
+  ["target",   addr],
+  ["token",    addr],
   ["amount",   struct(
     ["amount", i256],
     ["denom",  u8]

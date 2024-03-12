@@ -10,4 +10,6 @@ export async function getCurrentEpoch (connection: Connection) {
   return decode(epochSchema, binary)
 }
 
-const epochSchema = struct(["epoch", u64])
+const epochSchema = struct(
+  ["epoch", u64]
+)

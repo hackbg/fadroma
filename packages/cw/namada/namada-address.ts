@@ -1,6 +1,6 @@
 import { Core } from '@fadroma/agent'
-import * as Borsher from 'borsher'
-import { Schema, schemaEnum } from './namada-types'
+import { array, u8, variants } from '@hackbg/borshest'
+import type { Fields } from '@hackbg/borshest'
 
 export const InternalAddresses = {
   Governance: "tnam1q5qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrw33g6"
@@ -17,11 +17,11 @@ export type Address =
   | { Implicit:    number[] }
   | { Internal:    {} }
 
-export const addressSchema = Schema.Array(Schema.u8, 21)
+export const addr = array(21, u8)
 
-const twentyBytesSchema = Schema.Array(Schema.u8, 20)
+const twentyBytesSchema = array(20, u8)
 
-const rawAddressSchema = schemaEnum([
+const rawAddressSchema = variants(...[
   'Implicit',                    // 0 // FIXME: switched around
   'Established',                 // 1 // FIXME: switched around
   'Internal_PoS',                // 2
@@ -37,7 +37,7 @@ const rawAddressSchema = schemaEnum([
   'Internal_Nut',                // 12
   'Internal_IbcToken',           // 13
   'Internal_Masp',               // 14
-].map(variant=>[variant, twentyBytesSchema]))
+].map(variant=>[variant, twentyBytesSchema]) as Fields)
 
 export const decodeAddress = (address: number[]|Uint8Array) => {
   if (!(
@@ -61,7 +61,7 @@ export const decodeAddress = (address: number[]|Uint8Array) => {
   //if (Object.keys(address).length !== 1) {
     //throw new Core.Error("address variant must have exactly 1 key")
   //}
-  //return Core.bech32m.encode('tnam', Core.bech32m.toWords(Borsher.borshSerialize(addressSchema, address)))
+  //return Core.bech32m.encode('tnam', Core.bech32m.toWords(Borsher.borshSerialize(addr, address)))
 //}
 
 export function decodeAddressFields <T> (object: T, fields: (keyof T)[]) {
@@ -79,11 +79,11 @@ export function decodeAddressFields <T> (object: T, fields: (keyof T)[]) {
   //if (Object.keys(address).length !== 1) {
     //throw new Core.Error("address variant must have exactly 1 key")
   //}
-  //return Core.bech32m.encode('tnam', Core.bech32m.toWords(Borsher.borshSerialize(addressSchema, address)))
+  //return Core.bech32m.encode('tnam', Core.bech32m.toWords(Borsher.borshSerialize(addr, address)))
 //}
 
 
-//export const addressSchema = schemaEnum([
+//export const addr = schemaEnum([
   //'Implicit',                    // 0 // FIXME: switched around
   //'Established',                 // 1 // FIXME: switched around
   //'Internal_PoS',                // 2

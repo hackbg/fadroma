@@ -1,7 +1,7 @@
 import { Core } from '@fadroma/agent'
 import type { Address } from '@fadroma/agent'
 import type { Address as NamadaAddress } from './namada-address'
-import { addressSchema, InternalAddresses, decodeAddressFields } from './namada-address'
+import { addr, InternalAddresses, decodeAddressFields } from './namada-address'
 import {
   decode, Struct,
   map, set, vec, option, struct, variants, u256, u64, string, unit
@@ -57,7 +57,7 @@ const addRemove = t => variants(
 
 const pgfTarget = variants(
   ["Internal",    struct(
-    ["target",    addressSchema],
+    ["target",    addr],
     ["amount",    u256],
   )],
   ["Ibc",         struct(
@@ -71,10 +71,10 @@ const pgfTarget = variants(
 export class Proposal extends Struct(
   ["id",               u64],
   ["content",          map(string, string)],
-  ["author",           addressSchema],
+  ["author",           addr],
   ["type",             variants(
     ["Default",        option(string)],
-    ["PGFSteward",     set(addRemove(addressSchema))],
+    ["PGFSteward",     set(addRemove(addr))],
     ["PGFPayment",     set(variants(
       ["Continuous",   addRemove(pgfTarget)],
       ["Retro",        pgfTarget],
@@ -140,8 +140,8 @@ const voteValueSchema = variants(
 )
 
 const voteSchema = struct(
-  ["validator", addressSchema],
-  ["delegator", addressSchema],
+  ["validator", addr],
+  ["delegator", addr],
   ["data",      voteValueSchema],
 )
 
@@ -207,8 +207,8 @@ export class InitProposal extends Struct() {
 export class VoteProposal extends Struct(
   ['id',          u64],
   ['vote',        voteValueSchema],
-  ['voter',       addressSchema],
-  ['delegations', vec(addressSchema)]
+  ['voter',       addr],
+  ['delegations', vec(addr)]
 ) {
   declare id: bigint
   declare vote

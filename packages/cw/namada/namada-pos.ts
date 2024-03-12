@@ -1,14 +1,8 @@
 import * as Borsher from 'borsher'
 import type { Address } from '@fadroma/agent'
 import { Core } from '@fadroma/agent'
-import { addressSchema, InternalAddresses, decodeAddress } from './namada-address'
+import { addr, InternalAddresses, decodeAddress } from './namada-address'
 import type { Address as NamadaAddress } from './namada-address'
-import {
-  Schema,
-  i256Schema,
-  decodeU256,
-  decodeU256Fields
-} from './namada-types'
 import type { NamadaConnection } from './namada-connection'
 import * as Staking from '../cw-staking'
 import {
@@ -42,10 +36,10 @@ const ownedPosParamsFields: Array<[string, AnyField]> = [
   ["rewardsGainD",                  u256],
 ]
 
-export class PosParams extends Struct([
-  ["owned", struct(...ownedPosParamsFields)],
+export class PosParams extends Struct(
+  ["owned",             struct(...ownedPosParamsFields)],
   ["maxProposalPeriod", u64],
-]) {
+) {
   declare maxProposalPeriod: bigint
   declare owned:             OwnedPosParams
   constructor (data) {
@@ -56,7 +50,7 @@ export class PosParams extends Struct([
   }
 }
 
-class OwnedPosParams extends Struct(ownedPosParamsFields) {
+class OwnedPosParams extends Struct(...ownedPosParamsFields) {
   maxValidatorSlots!:             bigint
   pipelineLen!:                   bigint
   unbondingLen!:                  bigint
@@ -137,7 +131,7 @@ export class NamadaValidator extends Staking.Validator {
       connection.abciQuery(`/vp/pos/validator/state/${this.namadaAddress}`)
         .then(binary => this.state      = decode(stateSchema, binary)),
       connection.abciQuery(`/vp/pos/validator/stake/${this.namadaAddress}`)
-        .then(binary => this.stake      = decodeU256(decode(stakeSchema, binary))),
+        .then(binary => this.stake      = decode(stakeSchema, binary)),
     ]
     if (this.namadaAddress && !this.publicKey) {
       requests.push(connection.abciQuery(`/vp/pos/validator/consensus_key/${this.namadaAddress}`)
@@ -174,7 +168,7 @@ export async function getValidatorAddresses (connection: NamadaConnection): Prom
     .map(bytes=>decodeAddress(bytes))
 }
 
-const getValidatorsSchema = set(addressSchema)
+const getValidatorsSchema = set(addr)
 
 export async function getValidatorsConsensus (connection: NamadaConnection) {
   const binary = await connection.abciQuery("/vp/pos/validator_set/consensus")
@@ -204,7 +198,7 @@ export async function getValidatorsBelowCapacity (connection: NamadaConnection) 
 
 const validatorSetMemberFields: Array<[string, AnyField]> = [
   ["bonded_stake", u256],
-  ["address",      addressSchema],
+  ["address",      addr],
 ]
 
 const validatorSetSchema = set(struct(...validatorSetMemberFields))
@@ -259,17 +253,17 @@ const stateSchema = option(variants(
 
 const stakeSchema = option(u256)
 
-const publicKeySchema = option(variants(
+const pubkey = option(variants(
   ['Ed25519',   array(32, u8)],
   ['Secp256k1', array(33, u8)],
 ))
 
 export class BecomeValidator extends Struct(
-  ["address",                    addressSchema],
-  ["consensus_key",              publicKeySchema],
-  ["eth_cold_key",               publicKeySchema],
-  ["eth_hot_key",                publicKeySchema],
-  ["protocol_key",               publicKeySchema],
+  ["address",                    addr],
+  ["consensus_key",              pubkey],
+  ["eth_cold_key",               pubkey],
+  ["eth_hot_key",                pubkey],
+  ["protocol_key",               pubkey],
   ["commission_rate",            u256],
   ["max_commission_rate_change", u256],
   ["email",                      string],
@@ -293,9 +287,9 @@ export class BecomeValidator extends Struct(
 }
 
 export class Bond extends Struct(
-  ["validator", addressSchema],
+  ["validator", addr],
   ["amount",    u256],
-  ["source",    option(addressSchema)],
+  ["source",    option(addr)],
 ) {
   validator: Address
   amount:    bigint
@@ -303,31 +297,31 @@ export class Bond extends Struct(
 }
 
 export class ClaimRewards extends Struct(
-  ["validator", addressSchema],
-  ["source",    option(addressSchema)],
+  ["validator", addr],
+  ["source",    option(addr)],
 ) {
   validator: Address
   source:    null|Address
 }
 
 export class ConsensusKeyChange extends Struct(
-  ["validator",     addressSchema],
-  ["consensus_key", publicKeySchema],
+  ["validator",     addr],
+  ["consensus_key", pubkey],
 ) {
   validator:     Address
   consensusKey:  unknown
 }
 
 export class CommissionChange extends Struct(
-  ["validator", addressSchema],
-  ["new_rate",  i256Schema],
+  ["validator", addr],
+  ["new_rate",  i256],
 ) {
   validator: Address
   newRate:   bigint
 }
 
 export class MetaDataChange extends Struct(
-  ["validator",       addressSchema],
+  ["validator",       addr],
   ["email",           option(string)],
   ["description",     option(string)],
   ["website",         option(string)],
@@ -345,10 +339,10 @@ export class MetaDataChange extends Struct(
 }
 
 export class Redelegation extends Struct(
-  ["src_validator",  addressSchema],
-  ["dest_validator", addressSchema],
-  ["owner",          addressSchema],
-  ["amount",         i256Schema],
+  ["src_validator",  addr],
+  ["dest_validator", addr],
+  ["owner",          addr],
+  ["amount",         i256],
 ) {
   srcValidator:   Address
   destValidator:  Address
@@ -359,8 +353,8 @@ export class Redelegation extends Struct(
 export class Unbond extends Struct() {}
 
 export class Withdraw extends Struct(
-  ["validator", addressSchema],
-  ["source",    option(addressSchema)],
+  ["validator", addr],
+  ["source",    option(addr)],
 ) {
   validator: Address
   source:    null|Address

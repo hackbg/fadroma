@@ -4,10 +4,11 @@ import {
   bool
 } from '@hackbg/borshest'
 import type { Fields } from '@hackbg/borshest'
+import { addr } from './namada-address'
 
 const hashSchema = array(32, u8)
 
-const publicKeySchema = variants(
+export const pubkey = variants(
   ['Ed25519',   array(32, u8)],
   ['Secp256k1', array(33, u8)],
 )
@@ -18,16 +19,16 @@ export const wrapperTransactionFields: Fields = [
       ["amount",          u256],
       ["denomination",    u8],
     )],
-    ["token",             addressSchema],
+    ["token",             addr],
   )],
-  ["pk",                  publicKeySchema],
+  ["pk",                  pubkey],
   ["epoch",               u64],
   ["gasLimit",            u64],
   ["unshieldSectionHash", option(hashSchema)],
 ]
 
 export const protocolTransactionFields: Fields = [
-  ["pk",                   publicKeySchema],
+  ["pk",                   pubkey],
   ["tx",                   variants(
     ['EthereumEvents',     unit],
     ['BridgePool',         unit],
@@ -180,8 +181,8 @@ export class SignatureSection extends Section {
 export const signatureSectionFields: Fields = [
   ["targets",     vec(hashSchema)],
   ["signer",      variants(
-    ['Address',   addressSchema],
-    ['PubKeys',   vec(publicKeySchema)],
+    ['Address',   addr],
+    ['PubKeys',   vec(pubkey)],
   )],
   ["signatures",  map(u8, variants(
     ['Ed25519',   array(64, u8)],
@@ -315,7 +316,7 @@ const merklePathSchema = struct(
 export const maspBuilderSectionFields: Fields = [
   ["hash",                     hashSchema],
   ["asset_types",              set(struct(
-    ["token",                  addressSchema],
+    ["token",                  addr],
     ["denomination",           u8],
     ["position",               variants(
       ["Zero",                 unit],
