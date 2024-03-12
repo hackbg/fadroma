@@ -546,6 +546,18 @@ importers:
         specifier: workspace:*
         version: link:../agent
 
+  packages/namada:
+    dependencies:
+      '@fadroma/cw':
+        specifier: workspace:*
+        version: link:../cw
+      '@hackbg/borshest':
+        specifier: workspace:*
+        version: link:../../toolbox/borshest
+      '@hackbg/cmds':
+        specifier: workspace:*
+        version: link:../../toolbox/cmds
+
   packages/oci:
     dependencies:
       '@fadroma/agent':

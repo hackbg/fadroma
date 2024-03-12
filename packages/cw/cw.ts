@@ -33,6 +33,8 @@ export {
   encodeSecp256k1Signature
 } from './cw-identity'
 export * from './cw-chains'
+export * as Staking from './cw-staking'
+export { Core }
 
 export default class CWCLI extends CLI {
 

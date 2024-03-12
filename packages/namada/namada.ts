@@ -1,7 +1,6 @@
 import CLI from '@hackbg/cmds'
 import { Core } from '@fadroma/agent'
 import { brailleDump } from '@hackbg/dump'
-import { CWConnection, CWBatch } from '@fadroma/cw'
 import { NamadaConnection } from './namada-connection'
 import { NamadaMnemonicIdentity } from './namada-identity'
 import {
@@ -11,7 +10,7 @@ import {
   NamadaDecryptedTransaction,
   NamadaProtocolTransaction
 } from './namada-tx'
-
+export { connect } from './namada-connection'
 export {
   NamadaCLI                  as CLI,
   NamadaConnection           as Connection,

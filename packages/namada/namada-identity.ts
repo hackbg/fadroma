@@ -1,4 +1,4 @@
-import { CWMnemonicIdentity } from '../cw-identity'
+import * as CW from '@fadroma/cw'
 
 const defaults = {
   coinType:       118,
@@ -6,8 +6,8 @@ const defaults = {
   hdAccountIndex: 0,
 }
 
-export class NamadaMnemonicIdentity extends CWMnemonicIdentity {
-  constructor (properties?: { mnemonic?: string } & Partial<CWMnemonicIdentity>) {
+export class NamadaMnemonicIdentity extends CW.MnemonicIdentity {
+  constructor (properties?: { mnemonic?: string } & Partial<CW.MnemonicIdentity>) {
     super({ ...defaults, ...properties||{} })
   }
 }

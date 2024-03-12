@@ -1,5 +1,7 @@
-import type { Address } from '@fadroma/agent'
-import { CWConnection } from '../cw-connection'
+import * as CW from '@fadroma/cw'
+//import * as WASM from './pkg/fadroma_namada.js'
+//console.log({WASM})
+import init, { Decode } from './pkg/fadroma_namada.js'
 import {
   getTotalStaked,
   getStakingParameters,
@@ -25,7 +27,21 @@ import {
   isPGFSteward
 } from "./namada-pgf"
 
-export class NamadaConnection extends CWConnection {
+export async function connect (optionsWithDecoder: ConstructorParameters<typeof NamadaConnection>[0] & {
+  decoder: string|URL|Uint8Array
+}) {
+  let { decoder, ...options } = optionsWithDecoder
+  if (decoder instanceof Uint8Array) {
+    await init(decoder)
+  } else if (decoder) {
+    await init(await fetch(decoder))
+  }
+  return new NamadaConnection(options)
+}
+
+export class NamadaConnection extends CW.Connection {
+
+  decode = Decode
 
   getPGFParameters () {
     return getPGFParameters(this)
@@ -39,7 +55,7 @@ export class NamadaConnection extends CWConnection {
     return getPGFFundings(this)
   }
 
-  isPGFSteward (address: Address) {
+  isPGFSteward (address: CW.Core.Address) {
     return isPGFSteward(this)
   }
 
@@ -68,7 +84,7 @@ export class NamadaConnection extends CWConnection {
     return getValidatorsBelowCapacity(this)
   }
 
-  getValidator (address: Address) {
+  getValidator (address: CW.Core.Address) {
     return getValidator(this, address)
   }
 
@@ -92,7 +108,7 @@ export class NamadaConnection extends CWConnection {
     return getTotalStaked(this)
   }
 
-  getValidatorStake(address: Address) {
+  getValidatorStake(address: CW.Core.Address) {
     return getValidatorStake(this, address)
   }
 }

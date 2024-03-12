@@ -12,7 +12,8 @@
   "description": "Client library for Namada with WASM SDK",
   "dependencies": {
     "@fadroma/cw":  "workspace:*",
-    "@hackbg/cmds": "workspace:*"
+    "@hackbg/cmds": "workspace:*",
+    "@hackbg/borshest": "workspace:*"
   },
   "scripts": {
     "check":  "time tsc --noEmit",
