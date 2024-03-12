@@ -1,6 +1,6 @@
 extern crate wasm_bindgen;
 use wasm_bindgen::prelude::*;
-use js_sys::{Uint8Array, JsString, Error, Object, Array, Reflect, BigInt, NULL};
+use js_sys::{Uint8Array, JsString, Error, Object, Array, Reflect, BigInt, Set};
 
 use masp_primitives::consensus::BranchId;
 use masp_primitives::transaction::Transaction;
@@ -12,7 +12,8 @@ use namada::governance::parameters::GovernanceParameters;
 use namada::storage::KeySeg;
 use namada::string_encoding::Format;
 use namada::tx::data::TxType;
-use namada::tx::{Tx, Section};
+use namada::tx::{Tx, Section, Signer};
+use namada::token::MaspDigitPos;
 
 #[wasm_bindgen]
 pub struct Decode;
@@ -51,23 +52,27 @@ impl Decode {
         for section_data in tx.sections.iter() {
             let section = Object::new();
             match section_data {
+
                 Section::Data(data) => populate(&section, &[
                     ("type".into(), "Data".into()),
                     ("salt".into(), hex::encode_upper(data.salt).into()),
                     ("data".into(), hex::encode_upper(data.data).into()),
                 ]),
+
                 Section::ExtraData(code) => populate(&section, &[
                     ("type".into(), "ExtraData".into()),
                     ("salt".into(), hex::encode_upper(code.salt).into()),
                     ("code".into(), hex::encode_upper(code.code.hash().0).into()),
                     ("tag".into(),  code.tag.into()),
                 ]),
+
                 Section::Code(code) => populate(&section, &[
                     ("type".into(), "Code".into()),
                     ("salt".into(), hex::encode_upper(code.salt).into()),
                     ("code".into(), hex::encode_upper(code.code.hash().0).into()),
                     ("tag".into(),  code.tag.into()),
                 ]),
+
                 Section::Signature(signature) => populate(&section, &[
                     ("type".into(), "Signature".into()),
                     ("targets".into(), {
@@ -79,16 +84,16 @@ impl Decode {
                     }.into()),
                     ("signer".into(), match signature.signer {
                         Signer::Address(address) => {
-                            address.encode()
+                            address.encode().into()
                         },
                         Signer::PubKeys(pubkeys) => {
                             let output = Array::new();
                             for pubkey in pubkeys.iter() {
                                 output.push(&format!("{pubkey}").into());
                             }
-                            output
+                            output.into()
                         },
-                    }.into()),
+                    }),
                     ("signatures".into(), {
                         let output = Object::new();
                         for (key, value) in signature.signatures.iter() {
@@ -97,55 +102,133 @@ impl Decode {
                         output
                     }.into()),
                 ]),
+
                 Section::Ciphertext(ciphertext) => populate(&section, &[
                     ("type".into(), "Ciphertext".into()),
                 ]),
+
                 Section::MaspTx(transaction) => populate(&section, &[
-                    ("type".into(),                "MaspTx".into()),
-                    ("txid".into(),                format!("{}", transaction.txid()).into()),
-                    //("version".into(),             match transaction.version() {
-                        //TxVersion::MASPv5 => "MASPv5"
-                    //}.into()),
-                    //("consensusBranchId".into(),   match transaction.consensus_branch_id() {
-                        //BranchID::MASP => "MASP"
-                    //}.into()),
-                    ("lockTime".into(),            transaction.lock_time().into()),
-                    ("expiryHeight".into(),        format!("{}", transaction.expiry_height()).into()),
-                    ("transparentBundle".into(),   if let Some(bundle_data) = transaction.transparent_bundle() {
-                        let vin = Array::new();
-                        for tx_data in bundle_data.vin.iter() {
-                            vin.push(&object(&[
-                                ("assetType".into(), format!("{}", tx_data.asset_type).into()),
-                                ("value".into(),     *BigInt::from(tx_data.value).as_ref()),
-                                ("address".into(),   hex::encode_upper(tx_data.address.0).into()),
-                            ])?.into());
-                        }
-                        let vout = Array::new();
-                        for tx_data in bundle_data.vout.iter() {
-                            vout.push(&object(&[
-                                ("assetType".into(), format!("{}", tx_data.asset_type).into()),
-                                ("value".into(),     *BigInt::from(tx_data.value).as_ref()),
-                                ("address".into(),   hex::encode_upper(tx_data.address.0).into()),
-                            ])?.into());
-                        }
-                        object(&[
-                            ("vin".into(),  vin.into()),
-                            ("vout".into(), vout.into()),
-                        ])?.into()
-                    } else {
-                        NULL
-                    }),
-                    ("saplingBundle".into(),       transaction.sapling_bundle().into()),
-                    ("digest".into(),              transaction.digest().into()),
-                    ("saplingValueBalance".into(), transaction.sapling_value_balance().into()),
+                    ("type".into(),
+                        "MaspTx".into()),
+                    ("txid".into(),
+                        format!("{}", transaction.txid()).into()),
+                    //("version".into(),
+                        //match transaction.version() {
+                            //TxVersion::MASPv5 => "MASPv5"
+                        //}.into()),
+                    //("consensusBranchId".into(),
+                        //match transaction.consensus_branch_id() {
+                            //BranchID::MASP => "MASP"
+                        //}.into()),
+                    ("lockTime".into(),
+                        transaction.lock_time().into()),
+                    ("expiryHeight".into(),
+                        format!("{}", transaction.expiry_height()).into()),
+                    ("transparentBundle".into(),
+                        if let Some(bundle_data) = transaction.transparent_bundle() {
+                            let vin = Array::new();
+                            for tx_data in bundle_data.vin.iter() {
+                                vin.push(&object(&[
+                                    ("assetType".into(), format!("{}", tx_data.asset_type).into()),
+                                    ("value".into(),     *BigInt::from(tx_data.value).as_ref()),
+                                    ("address".into(),   hex::encode_upper(tx_data.address.0).into()),
+                                ])?.into());
+                            }
+                            let vout = Array::new();
+                            for tx_data in bundle_data.vout.iter() {
+                                vout.push(&object(&[
+                                    ("assetType".into(), format!("{}", tx_data.asset_type).into()),
+                                    ("value".into(),     *BigInt::from(tx_data.value).as_ref()),
+                                    ("address".into(),   hex::encode_upper(tx_data.address.0).into()),
+                                ])?.into());
+                            }
+                            object(&[
+                                ("vin".into(),  vin.into()),
+                                ("vout".into(), vout.into()),
+                            ])?.into()
+                        } else {
+                            JsValue::NULL
+                        }),
+                    ("saplingBundle".into(),
+                        if let Some(bundle_data) = transaction.sapling_bundle() {
+                            let shielded_spends = Array::new();
+                            for spend in bundle_data.shielded_spends.iter() {
+                                shielded_spends.push(&object(&[
+                                    ("cv".into(),           spend.cv.into()),
+                                    ("anchor".into(),       spend.anchor.into()),
+                                    ("nullifier".into(),    spend.nullifier.into()),
+                                    ("rk".into(),           spend.rk.into()),
+                                    ("zkproof".into(),      spend.zkproof.into()),
+                                    ("spendAuthSig".into(), spend.spend_auth_sig.into()),
+                                ])?.into());
+                            }
+                            let shielded_converts = Array::new();
+                            for convert in bundle_data.shielded_converts.iter() {
+                                shielded_converts.push(&object(&[
+                                    ("cv".into(),           convert.cv.into()),
+                                    ("anchor".into(),       convert.anchor.into()),
+                                    ("zkproof".into(),      convert.zkproof.into()),
+                                ])?.into());
+                            }
+                            let shielded_outputs = Array::new();
+                            for output in bundle_data.shielded_outputs.iter() {
+                                shielded_outputs.push(&object(&[
+                                    ("cv".into(),            output.cv.into()),
+                                    ("cmu".into(),           output.cmu.into()),
+                                    ("ephemeralKey".into(),  output.ephemeral_key.into()),
+                                    ("encCiphertext".into(), output.enc_ciphertext.into()),
+                                    ("outCiphertext".into(), output.out_ciphertext.into()),
+                                    ("zkproof".into(),       output.zkproof.into()),
+                                ])?.into());
+                            }
+                            let value_balance = Object::new();
+                            for (asset_type, value) in bundle_data.value_balance.0.iter() {
+                                Reflect::set(
+                                    &value_balance,
+                                    &hex::encode_upper(asset_type.get_identifier()).into(),
+                                    &BigInt::from(*value).into()
+                                )?;
+                            }
+                            object(&[
+                                ("shieldedSpends".into(),   shielded_spends.into()),
+                                ("shieldedConverts".into(), shielded_converts.into()),
+                                ("shieldedOutputs".into(),  shielded_outputs.into()),
+                                ("valueBalance".into(),     value_balance.into()),
+                            ])?.into()
+                        } else {
+                            JsValue::NULL
+                        }),
                 ]),
+
                 Section::MaspBuilder(masp_builder) => populate(&section, &[
                     ("type".into(),        "MaspBuilder".into()),
-                    ("target".into(),      masp_builder.hash.into()),
-                    ("asset_types".into(), masp_builder.asset_types.into()),
-                    ("metadata".into(),    masp_builder.metadata.into()),
-                    ("builder".into(),     masp_builder.builder.into()),
+                    ("target".into(),      hex::encode_upper(masp_builder.target.0).into()),
+                    ("asset_types".into(), {
+                        let types = Set::new(&JsValue::UNDEFINED);
+                        for asset_type in masp_builder.asset_types.iter() {
+                            let asset = object(&[
+                                ("token".into(),    asset_type.token.encode().into()),
+                                ("denom".into(),    asset_type.denom.0.into()),
+                                ("position".into(), match asset_type.position {
+                                    MaspDigitPos::Zero  => 0u8,
+                                    MaspDigitPos::One   => 1u8,
+                                    MaspDigitPos::Two   => 2u8,
+                                    MaspDigitPos::Three => 3u8,
+                                }.into()),
+                                ("epoch".into(), if let Some(epoch) = asset_type.epoch {
+                                    BigInt::from(epoch.0).into()
+                                } else {
+                                    JsValue::UNDEFINED
+                                }),
+                            ])?;
+                            types.add(&asset.into());
+                        }
+                        types
+                    }.into()),
+                    //("metadata".into(),    masp_builder.metadata.into()),
+                    //("builder".into(),     masp_builder.builder.into()),
                 ]),
+
                 Section::Header(header) => populate(&section, &[
                     ("type".into(),       "Header".into()),
                     ("chain_id".into(),   header.chain_id.as_str().into()),
@@ -161,6 +244,7 @@ impl Decode {
                         TxType::Protocol(_)  => "Protocol",
                     }.into()),
                 ]),
+
             }?;
             sections.push(&section);
         }
