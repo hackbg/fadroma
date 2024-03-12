@@ -1,12 +1,15 @@
 import { Core } from '@fadroma/agent'
 import {
-  variant, array, vec, u8, u32, u64, u256, i128, string, option, variants, unit, struct, map, set,
+  variant, array, vec, zVec, u8, u32, u64, u128, u256, i128, string, option, variants, unit, struct, map, set,
   bool
 } from '@hackbg/borshest'
 import type { Fields } from '@hackbg/borshest'
 import { addr } from './namada-address'
 
 const hashSchema = array(32, u8)
+
+export const toHash = (x: Array<number|bigint>) =>
+  Core.base16.encode(new Uint8Array(x.map(y=>Number(y))))
 
 export const pubkey = variants(
   ['Ed25519',   array(32, u8)],
@@ -63,8 +66,8 @@ export class DataSection extends Section {
   data: Uint8Array
   constructor ({ salt, data }: { salt: number[], data: number[] }) {
     super()
-    this.salt = Core.base16.encode(new Uint8Array(salt))
-    this.data = new Uint8Array(data)
+    this.salt = toHash(salt)
+    this.data = new Uint8Array(salt.map(x=>Number(x)))
   }
   print (console) {
     console
@@ -81,40 +84,40 @@ export const dataSectionFields: Fields = [
 
 export class ExtraDataSection extends Section {
   salt: string
-  data: Uint8Array
+  code: Uint8Array
   tag:  string
-  constructor ({ salt, data, tag }: { salt: number[], data: number[], tag: string }) {
+  constructor ({ salt, code, tag }: { salt: number[], code: number[], tag: string }) {
     super()
-    this.salt = Core.base16.encode(new Uint8Array(salt))
-    this.data = new Uint8Array(data)
+    this.salt = toHash(salt)
+    this.code = new Uint8Array(code)
     this.tag  = tag
   }
   print (console) {
     console
-      .log('   ', Core.bold('Extra data section:'))
+      .log('   ', Core.bold('Extra code section:'))
       .log('    Salt:', Core.bold(this.salt))
-      .log('    Data:', Core.bold(Core.base64.encode(this.data)))
+      .log('    Data:', Core.bold(Core.base64.encode(this.code)))
       .log('    Tag: ', Core.bold(this.tag))
   }
 }
 
 export class CodeSection extends Section {
   salt: string
-  data: Uint8Array
+  code: Uint8Array
   tag:  string
-  constructor ({ salt, data, tag }: { salt: number[], data: number[], tag: string }) {
+  constructor ({ salt, code, tag }: { salt: number[], code: number[], tag: string }) {
     super()
-    this.salt = Core.base16.encode(new Uint8Array(salt))
-    this.data = new Uint8Array(data)
+    this.salt = toHash(salt)
+    this.code = new Uint8Array(code)
     this.tag  = tag
   }
   print (console) {
     console
       .log('   ', Core.bold('Code section:'))
       .log('    Salt:', Core.bold(this.salt))
-    if (this.data.length > 0) {
+    if (this.code.length > 0) {
       console
-        .log('    Data:', Core.base64.encode(this.data))
+        .log('    Data:', Core.base64.encode(this.code))
     }
     console
       .log('    Tag: ', Core.bold(this.tag))
@@ -138,7 +141,7 @@ export class SignatureSection extends Section {
     { targets, signer, signatures }: { targets: any[], signer: any, signatures: any[] }
   ) {
     super()
-    this.targets    = targets.map(target=>Core.base16.encode(new Uint8Array(target)))
+    this.targets    = targets.map(target=>toHash(target))
     this.signer     = signer
     this.signatures = signatures
   }
@@ -211,19 +214,141 @@ const assetTypeSchema = struct(
   ['identifier', array(32, u8)],
 )
 
-const transferTxSchema = struct(
-  ['asset_type', assetTypeSchema],
-  ['value',      u64],
-  ['address',    array(20, u8)]
+const transferTx = {
+  encode () {
+    throw new Error('encode transferTx: not implemented')
+  },
+  decode (buffer) {
+    const assetType = array(32, u8).decode(buffer)
+    const value     = array(8,  u8).decode(buffer)
+    const address   = array(20, u8).decode(buffer)
+    return { assetType, value, address }
+  }
+}
+
+const spend_v5 = {
+  encode () {
+    throw new Error('spend_v5: encode: not implemented')
+  },
+  decode (buffer) {
+    const cv        = array(32, u8).decode(buffer)
+    const nullifier = array(32, u8).decode(buffer)
+    const rk        = array(32, u8).decode(buffer)
+    return { cv, nullifier, rk }
+  }
+}
+
+const convert_v5 = {
+  encode () {
+    throw new Error('convert_v5: encode: not implemented')
+  },
+  decode (buffer) {
+    const cv = array(32, u8).decode(buffer)
+    return { cv }
+  }
+}
+
+const output_v5 = {
+  encode () {
+    throw new Error('output_v5: encode: not implemented')
+  },
+  decode (buffer) {
+    const cv            = array(32,  u8).decode(buffer)
+    const cmu           = array(32,  u8).decode(buffer)
+    const ephemeralKey  = array(32,  u8).decode(buffer)
+    const encCiphertext = array(612, u8).decode(buffer)
+    const outCiphertext = array(80,  u8).decode(buffer)
+    return { cv, cmu, ephemeralKey, encCiphertext, outCiphertext }
+  }
+}
+
+const saplingBase = array(32, u8)
+
+const zkproof = array(192, u8)
+
+const signature = struct(
+  ['rbar', array(32, u8)],
+  ['sbar', array(32, u8)],
 )
 
+export const maspTxSection = {
+  encode () {
+    throw new Error('maspTxSection: encode: not implemented')
+  },
+  decode (buffer) {
+    console.log({maspTxSection:buffer.buffer})
+    const data = {}
+    console.debug('Reading version')
+    const version           = array(2, u32).decode(buffer)
+    console.debug('Reading consensusBranchId')
+    const consensusBranchId = u32.decode(buffer)
+    console.debug('Reading lockTime')
+    const lockTime          = u32.decode(buffer)
+    console.debug('Reading expiryHeight')
+    const expiryHeight      = u32.decode(buffer)
+    console.debug('Reading transparentVin')
+    const transparentVin    = zVec(transferTx).decode(buffer)
+    console.debug('Reading transparentVout')
+    const transparentVout   = zVec(transferTx).decode(buffer)
+    console.debug('Reading spends')
+    const spends            = zVec(spend_v5).decode(buffer)
+    console.debug('Reading converts')
+    const converts          = zVec(convert_v5).decode(buffer)
+    console.debug('Reading outputs')
+    const outputs           = zVec(output_v5).decode(buffer)
+    console.debug('Reading balance')
+    const balance           = ((spends.length > 0) || (outputs.length > 0)) 
+                            ? i128sum.decode(buffer)
+                            : 0n
+    console.debug('Reading spendAnchor')
+    const spendAnchor       = (spends.length > 0)
+                            ? saplingBase.decode(buffer)
+                            : null
+    console.debug('Reading convertAnchor')
+    const convertAnchor     = (spends.length > 0)
+                            ? saplingBase.decode(buffer)
+                            : null
+    console.debug('Reading vSpendProofs')
+    const vSpendProofs      = array(spends.length, zkproof).decode(buffer)
+    console.debug('Reading vSpendAuthSigs')
+    const vSpendAuthSigs    = array(spends.length, signature).decode(buffer)
+    console.debug('Reading vConvertProofs')
+    const vConvertProofs    = array(converts.length, zkproof).decode(buffer)
+    console.debug('Reading vOutputProofs')
+    const vOutputProofs     = array(outputs.length, zkproof).decode(buffer)
+    console.debug('Reading bindingSig')
+    const bindingSig        = ((spends.length > 0) || (outputs.length > 0))
+                            ? signature.decode(buffer)
+                            : null
+    return {
+      version,
+      consensusBranchId,
+      lockTime,
+      expiryHeight,
+      transparentVin,
+      transparentVout,
+      spends,
+      converts,
+      outputs,
+      balance,
+      spendAnchor,
+      convertAnchor,
+      vSpendProofs,
+      vSpendAuthSigs,
+      vConvertProofs,
+      vOutputProofs,
+      bindingSig
+    }
+  }
+}
+
 const transactionDataFields: Fields = [
-  ['version',             array(2, u32)],
-  ['consensus_branch_id', u32],
-  ['lock_time',           u32],
-  ['expiry_height',       u32],
-  ['transparent_vin',     option(vec(transferTxSchema))],
-  ['transparent_vout',    option(vec(transferTxSchema))],
+  ['version',           array(2, u32)],
+  ['consensusBranchId', u32],
+  ['lockTime',          u32],
+  ['expiryHeight',      u32],
+  ['transparentVin',    option(zVec(transferTx))],
+  ['transparentVout',   option(zVec(transferTx))],
   //shielded_spends:     option(vec(struct({
     //cv:                extendedPointSchema,
     //anchor:            array(u64, 4),
@@ -292,10 +417,12 @@ const extendedPointSchema = struct(
   ['t2', array(4, u64)],
 )
 
+const assetType = array(32, u8)
+
+const i128sum = map(assetType, u128)
+
 const noteSchema = struct(
-  ['asset_type',   struct(
-    ['identifier', array(32, u8)],
-  )],
+  ['asset_type',   assetType],
   ['value',        u64],
   ['g_d',          extendedPointSchema],
   ['pk_d',         extendedPointSchema],
@@ -338,9 +465,9 @@ export const maspBuilderSectionFields: Fields = [
     ["expiry_height",          u32],
     ["transparent_builder",    struct(
       ["inputs",               vec(struct(
-        ["coin",               transferTxSchema]
+        ["coin",               transferTx]
       ))],
-      ["vout",                 vec(transferTxSchema)]
+      ["vout",                 vec(transferTx)]
     )],
     ["sapling_builder",        struct(
       ["params",               unit],
@@ -428,13 +555,13 @@ export class MaspBuilderSection extends Section {
 }
 
 export const headerFields: Fields = [
-  ["chain_id",          string],
+  ["chainId",           string],
   ["expiration",        option(string)],
   ["timestamp",         string],
-  ["code_hash",         hashSchema],
-  ["data_hash",         hashSchema],
-  ["memo_hash",         hashSchema],
-  ["tx_type",           variants(
+  ["codeHash",          hashSchema],
+  ["dataHash",          hashSchema],
+  ["memoHash",          hashSchema],
+  ["txType",            variants(
     ['Raw',             unit],
     ['Wrapper',         struct(...wrapperTransactionFields)],
     ['Decrypted',       variants(

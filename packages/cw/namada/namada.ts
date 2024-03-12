@@ -404,18 +404,17 @@ class NamadaCLI extends CLI {
 
   index = this.command({
     name: 'index',
-    info: 'try to decode all transactions from latest block backwards',
-    args: 'RPC_URL'
-  }, async (url: string) => {
+    info: 'try to decode all transactions from latest block (or a given block) backwards',
+    args: 'RPC_URL [BLOCK]'
+  }, async (url: string, height?: number) => {
     if (!url) {
       this.log.error(Core.bold('Pass a RPC URL to query validators.'))
       process.exit(1)
     }
     const connection = new NamadaConnection({ url })
     let block
-    let height
     do {
-      block = await connection.getBlock(height)
+      block = await connection.getBlock(Number(height))
       height = block.header.height
       this.log.log()
         .log('Block:', Core.bold(block.header.height))
@@ -424,10 +423,10 @@ class NamadaCLI extends CLI {
         .log(Core.bold('Transactions:'))
       for (const i in block.txs) {
         //const tx = 
-        console.log(block.txs[i])
+        //console.log(block.txs[i])
         const binary = block.txs[i].slice(3)
-        console.log(Core.brailleDump(binary))
-        const tx = NamadaTransaction.fromBorsh(binary)
+        //console.log(Core.brailleDump(binary))
+        const tx = NamadaTransaction.decode(binary)
         this.log()
         tx.print(this.log)
         if (tx instanceof NamadaDecryptedTransaction) {

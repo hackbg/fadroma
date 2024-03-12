@@ -24,6 +24,7 @@ import {
   VoteProposal
 } from './namada-gov'
 import {
+  toHash,
   pubkey,
   Section,
   CodeSection,
@@ -33,12 +34,14 @@ import {
   dataSectionFields,
   headerFields,
   maspBuilderSectionFields,
+  maspTxSection,
   maspTxSectionFields,
   protocolTransactionFields,
   signatureSectionFields,
   wrapperTransactionFields,
 } from './namada-tx-section'
 import {
+  decode,
   array,
   struct,
   variants,
@@ -58,12 +61,26 @@ import type {
   Fields
 } from '@hackbg/borshest'
 
+const txSchema = struct(
+  ['header',        struct(...headerFields)],
+  ['sections',      vec(variants(
+    ['Data',        struct(...dataSectionFields)],
+    ['ExtraData',   struct(...codeSectionFields)],
+    ['Code',        struct(...codeSectionFields)],
+    ['Signature',   struct(...signatureSectionFields)],
+    ['Ciphertext',  struct(...ciphertextSectionFields)],
+    ['MaspTx',      maspTxSection],
+    ['MaspBuilder', struct(...maspBuilderSectionFields)],
+    ['Header',      struct(...headerFields)]
+  ))]
+)
+
 export class NamadaTransaction {
   static decode = (binary: Uint8Array) => {
-    const { header: { tx_type, ...header }, sections } =
-      Borsher.borshDeserialize(txSchema, binary) as any
-    const [txType, details] = variant(tx_type)
-    switch (txType) {
+    const decoded = decode(txSchema, binary)
+    const { header: { txType, ...header }, sections } = decoded as any
+    const [name, details] = variant(txType)
+    switch (name) {
       case 'Raw':
         return new NamadaRawTransaction(header, details, sections)
       case 'Wrapper':
@@ -74,25 +91,27 @@ export class NamadaTransaction {
         return new NamadaProtocolTransaction(header, details, sections)
     }
     throw new Core.Error(
-      `Unknown transaction variant "${String(txType)}". Valid are: Raw|Wrapper|Decrypted|Protocol`
+      `Unknown transaction variant "${String(name)}". Valid are: Raw|Wrapper|Decrypted|Protocol`
     )
   }
-  chainId!:    string
-  expiration!: string|null
-  timestamp!:  string
-  codeHash!:   string
-  dataHash!:   string
-  memoHash!:   string
-  txType!:     'Raw'|'Wrapper'|'Decrypted'|'Protocol'
-  sections!:   Section[]
+  declare chainId:    string
+  declare expiration: string|null
+  declare timestamp:  string
+  declare codeHash:   string
+  declare dataHash:   string
+  declare memoHash:   string
+  declare txType:     'Raw'|'Wrapper'|'Decrypted'|'Protocol'
+  declare sections:   Section[]
   constructor (header: object, sections: object[]) {
-    const fields = Object.keys(headerFields).filter(key=>key!=='tx_type')
-    Core.assignCamelCase(this, header, fields)
+    for (const [field] of headerFields) {
+      if (field === 'txType') continue
+      this[field] = header[field]
+    }
     for (const field of ['codeHash', 'dataHash', 'memoHash']) {
       if (this[field] instanceof Uint8Array) {
-        this[field] = Core.base16.encode(this[field])
+        this[field] = toHash(this[field])
       } else if (this[field] instanceof Array) {
-        this[field] = Core.base16.encode(new Uint8Array(this[field]))
+        this[field] = toHash(this[field])
       }
     }
     this.sections = sections.map(section=>Section.fromDecoded(section))
@@ -116,20 +135,6 @@ export class NamadaTransaction {
   }
 }
 
-const txSchema = [
-  ['header',        struct(...headerFields)],
-  ['sections',      vec(variants(
-    ['Data',        struct(...dataSectionFields)],
-    ['ExtraData',   struct(...codeSectionFields)],
-    ['Code',        struct(...codeSectionFields)],
-    ['Signature',   struct(...signatureSectionFields)],
-    ['Ciphertext',  struct(...ciphertextSectionFields)],
-    ['MaspTx',      struct(...maspTxSectionFields)],
-    ['MaspBuilder', struct(...maspBuilderSectionFields)],
-    ['Header',      struct(...headerFields)]
-  ))]
-]
-
 export class NamadaRawTransaction extends NamadaTransaction {
   txType = 'Raw' as 'Raw'
   constructor (header: object, details: object, sections: object[]) {
@@ -140,17 +145,17 @@ export class NamadaRawTransaction extends NamadaTransaction {
 
 export class NamadaWrapperTransaction extends NamadaTransaction {
   txType = 'Wrapper' as 'Wrapper'
-  fee:                 {
-    token:             string
-    amountPerGasUnit:  {
-      amount:          bigint,
-      denomination:    number
+  declare fee:                 {
+    token:                     string
+    amountPerGasUnit:          {
+      amount:                  bigint,
+      denomination:            number
     },
   }
-  pk:                  string
-  epoch:               bigint
-  gasLimit:            bigint
-  unshieldSectionHash: string|null
+  declare pk:                  string
+  declare epoch:               bigint
+  declare gasLimit:            bigint
+  declare unshieldSectionHash: string|null
   constructor (header: object, details: object, sections: object[]) {
     super(header, sections)
     Core.assignCamelCase(this, details, wrapperTransactionFields.map(x=>x[0] as string))
@@ -179,6 +184,7 @@ export class NamadaDecryptedTransaction extends NamadaTransaction {
     }
   }
   decodeInner () {
+    return { print () {} }
     if (this.undecryptable) {
       throw new Core.Error('This transaction is marked as undecryptable.')
     }
@@ -199,6 +205,7 @@ export class NamadaDecryptedTransaction extends NamadaTransaction {
         break
       }
     }
+    //console.log('sections', this.sections)
     if (!binary) {
       throw new Core.Error('Could not find a binary data section in this transaction.')
     }
@@ -244,7 +251,8 @@ export class NamadaDecryptedTransaction extends NamadaTransaction {
       case "tx_update_steward_commission.wasm":
         return UpdateStewardCommission.decode(binary)
       case "tx_vote_proposal.wasm":
-        return VoteProposal.decode(binary)
+        return { binary, print (console) { console.log(binary) } }
+        //return VoteProposal.decode(binary)
       case "tx_withdraw.wasm":
         return Withdraw.decode(binary)
       case "vp_implicit.wasm":
