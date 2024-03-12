@@ -1,14 +1,18 @@
 extern crate wasm_bindgen;
 use wasm_bindgen::prelude::*;
-use js_sys::{Uint8Array, JsString, Error, Object, Array, Reflect};
-use namada::address::Address;
-use namada::string_encoding::Format;
-use namada::governance::parameters::GovernanceParameters;
-use namada::tx::{Tx, Section};
-use namada::tx::data::TxType;
+use js_sys::{Uint8Array, JsString, Error, Object, Array, Reflect, BigInt, NULL};
+
+use masp_primitives::consensus::BranchId;
 use masp_primitives::transaction::Transaction;
+use masp_primitives::transaction::TxVersion;
+use namada::address::Address;
 use namada::core::borsh::BorshDeserialize;
+//use namada::core::masp_primitives::TxVersion;
+use namada::governance::parameters::GovernanceParameters;
 use namada::storage::KeySeg;
+use namada::string_encoding::Format;
+use namada::tx::data::TxType;
+use namada::tx::{Tx, Section};
 
 #[wasm_bindgen]
 pub struct Decode;
@@ -98,12 +102,39 @@ impl Decode {
                 ]),
                 Section::MaspTx(transaction) => populate(&section, &[
                     ("type".into(),                "MaspTx".into()),
-                    ("txid".into(),                transaction.txid().into()),
-                    ("version".into(),             transaction.version().into()),
-                    ("consensusBranchId".into(),   transaction.consensus_branch_id().into()),
+                    ("txid".into(),                format!("{}", transaction.txid()).into()),
+                    //("version".into(),             match transaction.version() {
+                        //TxVersion::MASPv5 => "MASPv5"
+                    //}.into()),
+                    //("consensusBranchId".into(),   match transaction.consensus_branch_id() {
+                        //BranchID::MASP => "MASP"
+                    //}.into()),
                     ("lockTime".into(),            transaction.lock_time().into()),
-                    ("expiryHeight".into(),        transaction.expiry_height().into()),
-                    ("transparentBundle".into(),   transaction.transparent_bundle().into()),
+                    ("expiryHeight".into(),        format!("{}", transaction.expiry_height()).into()),
+                    ("transparentBundle".into(),   if let Some(bundle_data) = transaction.transparent_bundle() {
+                        let vin = Array::new();
+                        for tx_data in bundle_data.vin.iter() {
+                            vin.push(&object(&[
+                                ("assetType".into(), format!("{}", tx_data.asset_type).into()),
+                                ("value".into(),     *BigInt::from(tx_data.value).as_ref()),
+                                ("address".into(),   hex::encode_upper(tx_data.address.0).into()),
+                            ])?.into());
+                        }
+                        let vout = Array::new();
+                        for tx_data in bundle_data.vout.iter() {
+                            vout.push(&object(&[
+                                ("assetType".into(), format!("{}", tx_data.asset_type).into()),
+                                ("value".into(),     *BigInt::from(tx_data.value).as_ref()),
+                                ("address".into(),   hex::encode_upper(tx_data.address.0).into()),
+                            ])?.into());
+                        }
+                        object(&[
+                            ("vin".into(),  vin.into()),
+                            ("vout".into(), vout.into()),
+                        ])?.into()
+                    } else {
+                        NULL
+                    }),
                     ("saplingBundle".into(),       transaction.sapling_bundle().into()),
                     ("digest".into(),              transaction.digest().into()),
                     ("saplingValueBalance".into(), transaction.sapling_value_balance().into()),
@@ -145,6 +176,13 @@ fn populate (object: &Object, fields: &[(JsValue, JsValue)]) -> Result<(), Error
         Reflect::set(&object, &key.into(), &val.into())?;
     }
     Ok(())
+}
+
+#[inline]
+fn object (fields: &[(JsValue, JsValue)]) -> Result<Object, Error> {
+    let object = Object::new();
+    populate(&object, fields)?;
+    Ok(object)
 }
 
 #[inline]
