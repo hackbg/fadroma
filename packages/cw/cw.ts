@@ -44,7 +44,6 @@ export default class CWCLI extends CLI {
   archway   = this.commands('archway',   'commands for Archway',   new Chains.Archway.CLI())
   axelar    = this.commands('axelar',    'commands for Axelar',    new Chains.Axelar.CLI())
   injective = this.commands('injective', 'commands for Injective', new Chains.Injective.CLI())
-  namada    = this.commands('namada',    'commands for Namada',    new Chains.Namada.CLI())
   okp4      = this.commands('okp4',      'commands for OKP4',      new Chains.OKP4.CLI())
   osmosis   = this.commands('osmosis',   'commands for Osmosis',   new Chains.Osmosis.CLI())
 

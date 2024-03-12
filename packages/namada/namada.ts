@@ -1,9 +1,7 @@
-import { CLI } from '../cw-base'
+import CLI from '@hackbg/cmds'
 import { Core } from '@fadroma/agent'
-import type { Address } from '@fadroma/agent'
 import { brailleDump } from '@hackbg/dump'
-import { CWConnection } from '../cw-connection'
-import { CWBatch } from '../cw-batch'
+import { CWConnection, CWBatch } from '@fadroma/cw'
 import { NamadaConnection } from './namada-connection'
 import { NamadaMnemonicIdentity } from './namada-identity'
 import {
@@ -48,6 +46,11 @@ export const testnet = (options: Partial<NamadaConnection> = {}): NamadaConnecti
 
 /** Namada CLI commands. */
 class NamadaCLI extends CLI {
+
+  constructor (...args: ConstructorParameters<typeof CLI>) {
+    super(...args)
+    this.log.label = ``
+  }
 
   epoch = this.command({
     name: "epoch",
