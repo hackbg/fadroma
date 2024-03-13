@@ -11,8 +11,8 @@ use namada::core::borsh::BorshDeserialize;
 //use namada::governance::parameters::GovernanceParameters;
 use namada::storage::KeySeg;
 use namada::string_encoding::Format;
+use namada::tx::{Tx, Header, Section, Data, Code, Signature, Signer, MaspBuilder};
 use namada::tx::data::TxType;
-use namada::tx::{Tx, Section, Signer};
 use namada::token::MaspDigitPos;
 use std::fmt::Write;
 use std::io::Cursor;
@@ -35,8 +35,7 @@ impl Decode {
         let tx = Tx::try_from_slice(&to_bytes(&source))
             .map_err(|e|Error::new(&format!("{e}")))?;
         let header = tx.header();
-        let result = Object::new();
-        populate(&result, &[
+        Ok(object(&[
             ("chainId".into(),    header.chain_id.as_str().into()),
             ("expiration".into(), header.expiration.map(|t|t.to_rfc3339()).into()),
             ("timestamp".into(),  header.timestamp.to_rfc3339().into()),
@@ -49,75 +48,36 @@ impl Decode {
                 TxType::Decrypted(_) => "Decrypted",
                 TxType::Protocol(_)  => "Protocol",
             }.into()),
-        ])?;
-        let sections = Array::new();
-        for section_data in tx.sections.iter() {
-            let section = Object::new();
-            match section_data {
+            ("sections".into(),   {
+                let sections = Array::new();
+                for section in tx.sections.iter() {
+                    sections.push(&JsValue::from(Self::tx_section(&section)?));
+                }
+                sections
+            }.into())
+        ])?)
+    }
 
-                Section::Data(data) => populate(&section, &[
-                    ("type".into(), "Data".into()),
-                    ("salt".into(), hex::encode_upper(&data.salt).into()),
-                    ("data".into(), hex::encode_upper(&data.data).into()),
-                ]),
-
-                Section::ExtraData(code) => populate(&section, &[
-                    ("type".into(), "ExtraData".into()),
-                    ("salt".into(), hex::encode_upper(&code.salt).into()),
-                    ("code".into(), hex::encode_upper(&code.code.hash().0).into()),
-                    ("tag".into(),  if let Some(ref tag) = code.tag {
-                        tag.into()
-                    } else {
-                        JsValue::NULL
-                    }),
-                ]),
-
-                Section::Code(code) => populate(&section, &[
-                    ("type".into(), "Code".into()),
-                    ("salt".into(), hex::encode_upper(&code.salt).into()),
-                    ("code".into(), hex::encode_upper(&code.code.hash().0).into()),
-                    ("tag".into(),  if let Some(ref tag) = code.tag {
-                        tag.into()
-                    } else {
-                        JsValue::NULL
-                    }),
-                ]),
-
-                Section::Signature(signature) => populate(&section, &[
-                    ("type".into(), "Signature".into()),
-                    ("targets".into(), {
-                        let targets = Array::new();
-                        for target in signature.targets.iter() {
-                            targets.push(&hex::encode_upper(target.0).into());
-                        }
-                        targets
-                    }.into()),
-                    ("signer".into(), match &signature.signer {
-                        Signer::Address(address) => {
-                            address.encode().into()
-                        },
-                        Signer::PubKeys(pubkeys) => {
-                            let output = Array::new();
-                            for pubkey in pubkeys.iter() {
-                                output.push(&format!("{pubkey}").into());
-                            }
-                            output.into()
-                        },
-                    }),
-                    ("signatures".into(), {
-                        let output = Object::new();
-                        for (key, value) in signature.signatures.iter() {
-                            Reflect::set(&output, &format!("{key}").into(), &format!("{value}").into())?;
-                        }
-                        output
-                    }.into()),
-                ]),
-
-                Section::Ciphertext(ciphertext) => populate(&section, &[
-                    ("type".into(), "Ciphertext".into()),
-                ]),
-
-                Section::MaspTx(transaction) => populate(&section, &[
+    fn tx_section (section_data: &Section) -> Result<Object, Error> {
+        match section_data {
+            Section::Data(data) =>
+                Self::tx_section_data(data),
+            Section::ExtraData(code) =>
+                Self::tx_section_extra_data(code),
+            Section::Code(code) =>
+                Self::tx_section_code(code),
+            Section::Signature(signature) =>
+                Self::tx_section_signature(signature),
+            Section::Ciphertext(_) =>
+                Self::tx_section_ciphertext(()),
+            Section::MaspBuilder(masp_builder) =>
+                Self::tx_section_masp_builder(masp_builder),
+            Section::Header(header) =>
+                Self::tx_section_header(header),
+            // FIXME: Can't name the Transaction type to factor out
+            // the following code into a separate function:
+            Section::MaspTx(transaction) =>
+                object(&[
                     ("type".into(),
                         "MaspTx".into()),
                     ("txid".into(),
@@ -209,57 +169,130 @@ impl Decode {
                             JsValue::NULL
                         }),
                 ]),
-
-                Section::MaspBuilder(masp_builder) => populate(&section, &[
-                    ("type".into(),        "MaspBuilder".into()),
-                    ("target".into(),      hex::encode_upper(masp_builder.target.0).into()),
-                    ("asset_types".into(), {
-                        let types = Set::new(&JsValue::UNDEFINED);
-                        for asset_type in masp_builder.asset_types.iter() {
-                            let asset = object(&[
-                                ("token".into(),    asset_type.token.encode().into()),
-                                ("denom".into(),    asset_type.denom.0.into()),
-                                ("position".into(), match asset_type.position {
-                                    MaspDigitPos::Zero  => 0u8,
-                                    MaspDigitPos::One   => 1u8,
-                                    MaspDigitPos::Two   => 2u8,
-                                    MaspDigitPos::Three => 3u8,
-                                }.into()),
-                                ("epoch".into(), if let Some(epoch) = asset_type.epoch {
-                                    BigInt::from(epoch.0).into()
-                                } else {
-                                    JsValue::UNDEFINED
-                                }),
-                            ])?;
-                            types.add(&asset.into());
-                        }
-                        types
-                    }.into()),
-                    //("metadata".into(),    masp_builder.metadata.into()),
-                    //("builder".into(),     masp_builder.builder.into()),
-                ]),
-
-                Section::Header(header) => populate(&section, &[
-                    ("type".into(),       "Header".into()),
-                    ("chain_id".into(),   header.chain_id.as_str().into()),
-                    ("expiration".into(), header.expiration.map(|t|t.to_rfc3339()).into()),
-                    ("timestamp".into(),  header.timestamp.to_rfc3339().into()),
-                    ("codeHash".into(),   header.code_hash.raw().into()),
-                    ("dataHash".into(),   header.data_hash.raw().into()),
-                    ("memoHash".into(),   header.memo_hash.raw().into()),
-                    ("txType".into(),     match header.tx_type {
-                        TxType::Raw          => "Raw",
-                        TxType::Wrapper(_)   => "Wrapper",
-                        TxType::Decrypted(_) => "Decrypted",
-                        TxType::Protocol(_)  => "Protocol",
-                    }.into()),
-                ]),
-
-            }?;
-            sections.push(&section);
         }
-        Reflect::set(&result, &"sections".into(), &sections.into());
-        Ok(result)
+    }
+
+    fn tx_section_data (data: &Data) -> Result<Object, Error> {
+        object(&[
+            ("type".into(), "Data".into()),
+            ("salt".into(), hex::encode_upper(&data.salt).into()),
+            ("data".into(), hex::encode_upper(&data.data).into()),
+        ])
+    }
+
+    fn tx_section_extra_data (code: &Code) -> Result<Object, Error> {
+        object(&[
+            ("type".into(), "ExtraData".into()),
+            ("salt".into(), hex::encode_upper(&code.salt).into()),
+            ("code".into(), hex::encode_upper(&code.code.hash().0).into()),
+            ("tag".into(),  if let Some(ref tag) = code.tag {
+                tag.into()
+            } else {
+                JsValue::NULL
+            }),
+        ])
+    }
+
+    fn tx_section_code (code: &Code) -> Result<Object, Error> {
+        object(&[
+            ("type".into(), "Code".into()),
+            ("salt".into(), hex::encode_upper(&code.salt).into()),
+            ("code".into(), hex::encode_upper(&code.code.hash().0).into()),
+            ("tag".into(),  if let Some(ref tag) = code.tag {
+                tag.into()
+            } else {
+                JsValue::NULL
+            }),
+        ])
+    }
+
+    fn tx_section_signature (signature: &Signature) -> Result<Object, Error> {
+        object(&[
+            ("type".into(), "Signature".into()),
+            ("targets".into(), {
+                let targets = Array::new();
+                for target in signature.targets.iter() {
+                    targets.push(&hex::encode_upper(target.0).into());
+                }
+                targets
+            }.into()),
+            ("signer".into(), match &signature.signer {
+                Signer::Address(address) => {
+                    address.encode().into()
+                },
+                Signer::PubKeys(pubkeys) => {
+                    let output = Array::new();
+                    for pubkey in pubkeys.iter() {
+                        output.push(&format!("{pubkey}").into());
+                    }
+                    output.into()
+                },
+            }),
+            ("signatures".into(), {
+                let output = Object::new();
+                for (key, value) in signature.signatures.iter() {
+                    Reflect::set(&output, &format!("{key}").into(), &format!("{value}").into())?;
+                }
+                output
+            }.into()),
+        ])
+    }
+
+    fn tx_section_ciphertext (ciphertext: ()) -> Result<Object, Error> {
+        object(&[
+            ("type".into(), "Ciphertext".into()),
+        ])
+    }
+
+    fn tx_section_masp_builder (masp_builder: &MaspBuilder) -> Result<Object, Error> {
+        object(&[
+            ("type".into(),
+                "MaspBuilder".into()),
+            ("target".into(),
+                hex::encode_upper(masp_builder.target.0).into()),
+            ("asset_types".into(), {
+                let types = Set::new(&JsValue::UNDEFINED);
+                for asset_type in masp_builder.asset_types.iter() {
+                    let asset = object(&[
+                        ("token".into(),    asset_type.token.encode().into()),
+                        ("denom".into(),    asset_type.denom.0.into()),
+                        ("position".into(), match asset_type.position {
+                            MaspDigitPos::Zero  => 0u8,
+                            MaspDigitPos::One   => 1u8,
+                            MaspDigitPos::Two   => 2u8,
+                            MaspDigitPos::Three => 3u8,
+                        }.into()),
+                        ("epoch".into(), if let Some(epoch) = asset_type.epoch {
+                            BigInt::from(epoch.0).into()
+                        } else {
+                            JsValue::UNDEFINED
+                        }),
+                    ])?;
+                    types.add(&asset.into());
+                }
+                types
+            }.into()),
+            //("metadata".into(),    masp_builder.metadata.into()),
+            //("builder".into(),     masp_builder.builder.into()),
+        ])
+    }
+
+    fn tx_section_header (header: &Header) -> Result<Object, Error> {
+        object(&[
+            ("type".into(),       "Header".into()),
+            ("chain_id".into(),   header.chain_id.as_str().into()),
+            ("expiration".into(), header.expiration.map(|t|t.to_rfc3339()).into()),
+            ("timestamp".into(),  header.timestamp.to_rfc3339().into()),
+            ("codeHash".into(),   header.code_hash.raw().into()),
+            ("dataHash".into(),   header.data_hash.raw().into()),
+            ("memoHash".into(),   header.memo_hash.raw().into()),
+            ("txType".into(),     match header.tx_type {
+                TxType::Raw          => "Raw",
+                TxType::Wrapper(_)   => "Wrapper",
+                TxType::Decrypted(_) => "Decrypted",
+                TxType::Protocol(_)  => "Protocol",
+            }.into()),
+        ])
     }
 
 }
