@@ -192,13 +192,13 @@ impl Decode {
             ("address".into(),
                 inner.address.encode().into()), // Address
             ("consensusKey".into(),
-                to_hex_borsh(&inner.consensus_key).into()), //PublicKey,
+                to_hex_borsh(&inner.consensus_key)?.into()), //PublicKey,
             ("ethColdKey".into(),
-                to_hex_borsh(&inner.eth_cold_key).into()), //PublicKey,
+                to_hex_borsh(&inner.eth_cold_key)?.into()), //PublicKey,
             ("ethHotKey".into(),
-                to_hex_borsh(&inner.eth_hot_key).into()), //PublicKey,
+                to_hex_borsh(&inner.eth_hot_key)?.into()), //PublicKey,
             ("protocolKey".into(),
-                to_hex_borsh(&inner.protocol_key)).into(), //PublicKey,
+                to_hex_borsh(&inner.protocol_key)?.into()), //PublicKey,
             ("commissionRate".into(),
                 format!("{}", inner.commission_rate).into()), //Dec,
             ("maxCommissionRateChange".into(),
@@ -238,7 +238,7 @@ impl Decode {
             ("validator".into(),
                 inner.validator.encode().into()), // Address,
             ("consensusKey".into(),
-                inner.consensus_key), //   pub consensus_key: PublicKey,*/
+                format!("{}", inner.consensus_key).into()), //   pub consensus_key: PublicKey,*/
         ])
     }
 
@@ -272,7 +272,7 @@ impl Decode {
             ("avatar".into(),
                 inner.avatar.into()),//    pub avatar: Option<String>,
             ("commissionRate".into(),
-                inner.commission_rate.into()),//   pub commission_rate: Option<Dec>,*/
+                inner.commission_rate.map(|x|format!("{x}")).into()),//   pub commission_rate: Option<Dec>,*/
         ])
     }
 
@@ -303,10 +303,15 @@ impl Decode {
         let inner = InitAccount::try_from_slice(&binary[..])
             .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
-            ("publicKeys".into(),
-                inner.public_keys),//               /*   pub public_keys: Vec<PublicKey>,
+            ("publicKeys".into(), {
+                let result = Array::new();
+                for pk in inner.public_keys.iter() {
+                    result.push(&format!("{pk}").into());
+                }
+                result
+            }.into()),//               /*   pub public_keys: Vec<PublicKey>,
             ("vpCodeHash".into(),
-                inner.vp_code_hash), //    pub vp_code_hash: Hash,
+                (&format!("{}", inner.vp_code_hash)).into()), //    pub vp_code_hash: Hash,
             ("threshold".into(),
                 inner.threshold.into()),//: u8,*/
         ])
@@ -320,11 +325,11 @@ impl Decode {
             ("id".into(),
                 inner.id.into()), //               /*    pub id: u64,
             ("content".into(),
-                inner.content),//: Hash,
+                format!("{}", inner.content).into()),//: Hash,
             ("author".into(),
                 inner.author.encode().into()), // Address,
             ("type".into(),
-                inner.r#type),//    pub type: ProposalType,
+                format!("{}", inner.r#type).into()),//    pub type: ProposalType,
             ("votingStartEpoch".into(),
                 inner.voting_start_epoch.0.into()), //  pub voting_start_epoch: Epoch,
             ("votingEndEpoch".into(),
@@ -370,11 +375,11 @@ impl Decode {
             ("token".into(),
                 inner.token.encode().into()),//pub token: Address,
             ("amount".into(),
-                inner.amount),//pub amount: DenominatedAmount,
+                format!("{}", inner.amount).into()),//pub amount: DenominatedAmount,
             ("key".into(),
                 inner.key.into()),//pub key: Option<String>,
             ("shielded".into(),
-                inner.shielded),//pub shielded: Option<Hash>,*/
+                inner.shielded.map(|x|format!("{x}")).into()),//pub shielded: Option<Hash>,*/
         ])
     }
 
@@ -386,7 +391,7 @@ impl Decode {
             ("validator".into(),
                 inner.validator.encode().into()),//        /*   pub validator: Address,
             ("amount".into(),
-                inner.amount),//pub amount: Amount,
+                format!("{}", inner.amount).into()),//pub amount: Amount,
             ("source".into(),
                 inner.source.map(|a|a.encode()).into()),//pub source: Option<Address>,*/
         ])
@@ -410,9 +415,14 @@ impl Decode {
             ("addr".into(),
                 inner.addr.encode().into()),//        /*    pub addr: Address,
             ("vpCodeHash".into(),
-                inner.vp_code_hash),//pub vp_code_hash: Option<Hash>,
-            ("publicKeys".into(),
-                inner.public_keys),//ub public_keys: Vec<PublicKey>,
+                inner.vp_code_hash.map(|x|format!("{x}")).into()),
+            ("publicKeys".into(), {
+                let result = Array::new();
+                for pk in inner.public_keys.iter() {
+                    result.push(&format!("{pk}").into());
+                }
+                result
+            }.into()),
             ("threshold".into(),
                 inner.threshold.into()),//pub threshold: Option<u8>,*/
         ])
@@ -425,8 +435,17 @@ impl Decode {
         object(&[
             ("steward".into(),
                 inner.steward.encode().into()),
-            ("commission".into(),
-                inner.commission.into()),
+            ("commission".into(), {
+                let result = Object::new();
+                for (key, value) in inner.commission.iter() {
+                    Reflect::set(
+                        &result,
+                        &key.encode().into(),
+                        &format!("{value}").into(),
+                    )?;
+                }
+                result
+            }.into())
         ])
     }
 
@@ -446,9 +465,9 @@ impl Decode {
             ("voter".into(),
                 inner.voter.encode().into()),//pub voter: Address,
             ("delegations".into(), {
-                let result: Vec<JsValue> = vec![];
-                for delegation in inner.delegation.iter() {
-                    result.push(delegation.encode.into());
+                let result = Array::new();
+                for delegation in inner.delegations.iter() {
+                    result.push(&delegation.encode().into());
                 }
                 result
             }.into()),
@@ -749,15 +768,17 @@ fn to_bytes (source: &Uint8Array) -> Vec<u8> {
 }
 
 #[inline]
-fn to_hex (source: &mut impl std::io::Write) -> String {
+fn to_hex (source: &mut impl std::io::Write) -> Result<String, Error> {
     let mut output = vec![];
-    source.write(&mut output);
-    hex::encode_upper(&output)
+    source.write(&mut output)
+        .map_err(|e|Error::new(&format!("{e}")))?;
+    Ok(hex::encode_upper(&output))
 }
 
 #[inline]
-fn to_hex_borsh (source: &impl BorshSerialize) -> String {
+fn to_hex_borsh (source: &impl BorshSerialize) -> Result<String, Error> {
     let mut output = vec![];
-    source.serialize(&mut output);
-    hex::encode_upper(&output)
+    source.serialize(&mut output)
+        .map_err(|e|Error::new(&format!("{e}")))?;
+    Ok(hex::encode_upper(&output))
 }
