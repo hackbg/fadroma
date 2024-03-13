@@ -9,10 +9,16 @@ use namada::{
         UpdateAccount,
     },
     address::Address,
-    core::borsh::BorshDeserialize,
-    governance::storage::proposal::{
-        InitProposalData,
-        VoteProposalData
+    core::borsh::{
+        BorshSerialize,
+        BorshDeserialize,
+    },
+    governance::storage::{
+        proposal::{
+            InitProposalData,
+            VoteProposalData
+        },
+        vote::ProposalVote
     },
     key::common::PublicKey,
     storage::KeySeg,
@@ -116,7 +122,6 @@ impl Decode {
         if binary.is_none() {
             return Ok(result)
         }
-        let data = Object::new();
         let binary = binary.unwrap();
         let tag = tag.unwrap();
         let data = match tag.as_str() {
@@ -181,22 +186,23 @@ impl Decode {
 
     #[wasm_bindgen]
     pub fn tx_content_become_validator (binary: &[u8]) -> Result<Object, Error> {
-        let inner = BecomeValidator::try_from_slice(&binary[..])?;
+        let inner = BecomeValidator::try_from_slice(&binary[..])
+            .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
             ("address".into(),
                 inner.address.encode().into()), // Address
             ("consensusKey".into(),
-                inner.consensus_key), //PublicKey,
+                to_hex_borsh(&inner.consensus_key).into()), //PublicKey,
             ("ethColdKey".into(),
-                inner.eth_cold_key), //PublicKey,
+                to_hex_borsh(&inner.eth_cold_key).into()), //PublicKey,
             ("ethHotKey".into(),
-                inner.eth_hot_key), //PublicKey,
+                to_hex_borsh(&inner.eth_hot_key).into()), //PublicKey,
             ("protocolKey".into(),
-                inner.protocol_key), //PublicKey,
+                to_hex_borsh(&inner.protocol_key)).into(), //PublicKey,
             ("commissionRate".into(),
-                inner.commission_rate), //Dec,
+                format!("{}", inner.commission_rate).into()), //Dec,
             ("maxCommissionRateChange".into(),
-                inner.max_commission_rate_change), //Dec,
+                format!("{}", inner.max_commission_rate_change).into()), //Dec,
             ("email".into(),
                 inner.email.into()), //String,
             ("description".into(),
@@ -212,20 +218,22 @@ impl Decode {
 
     #[wasm_bindgen]
     pub fn tx_content_bond (binary: &[u8]) -> Result<Object, Error> {
-        let inner = Bond::try_from_slice(&binary[..])?;
+        let inner = Bond::try_from_slice(&binary[..])
+            .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
             ("validator".into(),
                 inner.validator.encode().into()), //    pub validator: Address,
             ("amount".into(),
-                inner.amount), // Amount
+                format!("{}", inner.amount).into()), // Amount
             ("source".into(),
-                inner.source) //        pub source: Option<Address>,*/
+                inner.source.map(|a|a.encode()).into()) //        pub source: Option<Address>,*/
         ])
     }
 
     #[wasm_bindgen]
     pub fn tx_content_change_consensus_key (binary: &[u8]) -> Result<Object, Error> {
-        let inner = ConsensusKeyChange::try_from_slice(&binary[..])?;
+        let inner = ConsensusKeyChange::try_from_slice(&binary[..])
+            .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
             ("validator".into(),
                 inner.validator.encode().into()), // Address,
@@ -236,18 +244,20 @@ impl Decode {
 
     #[wasm_bindgen]
     pub fn tx_content_change_validator_commission (binary: &[u8]) -> Result<Object, Error> {
-        let inner = CommissionChange::try_from_slice(&binary[..])?;
+        let inner = CommissionChange::try_from_slice(&binary[..])
+            .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
             ("validator".into(),
                 inner.validator.encode().into()), // Address,
             ("newRate".into(),
-                inner.new_rate), // Dec,*/
+                format!("{}", inner.new_rate).into()), // Dec,*/
         ])
     }
 
     #[wasm_bindgen]
     pub fn tx_content_change_validator_metadata (binary: &[u8]) -> Result<Object, Error> {
-        let inner = MetaDataChange::try_from_slice(&binary[..])?;
+        let inner = MetaDataChange::try_from_slice(&binary[..])
+            .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
             ("validator".into(),
                 inner.validator.encode().into()), // validator: Address,
@@ -268,18 +278,20 @@ impl Decode {
 
     #[wasm_bindgen]
     pub fn tx_content_claim_rewards (binary: &[u8]) -> Result<Object, Error> {
-        let inner = ClaimRewards::try_from_slice(&binary[..])?;
+        let inner = ClaimRewards::try_from_slice(&binary[..])
+            .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
             ("validator".into(),
-                inner.validator), //          /*    pub validator: Address,
+                inner.validator.encode().into()),
             ("source".into(),
-                inner.source), //    pub source: Option<Address>,*/
+                inner.source.map(|a|a.encode()).into()), //    pub source: Option<Address>,*/
         ])
     }
 
     #[wasm_bindgen]
     pub fn tx_content_deactivate_validator (binary: &[u8]) -> Result<Object, Error> {
-        let inner = Address::try_from_slice(&binary[..])?;
+        let inner = Address::try_from_slice(&binary[..])
+            .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
             ("address".into(),
                 inner.encode().into()),
@@ -288,7 +300,8 @@ impl Decode {
 
     #[wasm_bindgen]
     pub fn tx_content_init_account (binary: &[u8]) -> Result<Object, Error> {
-        let inner = InitAccount::try_from_slice(&binary[..])?;
+        let inner = InitAccount::try_from_slice(&binary[..])
+            .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
             ("publicKeys".into(),
                 inner.public_keys),//               /*   pub public_keys: Vec<PublicKey>,
@@ -301,7 +314,8 @@ impl Decode {
 
     #[wasm_bindgen]
     pub fn tx_content_init_proposal (binary: &[u8]) -> Result<Object, Error> {
-        let inner = InitProposalData::try_from_slice(&binary[..])?;
+        let inner = InitProposalData::try_from_slice(&binary[..])
+            .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
             ("id".into(),
                 inner.id.into()), //               /*    pub id: u64,
@@ -312,38 +326,42 @@ impl Decode {
             ("type".into(),
                 inner.r#type),//    pub type: ProposalType,
             ("votingStartEpoch".into(),
-                inner.voting_start_epoch.into()), //  pub voting_start_epoch: Epoch,
+                inner.voting_start_epoch.0.into()), //  pub voting_start_epoch: Epoch,
             ("votingEndEpoch".into(),
-                inner.voting_end_epoch.into()),//    pub voting_end_epoch: Epoch,
+                inner.voting_end_epoch.0.into()),//    pub voting_end_epoch: Epoch,
             ("graceEpoch".into(),
-                inner.grace_epoch.into()),//    pub grace_epoch: Epoch,*/
+                inner.grace_epoch.0.into()),//    pub grace_epoch: Epoch,*/
         ])
     }
 
     #[wasm_bindgen]
     pub fn tx_content_reactivate_validator (binary: &[u8]) -> Result<Object, Error> {
-        let inner = Address::try_from_slice(&binary[..])?;
+        let inner = Address::try_from_slice(&binary[..])
+            .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
         ])
     }
 
     #[wasm_bindgen]
     pub fn tx_content_resign_steward (binary: &[u8]) -> Result<Object, Error> {
-        let inner = Address::try_from_slice(&binary[..])?;
+        let inner = Address::try_from_slice(&binary[..])
+            .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
         ])
     }
 
     #[wasm_bindgen]
     pub fn tx_content_reveal_pk (binary: &[u8]) -> Result<Object, Error> {
-        let inner = PublicKey::try_from_slice(&binary[..])?;
+        let inner = PublicKey::try_from_slice(&binary[..])
+            .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
         ])
     }
 
     #[wasm_bindgen]
     pub fn tx_content_transfer (binary: &[u8]) -> Result<Object, Error> {
-        let inner = Transfer::try_from_slice(&binary[..])?;
+        let inner = Transfer::try_from_slice(&binary[..])
+            .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
             ("source".into(),
                 inner.source.encode().into()),//        /*    pub source: Address,
@@ -362,20 +380,22 @@ impl Decode {
 
     #[wasm_bindgen]
     pub fn tx_content_unbond (binary: &[u8]) -> Result<Object, Error> {
-        let inner = Unbond::try_from_slice(&binary[..])?;
+        let inner = Unbond::try_from_slice(&binary[..])
+            .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
             ("validator".into(),
                 inner.validator.encode().into()),//        /*   pub validator: Address,
             ("amount".into(),
                 inner.amount),//pub amount: Amount,
             ("source".into(),
-                inner.source),//pub source: Option<Address>,*/
+                inner.source.map(|a|a.encode()).into()),//pub source: Option<Address>,*/
         ])
     }
 
     #[wasm_bindgen]
     pub fn tx_content_unjail_validator (binary: &[u8]) -> Result<Object, Error> {
-        let inner = Address::try_from_slice(&binary[..])?;
+        let inner = Address::try_from_slice(&binary[..])
+            .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
             ("address".into(),
                 inner.encode().into()),
@@ -384,7 +404,8 @@ impl Decode {
 
     #[wasm_bindgen]
     pub fn tx_content_update_account (binary: &[u8]) -> Result<Object, Error> {
-        let inner = UpdateAccount::try_from_slice(&binary[..])?;
+        let inner = UpdateAccount::try_from_slice(&binary[..])
+            .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
             ("addr".into(),
                 inner.addr.encode().into()),//        /*    pub addr: Address,
@@ -399,42 +420,50 @@ impl Decode {
 
     #[wasm_bindgen]
     pub fn tx_content_update_steward_commission (binary: &[u8]) -> Result<Object, Error> {
-        let inner = UpdateStewardCommission::try_from_slice(&binary[..])?;
+        let inner = UpdateStewardCommission::try_from_slice(&binary[..])
+            .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
-            ("addr".into(),
-                inner.addr.encode().into()),//        /* pub addr: Address,
-            ("vpCodeHash".into(),
-                inner.vp_code_hash),//pub vp_code_hash: Option<Hash>,
-            ("publicKeys".into(),
-                inner.public_keys),//pub public_keys: Vec<PublicKey>,
-            ("threshold".into(),
-                inner.threshold),//pub threshold: Option<u8>*/
+            ("steward".into(),
+                inner.steward.encode().into()),
+            ("commission".into(),
+                inner.commission.into()),
         ])
     }
 
     #[wasm_bindgen]
     pub fn tx_content_vote_proposal (binary: &[u8]) -> Result<Object, Error> {
-        let inner = VoteProposalData::try_from_slice(&binary[..])?;
+        let inner = VoteProposalData::try_from_slice(&binary[..])
+            .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
             ("id".into(),
                 inner.id.into()),//        /* pub id: u64,
             ("vote".into(),
-                inner.vote),//pub vote: ProposalVote,
+                match inner.vote {
+                    ProposalVote::Yay => "yay",
+                    ProposalVote::Nay => "nay",
+                    ProposalVote::Abstain => "abstain",
+                }.into()),
             ("voter".into(),
                 inner.voter.encode().into()),//pub voter: Address,
-            ("delegations".into(),
-                inner.delegations),//pub delegations: Vec<Address>,*/
+            ("delegations".into(), {
+                let result: Vec<JsValue> = vec![];
+                for delegation in inner.delegation.iter() {
+                    result.push(delegation.encode.into());
+                }
+                result
+            }.into()),
         ])
     }
 
     #[wasm_bindgen]
     pub fn tx_content_withdraw (binary: &[u8]) -> Result<Object, Error> {
-        let inner = Withdraw::try_from_slice(&binary[..])?;
+        let inner = Withdraw::try_from_slice(&binary[..])
+            .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
             ("validator".into(),
                 inner.validator.encode().into()),//        /*pub validator: Address,
             ("source".into(),
-                inner.source),//pub source: Option<Address>,*/
+                inner.source.map(|a|a.encode()).into()),//pub source: Option<Address>,*/
         ])
     }
 
@@ -638,7 +667,7 @@ impl Decode {
         ])
     }
 
-    fn tx_section_ciphertext (ciphertext: ()) -> Result<Object, Error> {
+    fn tx_section_ciphertext (_ciphertext: ()) -> Result<Object, Error> {
         object(&[
             ("type".into(), "Ciphertext".into()),
         ])
@@ -723,5 +752,12 @@ fn to_bytes (source: &Uint8Array) -> Vec<u8> {
 fn to_hex (source: &mut impl std::io::Write) -> String {
     let mut output = vec![];
     source.write(&mut output);
+    hex::encode_upper(&output)
+}
+
+#[inline]
+fn to_hex_borsh (source: &impl BorshSerialize) -> String {
+    let mut output = vec![];
+    source.serialize(&mut output);
     hex::encode_upper(&output)
 }
