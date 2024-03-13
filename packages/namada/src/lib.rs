@@ -1,8 +1,8 @@
 extern crate wasm_bindgen;
 use wasm_bindgen::prelude::*;
 use js_sys::{Uint8Array, JsString, Error, Object, Array, Reflect, BigInt, Set};
-use std::fmt::Write;
-use std::io::Cursor;
+//use std::fmt::Write;
+//use std::io::Cursor;
 use namada::{
     account::{
         InitAccount,
@@ -125,7 +125,7 @@ impl Decode {
             "tx_bond.wasm" =>
                 Self::tx_content_bond(binary),
             "tx_bridge_pool.wasm" =>
-                Ok(JsValue::NULL),
+                Ok(Object::new()),
             "tx_change_consensus_key.wasm" =>
                 Self::tx_content_change_consensus_key(binary),
             "tx_change_validator_commission.wasm" =>
@@ -137,7 +137,7 @@ impl Decode {
             "tx_deactivate_validator.wasm" =>
                 Self::tx_content_deactivate_validator(binary),
             "tx_ibc.wasm" =>
-                Ok(JsValue::NULL),
+                Ok(Object::new()),
             "tx_init_account.wasm" =>
                 Self::tx_content_init_account(binary),
             "tx_init_proposal.wasm" =>
@@ -145,7 +145,7 @@ impl Decode {
             "tx_reactivate_validator.wasm" =>
                 Self::tx_content_reactivate_validator(binary),
             "tx_redelegate.wasm" =>
-                Ok(JsValue::NULL),
+                Ok(Object::new()),
             "tx_resign_steward.wasm" =>
                 Self::tx_content_resign_steward(binary),
             "tx_reveal_pk.wasm" =>
@@ -165,11 +165,12 @@ impl Decode {
             "tx_withdraw.wasm" =>
                 Self::tx_content_withdraw(binary),
             "vp_implicit.wasm" =>
-                Ok(JsValue::NULL),
+                Ok(Object::new()),
             "vp_user.wasm" =>
-                Ok(JsValue::NULL),
-            _ => {}
-        };
+                Ok(Object::new()),
+            _ =>
+                Ok(Object::new()),
+        }?;
         let content = object(&[
             ("type".into(), tag.into()),
             ("data".into(), data.into()),
@@ -183,7 +184,7 @@ impl Decode {
         let inner = BecomeValidator::try_from_slice(&binary[..])?;
         object(&[
             ("address".into(),
-                inner.address), // Address
+                inner.address.encode().into()), // Address
             ("consensusKey".into(),
                 inner.consensus_key), //PublicKey,
             ("ethColdKey".into(),
@@ -197,15 +198,15 @@ impl Decode {
             ("maxCommissionRateChange".into(),
                 inner.max_commission_rate_change), //Dec,
             ("email".into(),
-                inner.email), //String,
+                inner.email.into()), //String,
             ("description".into(),
-                inner.description), //Option<String>,
+                inner.description.into()), //Option<String>,
             ("website".into(),
-                inner.website), //Option<String>,
+                inner.website.into()), //Option<String>,
             ("discord_handle".into(),
-                inner.discor_handle), //Option<String>,
+                inner.discord_handle.into()), //Option<String>,
             ("avatar".into(),
-                inner.avatar), //Option<String>,
+                inner.avatar.into()), //Option<String>,
         ])
     }
 
@@ -214,7 +215,7 @@ impl Decode {
         let inner = Bond::try_from_slice(&binary[..])?;
         object(&[
             ("validator".into(),
-                inner.validator), //    pub validator: Address,
+                inner.validator.encode().into()), //    pub validator: Address,
             ("amount".into(),
                 inner.amount), // Amount
             ("source".into(),
@@ -227,7 +228,7 @@ impl Decode {
         let inner = ConsensusKeyChange::try_from_slice(&binary[..])?;
         object(&[
             ("validator".into(),
-                inner.validator), // Address,
+                inner.validator.encode().into()), // Address,
             ("consensusKey".into(),
                 inner.consensus_key), //   pub consensus_key: PublicKey,*/
         ])
@@ -237,9 +238,9 @@ impl Decode {
     pub fn tx_content_change_validator_commission (binary: &[u8]) -> Result<Object, Error> {
         let inner = CommissionChange::try_from_slice(&binary[..])?;
         object(&[
-            ("validator",
-                inner.validator), // Address,
-            ("newRate",
+            ("validator".into(),
+                inner.validator.encode().into()), // Address,
+            ("newRate".into(),
                 inner.new_rate), // Dec,*/
         ])
     }
@@ -248,20 +249,20 @@ impl Decode {
     pub fn tx_content_change_validator_metadata (binary: &[u8]) -> Result<Object, Error> {
         let inner = MetaDataChange::try_from_slice(&binary[..])?;
         object(&[
-            ("validator",
-                inner.validator), // validator: Address,
-            ("email",
-                inner.email),//    pub email: Option<String>,
-            ("description",
-                inner.description),//    pub description: Option<String>,
-            ("website",
-                inner.website), //    pub website: Option<String>,
-            ("discordHandle",
-                inner.discord_handle),//    pub discord_handle: Option<String>,
-            ("avatar",
-                inner.avatar),//    pub avatar: Option<String>,
-            ("commissionRate",
-                inner.commission_rate),//   pub commission_rate: Option<Dec>,*/
+            ("validator".into(),
+                inner.validator.encode().into()), // validator: Address,
+            ("email".into(),
+                inner.email.into()),//    pub email: Option<String>,
+            ("description".into(),
+                inner.description.into()),//    pub description: Option<String>,
+            ("website".into(),
+                inner.website.into()), //    pub website: Option<String>,
+            ("discordHandle".into(),
+                inner.discord_handle.into()),//    pub discord_handle: Option<String>,
+            ("avatar".into(),
+                inner.avatar.into()),//    pub avatar: Option<String>,
+            ("commissionRate".into(),
+                inner.commission_rate.into()),//   pub commission_rate: Option<Dec>,*/
         ])
     }
 
@@ -269,9 +270,9 @@ impl Decode {
     pub fn tx_content_claim_rewards (binary: &[u8]) -> Result<Object, Error> {
         let inner = ClaimRewards::try_from_slice(&binary[..])?;
         object(&[
-            ("validator",
+            ("validator".into(),
                 inner.validator), //          /*    pub validator: Address,
-            ("source",
+            ("source".into(),
                 inner.source), //    pub source: Option<Address>,*/
         ])
     }
@@ -280,8 +281,8 @@ impl Decode {
     pub fn tx_content_deactivate_validator (binary: &[u8]) -> Result<Object, Error> {
         let inner = Address::try_from_slice(&binary[..])?;
         object(&[
-            ("address",
-                inner),
+            ("address".into(),
+                inner.encode().into()),
         ])
     }
 
@@ -289,12 +290,12 @@ impl Decode {
     pub fn tx_content_init_account (binary: &[u8]) -> Result<Object, Error> {
         let inner = InitAccount::try_from_slice(&binary[..])?;
         object(&[
-            ("publicKeys",
+            ("publicKeys".into(),
                 inner.public_keys),//               /*   pub public_keys: Vec<PublicKey>,
-            ("vpCodeHash",
+            ("vpCodeHash".into(),
                 inner.vp_code_hash), //    pub vp_code_hash: Hash,
-            ("threshold",
-                inner.threshold),//: u8,*/
+            ("threshold".into(),
+                inner.threshold.into()),//: u8,*/
         ])
     }
 
@@ -303,19 +304,19 @@ impl Decode {
         let inner = InitProposalData::try_from_slice(&binary[..])?;
         object(&[
             ("id".into(),
-                inner.id), //               /*    pub id: u64,
+                inner.id.into()), //               /*    pub id: u64,
             ("content".into(),
                 inner.content),//: Hash,
             ("author".into(),
-                inner.author), // Address,
+                inner.author.encode().into()), // Address,
             ("type".into(),
                 inner.r#type),//    pub type: ProposalType,
-            ("votingStartEpoch",
-                inner.voting_start_epoch), //  pub voting_start_epoch: Epoch,
-            ("votingEndEpoch",
-                inner.voting_end_epoch),//    pub voting_end_epoch: Epoch,
-            ("graceEpoch",
-                inner.grace_epoch),//    pub grace_epoch: Epoch,*/
+            ("votingStartEpoch".into(),
+                inner.voting_start_epoch.into()), //  pub voting_start_epoch: Epoch,
+            ("votingEndEpoch".into(),
+                inner.voting_end_epoch.into()),//    pub voting_end_epoch: Epoch,
+            ("graceEpoch".into(),
+                inner.grace_epoch.into()),//    pub grace_epoch: Epoch,*/
         ])
     }
 
@@ -341,19 +342,19 @@ impl Decode {
     }
 
     #[wasm_bindgen]
-    pub fn tx_transfer (binary: &[u8]) -> Result<Object, Error> {
+    pub fn tx_content_transfer (binary: &[u8]) -> Result<Object, Error> {
         let inner = Transfer::try_from_slice(&binary[..])?;
         object(&[
             ("source".into(),
-                inner.source),//        /*    pub source: Address,
+                inner.source.encode().into()),//        /*    pub source: Address,
             ("target".into(),
-                inner.target),//pub target: Address,
+                inner.target.encode().into()),//pub target: Address,
             ("token".into(),
-                inner.token),//pub token: Address,
+                inner.token.encode().into()),//pub token: Address,
             ("amount".into(),
                 inner.amount),//pub amount: DenominatedAmount,
             ("key".into(),
-                inner.key),//pub key: Option<String>,
+                inner.key.into()),//pub key: Option<String>,
             ("shielded".into(),
                 inner.shielded),//pub shielded: Option<Hash>,*/
         ])
@@ -364,7 +365,7 @@ impl Decode {
         let inner = Unbond::try_from_slice(&binary[..])?;
         object(&[
             ("validator".into(),
-                inner.validator),//        /*   pub validator: Address,
+                inner.validator.encode().into()),//        /*   pub validator: Address,
             ("amount".into(),
                 inner.amount),//pub amount: Amount,
             ("source".into(),
@@ -377,7 +378,7 @@ impl Decode {
         let inner = Address::try_from_slice(&binary[..])?;
         object(&[
             ("address".into(),
-                inner),
+                inner.encode().into()),
         ])
     }
 
@@ -386,13 +387,13 @@ impl Decode {
         let inner = UpdateAccount::try_from_slice(&binary[..])?;
         object(&[
             ("addr".into(),
-                inner.addr),//        /*    pub addr: Address,
+                inner.addr.encode().into()),//        /*    pub addr: Address,
             ("vpCodeHash".into(),
                 inner.vp_code_hash),//pub vp_code_hash: Option<Hash>,
             ("publicKeys".into(),
                 inner.public_keys),//ub public_keys: Vec<PublicKey>,
             ("threshold".into(),
-                inner.threshold),//pub threshold: Option<u8>,*/
+                inner.threshold.into()),//pub threshold: Option<u8>,*/
         ])
     }
 
@@ -401,7 +402,7 @@ impl Decode {
         let inner = UpdateStewardCommission::try_from_slice(&binary[..])?;
         object(&[
             ("addr".into(),
-                inner.addr),//        /* pub addr: Address,
+                inner.addr.encode().into()),//        /* pub addr: Address,
             ("vpCodeHash".into(),
                 inner.vp_code_hash),//pub vp_code_hash: Option<Hash>,
             ("publicKeys".into(),
@@ -416,11 +417,11 @@ impl Decode {
         let inner = VoteProposalData::try_from_slice(&binary[..])?;
         object(&[
             ("id".into(),
-                inner.id),//        /* pub id: u64,
+                inner.id.into()),//        /* pub id: u64,
             ("vote".into(),
                 inner.vote),//pub vote: ProposalVote,
             ("voter".into(),
-                inner.voter),//pub voter: Address,
+                inner.voter.encode().into()),//pub voter: Address,
             ("delegations".into(),
                 inner.delegations),//pub delegations: Vec<Address>,*/
         ])
@@ -430,9 +431,9 @@ impl Decode {
     pub fn tx_content_withdraw (binary: &[u8]) -> Result<Object, Error> {
         let inner = Withdraw::try_from_slice(&binary[..])?;
         object(&[
-            ("validator",
-                inner.validator),//        /*pub validator: Address,
-            ("source",
+            ("validator".into(),
+                inner.validator.encode().into()),//        /*pub validator: Address,
+            ("source".into(),
                 inner.source),//pub source: Option<Address>,*/
         ])
     }
