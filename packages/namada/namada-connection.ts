@@ -26,6 +26,9 @@ import {
   getPGFFundings,
   isPGFSteward
 } from "./namada-pgf"
+import {
+  NamadaTransaction
+} from './namada-tx'
 
 export async function connect (optionsWithDecoder: ConstructorParameters<typeof NamadaConnection>[0] & {
   decoder: string|URL|Uint8Array
@@ -39,9 +42,23 @@ export async function connect (optionsWithDecoder: ConstructorParameters<typeof 
   return new NamadaConnection(options)
 }
 
+export { Decode }
+
 export class NamadaConnection extends CW.Connection {
 
   decode = Decode
+
+  async getBlock (height?: number) {
+    const block = await super.getBlock(height)
+    const txsDecoded: NamadaTransaction[] = []
+    const {txs} = (block as { txs: Uint8Array[] })
+    for (const i in txs) {
+      const decoded = this.decode.tx(txs[i].slice(3))
+      txsDecoded[i] = new NamadaTransaction(decoded)
+    }
+    Object.assign(block, { txsDecoded })
+    return block as typeof block & { txsDecoded: NamadaTransaction[] }
+  }
 
   getPGFParameters () {
     return getPGFParameters(this)

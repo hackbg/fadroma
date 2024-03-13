@@ -37,7 +37,7 @@ impl Decode {
         let header = tx.header();
         let result = Object::new();
         populate(&result, &[
-            ("chain_id".into(),   header.chain_id.as_str().into()),
+            ("chainId".into(),    header.chain_id.as_str().into()),
             ("expiration".into(), header.expiration.map(|t|t.to_rfc3339()).into()),
             ("timestamp".into(),  header.timestamp.to_rfc3339().into()),
             ("codeHash".into(),   header.code_hash.raw().into()),
@@ -258,7 +258,7 @@ impl Decode {
             }?;
             sections.push(&section);
         }
-        //Reflect::set(&result, &"txid".into(), &tx.txid().to_string().into())?;
+        Reflect::set(&result, &"sections".into(), &sections.into());
         Ok(result)
     }
 

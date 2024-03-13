@@ -23,23 +23,9 @@ export default async function main () {
       .log('ID:   ', Core.bold(block.id))
       .log('Time: ', Core.bold(block.header.time))
       .log(Core.bold('Transactions:'))
-    for (const i in block.txs) {
-      //const tx = 
-      //console.log(block.txs[i])
-      const binary = block.txs[i].slice(3)
-      console.log(binary)
-      console.log(Core.brailleDump(binary))
-      console.log(connection.decode.tx(block.txs[i].slice(3)))
-      const tx = Namada.Transaction.decode(binary)
-      this.log()
+    for (const tx of block.txsDecoded) {
       tx.print(this.log)
-      if (tx instanceof Namada.DecryptedTransaction) {
-        console.log()
-        tx.decodeInner().print(this.log)
-      }
-      //this.log
-        //.log()
-        //.log(JSON.stringify(tx, null, 2))
+      tx.printSections(this.log)
     }
     console.br()
     height--

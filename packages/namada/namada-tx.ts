@@ -1,4 +1,4 @@
-//import { Core } from '@fadroma/agent'
+import { Core } from '@fadroma/agent'
 //import * as Borsher from 'borsher'
 //import { addr, decodeAddress } from './namada-address'
 //import {
@@ -94,15 +94,26 @@ export class NamadaTransaction {
       //`Unknown transaction variant "${String(name)}". Valid are: Raw|Wrapper|Decrypted|Protocol`
     //)
   //}
-  //declare chainId:    string
-  //declare expiration: string|null
-  //declare timestamp:  string
-  //declare codeHash:   string
-  //declare dataHash:   string
-  //declare memoHash:   string
-  //declare txType:     'Raw'|'Wrapper'|'Decrypted'|'Protocol'
-  //declare sections:   Section[]
-  //constructor (header: object, sections: object[]) {
+  chainId:    string
+  expiration: string|null
+  timestamp:  string
+  codeHash:   string
+  dataHash:   string
+  memoHash:   string
+  txType:     'Raw'|'Wrapper'|'Decrypted'|'Protocol'
+  sections:   object[]
+  constructor (properties: Partial<NamadaTransaction> = {}) {
+    Core.assign(this, properties, [
+      'chainId',
+      'expiration',
+      'timestamp',
+      'codeHash',
+      'dataHash',
+      'memoHash',
+      'txType',
+      'sections',
+    ])
+  }
     //for (const [field] of headerFields) {
       //if (field === 'txType') continue
       //this[field] = header[field]
@@ -116,23 +127,25 @@ export class NamadaTransaction {
     //}
     //this.sections = sections.map(section=>Section.fromDecoded(section))
   //}
-  //print (console = new Core.Console()) {
-    //console.log('-', Core.bold(`${this.txType} transaction:`))
-      //.log('  Chain ID:  ', Core.bold(this.chainId))
-      //.log('  Timestamp: ', Core.bold(this.timestamp))
-      //.log('  Expiration:', Core.bold(this.expiration))
-      //.log('  Code hash: ', Core.bold(this.codeHash))
-      //.log('  Data hash: ', Core.bold(this.dataHash))
-      //.log('  Memo hash: ', Core.bold(this.memoHash))
-      //.log('  Sections:  ', Core.bold(this.sections?.length))
-  //}
-  //printSections (console = new Core.Console()) {
-    //console.log(Core.bold('  Sections:  '))
-    //for (const section of this.sections) {
-      //console.log()
+
+  print (console = new Core.Console()) {
+    console.log('-', Core.bold(`${this.txType} transaction:`))
+      .log('  Chain ID:  ', Core.bold(this.chainId))
+      .log('  Timestamp: ', Core.bold(this.timestamp))
+      .log('  Expiration:', Core.bold(this.expiration))
+      .log('  Code hash: ', Core.bold(this.codeHash))
+      .log('  Data hash: ', Core.bold(this.dataHash))
+      .log('  Memo hash: ', Core.bold(this.memoHash))
+      .log('  Sections:  ', Core.bold(this.sections?.length))
+  }
+
+  printSections (console = new Core.Console()) {
+    console.log(Core.bold('  Sections:  '))
+    for (const section of this.sections) {
+      console.log(' - ', JSON.stringify(section))
       //section.print(console)
-    //}
-  //}
+    }
+  }
 }
 
 export class NamadaRawTransaction extends NamadaTransaction {
