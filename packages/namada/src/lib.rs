@@ -2,18 +2,20 @@ extern crate wasm_bindgen;
 use wasm_bindgen::prelude::*;
 use js_sys::{Uint8Array, JsString, Error, Object, Array, Reflect, BigInt, Set};
 
-use masp_primitives::consensus::BranchId;
-use masp_primitives::transaction::Transaction;
-use masp_primitives::transaction::TxVersion;
+//use masp_primitives::consensus::BranchId;
+//use masp_primitives::transaction::Transaction;
+//use masp_primitives::transaction::TxVersion;
 use namada::address::Address;
 use namada::core::borsh::BorshDeserialize;
 //use namada::core::masp_primitives::TxVersion;
-use namada::governance::parameters::GovernanceParameters;
+//use namada::governance::parameters::GovernanceParameters;
 use namada::storage::KeySeg;
 use namada::string_encoding::Format;
 use namada::tx::data::TxType;
 use namada::tx::{Tx, Section, Signer};
 use namada::token::MaspDigitPos;
+use std::fmt::Write;
+use std::io::Cursor;
 
 #[wasm_bindgen]
 pub struct Decode;
@@ -55,22 +57,30 @@ impl Decode {
 
                 Section::Data(data) => populate(&section, &[
                     ("type".into(), "Data".into()),
-                    ("salt".into(), hex::encode_upper(data.salt).into()),
-                    ("data".into(), hex::encode_upper(data.data).into()),
+                    ("salt".into(), hex::encode_upper(&data.salt).into()),
+                    ("data".into(), hex::encode_upper(&data.data).into()),
                 ]),
 
                 Section::ExtraData(code) => populate(&section, &[
                     ("type".into(), "ExtraData".into()),
-                    ("salt".into(), hex::encode_upper(code.salt).into()),
-                    ("code".into(), hex::encode_upper(code.code.hash().0).into()),
-                    ("tag".into(),  code.tag.into()),
+                    ("salt".into(), hex::encode_upper(&code.salt).into()),
+                    ("code".into(), hex::encode_upper(&code.code.hash().0).into()),
+                    ("tag".into(),  if let Some(ref tag) = code.tag {
+                        tag.into()
+                    } else {
+                        JsValue::NULL
+                    }),
                 ]),
 
                 Section::Code(code) => populate(&section, &[
                     ("type".into(), "Code".into()),
-                    ("salt".into(), hex::encode_upper(code.salt).into()),
-                    ("code".into(), hex::encode_upper(code.code.hash().0).into()),
-                    ("tag".into(),  code.tag.into()),
+                    ("salt".into(), hex::encode_upper(&code.salt).into()),
+                    ("code".into(), hex::encode_upper(&code.code.hash().0).into()),
+                    ("tag".into(),  if let Some(ref tag) = code.tag {
+                        tag.into()
+                    } else {
+                        JsValue::NULL
+                    }),
                 ]),
 
                 Section::Signature(signature) => populate(&section, &[
@@ -82,7 +92,7 @@ impl Decode {
                         }
                         targets
                     }.into()),
-                    ("signer".into(), match signature.signer {
+                    ("signer".into(), match &signature.signer {
                         Signer::Address(address) => {
                             address.encode().into()
                         },
@@ -130,7 +140,7 @@ impl Decode {
                             for tx_data in bundle_data.vin.iter() {
                                 vin.push(&object(&[
                                     ("assetType".into(), format!("{}", tx_data.asset_type).into()),
-                                    ("value".into(),     *BigInt::from(tx_data.value).as_ref()),
+                                    ("value".into(),     JsValue::from(BigInt::from(tx_data.value))),
                                     ("address".into(),   hex::encode_upper(tx_data.address.0).into()),
                                 ])?.into());
                             }
@@ -138,7 +148,7 @@ impl Decode {
                             for tx_data in bundle_data.vout.iter() {
                                 vout.push(&object(&[
                                     ("assetType".into(), format!("{}", tx_data.asset_type).into()),
-                                    ("value".into(),     *BigInt::from(tx_data.value).as_ref()),
+                                    ("value".into(),     JsValue::from(BigInt::from(tx_data.value))),
                                     ("address".into(),   hex::encode_upper(tx_data.address.0).into()),
                                 ])?.into());
                             }
@@ -154,31 +164,31 @@ impl Decode {
                             let shielded_spends = Array::new();
                             for spend in bundle_data.shielded_spends.iter() {
                                 shielded_spends.push(&object(&[
-                                    ("cv".into(),           spend.cv.into()),
-                                    ("anchor".into(),       spend.anchor.into()),
-                                    ("nullifier".into(),    spend.nullifier.into()),
-                                    ("rk".into(),           spend.rk.into()),
-                                    ("zkproof".into(),      spend.zkproof.into()),
-                                    ("spendAuthSig".into(), spend.spend_auth_sig.into()),
+                                    ("cv".into(),           format!("{}", &spend.cv).into()),
+                                    ("anchor".into(),       hex::encode_upper(&spend.anchor.to_bytes()).into()),
+                                    ("nullifier".into(),    hex::encode_upper(&spend.nullifier).into()),
+                                    ("rk".into(),           format!("{}", &spend.rk.0).into()),
+                                    ("zkproof".into(),      hex::encode_upper(&spend.zkproof).into()),
+                                    //("spendAuthSig".into(), to_hex(&spend.spend_auth_sig).into()),
                                 ])?.into());
                             }
                             let shielded_converts = Array::new();
                             for convert in bundle_data.shielded_converts.iter() {
                                 shielded_converts.push(&object(&[
-                                    ("cv".into(),           convert.cv.into()),
-                                    ("anchor".into(),       convert.anchor.into()),
-                                    ("zkproof".into(),      convert.zkproof.into()),
+                                    ("cv".into(),      format!("{}", &convert.cv).into()),
+                                    ("anchor".into(),  hex::encode_upper(&convert.anchor.to_bytes()).into()),
+                                    ("zkproof".into(), hex::encode_upper(&convert.zkproof).into()),
                                 ])?.into());
                             }
                             let shielded_outputs = Array::new();
                             for output in bundle_data.shielded_outputs.iter() {
                                 shielded_outputs.push(&object(&[
-                                    ("cv".into(),            output.cv.into()),
-                                    ("cmu".into(),           output.cmu.into()),
-                                    ("ephemeralKey".into(),  output.ephemeral_key.into()),
-                                    ("encCiphertext".into(), output.enc_ciphertext.into()),
-                                    ("outCiphertext".into(), output.out_ciphertext.into()),
-                                    ("zkproof".into(),       output.zkproof.into()),
+                                    ("cv".into(),            format!("{}", &output.cv).into()),
+                                    ("cmu".into(),           hex::encode_upper(&output.cmu.to_bytes()).into()),
+                                    ("ephemeralKey".into(),  hex::encode_upper(&output.ephemeral_key.0).into()),
+                                    ("encCiphertext".into(), hex::encode_upper(&output.enc_ciphertext).into()),
+                                    ("outCiphertext".into(), hex::encode_upper(&output.out_ciphertext).into()),
+                                    ("zkproof".into(),       hex::encode_upper(&output.zkproof).into()),
                                 ])?.into());
                             }
                             let value_balance = Object::new();
@@ -274,4 +284,11 @@ fn to_bytes (source: &Uint8Array) -> Vec<u8> {
     let mut bytes: Vec<u8> = vec![0u8; source.length() as usize];
     source.copy_to(&mut bytes);
     bytes
+}
+
+#[inline]
+fn to_hex (source: &mut impl std::io::Write) -> String {
+    let mut output = vec![];
+    source.write(&mut output);
+    hex::encode_upper(&output)
 }
