@@ -48,6 +48,7 @@ export class NamadaTransaction {
   memoHash:   string
   txType:     'Raw'|'Wrapper'|'Decrypted'|'Protocol'
   sections:   Section[]
+  content?:   object
 
   constructor (properties: Partial<NamadaTransaction> = {}) {
     Core.assign(this, properties, [
@@ -59,6 +60,7 @@ export class NamadaTransaction {
       'memoHash',
       'txType',
       'sections',
+      'content'
     ])
   }
 

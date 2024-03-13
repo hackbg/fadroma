@@ -164,19 +164,20 @@ export class MaspTxSection extends Section {
       .log('    Lock time:', this.lockTime)
       .log('    Expiry:   ', this.expiryHeight)
     if (this.transparentBundle) {
-      console.log('    Transparent bundle VIN:')
+      console.log('    Transparent bundle:')
+      console.log('    vIn:')
       for (const tx of this.transparentBundle.vin) {
         console
-          .log('    -', tx.assetType)
-          .log('    -', tx.value)
-          .log('    -', tx.address)
+          .log('    - Asset type:', tx.assetType)
+          .log('      Value:     ', tx.value)
+          .log('      Address:   ', tx.address)
       }
-      console.log('    Transparent bundle VOUT:')
+      console.log('    vOut:')
       for (const tx of this.transparentBundle.vout) {
         console
-          .log('    -', tx.assetType)
-          .log('    -', tx.value)
-          .log('    -', tx.address)
+          .log('    - Asset type:', tx.assetType)
+          .log('      Value:     ', tx.value)
+          .log('      Address:   ', tx.address)
       }
     }
     if (this.saplingBundle) {

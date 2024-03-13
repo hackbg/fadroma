@@ -54,6 +54,9 @@ export class NamadaConnection extends CW.Connection {
     const {txs} = (block as { txs: Uint8Array[] })
     for (const i in txs) {
       const decoded = Decode.tx(txs[i].slice(3)) as any
+      if (decoded.txType === 'Wrapper') {
+        console.log('decoded:', decoded)
+      }
       txsDecoded[i] = NamadaTransaction.fromDecoded(decoded)
     }
     Object.assign(block, { txsDecoded })

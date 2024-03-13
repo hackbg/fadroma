@@ -177,7 +177,7 @@ export abstract class Connection extends Endpoint {
   abstract doGetBlockInfo (block?: number): Promise<unknown>
 
   getBlock (block?: number): Promise<unknown> {
-    this.log.debug('Querying block info')
+    this.log.debug(block ? `Querying block ${block}` : `Querying latest block`)
     return this.doGetBlockInfo(block)
   }
 
