@@ -128,7 +128,7 @@ impl Decode {
                                     ("anchor".into(),       hex::encode_upper(&spend.anchor.to_bytes()).into()),
                                     ("nullifier".into(),    hex::encode_upper(&spend.nullifier).into()),
                                     ("rk".into(),           format!("{}", &spend.rk.0).into()),
-                                    ("zkproof".into(),      hex::encode_upper(&spend.zkproof).into()),
+                                    ("zkProof".into(),      hex::encode_upper(&spend.zkproof).into()),
                                     //("spendAuthSig".into(), to_hex(&spend.spend_auth_sig).into()),
                                 ])?.into());
                             }
@@ -137,7 +137,7 @@ impl Decode {
                                 shielded_converts.push(&object(&[
                                     ("cv".into(),      format!("{}", &convert.cv).into()),
                                     ("anchor".into(),  hex::encode_upper(&convert.anchor.to_bytes()).into()),
-                                    ("zkproof".into(), hex::encode_upper(&convert.zkproof).into()),
+                                    ("zkProof".into(), hex::encode_upper(&convert.zkproof).into()),
                                 ])?.into());
                             }
                             let shielded_outputs = Array::new();
@@ -148,7 +148,7 @@ impl Decode {
                                     ("ephemeralKey".into(),  hex::encode_upper(&output.ephemeral_key.0).into()),
                                     ("encCiphertext".into(), hex::encode_upper(&output.enc_ciphertext).into()),
                                     ("outCiphertext".into(), hex::encode_upper(&output.out_ciphertext).into()),
-                                    ("zkproof".into(),       hex::encode_upper(&output.zkproof).into()),
+                                    ("zkProof".into(),       hex::encode_upper(&output.zkproof).into()),
                                 ])?.into());
                             }
                             let value_balance = Object::new();

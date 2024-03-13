@@ -53,8 +53,8 @@ export class NamadaConnection extends CW.Connection {
     const txsDecoded: NamadaTransaction[] = []
     const {txs} = (block as { txs: Uint8Array[] })
     for (const i in txs) {
-      const decoded = this.decode.tx(txs[i].slice(3))
-      txsDecoded[i] = new NamadaTransaction(decoded)
+      const decoded = Decode.tx(txs[i].slice(3)) as any
+      txsDecoded[i] = NamadaTransaction.fromDecoded(decoded)
     }
     Object.assign(block, { txsDecoded })
     return block as typeof block & { txsDecoded: NamadaTransaction[] }
@@ -72,7 +72,7 @@ export class NamadaConnection extends CW.Connection {
     return getPGFFundings(this)
   }
 
-  isPGFSteward (address: CW.Core.Address) {
+  isPGFSteward (address: string) {
     return isPGFSteward(this)
   }
 
@@ -101,7 +101,7 @@ export class NamadaConnection extends CW.Connection {
     return getValidatorsBelowCapacity(this)
   }
 
-  getValidator (address: CW.Core.Address) {
+  getValidator (address: string) {
     return getValidator(this, address)
   }
 
@@ -125,7 +125,7 @@ export class NamadaConnection extends CW.Connection {
     return getTotalStaked(this)
   }
 
-  getValidatorStake(address: CW.Core.Address) {
+  getValidatorStake (address: string) {
     return getValidatorStake(this, address)
   }
 }

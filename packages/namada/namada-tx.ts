@@ -1,99 +1,45 @@
 import { Core } from '@fadroma/agent'
-//import * as Borsher from 'borsher'
-//import { addr, decodeAddress } from './namada-address'
-//import {
-  //BecomeValidator,
-  //Bond,
-  //ConsensusKeyChange,
-  //CommissionChange,
-  //MetaDataChange,
-  //ClaimRewards,
-  //DeactivateValidator,
-  //ReactivateValidator,
-  //Redelegation,
-  //Unbond,
-  //UnjailValidator,
-  //Withdraw
-//} from './namada-pos'
-//import {
-  //ResignSteward,
-  //UpdateStewardCommission
-//} from './namada-pgf'
-//import {
-  //InitProposal,
-  //VoteProposal
-//} from './namada-gov'
-//import {
-  //toHash,
-  //pubkey,
-  //Section,
-  //CodeSection,
-  //DataSection,
-  //ciphertextSectionFields,
-  //codeSectionFields,
-  //dataSectionFields,
-  //headerFields,
-  //maspBuilderSectionFields,
-  //maspTxSection,
-  //maspTxSectionFields,
-  //protocolTransactionFields,
-  //signatureSectionFields,
-  //wrapperTransactionFields,
-//} from './namada-tx-section'
-//import {
-  //decode,
-  //array,
-  //struct,
-  //variants,
-  //variant,
-  //u8,
-  //u64,
-  //u256,
-  //i128,
-  //i256,
-  //option,
-  //unit,
-  //string,
-  //vec,
-  //Struct
-//} from '@hackbg/borshest'
-//import type {
-  //Fields
-//} from '@hackbg/borshest'
-
-//const txSchema = struct(
-  //['header',        struct(...headerFields)],
-  //['sections',      vec(variants(
-    //['Data',        struct(...dataSectionFields)],
-    //['ExtraData',   struct(...codeSectionFields)],
-    //['Code',        struct(...codeSectionFields)],
-    //['Signature',   struct(...signatureSectionFields)],
-    //['Ciphertext',  struct(...ciphertextSectionFields)],
-    //['MaspTx',      maspTxSection],
-    //['MaspBuilder', struct(...maspBuilderSectionFields)],
-    //['Header',      struct(...headerFields)]
-  //))]
-//)
+import {
+  Section,
+  DataSection,
+  ExtraDataSection,
+  CodeSection,
+  SignatureSection,
+  CiphertextSection,
+  MaspTxSection,
+  MaspBuilderSection,
+  HeaderSection,
+  UnknownSection
+} from './namada-tx-section'
 
 export class NamadaTransaction {
-  //static decode = (binary: Uint8Array) => {
-    //const decoded = decode(txSchema, binary)
-    //const { header: { txType, ...header }, sections } = decoded as any
-    //const [name, details] = variant(txType)
-    //switch (name) {
-      //case 'Raw':
-        //return new NamadaRawTransaction(header, details, sections)
-      //case 'Wrapper':
-        //return new NamadaWrapperTransaction(header, details, sections)
-      //case 'Decrypted':
-        //return new NamadaDecryptedTransaction(header, details, sections)
-      //case 'Protocol':
-        //return new NamadaProtocolTransaction(header, details, sections)
-    //}
-    //throw new Core.Error(
-      //`Unknown transaction variant "${String(name)}". Valid are: Raw|Wrapper|Decrypted|Protocol`
-    //)
-  //}
+
+  static fromDecoded = ({ sections, ...header }) => new this({
+    ...header,
+    sections: sections.map(section=>{
+      switch (section.type) {
+        case 'Data':
+          return new DataSection(section)
+        case 'ExtraData':
+          return new ExtraDataSection(section)
+        case 'Code':
+          return new CodeSection(section)
+        case 'Signature':
+          return new SignatureSection(section)
+        case 'Ciphertext':
+          return new CiphertextSection()
+        case 'MaspBuilder':
+          return new MaspBuilderSection(section)
+        case 'Header':
+          return new HeaderSection(section)
+        case 'MaspTx':
+          return new MaspTxSection(section)
+        default:
+          return new UnknownSection(section)
+      }
+    })
+  })
+
   chainId:    string
   expiration: string|null
   timestamp:  string
@@ -101,7 +47,8 @@ export class NamadaTransaction {
   dataHash:   string
   memoHash:   string
   txType:     'Raw'|'Wrapper'|'Decrypted'|'Protocol'
-  sections:   object[]
+  sections:   Section[]
+
   constructor (properties: Partial<NamadaTransaction> = {}) {
     Core.assign(this, properties, [
       'chainId',
@@ -114,19 +61,6 @@ export class NamadaTransaction {
       'sections',
     ])
   }
-    //for (const [field] of headerFields) {
-      //if (field === 'txType') continue
-      //this[field] = header[field]
-    //}
-    //for (const field of ['codeHash', 'dataHash', 'memoHash']) {
-      //if (this[field] instanceof Uint8Array) {
-        //this[field] = toHash(this[field])
-      //} else if (this[field] instanceof Array) {
-        //this[field] = toHash(this[field])
-      //}
-    //}
-    //this.sections = sections.map(section=>Section.fromDecoded(section))
-  //}
 
   print (console = new Core.Console()) {
     console.log('-', Core.bold(`${this.txType} transaction:`))
@@ -142,8 +76,7 @@ export class NamadaTransaction {
   printSections (console = new Core.Console()) {
     console.log(Core.bold('  Sections:  '))
     for (const section of this.sections) {
-      console.log(' - ', JSON.stringify(section))
-      //section.print(console)
+      section.print(console)
     }
   }
 }
@@ -375,3 +308,29 @@ export class NamadaProtocolTransaction extends NamadaTransaction {
     //console.warn('decode and print IBC: not implemented')
   //}
 //}
+
+//export const wrapperTransactionFields: Fields = [
+  //["fee",                 struct(
+    //["amountPerGasUnit",  struct(
+      //["amount",          u256],
+      //["denomination",    u8],
+    //)],
+    //["token",             addr],
+  //)],
+  //["pk",                  pubkey],
+  //["epoch",               u64],
+  //["gasLimit",            u64],
+  //["unshieldSectionHash", option(hashSchema)],
+//]
+
+//export const protocolTransactionFields: Fields = [
+  //["pk",                   pubkey],
+  //["tx",                   variants(
+    //['EthereumEvents',     unit],
+    //['BridgePool',         unit],
+    //['ValidatorSetUpdate', unit],
+    //['EthEventsVext',      unit],
+    //['BridgePoolVext',     unit],
+    //['ValSetUpdateVext',   unit],
+  //)],
+//]
