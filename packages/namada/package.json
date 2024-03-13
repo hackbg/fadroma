@@ -18,8 +18,8 @@
   "scripts": {
     "check":  "time tsc --noEmit",
     "clean":  "rm -rf .ubik* *.dist.*",
-    "build:wasm:dev":  "wasm-pack build --dev --target web && rm pkg/package.json",
-    "build:wasm:prod": "wasm-pack build --release --target web && rm pkg/package.json",
+    "build:wasm:dev":  "wasm-pack build --dev --target web && rm -v pkg/package.json pkg/.gitignore",
+    "build:wasm:prod": "wasm-pack build --release --target web && rm -v pkg/package.json pkg/.gitignore",
 
     "release":        "time sh -c 'pnpm clean && pnpm i && pnpm check && pnpm cov all && ubik release --otp 123123'",
     "release:fast":   "time sh -c 'pnpm clean && pnpm i && pnpm check && ubik release --otp 123123'",

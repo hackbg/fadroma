@@ -83,6 +83,22 @@ export class NamadaTransaction {
   }
 }
 
+export class UndecodedNamadaTransaction extends NamadaTransaction {
+  binary: Uint8Array
+  error: Error
+  constructor ({ binary, error }) {
+    super()
+    this.binary = binary
+    this.error = error
+  }
+  print (console = new Core.Console()) {
+    console.warn(`Failed to decode a transaction: ${this.error.message||'(unknown error)'}`)
+  }
+  printSections (console = new Core.Console()) {
+    console.warn(`Failed to decode a transaction: ${this.error.message||'(unknown error)'}`)
+  }
+}
+
 export class NamadaRawTransaction extends NamadaTransaction {
   //txType = 'Raw' as 'Raw'
   //constructor (header: object, details: object, sections: object[]) {

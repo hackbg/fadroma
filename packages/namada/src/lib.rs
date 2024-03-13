@@ -92,12 +92,7 @@ impl Decode {
                 sections
             }.into())
         ])?;
-        //if let TxType::Decrypted(_) = tx.header().tx_type {
-            Self::tx_content(tx, result)
-        //} else {
-            //Reflect::set(&result, &"content".into(), &JsValue::NULL)?;
-            //Ok(result)
-        //}
+        Self::tx_content(tx, result)
     }
 
     fn tx_content (tx: Tx, result: Object) -> Result<Object, Error> {

@@ -27,7 +27,8 @@ import {
   isPGFSteward
 } from "./namada-pgf"
 import {
-  NamadaTransaction
+  NamadaTransaction,
+  UndecodedNamadaTransaction
 } from './namada-tx'
 
 export async function connect (optionsWithDecoder: ConstructorParameters<typeof NamadaConnection>[0] & {
@@ -53,11 +54,12 @@ export class NamadaConnection extends CW.Connection {
     const txsDecoded: NamadaTransaction[] = []
     const {txs} = (block as { txs: Uint8Array[] })
     for (const i in txs) {
-      const decoded = Decode.tx(txs[i].slice(3)) as any
-      if (decoded.txType === 'Wrapper') {
-        console.log('decoded:', decoded)
+      const binary = txs[i].slice(3)
+      try {
+        txsDecoded[i] = NamadaTransaction.fromDecoded(Decode.tx(binary) as any)
+      } catch (error) {
+        txsDecoded[i] = new UndecodedNamadaTransaction({ binary, error })
       }
-      txsDecoded[i] = NamadaTransaction.fromDecoded(decoded)
     }
     Object.assign(block, { txsDecoded })
     return block as typeof block & { txsDecoded: NamadaTransaction[] }
