@@ -1,8 +1,7 @@
 import CLI from '@hackbg/cmds'
 import { Core } from '@fadroma/agent'
 import { brailleDump } from '@hackbg/dump'
-import { NamadaConnection } from './namada-connection'
-import { NamadaMnemonicIdentity } from './namada-identity'
+import { NamadaConnection, NamadaMnemonicIdentity } from './namada-connection'
 import {
   NamadaTransaction,
   NamadaRawTransaction,
@@ -10,7 +9,6 @@ import {
   NamadaDecryptedTransaction,
   NamadaProtocolTransaction
 } from './namada-tx'
-export { connect } from './namada-connection'
 export {
   NamadaCLI                  as CLI,
   NamadaConnection           as Connection,
@@ -39,7 +37,9 @@ export const faucets = {
 /** Connect to Namada in testnet mode. */
 export const testnet = (options: Partial<NamadaConnection> = {}): NamadaConnection => {
   return new NamadaConnection({
-    chainId: chainIds.testnet, url: Core.pickRandom(testnets), ...options||{}
+    chainId: chainIds.testnet,
+    url: Core.pickRandom(testnets),
+    ...options||{}
   })
 }
 

@@ -1,6 +1,4 @@
 import * as CW from '@fadroma/cw'
-//import * as WASM from './pkg/fadroma_namada.js'
-//console.log({WASM})
 import init, { Decode } from './pkg/fadroma_namada.js'
 import {
   getTotalStaked,
@@ -132,5 +130,17 @@ export class NamadaConnection extends CW.Connection {
 
   getValidatorStake (address: string) {
     return getValidatorStake(this, address)
+  }
+}
+
+const defaults = {
+  coinType:       118,
+  bech32Prefix:   'tnam', 
+  hdAccountIndex: 0,
+}
+
+export class NamadaMnemonicIdentity extends CW.MnemonicIdentity {
+  constructor (properties?: { mnemonic?: string } & Partial<CW.MnemonicIdentity>) {
+    super({ ...defaults, ...properties||{} })
   }
 }

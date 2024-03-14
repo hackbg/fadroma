@@ -26,6 +26,7 @@ export default async function main () {
     for (const tx of block.txsDecoded) {
       tx.print(this.log)
       tx.printSections(this.log)
+      console.log({content: this.content})
     }
     console.br()
     height--

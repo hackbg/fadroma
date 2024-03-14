@@ -12,19 +12,20 @@ export class Section {
   }
 }
 
+export class UnknownSection extends Section {
+  data: unknown
+  constructor (data: unknown) {
+    super()
+    this.data = data
+  }
+}
+
 export class DataSection extends Section {
   salt: string
   data: string
-  constructor ({ salt, data }) {
+  constructor (properties: Partial<DataSection> = {}) {
     super()
-    this.salt = salt
-    this.data = data
-  }
-  print (console = new Core.Console()) {
-    console
-      .log('  Data section')
-      .log('    Salt:', this.salt)
-      .log('    Data:', this.data)
+    Core.assign(this, properties, [ 'salt', 'data' ])
   }
 }
 
@@ -32,18 +33,9 @@ export class ExtraDataSection extends Section {
   salt: string
   code: string
   tag:  string
-  constructor ({ salt, code, tag }) {
+  constructor (properties: Partial<ExtraDataSection> = {}) {
     super()
-    this.salt = salt
-    this.code = code
-    this.tag  = tag
-  }
-  print (console = new Core.Console()) {
-    console
-      .log('  Extra data section')
-      .log('    Salt:', this.salt)
-      .log('    Code:', this.code)
-      .log('    Tag: ', this.tag)
+    Core.assign(this, properties, [ 'salt', 'code', 'tag' ])
   }
 }
 
@@ -51,18 +43,9 @@ export class CodeSection extends Section {
   salt: string
   code: string
   tag:  string
-  constructor ({ salt, code, tag }) {
+  constructor (properties: Partial<CodeSection> = {}) {
     super()
-    this.salt = salt
-    this.code = code
-    this.tag  = tag
-  }
-  print (console = new Core.Console()) {
-    console
-      .log('  Code section')
-      .log('    Salt:', this.salt)
-      .log('    Code:', this.code)
-      .log('    Tag: ', this.tag)
+    Core.assign(this, properties, [ 'salt', 'code', 'tag' ])
   }
 }
 
@@ -70,45 +53,13 @@ export class SignatureSection extends Section {
   targets:    string[]
   signer:     string|string[]
   signatures: string[]
-  constructor ({ targets, signer, signatures }) {
+  constructor (properties: Partial<SignatureSection> = {}) {
     super()
-    this.targets    = targets
-    this.signer     = signer
-    this.signatures = signatures
-  }
-  print (console = new Core.Console()) {
-    console
-      .log('  Signature section')
-      .log('    Targets:   ')
-    for (const target of this.targets) {
-      console
-        .log('    -', target)
-    }
-    if (typeof this.signer === 'string') {
-      console
-        .log('    Signer:    ', this.signer)
-    } else {
-      console
-        .log('    Signer:    ')
-      for (const sign of this.signer) {
-        console
-          .log('    -', sign)
-      }
-    }
-    console
-      .log('    Signatures:')
-    for (const [key, value] of Object.entries(this.signatures)) {
-      console
-        .log('    -', key, value)
-    }
+    Core.assign(this, properties, [ 'targets', 'signer', 'signatures' ])
   }
 }
 
-export class CiphertextSection extends Section {
-  print (console = new Core.Console()) {
-    console.log('  Ciphertext section')
-  }
-}
+export class CiphertextSection extends Section {}
 
 export class MaspTxSection extends Section {
   txid:               string
@@ -149,67 +100,15 @@ export class MaspTxSection extends Section {
     }>
     valueBalance:     Record<string, bigint>
   }
-  constructor ({ txid, lockTime, expiryHeight, transparentBundle, saplingBundle }) {
+  constructor (properties: Partial<MaspTxSection> = {}) {
     super()
-    this.txid              = txid
-    this.lockTime          = lockTime
-    this.expiryHeight      = expiryHeight
-    this.transparentBundle = transparentBundle
-    this.saplingBundle     = saplingBundle
-  }
-  print (console = new Core.Console()) {
-    console
-      .log('  MASP TX section')
-      .log('    TX ID:    ', this.txid)
-      .log('    Lock time:', this.lockTime)
-      .log('    Expiry:   ', this.expiryHeight)
-    if (this.transparentBundle) {
-      console.log('    Transparent bundle:')
-      console.log('    vIn:')
-      for (const tx of this.transparentBundle.vin) {
-        console
-          .log('    - Asset type:', tx.assetType)
-          .log('      Value:     ', tx.value)
-          .log('      Address:   ', tx.address)
-      }
-      console.log('    vOut:')
-      for (const tx of this.transparentBundle.vout) {
-        console
-          .log('    - Asset type:', tx.assetType)
-          .log('      Value:     ', tx.value)
-          .log('      Address:   ', tx.address)
-      }
-    }
-    if (this.saplingBundle) {
-      console
-        .log('  Sapling bundle:')
-        .log('    Shielded spends:')
-      for (const tx of this.saplingBundle.shieldedSpends) {
-        console
-          .log('    - CV:       ', tx.cv)
-          .log('      Anchor:   ', tx.anchor)
-          .log('      Nullifier:', tx.nullifier)
-          .log('      RK:       ', tx.rk)
-          .log('      ZKProof:  ', tx.zkProof)
-      }
-      console.log('    Shielded converts:')
-      for (const tx of this.saplingBundle.shieldedConverts) {
-        console
-          .log('    - CV:     ', tx.cv)
-          .log('      Anchor: ', tx.anchor)
-          .log('      ZKProof:', tx.zkProof)
-      }
-      console.log('    Shielded outputs:')
-      for (const tx of this.saplingBundle.shieldedOutputs) {
-        console
-          .log('    - CV:             ', tx.cv)
-          .log('      CMU:            ', tx.cmu)
-          .log('      Epheremeral key:', tx.ephemeralKey)
-          .log('      Enc. ciphertext:', tx.encCiphertext)
-          .log('      Out. ciphertext:', tx.outCiphertext)
-          .log('      ZKProof:        ', tx.zkProof)
-      }
-    }
+    Core.assign(this, properties, [
+      'txid',
+      'lockTime',
+      'expiryHeight',
+      'transparentBundle',
+      'saplingBundle'
+    ])
   }
 }
 
@@ -221,10 +120,12 @@ export class MaspBuilderSection extends Section {
     position: number,
     epoch?:   number
   }>
-  constructor ({ target, assetTypes }) {
+  constructor (properties: Partial<MaspBuilderSection> = {}) {
     super()
-    this.target = target
-    this.assetTypes = assetTypes
+    Core.assign(this, properties, [
+      'target',
+      'assetTypes'
+    ])
   }
 }
 
@@ -236,24 +137,16 @@ export class HeaderSection extends Section {
   dataHash:   string
   memoHash:   string
   txType:     'Raw'|'Wrapper'|'Decrypted'|'Protocol'
-  constructor ({ chainId, expiration, timestamp, codeHash, dataHash, memoHash, txType }) {
+  constructor (properties: Partial<HeaderSection> = {}) {
     super()
-    this.chainId    = chainId
-    this.expiration = expiration
-    this.timestamp  = timestamp
-    this.codeHash   = codeHash
-    this.dataHash   = dataHash
-    this.memoHash   = memoHash
-  }
-}
-
-export class UnknownSection extends Section {
-  data: unknown
-  constructor (data: unknown) {
-    super()
-    this.data = data
-  }
-  print (console = new Core.Console()) {
-    console.warn('Unknown section:', this.data)
+    Core.assign(this, properties, [
+      'chainId',
+      'expiration',
+      'timestamp',
+      'codeHash',
+      'dataHash',
+      'memoHash',
+      'txType'
+    ])
   }
 }

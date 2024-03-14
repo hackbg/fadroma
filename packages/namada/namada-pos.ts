@@ -2,81 +2,161 @@ import type { Address } from '@fadroma/agent'
 import { Core } from '@fadroma/agent'
 import { addr, InternalAddresses, decodeAddress } from './namada-address'
 import type { Address as NamadaAddress } from './namada-address'
-import type { NamadaConnection } from './namada-connection'
 import { Staking } from '@fadroma/cw'
-//import {
+import { decode, u64 } from '@hackbg/borshest'
   //decode, Struct, u8, u64, u128, u256, i256, option, struct, variants, unit, string, array, set
 //} from '@hackbg/borshest'
 //import type {
   //AnyField
 //} from '@hackbg/borshest'
 
-export async function getStakingParameters (connection: NamadaConnection) {
+class PoSParameters {
+  maxProposalPeriod:             bigint
+  maxValidatorSlots:             bigint
+  pipelineLen:                   bigint
+  unbondingLen:                  bigint
+  tmVotesPerToken:               bigint
+  blockProposerReward:           bigint
+  blockVoteReward:               bigint
+  maxInflationRate:              bigint
+  targetStakedRatio:             bigint
+  duplicateVoteMinSlashRate:     bigint
+  lightClientAttackMinSlashRate: bigint
+  cubicSlashingWindowLength:     bigint
+  validatorStakeThreshold:       bigint
+  livenessWindowCheck:           bigint
+  livenessThreshold:             bigint
+  rewardsGainP:                  bigint
+  rewardsGainD:                  bigint
+  constructor (properties: Partial<PoSParameters> = {}) {
+    Core.assign(this, properties, [
+      'maxProposalPeriod',
+      'maxValidatorSlots',
+      'pipelineLen',
+      'unbondingLen',
+      'tmVotesPerToken',
+      'blockProposerReward',
+      'blockVoteReward',
+      'maxInflationRate',
+      'targetStakedRatio',
+      'duplicateVoteMinSlashRate',
+      'lightClientAttackMinSlashRate',
+      'cubicSlashingWindowLength',
+      'validatorStakeThreshold',
+      'livenessWindowCheck',
+      'livenessThreshold',
+      'rewardsGainP',
+      'rewardsGainD',
+    ])
+  }
+}
+
+class PoSValidatorMetadata {
+  email:         string
+  description:   string|null
+  website:       string|null
+  discordHandle: string|null
+  avatar:        string|null
+  constructor (properties: Partial<PoSValidatorMetadata>) {
+    Core.assign(this, properties, [
+      'email',
+      'description',
+      'website',
+      'discordHandle',
+      'avatar',
+    ])
+  }
+}
+
+class PoSValidator extends Staking.Validator {
+  static fromNamadaAddress = (namadaAddress: string) => Object.assign(new this({}), { namadaAddress })
+  namadaAddress!: Address
+  metadata!:      PoSValidatorMetadata,
+  commission!:    CommissionPair
+  state!:         unknown
+  stake!:         bigint
+  async fetchDetails (connection: Connection) {
+    if (!this.namadaAddress) {
+      const addressBinary = await connection.abciQuery(`/vp/pos/validator_by_tm_addr/${this.address}`)
+      this.namadaAddress = decodeAddress(addressBinary.slice(1))
+    }
+    const requests = [
+      connection.abciQuery(`/vp/pos/validator/metadata/${this.namadaAddress}`)
+        .then(binary => this.metadata   = ValidatorMetaData.decode(binary) as ValidatorMetaData),
+      connection.abciQuery(`/vp/pos/validator/commission/${this.namadaAddress}`)
+        .then(binary => this.commission = CommissionPair.decode(binary) as CommissionPair),
+      connection.abciQuery(`/vp/pos/validator/state/${this.namadaAddress}`)
+        .then(binary => this.state      = decode(stateSchema, binary)),
+      connection.abciQuery(`/vp/pos/validator/stake/${this.namadaAddress}`)
+        .then(binary => this.stake      = decode(stakeSchema, binary)),
+    ]
+    if (this.namadaAddress && !this.publicKey) {
+      requests.push(connection.abciQuery(`/vp/pos/validator/consensus_key/${this.namadaAddress}`)
+        .then(binary => this.publicKey  = Core.base16.encode(binary.slice(1))))
+    }
+    if (this.namadaAddress && !this.address) {
+      connection.log.warn("consensus address when fetching all validators: not implemented")
+    }
+    await Promise.all(requests)
+    return this
+  }
+  print (console = new Core.Console()) {
+    console
+      .log('Validator:      ', Core.bold(this.namadaAddress))
+      .log('  Address:      ', Core.bold(this.address))
+      .log('  Public key:   ', Core.bold(this.publicKey))
+      .log('  State:        ', Core.bold(Object.keys(this.state as object)[0]))
+      .log('  Stake:        ', Core.bold(this.stake))
+      .log('  Voting power: ', Core.bold(this.votingPower))
+      .log('  Priority:     ', Core.bold(this.proposerPriority))
+      .log('  Commission:   ', Core.bold(this.commission.commissionRate))
+      .log('    Max change: ', Core.bold(this.commission.maxCommissionChangePerEpoch), 'per epoch')
+      .log('Email:          ', Core.bold(this.metadata?.email||''))
+      .log('Website:        ', Core.bold(this.metadata?.website||''))
+      .log('Discord:        ', Core.bold(this.metadata?.discordHandle||''))
+      .log('Avatar:         ', Core.bold(this.metadata?.avatar||''))
+      .log('Description:    ', Core.bold(this.metadata?.description||''))
+  }
+}
+
+export class CommissionPair {
+  commissionRate:              bigint
+  maxCommissionChangePerEpoch: bigint
+  constructor (properties: Partial<CommissionPair> = {}) {
+    Core.assign(this, properties, [
+      'commissionRate',
+      'maxCommissionChangePerEpoch',
+    ])
+  }
+}
+
+export {
+  PoSParameters        as Parameters,
+  PoSValidatorMetadata as ValidatorMetadata,
+  PoSValidator         as Validator,
+}
+
+type Connection = {
+  log: Core.Console,
+  abciQuery: (path: string)=>Promise<Uint8Array>
+  decode: {
+    pos_parameters         (binary: Uint8Array): Partial<PoSParameters>,
+    pos_validator_metadata (binary: Uint8Array): Partial<PoSValidatorMetadata>
+  }
+}
+
+export async function getStakingParameters (connection: Connection) {
   const binary = await connection.abciQuery("/vp/pos/pos_params")
-  return PosParams.decode(binary) as PosParams
+  return new PoSParameters(connection.decode.pos_parameters(binary))
 }
 
-//const ownedPosParamsFields: Array<[string, AnyField]> = [
-  //["maxValidatorSlots",             u64],
-  //["pipelineLen",                   u64],
-  //["unbondingLen",                  u64],
-  //["tmVotesPerToken",               u256],
-  //["blockProposerReward",           u256],
-  //["blockVoteReward",               u256],
-  //["maxInflationRate",              u256],
-  //["targetStakedRatio",             u256],
-  //["duplicateVoteMinSlashRate",     u256],
-  //["lightClientAttackMinSlashRate", u256],
-  //["cubicSlashingWindowLength",     u64],
-  //["validatorStakeThreshold",       u256],
-  //["livenessWindowCheck",           u64],
-  //["livenessThreshold",             u256],
-  //["rewardsGainP",                  u256],
-  //["rewardsGainD",                  u256],
-//]
-
-//export class PosParams extends Struct(
-  //["owned",             struct(...ownedPosParamsFields)],
-  //["maxProposalPeriod", u64],
-//) {
-  //declare maxProposalPeriod: bigint
-  //declare owned:             OwnedPosParams
-  //constructor (data) {
-    //super(data)
-    //if (!(this.owned instanceof OwnedPosParams)) {
-      //this.owned = new OwnedPosParams(this.owned)
-    //}
-  //}
-//}
-
-//class OwnedPosParams extends Struct(...ownedPosParamsFields) {
-  //maxValidatorSlots!:             bigint
-  //pipelineLen!:                   bigint
-  //unbondingLen!:                  bigint
-  //tmVotesPerToken!:               bigint
-  //blockProposerReward!:           bigint
-  //blockVoteReward!:               bigint
-  //maxInflationRate!:              bigint
-  //targetStakedRatio!:             bigint
-  //duplicateVoteMinSlashRate!:     bigint
-  //lightClientAttackMinSlashRate!: bigint
-  //cubicSlashingWindowLength!:     bigint
-  //validatorStakeThreshold!:       bigint
-  //livenessWindowCheck!:           bigint
-  //livenessThreshold!:             bigint
-  //rewardsGainP!:                  bigint
-  //rewardsGainD!:                  bigint
-//}
-
-export async function getTotalStaked (connection: NamadaConnection) {
+export async function getTotalStaked (connection: Connection) {
   const binary = await connection.abciQuery("/vp/pos/total_stake")
-  return decode(totalStakeSchema, binary)
+  return decode(u64, binary)
 }
-
-//const totalStakeSchema = struct([ "totalStake", u64 ])
 
 export async function getValidators (
-  connection: NamadaConnection,
+  connection: Connection,
   options: Partial<Parameters<typeof Staking.getValidators>[1]> & {
     addresses?: string[],
     allStates?: boolean
@@ -92,7 +172,7 @@ export async function getValidators (
       const [page, perPage] = options.pagination
       addresses = addresses.slice((page - 1)*perPage, page*perPage)
     }
-    const validators = addresses.map(address=>NamadaValidator.fromNamadaAddress(address))
+    const validators = addresses.map(address=>PoSValidator.fromNamadaAddress(address))
     if (options.details) {
       if (!options.pagination) {
         throw new Error("set pagination to not bombard the node")
@@ -105,63 +185,12 @@ export async function getValidators (
       throw new Error("addresses option is only for caching with allStates")
     }
     return Staking.getValidators(connection, {
-      ...options, Validator: NamadaValidator
-    }) as unknown as Promise<NamadaValidator[]>
+      ...options, Validator: PoSValidator
+    }) as unknown as Promise<PoSValidator[]>
   }
 }
 
-//export class NamadaValidator extends Staking.Validator {
-  //static fromNamadaAddress = (namadaAddress: string) => Object.assign(new this({}), { namadaAddress })
-  //namadaAddress!: Address
-  //metadata!:      ValidatorMetaData
-  //commission!:    CommissionPair
-  //state!:         unknown
-  //stake!:         bigint
-  //async fetchDetails (connection: NamadaConnection) {
-    //if (!this.namadaAddress) {
-      //const addressBinary = await connection.abciQuery(`/vp/pos/validator_by_tm_addr/${this.address}`)
-      //this.namadaAddress = decodeAddress(addressBinary.slice(1))
-    //}
-    //const requests = [
-      //connection.abciQuery(`/vp/pos/validator/metadata/${this.namadaAddress}`)
-        //.then(binary => this.metadata   = ValidatorMetaData.decode(binary) as ValidatorMetaData),
-      //connection.abciQuery(`/vp/pos/validator/commission/${this.namadaAddress}`)
-        //.then(binary => this.commission = CommissionPair.decode(binary) as CommissionPair),
-      //connection.abciQuery(`/vp/pos/validator/state/${this.namadaAddress}`)
-        //.then(binary => this.state      = decode(stateSchema, binary)),
-      //connection.abciQuery(`/vp/pos/validator/stake/${this.namadaAddress}`)
-        //.then(binary => this.stake      = decode(stakeSchema, binary)),
-    //]
-    //if (this.namadaAddress && !this.publicKey) {
-      //requests.push(connection.abciQuery(`/vp/pos/validator/consensus_key/${this.namadaAddress}`)
-        //.then(binary => this.publicKey  = Core.base16.encode(binary.slice(1))))
-    //}
-    //if (this.namadaAddress && !this.address) {
-      //connection.log.warn("consensus address when fetching all validators: not implemented")
-    //}
-    //await Promise.all(requests)
-    //return this
-  //}
-  //print (console = new Core.Console()) {
-    //console
-      //.log('Validator:      ', Core.bold(this.namadaAddress))
-      //.log('  Address:      ', Core.bold(this.address))
-      //.log('  Public key:   ', Core.bold(this.publicKey))
-      //.log('  State:        ', Core.bold(Object.keys(this.state as object)[0]))
-      //.log('  Stake:        ', Core.bold(this.stake))
-      //.log('  Voting power: ', Core.bold(this.votingPower))
-      //.log('  Priority:     ', Core.bold(this.proposerPriority))
-      //.log('  Commission:   ', Core.bold(this.commission.commissionRate))
-      //.log('    Max change: ', Core.bold(this.commission.maxCommissionChangePerEpoch), 'per epoch')
-      //.log('Email:          ', Core.bold(this.metadata?.email||''))
-      //.log('Website:        ', Core.bold(this.metadata?.website||''))
-      //.log('Discord:        ', Core.bold(this.metadata?.discordHandle||''))
-      //.log('Avatar:         ', Core.bold(this.metadata?.avatar||''))
-      //.log('Description:    ', Core.bold(this.metadata?.description||''))
-  //}
-//}
-
-export async function getValidatorAddresses (connection: NamadaConnection): Promise<Address[]> {
+export async function getValidatorAddresses (connection: Connection): Promise<Address[]> {
   const binary = await connection.abciQuery("/vp/pos/validator/addresses")
   return [...decode(getValidatorsSchema, binary) as Set<Array<number>>]
     .map(bytes=>decodeAddress(bytes))
@@ -169,7 +198,7 @@ export async function getValidatorAddresses (connection: NamadaConnection): Prom
 
 //const getValidatorsSchema = set(addr)
 
-export async function getValidatorsConsensus (connection: NamadaConnection) {
+export async function getValidatorsConsensus (connection: Connection) {
   const binary = await connection.abciQuery("/vp/pos/validator_set/consensus")
   return [...decode(validatorSetSchema, binary) as Set<{
     bonded_stake: number[],
@@ -182,7 +211,7 @@ export async function getValidatorsConsensus (connection: NamadaConnection) {
                   : 0)
 }
 
-export async function getValidatorsBelowCapacity (connection: NamadaConnection) {
+export async function getValidatorsBelowCapacity (connection: Connection) {
   const binary = await connection.abciQuery("/vp/pos/validator_set/below_capacity")
   return [...decode(validatorSetSchema, binary) as Set<{
     bonded_stake: number[],
@@ -195,172 +224,11 @@ export async function getValidatorsBelowCapacity (connection: NamadaConnection) 
                   : 0)
 }
 
-//const validatorSetMemberFields: Array<[string, AnyField]> = [
-  //["bonded_stake", u256],
-  //["address",      addr],
-//]
-
-//const validatorSetSchema = set(struct(...validatorSetMemberFields))
-
-export async function getValidator (connection: NamadaConnection, address: Address) {
-  return await NamadaValidator.fromNamadaAddress(address).fetchDetails(connection)
+export async function getValidator (connection: Connection, address: Address) {
+  return await PoSValidator.fromNamadaAddress(address).fetchDetails(connection)
 }
 
-export async function getValidatorStake(connection: NamadaConnection, address: Address) {
+export async function getValidatorStake(connection: Connection, address: Address) {
   const totalStake = await connection.abciQuery(`/vp/pos/validator/stake/${address}`)
   return decode(validatorStakeSchema, totalStake)
 }
-
-//const validatorStakeSchema = option(struct([ "stake", u128 ]))
-
-//export class ValidatorMetaData extends Struct(
-  //["email",          string],
-  //["description",    option(string)],
-  //["website",        option(string)],
-  //["discord_handle", option(string)],
-  //["avatar",         option(string)],
-//) {
-  //email!:         string
-  //description!:   string|null
-  //website!:       string|null
-  //discordHandle!: string|null
-  //avatar!:        string|null
-//}
-
-//export class CommissionPair extends Struct(
-  //["commission_rate",                 u256],
-  //["max_commission_change_per_epoch", u256],
-//) {
-  //commissionRate!:              bigint
-  //maxCommissionChangePerEpoch!: bigint
-  //constructor (data) {
-    //super(data)
-    //decodeU256Fields(this, [
-      //'commissionRate',
-      //'maxCommissionChangePerEpoch',
-    //])
-  //}
-//}
-
-//const stateSchema = option(variants(
-  //['Consensus',      unit],
-  //['BelowCapacity',  unit],
-  //['BelowThreshold', unit],
-  //['Inactive',       unit],
-  //['Jailed',         unit],
-//))
-
-//const stakeSchema = option(u256)
-
-//const pubkey = option(variants(
-  //['Ed25519',   array(32, u8)],
-  //['Secp256k1', array(33, u8)],
-//))
-
-//export class BecomeValidator extends Struct(
-  //["address",                    addr],
-  //["consensus_key",              pubkey],
-  //["eth_cold_key",               pubkey],
-  //["eth_hot_key",                pubkey],
-  //["protocol_key",               pubkey],
-  //["commission_rate",            u256],
-  //["max_commission_rate_change", u256],
-  //["email",                      string],
-  //["description",                option(string)],
-  //["website",                    option(string)],
-  //["discord_handle",             option(string)],
-  //["avatar",                     option(string)],
-//) {
-  //address
-  //consensusKey
-  //ethColdKey
-  //ethHotKey
-  //protocolKey
-  //commissionRate
-  //maxCommissionRateChange
-  //email
-  //description
-  //website
-  //discordHandle
-  //avatar
-//}
-
-//export class Bond extends Struct(
-  //["validator", addr],
-  //["amount",    u256],
-  //["source",    option(addr)],
-//) {
-  //validator: Address
-  //amount:    bigint
-  //source:    null|Address
-//}
-
-//export class ClaimRewards extends Struct(
-  //["validator", addr],
-  //["source",    option(addr)],
-//) {
-  //validator: Address
-  //source:    null|Address
-//}
-
-//export class ConsensusKeyChange extends Struct(
-  //["validator",     addr],
-  //["consensus_key", pubkey],
-//) {
-  //validator:     Address
-  //consensusKey:  unknown
-//}
-
-//export class CommissionChange extends Struct(
-  //["validator", addr],
-  //["new_rate",  i256],
-//) {
-  //validator: Address
-  //newRate:   bigint
-//}
-
-//export class MetaDataChange extends Struct(
-  //["validator",       addr],
-  //["email",           option(string)],
-  //["description",     option(string)],
-  //["website",         option(string)],
-  //["discord_handle",  option(string)],
-  //["avatar",          option(string)],
-  //["commission_rate", option(i256)],
-//) {
-  //validator:      Address
-  //email:          null|string
-  //description:    null|string
-  //website:        null|string
-  //discordHandle:  null|string
-  //avatar:         null|string
-  //commissionRate: null|string
-//}
-
-//export class Redelegation extends Struct(
-  //["src_validator",  addr],
-  //["dest_validator", addr],
-  //["owner",          addr],
-  //["amount",         i256],
-//) {
-  //srcValidator:   Address
-  //destValidator:  Address
-  //owner:          Address
-  //amount:         bigint
-//}
-
-//export class Unbond extends Struct() {}
-
-//export class Withdraw extends Struct(
-  //["validator", addr],
-  //["source",    option(addr)],
-//) {
-  //validator: Address
-  //source:    null|Address
-//}
-
-//export class DeactivateValidator extends Struct() {}
-
-//export class ReactivateValidator extends Struct() {}
-
-//export class UnjailValidator extends Struct() {}
