@@ -10,7 +10,7 @@
     "okp4/okp4-objectarium.ts"
   ],
   "include": [],
-  "exclude": [ ".ubik", "*.dist.*", "node_modules", "*.mjs" ],
+  "exclude": [ ".ubik", "*.dist.*", "node_modules" ],
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
