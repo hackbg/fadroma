@@ -9,6 +9,7 @@ import {
   getValidatorAddresses,
   getValidator,
   getValidatorStake,
+  getValidatorDelegations,
 } from './namada-pos'
 import {
   getGovernanceParameters,
@@ -112,6 +113,10 @@ export class NamadaConnection extends CW.Connection {
 
   getValidator (address: string) {
     return getValidator(this, address)
+  }
+
+  getValidatorDelegations (address: string) {
+    return getValidatorDelegations(this, address)
   }
 
   getGovernanceParameters () {

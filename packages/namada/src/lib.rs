@@ -101,10 +101,14 @@ impl Decode {
     }
 
     #[wasm_bindgen]
-    pub fn address (source: Uint8Array) -> Result<JsString, Error> {
-        let address = Address::decode_bytes(&to_bytes(&source))
+    pub fn addresses (source: Uint8Array) -> Result<Array, Error> {
+        let addresses: Vec<Address> = Vec::try_from_slice(&to_bytes(&source))
             .map_err(|e|Error::new(&format!("{e}")))?;
-        Ok(address.encode().into())
+        let result = Array::new();
+        for address in addresses.iter() {
+            result.push(&address.encode().into());
+        }
+        Ok(result.into())
     }
 
     #[wasm_bindgen]
@@ -522,18 +526,20 @@ impl Decode {
 
     #[wasm_bindgen]
     pub fn tx_content_reactivate_validator (binary: &[u8]) -> Result<Object, Error> {
-        let inner = Address::try_from_slice(&binary[..])
+        let address = Address::try_from_slice(&binary[..])
             .map_err(|e|Error::new(&format!("{e}")))?;
-        object(&[
-        ])
+        Ok(to_object! {
+            "address" = address,
+        })
     }
 
     #[wasm_bindgen]
     pub fn tx_content_resign_steward (binary: &[u8]) -> Result<Object, Error> {
-        let inner = Address::try_from_slice(&binary[..])
+        let address = Address::try_from_slice(&binary[..])
             .map_err(|e|Error::new(&format!("{e}")))?;
-        object(&[
-        ])
+        Ok(to_object! {
+            "address" = address,
+        })
     }
 
     #[wasm_bindgen]

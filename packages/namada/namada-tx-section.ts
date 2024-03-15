@@ -4,7 +4,6 @@ import {
   bool
 } from '@hackbg/borshest'
 import type { Fields } from '@hackbg/borshest'
-import { addr } from './namada-address'
 
 export class Section {}
 

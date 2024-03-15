@@ -1,7 +1,5 @@
 import type { Address } from '@fadroma/agent'
 import { Core } from '@fadroma/agent'
-import { addr, InternalAddresses, decodeAddress } from './namada-address'
-import type { Address as NamadaAddress } from './namada-address'
 import { Staking } from '@fadroma/cw'
 import { decode, u8, u64, u256, array, set } from '@hackbg/borshest'
 
@@ -73,7 +71,7 @@ class PoSValidator extends Staking.Validator {
   async fetchDetails (connection: Connection) {
     if (!this.namadaAddress) {
       const addressBinary = await connection.abciQuery(`/vp/pos/validator_by_tm_addr/${this.address}`)
-      this.namadaAddress = decodeAddress(addressBinary.slice(1))
+      this.namadaAddress = connection.decode.address(addressBinary.slice(1))
     }
     const requests: Array<Promise<unknown>> = [
       connection.abciQuery(`/vp/pos/validator/metadata/${this.namadaAddress}`)
@@ -120,6 +118,8 @@ type Connection = {
   abciQuery: (path: string)=>Promise<Uint8Array>
   tendermintClient
   decode: {
+    address                (binary: Uint8Array): string
+    addresses              (binary: Uint8Array): string[]
     pos_parameters         (binary: Uint8Array): Partial<PoSParameters>
     pos_validator_metadata (binary: Uint8Array): Partial<PoSValidatorMetadata>
     pos_commission_pair    (binary: Uint8Array): Partial<PoSCommissionPair>
@@ -178,11 +178,10 @@ export async function getValidators (
 
 export async function getValidatorAddresses (connection: Connection): Promise<Address[]> {
   const binary = await connection.abciQuery("/vp/pos/validator/addresses")
-  return [...decode(getValidatorsSchema, binary) as Set<Array<bigint>>]
-    .map(bytes=>decodeAddress(bytes.map(x=>Number(x))))
+  return connection.decode.addresses(binary)
 }
 
-const getValidatorsSchema = set(array(21, u8))
+const addrSetSchema = set(array(21, u8))
 
 const byBondedStake = (a, b)=> (a.bondedStake > b.bondedStake) ? -1
   : (a.bondedStake < b.bondedStake) ?  1
@@ -202,7 +201,12 @@ export async function getValidator (connection: Connection, address: Address) {
   return await PoSValidator.fromNamadaAddress(address).fetchDetails(connection)
 }
 
-export async function getValidatorStake(connection: Connection, address: Address) {
+export async function getValidatorStake (connection: Connection, address: Address) {
   const totalStake = await connection.abciQuery(`/vp/pos/validator/stake/${address}`)
   return decode(u256, totalStake)
+}
+
+export async function getValidatorDelegations (connection: Connection, validator: Address) {
+  const binary = await connection.abciQuery(`/vp/pos/delegations/${validator}`)
+  return connection.decode.addresses(binary)
 }

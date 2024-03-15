@@ -1,8 +1,7 @@
 import { Core } from '@fadroma/agent'
-import type { Address } from './namada-address'
 
 class PGFParameters {
-  stewards:              Set<Address>
+  stewards:              Set<string>
   pgfInflationRate:      bigint
   stewardsInflationRate: bigint
   constructor (properties: Partial<PGFParameters> = {}) {
