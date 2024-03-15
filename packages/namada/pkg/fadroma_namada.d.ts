@@ -13,6 +13,41 @@ export class Decode {
 * @param {Uint8Array} source
 * @returns {object}
 */
+  static pos_parameters(source: Uint8Array): object;
+/**
+* @param {Uint8Array} source
+* @returns {object}
+*/
+  static pos_validator_metadata(source: Uint8Array): object;
+/**
+* @param {Uint8Array} source
+* @returns {object}
+*/
+  static pgf_parameters(source: Uint8Array): object;
+/**
+* @param {Uint8Array} source
+* @returns {object}
+*/
+  static gov_parameters(source: Uint8Array): object;
+/**
+* @param {Uint8Array} source
+* @returns {object}
+*/
+  static gov_proposal(source: Uint8Array): object;
+/**
+* @param {Uint8Array} source
+* @returns {Array<any>}
+*/
+  static gov_votes(source: Uint8Array): Array<any>;
+/**
+* @param {Uint8Array} source
+* @returns {object}
+*/
+  static gov_result(source: Uint8Array): object;
+/**
+* @param {Uint8Array} source
+* @returns {object}
+*/
   static tx(source: Uint8Array): object;
 /**
 * @param {Uint8Array} binary
@@ -117,6 +152,13 @@ export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly __wbg_decode_free: (a: number) => void;
   readonly decode_address: (a: number, b: number) => void;
+  readonly decode_pos_parameters: (a: number, b: number) => void;
+  readonly decode_pos_validator_metadata: (a: number, b: number) => void;
+  readonly decode_pgf_parameters: (a: number, b: number) => void;
+  readonly decode_gov_parameters: (a: number, b: number) => void;
+  readonly decode_gov_proposal: (a: number, b: number) => void;
+  readonly decode_gov_votes: (a: number, b: number) => void;
+  readonly decode_gov_result: (a: number, b: number) => void;
   readonly decode_tx: (a: number, b: number) => void;
   readonly decode_tx_content_become_validator: (a: number, b: number, c: number) => void;
   readonly decode_tx_content_bond: (a: number, b: number, c: number) => void;

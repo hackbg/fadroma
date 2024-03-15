@@ -20,11 +20,13 @@ use namada::{
         pgf::parameters::PgfParameters,
         storage::{
             proposal::{
+                AddRemove,
                 StorageProposal,
                 InitProposalData,
                 VoteProposalData,
                 ProposalType,
-                PGFAction
+                PGFAction,
+                PGFTarget
             },
             vote::ProposalVote
         },
@@ -35,6 +37,7 @@ use namada::{
             Vote,
         }
     },
+    hash::Hash,
     key::common::PublicKey,
     ledger::pos::{
         PosParams,
@@ -1008,12 +1011,12 @@ impl ToJS for ProposalType {
         match self {
             Self::Default(hash) => {
                 Reflect::set(&object, &"type".into(), &"Default".into())?;
-                Reflect::set(&object, &"hash".into(), hash.into())?;
+                Reflect::set(&object, &"hash".into(), &hash.to_js()?)?;
             },
             Self::PGFSteward(ops) => {
                 let set = Set::new(&JsValue::UNDEFINED);
                 for op in ops {
-                    set.add(op.to_js()?);
+                    set.add(&op.to_js()?);
                 }
                 Reflect::set(&object, &"type".into(), &"PGFSteward".into())?;
                 Reflect::set(&object, &"ops".into(), &set.into())?;
@@ -1021,7 +1024,7 @@ impl ToJS for ProposalType {
             Self::PGFPayment(actions) => {
                 let set = Set::new(&JsValue::UNDEFINED);
                 for op in actions {
-                    set.add(op.to_js()?);
+                    set.add(&op.to_js()?);
                 }
                 Reflect::set(&object, &"type".into(), &"PGFPayment".into())?;
                 Reflect::set(&object, &"ops".into(), &set.into())?;
@@ -1039,10 +1042,81 @@ impl ToJS for Epoch {
 
 impl ToJS for ProposalVote {
     fn to_js (&self) -> Result<JsValue, Error> {
-        match self {
+        Ok(match self {
             Self::Yay => "Yay",
             Self::Nay => "Nay",
             Self::Abstain => "Abstain",
-        }.into()
+        }.into())
+    }
+}
+
+impl ToJS for Option<Hash> {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        Ok(if let Some(hash) = self {
+            to_hex_borsh(&hash)?.into()
+        } else {
+            JsValue::NULL
+        })
+    }
+}
+
+impl<T: ToJS> ToJS for AddRemove<T> {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        Ok(match self {
+            Self::Add(value) => to_object! {
+                "op"    = "Add",
+                "value" = value.to_js()?,
+            },
+            Self::Remove(value) => to_object! {
+                "op"    = "Remove",
+                "value" = value.to_js()?,
+            },
+        }.into())
+    }
+}
+
+impl ToJS for PGFAction {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        Ok(match self {
+            Self::Continuous(value) => to_object! {
+                "action" = "Continuous",
+                "value"  = value.to_js()?,
+            },
+            Self::Retro(value) => to_object! {
+                "action" = "Retro",
+                "value"  = value.to_js()?,
+            },
+        }.into())
+    }
+}
+
+impl ToJS for PGFTarget {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        Ok(match self {
+            Self::Internal(target) => to_object! {
+                "type"   = "Internal",
+                "target" = target.target.to_js()?,
+                "amount" = target.amount.to_js()?,
+            },
+            Self::Ibc(target) => to_object! {
+                "type"       = "Ibc",
+                "target"     = target.target.to_js()?,
+                "amount"     = target.amount.to_js()?,
+                "port_id"    = target.port_id.as_str().to_js()?,
+                "channel_id" = target.channel_id.as_str().to_js()?,
+            }
+        }.into())
+    }
+}
+
+impl ToJS for str {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        Ok(self.into())
+    }
+}
+
+impl ToJS for JsValue {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        Ok(self.clone())
     }
 }

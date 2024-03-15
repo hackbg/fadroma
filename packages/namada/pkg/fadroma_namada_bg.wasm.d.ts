@@ -3,6 +3,13 @@
 export const memory: WebAssembly.Memory;
 export function __wbg_decode_free(a: number): void;
 export function decode_address(a: number, b: number): void;
+export function decode_pos_parameters(a: number, b: number): void;
+export function decode_pos_validator_metadata(a: number, b: number): void;
+export function decode_pgf_parameters(a: number, b: number): void;
+export function decode_gov_parameters(a: number, b: number): void;
+export function decode_gov_proposal(a: number, b: number): void;
+export function decode_gov_votes(a: number, b: number): void;
+export function decode_gov_result(a: number, b: number): void;
 export function decode_tx(a: number, b: number): void;
 export function decode_tx_content_become_validator(a: number, b: number, c: number): void;
 export function decode_tx_content_bond(a: number, b: number, c: number): void;
