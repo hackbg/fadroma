@@ -15,7 +15,7 @@
   "version": "1.0.0-rc.56",
   "license": "AGPL-3.0-only",
   "keywords": [
-    "cosmwasm", "interchain", "cosmos",
+    "cosmwasm", "interchain", "cosmos", "cosmjs", "stargate", "tendermint",
     "archway", "axelar", "injective", "namada", "okp4", "osmosis"
   ],
   "description": "CosmJS Stargate integration for Fadroma.",
