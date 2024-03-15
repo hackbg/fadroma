@@ -398,7 +398,7 @@ class NamadaCLI extends CLI {
       for (const vote of votes) {
         this.log
           .log()
-          .log(`Vote:`, Core.bold(vote.value))
+          .log(`Vote:`, Core.bold(vote.data))
           .log(`  Validator:`, Core.bold(vote.validator))
           .log(`  Delegator:`, Core.bold(vote.delegator))
       }

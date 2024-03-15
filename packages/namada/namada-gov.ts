@@ -79,12 +79,12 @@ class GovernanceProposalResult {
 class GovernanceVote {
   validator: Address
   delegator: Address
-  value:     "Yay"|"Nay"|"Abstain"
+  data:      "Yay"|"Nay"|"Abstain"
   constructor (properties: Partial<GovernanceVote> = {}) {
     Core.assign(this, properties, [
       'validator',
       'delegator',
-      'value',
+      'data',
     ])
   }
 }
@@ -122,14 +122,17 @@ export async function getProposalCount (connection: Connection) {
 }
 
 export async function getProposalInfo (connection: Connection, id: number) {
-  const [ proposal, votes, result ] = await Promise.all([
-    connection.abciQuery(`/vp/governance/proposal/${id}`),
+  const proposal = await connection.abciQuery(`/vp/governance/proposal/${id}`)
+  if (proposal[0] === 0) {
+    return null
+  }
+  const [ votes, result ] = await Promise.all([
     connection.abciQuery(`/vp/governance/proposal/${id}/votes`),
     connection.abciQuery(`/vp/governance/stored_proposal_result/${id}`),
   ])
   return {
     proposal:
-      new GovernanceProposal(connection.decode.gov_proposal(proposal)),
+      new GovernanceProposal(connection.decode.gov_proposal(proposal.slice(1))),
     votes:
       connection.decode.gov_votes(votes).map(vote=>new GovernanceVote(vote)),
     result: (result.length === 1) ? null :
