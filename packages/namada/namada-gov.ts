@@ -135,7 +135,7 @@ export async function getProposalInfo (connection: Connection, id: number) {
       new GovernanceProposal(connection.decode.gov_proposal(proposal.slice(1))),
     votes:
       connection.decode.gov_votes(votes).map(vote=>new GovernanceVote(vote)),
-    result: (result.length === 1) ? null :
-      new GovernanceProposalResult(connection.decode.gov_result(result))
+    result: (result[0] === 0) ? null :
+      new GovernanceProposalResult(connection.decode.gov_result(result.slice(1)))
   }
 }
