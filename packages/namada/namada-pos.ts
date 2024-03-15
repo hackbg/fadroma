@@ -3,12 +3,7 @@ import { Core } from '@fadroma/agent'
 import { addr, InternalAddresses, decodeAddress } from './namada-address'
 import type { Address as NamadaAddress } from './namada-address'
 import { Staking } from '@fadroma/cw'
-import { decode, u64, u256 } from '@hackbg/borshest'
-  //decode, Struct, u8, u64, u128, u256, i256, option, struct, variants, unit, string, array, set
-//} from '@hackbg/borshest'
-//import type {
-  //AnyField
-//} from '@hackbg/borshest'
+import { decode, u8, u64, u256, array, set } from '@hackbg/borshest'
 
 class PoSParameters {
   maxProposalPeriod:             bigint
@@ -125,7 +120,6 @@ type Connection = {
   abciQuery: (path: string)=>Promise<Uint8Array>
   tendermintClient
   decode: {
-    addresses              (binary: Uint8Array): Array<string>
     pos_parameters         (binary: Uint8Array): Partial<PoSParameters>
     pos_validator_metadata (binary: Uint8Array): Partial<PoSValidatorMetadata>
     pos_commission_pair    (binary: Uint8Array): Partial<PoSCommissionPair>
@@ -184,11 +178,11 @@ export async function getValidators (
 
 export async function getValidatorAddresses (connection: Connection): Promise<Address[]> {
   const binary = await connection.abciQuery("/vp/pos/validator/addresses")
-  return [...decode(getValidatorsSchema, binary) as Set<Array<number>>]
-    .map(bytes=>decodeAddress(bytes))
+  return [...decode(getValidatorsSchema, binary) as Set<Array<bigint>>]
+    .map(bytes=>decodeAddress(bytes.map(x=>Number(x))))
 }
 
-//const getValidatorsSchema = set(addr)
+const getValidatorsSchema = set(array(21, u8))
 
 const byBondedStake = (a, b)=> (a.bondedStake > b.bondedStake) ? -1
   : (a.bondedStake < b.bondedStake) ?  1

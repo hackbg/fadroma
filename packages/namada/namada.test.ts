@@ -1,9 +1,10 @@
 import * as Namada from './namada'
-import { Core } from '@fadroma/cw'
+import { Core } from '@fadroma/agent'
+import { NamadaConsole } from './namada-console'
 import init, { Decode } from './pkg/fadroma_namada.js'
 import { readFileSync } from 'node:fs'
 
-const console = new Core.Console('test')
+const console = new NamadaConsole('test')
 
 export default async function main () {
   await Namada.initDecoder(readFileSync('./pkg/fadroma_namada_bg.wasm'))
@@ -22,9 +23,9 @@ export default async function main () {
       .log('Time: ', Core.bold(block.header.time))
       .log(Core.bold('Transactions:'))
     for (const tx of block.txsDecoded) {
-      tx.print(this.log)
-      tx.printSections(this.log)
-      console.log({content: this.content})
+      console.printTx(tx)
+      console.printTxSections(tx.sections)
+      console.log({content: tx.content})
     }
     console.br()
     height--

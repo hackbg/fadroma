@@ -6,11 +6,7 @@ import {
 import type { Fields } from '@hackbg/borshest'
 import { addr } from './namada-address'
 
-export class Section {
-  print (console = new Core.Console()) {
-    console.warn('Tried to print an instance of the Section base class. Use a subclass instead')
-  }
-}
+export class Section {}
 
 export class UnknownSection extends Section {
   data: unknown

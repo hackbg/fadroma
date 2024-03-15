@@ -1,5 +1,9 @@
 import { Core } from '@fadroma/agent'
 import type {
+  NamadaTransaction
+} from './namada-tx'
+import {
+  Section,
   UnknownSection,
   DataSection,
   ExtraDataSection,
@@ -15,6 +19,62 @@ import type {
 } from './namada-pos'
 
 export class NamadaConsole extends Core.Console {
+
+  printTx (
+    { txType, chainId, timestamp, expiration, codeHash, dataHash, memoHash, sections }: Partial<NamadaTransaction> = {},
+    indent = 0
+  ) {
+    this.log('-', Core.bold(`${txType} transaction:`))
+      .log('  Chain ID:  ', Core.bold(chainId))
+      .log('  Timestamp: ', Core.bold(timestamp))
+      .log('  Expiration:', Core.bold(expiration))
+      .log('  Code hash: ', Core.bold(codeHash))
+      .log('  Data hash: ', Core.bold(dataHash))
+      .log('  Memo hash: ', Core.bold(memoHash))
+      .log('  Sections:  ', Core.bold(sections?.length))
+  }
+
+  printTxSections (
+    sections: Array<Partial<Section>> = [],
+    indent = 0
+  ) {
+    console.log(Core.bold('  Sections:  '))
+    for (const section of sections) {
+      this.printTxSection(section)
+    }
+    return true
+  }
+
+  printTxSection (
+    section: Partial<Section> = {},
+    indent = 0
+  ) {
+    switch (true) {
+      case (section instanceof DataSection):
+        return this.printDataSection(section)
+      case (section instanceof ExtraDataSection):
+        return this.printExtraDataSection(section)
+      case (section instanceof CodeSection):
+        return this.printCodeSection(section)
+      case (section instanceof SignatureSection):
+        return this.printSignatureSection(section)
+      case (section instanceof CiphertextSection):
+        return this.printCiphertextSection(section)
+      case (section instanceof MaspTxSection):
+        return this.printMaspTxSection(section)
+      case (section instanceof MaspBuilderSection):
+        return this.printMaspBuilderSection(section)
+      default:
+        return this.printUnknownSection(section)
+    }
+  }
+
+  printUnknownSection (
+    _: Partial<UnknownSection> = {},
+    indent = 0
+  ) {
+    return this.warn('  Section: Unknown')
+  }
 
   printDataSection (
     { salt, data }: DataSection,
@@ -145,11 +205,11 @@ export class NamadaConsole extends Core.Console {
     return this
   }
 
-  printUnknownSection (
-    _: Partial<UnknownSection> = {},
+  printMaspBuilderSection (
+    _: Partial<MaspBuilderSection> = {},
     indent = 0
   ) {
-    return this.warn('  Section: Unknown')
+    return this.warn('  Section: MaspBuilder')
   }
 
   printValidator (validator: Validator) {

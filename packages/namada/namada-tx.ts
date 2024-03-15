@@ -63,39 +63,14 @@ export class NamadaTransaction {
       'content'
     ])
   }
-
-  print (console = new Core.Console()) {
-    console.log('-', Core.bold(`${this.txType} transaction:`))
-      .log('  Chain ID:  ', Core.bold(this.chainId))
-      .log('  Timestamp: ', Core.bold(this.timestamp))
-      .log('  Expiration:', Core.bold(this.expiration))
-      .log('  Code hash: ', Core.bold(this.codeHash))
-      .log('  Data hash: ', Core.bold(this.dataHash))
-      .log('  Memo hash: ', Core.bold(this.memoHash))
-      .log('  Sections:  ', Core.bold(this.sections?.length))
-  }
-
-  printSections (console = new Core.Console()) {
-    console.log(Core.bold('  Sections:  '))
-    for (const section of this.sections) {
-      section.print(console)
-    }
-  }
 }
 
 export class UndecodedNamadaTransaction extends NamadaTransaction {
   binary: Uint8Array
-  error: Error
-  constructor ({ binary, error }) {
+  error:  Error
+  constructor (properties: Partial<UndecodedNamadaTransaction> = {}) {
     super()
-    this.binary = binary
-    this.error = error
-  }
-  print (console = new Core.Console()) {
-    console.warn(`Failed to decode a transaction: ${this.error.message||'(unknown error)'}`)
-  }
-  printSections (console = new Core.Console()) {
-    console.warn(`Failed to decode a transaction: ${this.error.message||'(unknown error)'}`)
+    Core.assign(this, properties, [ "binary", "error" ])
   }
 }
 
