@@ -1,7 +1,14 @@
 import CLI from '@hackbg/cmds'
 import { Core } from '@fadroma/agent'
 import { brailleDump } from '@hackbg/dump'
-import { NamadaConnection, NamadaMnemonicIdentity } from './namada-connection'
+import {
+  NamadaConsole
+} from './namada-console'
+import {
+  initDecoder,
+  NamadaConnection,
+  NamadaMnemonicIdentity
+} from './namada-connection'
 import {
   NamadaTransaction,
   NamadaRawTransaction,
@@ -10,6 +17,7 @@ import {
   NamadaProtocolTransaction
 } from './namada-tx'
 export {
+  initDecoder,
   NamadaCLI                  as CLI,
   NamadaConnection           as Connection,
   NamadaMnemonicIdentity     as MnemonicIdentity,
@@ -48,8 +56,10 @@ class NamadaCLI extends CLI {
 
   constructor (...args: ConstructorParameters<typeof CLI>) {
     super(...args)
-    this.log.label = ``
+    this.log = new NamadaConsole("")
   }
+
+  declare log: NamadaConsole
 
   epoch = this.command({
     name: "epoch",
@@ -185,7 +195,7 @@ class NamadaCLI extends CLI {
       this.log.br()
       await validator.fetchDetails(connection)
       this.log.br()
-      validator.print()
+      this.log.printValidator(validator)
       this.log.info(`(${Number(i)+1}/${validators.length})`)
     }
     process.exit(0)
@@ -226,8 +236,7 @@ class NamadaCLI extends CLI {
       details: true
     })
     for (const validator of details) {
-      this.log.br()
-      validator.print(this.log)
+      this.log.br().printValidator(validator)
     }
     process.exit(0)
   })
@@ -243,9 +252,7 @@ class NamadaCLI extends CLI {
     }
     const connection = new NamadaConnection({ url })
     const validator = await connection.getValidator(address)
-    this.log.br()
-    validator.print(this.log)
-    this.log.br()
+    this.log.br().printValidator(validator).br()
     process.exit(0)
   })
 
@@ -423,25 +430,10 @@ class NamadaCLI extends CLI {
         .log('ID:   ', Core.bold(block.id))
         .log('Time: ', Core.bold(block.header.time))
         .log(Core.bold('Transactions:'))
-      for (const i in block.txs) {
-        //const tx = 
-        //console.log(block.txs[i])
-        const binary = block.txs[i].slice(3)
-        //console.log(Core.brailleDump(binary))
-        const tx = NamadaTransaction.decode(binary)
-        this.log()
-        tx.print(this.log)
-        if (tx instanceof NamadaDecryptedTransaction) {
-          this.log.log()
-          tx.decodeInner().print(this.log)
-        }
-        //this.log
-          //.log()
-          //.log(JSON.stringify(tx, null, 2))
+      for (const tx of block.txsDecoded) {
+        this.log.log(tx)
       }
-      this.log.br()
       height--
     } while (height > 0)
-    console.log({block})
   })
 }

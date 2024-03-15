@@ -1,8 +1,6 @@
 extern crate wasm_bindgen;
 use wasm_bindgen::prelude::*;
 use js_sys::{Uint8Array, JsString, Error, Object, Array, Reflect, BigInt, Set};
-//use std::fmt::Write;
-//use std::io::Cursor;
 use std::collections::{BTreeMap, BTreeSet};
 use namada::{
     account::{
@@ -41,7 +39,12 @@ use namada::{
     key::common::PublicKey,
     ledger::pos::{
         PosParams,
-        types::ValidatorMetaData
+        types::{
+            CommissionPair,
+            ValidatorMetaData,
+            ValidatorState,
+            WeightedValidator,
+        }
     },
     storage::KeySeg,
     string_encoding::Format,
@@ -71,14 +74,6 @@ use namada::{
     },
     state::Epoch
 };
-//use masp_primitives::consensus::BranchId;
-//use masp_primitives::transaction::Transaction;
-//use masp_primitives::transaction::TxVersion;
-//use namada::core::masp_primitives::TxVersion;
-//use namada::governance::parameters::GovernanceParameters;
-
-#[wasm_bindgen]
-pub struct Decode;
 
 macro_rules! to_object {
     ($($id:literal = $val:expr, )+) => {
@@ -93,7 +88,17 @@ macro_rules! to_object {
 }
 
 #[wasm_bindgen]
+pub struct Decode;
+
+#[wasm_bindgen]
 impl Decode {
+
+    #[wasm_bindgen]
+    pub fn address (source: Uint8Array) -> Result<JsString, Error> {
+        let address = Address::decode_bytes(&to_bytes(&source))
+            .map_err(|e|Error::new(&format!("{e}")))?;
+        Ok(address.encode().into())
+    }
 
     #[wasm_bindgen]
     pub fn address (source: Uint8Array) -> Result<JsString, Error> {
@@ -129,15 +134,52 @@ impl Decode {
 
     #[wasm_bindgen]
     pub fn pos_validator_metadata (source: Uint8Array) -> Result<Object, Error> {
-        let params = ValidatorMetaData::try_from_slice(&to_bytes(&source))
+        let meta = ValidatorMetaData::try_from_slice(&to_bytes(&source))
             .map_err(|e|Error::new(&format!("{e}")))?;
         Ok(to_object! {
-            "email"         = params.email,
-            "description"   = params.description,
-            "website"       = params.website,
-            "discordHandle" = params.discord_handle,
-            "avatar"        = params.avatar,
+            "email"         = meta.email,
+            "description"   = meta.description,
+            "website"       = meta.website,
+            "discordHandle" = meta.discord_handle,
+            "avatar"        = meta.avatar,
         })
+    }
+
+    #[wasm_bindgen]
+    pub fn pos_commission_pair (source: Uint8Array) -> Result<Object, Error> {
+        let pair = CommissionPair::try_from_slice(&to_bytes(&source))
+            .map_err(|e|Error::new(&format!("{e}")))?;
+        Ok(to_object! {
+            "commissionRate"             = pair.commission_rate,
+            "maxCommissioChangePerEpoch" = pair.max_commission_change_per_epoch,
+        })
+    }
+
+    #[wasm_bindgen]
+    pub fn pos_validator_state (source: Uint8Array) -> Result<JsValue, Error> {
+        let state = ValidatorState::try_from_slice(&to_bytes(&source))
+            .map_err(|e|Error::new(&format!("{e}")))?;
+        Ok(match state {
+            ValidatorState::Consensus      => "Consensus",
+            ValidatorState::BelowCapacity  => "BelowCapacity",
+            ValidatorState::BelowThreshold => "BelowThreshold",
+            ValidatorState::Inactive       => "Inactive",
+            ValidatorState::Jailed         => "Jailed",
+        }.into())
+    }
+
+    #[wasm_bindgen]
+    pub fn pos_validator_set (source: Uint8Array) -> Result<JsValue, Error> {
+        let validators: Vec<WeightedValidator> = Vec::try_from_slice(&to_bytes(&source))
+            .map_err(|e|Error::new(&format!("{e}")))?;
+        let result = Array::new();
+        for validator in validators.iter() {
+            result.push(&to_object! {
+                "address"     = validator.address,
+                "bondedStake" = validator.bonded_stake,
+            }.into());
+        }
+        Ok(result.into())
     }
 
     #[wasm_bindgen]

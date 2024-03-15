@@ -8,7 +8,7 @@ import { addr } from './namada-address'
 
 export class Section {
   print (console = new Core.Console()) {
-    console.warn('Tried to print an instance Section base class. Use a subclass instead')
+    console.warn('Tried to print an instance of the Section base class. Use a subclass instead')
   }
 }
 

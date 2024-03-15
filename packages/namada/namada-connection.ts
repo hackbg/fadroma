@@ -33,12 +33,18 @@ export async function connect (optionsWithDecoder: ConstructorParameters<typeof 
   decoder: string|URL|Uint8Array
 }) {
   let { decoder, ...options } = optionsWithDecoder
+  if (decoder) {
+    await initDecoder(decoder)
+  }
+  return new NamadaConnection(options)
+}
+
+export async function initDecoder (decoder: string|URL|Uint8Array) {
   if (decoder instanceof Uint8Array) {
     await init(decoder)
   } else if (decoder) {
     await init(await fetch(decoder))
   }
-  return new NamadaConnection(options)
 }
 
 export { Decode }

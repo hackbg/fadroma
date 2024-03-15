@@ -23,6 +23,21 @@ export class Decode {
 * @param {Uint8Array} source
 * @returns {object}
 */
+  static pos_commission_pair(source: Uint8Array): object;
+/**
+* @param {Uint8Array} source
+* @returns {any}
+*/
+  static pos_validator_state(source: Uint8Array): any;
+/**
+* @param {Uint8Array} source
+* @returns {any}
+*/
+  static pos_validator_set(source: Uint8Array): any;
+/**
+* @param {Uint8Array} source
+* @returns {object}
+*/
   static pgf_parameters(source: Uint8Array): object;
 /**
 * @param {Uint8Array} source
@@ -154,6 +169,9 @@ export interface InitOutput {
   readonly decode_address: (a: number, b: number) => void;
   readonly decode_pos_parameters: (a: number, b: number) => void;
   readonly decode_pos_validator_metadata: (a: number, b: number) => void;
+  readonly decode_pos_commission_pair: (a: number, b: number) => void;
+  readonly decode_pos_validator_state: (a: number, b: number) => void;
+  readonly decode_pos_validator_set: (a: number, b: number) => void;
   readonly decode_pgf_parameters: (a: number, b: number) => void;
   readonly decode_gov_parameters: (a: number, b: number) => void;
   readonly decode_gov_proposal: (a: number, b: number) => void;

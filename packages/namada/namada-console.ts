@@ -14,7 +14,7 @@ import type {
   Validator
 } from './namada-pos'
 
-class NamadaConsole extends Core.Console {
+export class NamadaConsole extends Core.Console {
 
   printDataSection (
     { salt, data }: DataSection,

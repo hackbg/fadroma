@@ -6,10 +6,8 @@ import { readFileSync } from 'node:fs'
 const console = new Core.Console('test')
 
 export default async function main () {
-  const connection = await Namada.connect({
-    url: 'https://namada-testnet-rpc.itrocket.net',
-    decoder: readFileSync('./pkg/fadroma_namada_bg.wasm')
-  })
+  await Namada.initDecoder(readFileSync('./pkg/fadroma_namada_bg.wasm'))
+  const connection = Namada.testnet({ url: 'https://namada-testnet-rpc.itrocket.net' })
   console.log(connection.decode.address(new Uint8Array([
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   ])))

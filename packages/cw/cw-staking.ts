@@ -4,7 +4,10 @@ import { Amino, Proto } from '@hackbg/cosmjs-esm'
 import type { CWConnection } from './cw-connection'
 
 export async function getValidators <V extends typeof CWValidator> (
-  connection: CWConnection,
+  connection: {
+    tendermintClient,
+    abciQuery
+  },
   { pagination, details, Validator = CWValidator as V }: {
     pagination?: [number, number],
     details?:    boolean,
@@ -77,19 +80,15 @@ class CWValidator {
     return Core.base16.encode(Core.SHA256(this.publicKeyBytes).slice(0, 20))
   }
 
-  async fetchDetails (connection: CWConnection): Promise<this> {
-    console.log(this)
+  async fetchDetails (connection: { abciQuery }): Promise<this> {
     const request = Proto.Cosmos.Staking.v1beta1.Query.QueryValidatorRequest.encode({
       validatorAddr: this.address
     }).finish()
-    console.log({request})
     const value = await connection.abciQuery(
       '/cosmos.staking.v1beta1.Query/Validator',
       request
     )
-    console.log({value})
     const decoded = Proto.Cosmos.Staking.v1beta1.Query.QueryValidatorResponse.decode(value)
-    console.log({decoded})
     return this
   }
 }
