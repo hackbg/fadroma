@@ -3,7 +3,7 @@
   "name": "@fadroma/namada",
   "type": "module",
   "main": "namada.ts",
-  "files": [ "*.ts" ],
+  "files": [ "*.ts", "!target" ],
   "version": "1.0.0-rc.1",
   "license": "AGPL-3.0-only",
   "keywords": [
@@ -23,6 +23,6 @@
 
     "release":        "time sh -c 'pnpm clean && pnpm i && pnpm check && pnpm cov all && ubik release --otp 123123'",
     "release:fast":   "time sh -c 'pnpm clean && pnpm i && pnpm check && ubik release --otp 123123'",
-    "release:faster": "time sh -c 'pnpm clean && pnpm i && ubik release --otp 123123'"
+    "release:faster": "time sh -c 'pnpm clean && pnpm i && ubik release --access public --otp 123123'"
   }
 }
