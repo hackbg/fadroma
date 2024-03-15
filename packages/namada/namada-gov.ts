@@ -104,16 +104,16 @@ export const INTERNAL_ADDRESS = "tnam1q5qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrw33g6"
 type Connection = {
   abciQuery: (path: string)=>Promise<Uint8Array>
   decode: {
-    governance_parameters (binary: Uint8Array): Partial<GovernanceParameters>
-    governance_proposal   (binary: Uint8Array): Partial<GovernanceProposal>
-    governance_votes      (binary: Uint8Array): Array<Partial<GovernanceVote>>
-    governance_result     (binary: Uint8Array): Partial<GovernanceProposalResult>
+    gov_parameters (binary: Uint8Array): Partial<GovernanceParameters>
+    gov_proposal   (binary: Uint8Array): Partial<GovernanceProposal>
+    gov_votes      (binary: Uint8Array): Array<Partial<GovernanceVote>>
+    gov_result     (binary: Uint8Array): Partial<GovernanceProposalResult>
   }
 }
 
 export async function getGovernanceParameters (connection: Connection) {
   const binary = await connection.abciQuery(`/vp/governance/parameters`)
-  return new GovernanceParameters(connection.decode.governance_parameters(binary))
+  return new GovernanceParameters(connection.decode.gov_parameters(binary))
 }
 
 export async function getProposalCount (connection: Connection) {
@@ -129,10 +129,10 @@ export async function getProposalInfo (connection: Connection, id: number) {
   ])
   return {
     proposal:
-      new GovernanceProposal(connection.decode.governance_proposal(proposal)),
+      new GovernanceProposal(connection.decode.gov_proposal(proposal)),
     votes:
-      connection.decode.governance_votes(votes).map(vote=>new GovernanceVote(vote)),
+      connection.decode.gov_votes(votes).map(vote=>new GovernanceVote(vote)),
     result: (result.length === 1) ? null :
-      new GovernanceProposalResult(connection.decode.governance_result(result))
+      new GovernanceProposalResult(connection.decode.gov_result(result))
   }
 }

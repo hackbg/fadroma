@@ -70,11 +70,11 @@ class PoSValidatorMetadata {
 
 class PoSValidator extends Staking.Validator {
   static fromNamadaAddress = (namadaAddress: string) => Object.assign(new this({}), { namadaAddress })
-  namadaAddress!: Address
-  metadata!:      PoSValidatorMetadata,
-  commission!:    CommissionPair
-  state!:         unknown
-  stake!:         bigint
+  namadaAddress: Address
+  metadata:      PoSValidatorMetadata
+  commission:    CommissionPair
+  state:         unknown
+  stake:         bigint
   async fetchDetails (connection: Connection) {
     if (!this.namadaAddress) {
       const addressBinary = await connection.abciQuery(`/vp/pos/validator_by_tm_addr/${this.address}`)
@@ -99,23 +99,6 @@ class PoSValidator extends Staking.Validator {
     }
     await Promise.all(requests)
     return this
-  }
-  print (console = new Core.Console()) {
-    console
-      .log('Validator:      ', Core.bold(this.namadaAddress))
-      .log('  Address:      ', Core.bold(this.address))
-      .log('  Public key:   ', Core.bold(this.publicKey))
-      .log('  State:        ', Core.bold(Object.keys(this.state as object)[0]))
-      .log('  Stake:        ', Core.bold(this.stake))
-      .log('  Voting power: ', Core.bold(this.votingPower))
-      .log('  Priority:     ', Core.bold(this.proposerPriority))
-      .log('  Commission:   ', Core.bold(this.commission.commissionRate))
-      .log('    Max change: ', Core.bold(this.commission.maxCommissionChangePerEpoch), 'per epoch')
-      .log('Email:          ', Core.bold(this.metadata?.email||''))
-      .log('Website:        ', Core.bold(this.metadata?.website||''))
-      .log('Discord:        ', Core.bold(this.metadata?.discordHandle||''))
-      .log('Avatar:         ', Core.bold(this.metadata?.avatar||''))
-      .log('Description:    ', Core.bold(this.metadata?.description||''))
   }
 }
 

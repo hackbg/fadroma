@@ -3,6 +3,7 @@ use wasm_bindgen::prelude::*;
 use js_sys::{Uint8Array, JsString, Error, Object, Array, Reflect, BigInt, Set};
 //use std::fmt::Write;
 //use std::io::Cursor;
+use std::collections::{BTreeMap, BTreeSet};
 use namada::{
     account::{
         InitAccount,
@@ -13,17 +14,36 @@ use namada::{
         BorshSerialize,
         BorshDeserialize,
     },
-    governance::storage::{
-        proposal::{
-            InitProposalData,
-            VoteProposalData
+    dec::Dec,
+    governance::{
+        parameters::GovernanceParameters,
+        pgf::parameters::PgfParameters,
+        storage::{
+            proposal::{
+                StorageProposal,
+                InitProposalData,
+                VoteProposalData,
+                ProposalType,
+                PGFAction
+            },
+            vote::ProposalVote
         },
-        vote::ProposalVote
+        utils::{
+            ProposalResult,
+            TallyResult,
+            TallyType,
+            Vote,
+        }
     },
     key::common::PublicKey,
+    ledger::pos::{
+        PosParams,
+        types::ValidatorMetaData
+    },
     storage::KeySeg,
     string_encoding::Format,
     token::{
+        Amount,
         MaspDigitPos,
         Transfer,
     },
@@ -46,6 +66,7 @@ use namada::{
             },
         }
     },
+    state::Epoch
 };
 //use masp_primitives::consensus::BranchId;
 //use masp_primitives::transaction::Transaction;
@@ -56,6 +77,18 @@ use namada::{
 #[wasm_bindgen]
 pub struct Decode;
 
+macro_rules! to_object {
+    ($($id:literal = $val:expr, )+) => {
+        {
+            let object = Object::new();
+            $(
+                Reflect::set(&object, &$id.into(), &$val.to_js()?)?;
+            )+
+            object
+        }
+    }
+}
+
 #[wasm_bindgen]
 impl Decode {
 
@@ -64,6 +97,113 @@ impl Decode {
         let address = Address::decode_bytes(&to_bytes(&source))
             .map_err(|e|Error::new(&format!("{e}")))?;
         Ok(address.encode().into())
+    }
+
+    #[wasm_bindgen]
+    pub fn pos_parameters (source: Uint8Array) -> Result<Object, Error> {
+        let params = PosParams::try_from_slice(&to_bytes(&source))
+            .map_err(|e|Error::new(&format!("{e}")))?;
+        Ok(to_object! {
+            "maxValidatorSlots"             = params.owned.max_validator_slots,
+            "pipelineLen"                   = params.owned.pipeline_len,
+            "unbondingLen"                  = params.owned.unbonding_len,
+            "tmVotesPerToken"               = params.owned.tm_votes_per_token,
+            "blockProposerReward"           = params.owned.block_proposer_reward,
+            "blockVoteReward"               = params.owned.block_vote_reward,
+            "maxInflationRate"              = params.owned.max_inflation_rate,
+            "targetStakedRatio"             = params.owned.target_staked_ratio,
+            "duplicateVoteMinSlashRate"     = params.owned.duplicate_vote_min_slash_rate,
+            "lightClientAttackMinSlashRate" = params.owned.light_client_attack_min_slash_rate,
+            "cubicSlashingWindowLength"     = params.owned.cubic_slashing_window_length,
+            "validatorStakeThreshold"       = params.owned.validator_stake_threshold,
+            "livenessWindowCheck"           = params.owned.liveness_window_check,
+            "livenessThreshold"             = params.owned.liveness_threshold,
+            "rewardsGainP"                  = params.owned.rewards_gain_p,
+            "rewardsGainD"                  = params.owned.rewards_gain_d,
+            "maxProposalPeriod"             = params.max_proposal_period,
+        })
+    }
+
+    #[wasm_bindgen]
+    pub fn pos_validator_metadata (source: Uint8Array) -> Result<Object, Error> {
+        let params = ValidatorMetaData::try_from_slice(&to_bytes(&source))
+            .map_err(|e|Error::new(&format!("{e}")))?;
+        Ok(to_object! {
+            "email"         = params.email,
+            "description"   = params.description,
+            "website"       = params.website,
+            "discordHandle" = params.discord_handle,
+            "avatar"        = params.avatar,
+        })
+    }
+
+    #[wasm_bindgen]
+    pub fn pgf_parameters (source: Uint8Array) -> Result<Object, Error> {
+        let params = PgfParameters::try_from_slice(&to_bytes(&source))
+            .map_err(|e|Error::new(&format!("{e}")))?;
+        Ok(to_object! {
+            "stewards"              = params.stewards,
+            "pgfInflationRate"      = params.pgf_inflation_rate,
+            "stewardsInflationRate" = params.stewards_inflation_rate,
+        })
+    }
+
+    #[wasm_bindgen]
+    pub fn gov_parameters (source: Uint8Array) -> Result<Object, Error> {
+        let params = GovernanceParameters::try_from_slice(&to_bytes(&source))
+            .map_err(|e|Error::new(&format!("{e}")))?;
+        Ok(to_object! {
+            "minProposalFund"         = params.min_proposal_fund,
+            "maxProposalCodeSize"     = params.max_proposal_code_size,
+            "minProposalVotingPeriod" = params.min_proposal_voting_period,
+            "maxProposalPeriod"       = params.max_proposal_period,
+            "maxProposalContentSize"  = params.max_proposal_content_size,
+            "minProposalGraceEpochs"  = params.min_proposal_grace_epochs,
+        })
+    }
+
+    #[wasm_bindgen]
+    pub fn gov_proposal (source: Uint8Array) -> Result<Object, Error> {
+        let proposal = StorageProposal::try_from_slice(&to_bytes(&source))
+            .map_err(|e|Error::new(&format!("{e}")))?;
+        Ok(to_object! {
+            "id"               = proposal.id,
+            "content"          = proposal.content,
+            "author"           = proposal.author,
+            "type"             = proposal.r#type,
+            "votingStartEpoch" = proposal.voting_start_epoch,
+            "votingEndEpoch"   = proposal.voting_end_epoch,
+            "graceEpoch"       = proposal.grace_epoch,
+        })
+    }
+
+    #[wasm_bindgen]
+    pub fn gov_votes (source: Uint8Array) -> Result<Array, Error> {
+        let votes: Vec<Vote> = Vec::try_from_slice(&to_bytes(&source))
+            .map_err(|e|Error::new(&format!("{e}")))?;
+        let result = Array::new();
+        for vote in votes.iter() {
+            result.push(&to_object! {
+                "validator" = vote.validator,
+                "delegator" = vote.delegator,
+                "data"      = vote.data,
+            }.into());
+        }
+        Ok(result)
+    }
+
+    #[wasm_bindgen]
+    pub fn gov_result (source: Uint8Array) -> Result<Object, Error> {
+        let result = ProposalResult::try_from_slice(&to_bytes(&source))
+            .map_err(|e|Error::new(&format!("{e}")))?;
+        Ok(to_object! {
+            "result"            = result.result,
+            "tallyType"         = result.tally_type,
+            "totalVotingPower"  = result.total_voting_power,
+            "totalYayPower"     = result.total_yay_power,
+            "totalNayPower"     = result.total_nay_power,
+            "totalAbstainPower" = result.total_abstain_power,
+        })
     }
 
     #[wasm_bindgen]
@@ -777,4 +917,132 @@ fn to_hex_borsh (source: &impl BorshSerialize) -> Result<String, Error> {
     source.serialize(&mut output)
         .map_err(|e|Error::new(&format!("{e}")))?;
     Ok(hex::encode_upper(&output))
+}
+
+trait ToJS {
+    fn to_js (&self) -> Result<JsValue, Error>;
+}
+
+impl ToJS for u64 {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        Ok((*self).into())
+    }
+}
+
+impl ToJS for Dec {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        Ok(format!("{}", self).into())
+    }
+}
+
+impl ToJS for String {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        Ok(self.into())
+    }
+}
+
+impl ToJS for Option<String> {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        Ok(if let Some(value) = self {
+            value.into()
+        } else {
+            JsValue::NULL
+        })
+    }
+}
+
+impl ToJS for BTreeSet<Address> {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        let set = Set::new(&JsValue::UNDEFINED);
+        for value in self.iter() {
+            set.add(&value.to_js()?);
+        }
+        Ok(set.into())
+    }
+}
+
+impl ToJS for TallyResult {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        Ok(match self {
+            Self::Passed   => "Passed",
+            Self::Rejected => "Rejected"
+        }.into())
+    }
+}
+
+impl ToJS for TallyType {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        Ok(match self {
+            Self::TwoThirds                  => "TwoThirds",
+            Self::OneHalfOverOneThird        => "OneHalfOverOneThird",
+            Self::LessOneHalfOverOneThirdNay => "LessOneHalfOverOneThirdNay"
+        }.into())
+    }
+}
+
+impl ToJS for Amount {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        Ok(format!("{}", self).into())
+    }
+}
+
+impl ToJS for BTreeMap<String, String> {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        let object = Object::new();
+        for (key, value) in self.iter() {
+            Reflect::set(&object, &key.into(), &value.into())?;
+        }
+        Ok(object.into())
+    }
+}
+
+impl ToJS for Address {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        Ok(self.encode().into())
+    }
+}
+
+impl ToJS for ProposalType {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        let object = Object::new();
+        match self {
+            Self::Default(hash) => {
+                Reflect::set(&object, &"type".into(), &"Default".into())?;
+                Reflect::set(&object, &"hash".into(), hash.into())?;
+            },
+            Self::PGFSteward(ops) => {
+                let set = Set::new(&JsValue::UNDEFINED);
+                for op in ops {
+                    set.add(op.to_js()?);
+                }
+                Reflect::set(&object, &"type".into(), &"PGFSteward".into())?;
+                Reflect::set(&object, &"ops".into(), &set.into())?;
+            },
+            Self::PGFPayment(actions) => {
+                let set = Set::new(&JsValue::UNDEFINED);
+                for op in actions {
+                    set.add(op.to_js()?);
+                }
+                Reflect::set(&object, &"type".into(), &"PGFPayment".into())?;
+                Reflect::set(&object, &"ops".into(), &set.into())?;
+            }
+        };
+        Ok(object.into())
+    }
+}
+
+impl ToJS for Epoch {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        self.0.to_js()
+    }
+}
+
+impl ToJS for ProposalVote {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        match self {
+            Self::Yay => "Yay",
+            Self::Nay => "Nay",
+            Self::Abstain => "Abstain",
+        }.into()
+    }
 }
