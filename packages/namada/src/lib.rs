@@ -1,7 +1,7 @@
 extern crate wasm_bindgen;
 use wasm_bindgen::prelude::*;
 use js_sys::{Uint8Array, JsString, Error, Object, Array, Reflect, BigInt, Set};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{HashMap, BTreeMap, BTreeSet};
 use namada::{
     account::{
         InitAccount,
@@ -107,6 +107,17 @@ impl Decode {
         let result = Array::new();
         for address in addresses.iter() {
             result.push(&address.encode().into());
+        }
+        Ok(result.into())
+    }
+
+    #[wasm_bindgen]
+    pub fn address_to_amount (source: Uint8Array) -> Result<Object, Error> {
+        let data: HashMap<Address, Amount> = HashMap::try_from_slice(&to_bytes(&source))
+            .map_err(|e|Error::new(&format!("{e}")))?;
+        let result = Object::new();
+        for (address, amount) in data.iter() {
+            Reflect::set(&result, &address.encode().into(), &amount.to_js()?)?;
         }
         Ok(result.into())
     }

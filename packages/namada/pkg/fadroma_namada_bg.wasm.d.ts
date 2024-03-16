@@ -4,6 +4,7 @@ export const memory: WebAssembly.Memory;
 export function __wbg_decode_free(a: number): void;
 export function decode_address(a: number, b: number): void;
 export function decode_addresses(a: number, b: number): void;
+export function decode_address_to_amount(a: number, b: number): void;
 export function decode_pos_parameters(a: number, b: number): void;
 export function decode_pos_validator_metadata(a: number, b: number): void;
 export function decode_pos_commission_pair(a: number, b: number): void;

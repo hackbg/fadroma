@@ -9,7 +9,7 @@ const console = new NamadaConsole('test')
 export default async function main () {
   await Namada.initDecoder(readFileSync('./pkg/fadroma_namada_bg.wasm'))
   const connection = Namada.testnet({ url: 'https://namada-testnet-rpc.itrocket.net' })
-  console.log(await connection.getValidatorDelegations('tnam1qpr2uzf9pgrd6sucp34wq5gss5rm2un5lszcwzqc'))
+  console.log(await connection.getDelegationsAt('tnam1qpr2uzf9pgrd6sucp34wq5gss5rm2un5lszcwzqc'))
   //console.log(connection.decode.address(new Uint8Array([
     //0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   //])))

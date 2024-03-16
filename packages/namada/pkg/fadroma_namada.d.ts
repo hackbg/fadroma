@@ -18,6 +18,11 @@ export class Decode {
 * @param {Uint8Array} source
 * @returns {object}
 */
+  static address_to_amount(source: Uint8Array): object;
+/**
+* @param {Uint8Array} source
+* @returns {object}
+*/
   static pos_parameters(source: Uint8Array): object;
 /**
 * @param {Uint8Array} source
@@ -173,6 +178,7 @@ export interface InitOutput {
   readonly __wbg_decode_free: (a: number) => void;
   readonly decode_address: (a: number, b: number) => void;
   readonly decode_addresses: (a: number, b: number) => void;
+  readonly decode_address_to_amount: (a: number, b: number) => void;
   readonly decode_pos_parameters: (a: number, b: number) => void;
   readonly decode_pos_validator_metadata: (a: number, b: number) => void;
   readonly decode_pos_commission_pair: (a: number, b: number) => void;

@@ -120,6 +120,7 @@ type Connection = {
   decode: {
     address                (binary: Uint8Array): string
     addresses              (binary: Uint8Array): string[]
+    address_to_amount      (binary: Uint8Array): object
     pos_parameters         (binary: Uint8Array): Partial<PoSParameters>
     pos_validator_metadata (binary: Uint8Array): Partial<PoSValidatorMetadata>
     pos_commission_pair    (binary: Uint8Array): Partial<PoSCommissionPair>
@@ -206,7 +207,19 @@ export async function getValidatorStake (connection: Connection, address: Addres
   return decode(u256, totalStake)
 }
 
-export async function getValidatorDelegations (connection: Connection, validator: Address) {
-  const binary = await connection.abciQuery(`/vp/pos/delegations/${validator}`)
+export async function getDelegations (connection: Connection, address: Address) {
+  const binary = await connection.abciQuery(`/vp/pos/delegations/${address}`)
   return connection.decode.addresses(binary)
+}
+
+export async function getDelegationsAt (
+  connection: Connection, address: Address, epoch?: number
+): Promise<Record<string, bigint>> {
+  let query = `/vp/pos/delegations_at/${address}`
+  epoch = Number(epoch)
+  if (!isNaN(epoch)) {
+    query += `/${epoch}`
+  }
+  const binary = await connection.abciQuery(query)
+  return connection.decode.address_to_amount(binary) as Record<string, bigint>
 }
