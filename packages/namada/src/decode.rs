@@ -184,28 +184,70 @@ impl Decode {
         let tx = Tx::try_from_slice(&to_bytes(&source))
             .map_err(|e|Error::new(&format!("{e}")))?;
         let header = tx.header();
-        let result = object(&[
-            ("chainId".into(),    header.chain_id.as_str().into()),
-            ("expiration".into(), header.expiration.map(|t|t.to_rfc3339()).into()),
-            ("timestamp".into(),  header.timestamp.to_rfc3339().into()),
-            ("codeHash".into(),   header.code_hash.raw().into()),
-            ("dataHash".into(),   header.data_hash.raw().into()),
-            ("memoHash".into(),   header.memo_hash.raw().into()),
-            ("txType".into(),     match header.tx_type {
+        let result = to_object! {
+            "txId"       = tx.clone().update_header(TxType::Raw).header_hash().raw(),
+            "chainId"    = header.chain_id.as_str(),
+            "expiration" = header.expiration.map(|t|t.to_rfc3339()),
+            "timestamp"  = header.timestamp.to_rfc3339(),
+            "codeHash"   = header.code_hash.raw(),
+            "dataHash"   = header.data_hash.raw(),
+            "memoHash"   = header.memo_hash.raw(),
+            "txType"     = match header.tx_type {
                 TxType::Raw          => "Raw",
                 TxType::Wrapper(_)   => "Wrapper",
                 TxType::Decrypted(_) => "Decrypted",
                 TxType::Protocol(_)  => "Protocol",
-            }.into()),
-            ("sections".into(),   {
+            },
+            "details"    = match header.tx_type {
+                TxType::Raw                => JsValue::NULL,
+                TxType::Wrapper(details)   => Self::tx_details_wrapper(&details)?.into(),
+                TxType::Decrypted(details) => Self::tx_details_decrypted(&details)?.into(),
+                TxType::Protocol(details)  => Self::tx_details_protocol(&details)?.into(),
+            },
+            "sections"   = {
                 let sections = Array::new();
                 for section in tx.sections.iter() {
                     sections.push(&JsValue::from(Self::tx_section(&section)?));
                 }
                 sections
-            }.into())
-        ])?;
+            },
+        };
         Self::tx_content(tx, result)
+    }
+
+    fn tx_details_wrapper (tx: &WrapperTx) -> Result<Object, Error> {
+        Ok(to_object! {
+            "fee"                   = tx.fee,
+            "pk"                    = tx.pk,
+            "epoch"                 = tx.epoch,
+            "gas_limit"             = tx.gas_limit,
+            "unshield_section_hash" = tx.unshield_section_hash,
+        })
+    }
+
+    fn tx_details_decrypted (tx: &DecryptedTx) -> Result<Object, Error> {
+        Ok(match tx {
+            DecryptedTx::Decrypted => to_object! {
+                "decrypted" = true,
+            },
+            DecryptedTx::Undecryptable => to_object! {
+                "undecryptable" = true,
+            }
+        })
+    }
+
+    fn tx_details_protocol (tx: &ProtocolTx) -> Result<Object, Error> {
+        Ok(to_object! {
+            "pk" = tx.pk,
+            "tx" = match tx.tx {
+                ProtocolTxType::EthereumEvents     => "EthereumEvents",
+                ProtocolTxType::BridgePool         => "BridgePool",
+                ProtocolTxType::ValidatorSetUpdate => "ValidatorSetUpdate",
+                ProtocolTxType::EthEventsVext      => "EthEventsVext",
+                ProtocolTxType::BridgePoolVext     => "BridgePoolVext",
+                ProtocolTxType::ValSetUpdateVext   => "ValSetUpdateVext",
+            },
+        })
     }
 
     fn tx_content (tx: Tx, result: Object) -> Result<Object, Error> {

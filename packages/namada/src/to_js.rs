@@ -42,6 +42,40 @@ pub trait ToJS {
     fn to_js (&self) -> Result<JsValue, Error>;
 }
 
+impl<T: ToJS> ToJS for Option<T> {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        if let Some(value) = self {
+            value.to_js()
+        } else {
+            Ok(JsValue::NULL)
+        }
+    }
+}
+
+impl ToJS for JsValue {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        Ok(self.clone())
+    }
+}
+
+impl ToJS for bool {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        Ok((*self).into())
+    }
+}
+
+impl ToJS for str {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        Ok(self.into())
+    }
+}
+
+impl ToJS for String {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        Ok(self.into())
+    }
+}
+
 impl ToJS for u64 {
     fn to_js (&self) -> Result<JsValue, Error> {
         Ok((*self).into())
@@ -54,19 +88,27 @@ impl ToJS for Dec {
     }
 }
 
-impl ToJS for String {
+impl ToJS for Hash {
     fn to_js (&self) -> Result<JsValue, Error> {
-        Ok(self.into())
+        Ok(to_hex_borsh(&self)?.into())
     }
 }
 
-impl ToJS for Option<String> {
+impl ToJS for Amount {
     fn to_js (&self) -> Result<JsValue, Error> {
-        Ok(if let Some(value) = self {
-            value.into()
-        } else {
-            JsValue::NULL
-        })
+        Ok(format!("{}", self).into())
+    }
+}
+
+impl ToJS for Epoch {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        self.0.to_js()
+    }
+}
+
+impl ToJS for Address {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        Ok(self.encode().into())
     }
 }
 
@@ -77,6 +119,16 @@ impl ToJS for BTreeSet<Address> {
             set.add(&value.to_js()?);
         }
         Ok(set.into())
+    }
+}
+
+impl ToJS for BTreeMap<String, String> {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        let object = Object::new();
+        for (key, value) in self.iter() {
+            Reflect::set(&object, &key.into(), &value.into())?;
+        }
+        Ok(object.into())
     }
 }
 
@@ -96,28 +148,6 @@ impl ToJS for TallyType {
             Self::OneHalfOverOneThird        => "OneHalfOverOneThird",
             Self::LessOneHalfOverOneThirdNay => "LessOneHalfOverOneThirdNay"
         }.into())
-    }
-}
-
-impl ToJS for Amount {
-    fn to_js (&self) -> Result<JsValue, Error> {
-        Ok(format!("{}", self).into())
-    }
-}
-
-impl ToJS for BTreeMap<String, String> {
-    fn to_js (&self) -> Result<JsValue, Error> {
-        let object = Object::new();
-        for (key, value) in self.iter() {
-            Reflect::set(&object, &key.into(), &value.into())?;
-        }
-        Ok(object.into())
-    }
-}
-
-impl ToJS for Address {
-    fn to_js (&self) -> Result<JsValue, Error> {
-        Ok(self.encode().into())
     }
 }
 
@@ -150,12 +180,6 @@ impl ToJS for ProposalType {
     }
 }
 
-impl ToJS for Epoch {
-    fn to_js (&self) -> Result<JsValue, Error> {
-        self.0.to_js()
-    }
-}
-
 impl ToJS for ProposalVote {
     fn to_js (&self) -> Result<JsValue, Error> {
         Ok(match self {
@@ -163,16 +187,6 @@ impl ToJS for ProposalVote {
             Self::Nay => "Nay",
             Self::Abstain => "Abstain",
         }.into())
-    }
-}
-
-impl ToJS for Option<Hash> {
-    fn to_js (&self) -> Result<JsValue, Error> {
-        Ok(if let Some(hash) = self {
-            to_hex_borsh(&hash)?.into()
-        } else {
-            JsValue::NULL
-        })
     }
 }
 
@@ -225,14 +239,39 @@ impl ToJS for PGFTarget {
     }
 }
 
-impl ToJS for str {
+impl ToJS for Fee {
     fn to_js (&self) -> Result<JsValue, Error> {
-        Ok(self.into())
+        Ok(to_object! {
+            "amountPerGasUnit" = self.amount_per_gas_unit,
+            "token"            = self.token,
+        }.into())
     }
 }
 
-impl ToJS for JsValue {
+impl ToJS for PublicKey {
     fn to_js (&self) -> Result<JsValue, Error> {
-        Ok(self.clone())
+        Ok(match self {
+            Self::Ed25519(pk) => to_object! {
+                "type" = "Ed25519",
+                "pk"   = to_hex_borsh(pk)?,
+            },
+            Self::Secp256k1(pk) => to_object! {
+                "type" = "Secp256k1",
+                "pk"   = to_hex_borsh(pk)?,
+            }
+        }.into())
+    }
+}
+
+impl ToJS for GasLimit {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        let amount: Amount = (*self).into();
+        amount.to_js()
+    }
+}
+
+impl ToJS for DenominatedAmount {
+    fn to_js (&self) -> Result<JsValue, Error> {
+        self.to_string_precise().to_js()
     }
 }

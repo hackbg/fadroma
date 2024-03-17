@@ -52,11 +52,16 @@ pub(crate) use namada::{
         Amount,
         MaspDigitPos,
         Transfer,
+        DenominatedAmount
     },
     tx::{
         Tx, Header, Section, Data, Code, Signature, Signer, MaspBuilder,
         data::{
+            Fee,
+            GasLimit,
             TxType,
+            DecryptedTx,
+            WrapperTx,
             pos::{
                 BecomeValidator,
                 Bond,
@@ -67,9 +72,11 @@ pub(crate) use namada::{
                 Unbond,
                 Withdraw
             },
-            pgf::{
-                UpdateStewardCommission
-            },
+            pgf::UpdateStewardCommission,
+            protocol::{
+                ProtocolTx,
+                ProtocolTxType,
+            }
         }
     },
     state::Epoch
