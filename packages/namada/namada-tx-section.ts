@@ -5,9 +5,12 @@ import {
 } from '@hackbg/borshest'
 import type { Fields } from '@hackbg/borshest'
 
-export class Section {}
+export class Section {
+  type: null|'Data'|'ExtraData'|'Code'|'Signature'|'Ciphertext'|'MaspTx'|'MaspBuilder'|'Header'
+}
 
 export class UnknownSection extends Section {
+  type = null
   data: unknown
   constructor (data: unknown) {
     super()
@@ -16,6 +19,7 @@ export class UnknownSection extends Section {
 }
 
 export class DataSection extends Section {
+  type = 'Data' as 'Data'
   salt: string
   data: string
   constructor (properties: Partial<DataSection> = {}) {
@@ -25,6 +29,7 @@ export class DataSection extends Section {
 }
 
 export class ExtraDataSection extends Section {
+  type = 'ExtraData' as 'ExtraData'
   salt: string
   code: string
   tag:  string
@@ -35,6 +40,7 @@ export class ExtraDataSection extends Section {
 }
 
 export class CodeSection extends Section {
+  type = 'Code' as 'Code'
   salt: string
   code: string
   tag:  string
@@ -45,6 +51,7 @@ export class CodeSection extends Section {
 }
 
 export class SignatureSection extends Section {
+  type = 'Signature' as 'Signature'
   targets:    string[]
   signer:     string|string[]
   signatures: string[]
@@ -54,9 +61,12 @@ export class SignatureSection extends Section {
   }
 }
 
-export class CiphertextSection extends Section {}
+export class CiphertextSection extends Section {
+  type = 'Ciphertext' as 'Ciphertext'
+}
 
 export class MaspTxSection extends Section {
+  type = 'MaspTx' as 'MaspTx'
   txid:               string
   lockTime:           string
   expiryHeight:       string|null
@@ -108,6 +118,7 @@ export class MaspTxSection extends Section {
 }
 
 export class MaspBuilderSection extends Section {
+  type = 'MaspBuilder' as 'MaspBuilder'
   target:     string
   assetTypes: Array<{
     token:    string,
@@ -125,6 +136,7 @@ export class MaspBuilderSection extends Section {
 }
 
 export class HeaderSection extends Section {
+  type = 'Header' as 'Header'
   chainId:    string
   expiration: string|null
   timestamp:  string
