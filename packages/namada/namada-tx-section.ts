@@ -5,7 +5,7 @@ import { Section } from './namada-tx-section-base'
 class UnknownSection extends Section {
   static noun = 'Unknown Section'
   type = null
-  data: unknown
+  data!: unknown
   constructor (data: unknown) {
     super()
     this.data = data
@@ -15,8 +15,8 @@ class UnknownSection extends Section {
 class DataSection extends Section {
   static noun = 'Data'
   type = 'Data' as 'Data'
-  salt: string
-  data: string
+  salt!: string
+  data!: string
   constructor (properties: Partial<DataSection> = {}) {
     super()
     Core.assign(this, properties, [ 'salt', 'data' ])
@@ -26,9 +26,9 @@ class DataSection extends Section {
 class ExtraDataSection extends Section {
   static noun = 'Extra Data'
   type = 'ExtraData' as 'ExtraData'
-  salt: string
-  code: string
-  tag:  string
+  salt!: string
+  code!: string
+  tag!:  string
   constructor (properties: Partial<ExtraDataSection> = {}) {
     super()
     Core.assign(this, properties, [ 'salt', 'code', 'tag' ])
@@ -38,9 +38,9 @@ class ExtraDataSection extends Section {
 class CodeSection extends Section {
   static noun = 'Code'
   type = 'Code' as 'Code'
-  salt: string
-  code: string
-  tag:  string
+  salt!: string
+  code!: string
+  tag!:  string
   constructor (properties: Partial<CodeSection> = {}) {
     super()
     Core.assign(this, properties, [ 'salt', 'code', 'tag' ])
@@ -50,9 +50,9 @@ class CodeSection extends Section {
 class SignatureSection extends Section {
   static noun = 'Signature'
   type = 'Signature' as 'Signature'
-  targets:    string[]
-  signer:     string|string[]
-  signatures: string[]
+  targets!:    string[]
+  signer!:     string|string[]
+  signatures!: string[]
   constructor (properties: Partial<SignatureSection> = {}) {
     super()
     Core.assign(this, properties, [ 'targets', 'signer', 'signatures' ])
@@ -67,10 +67,10 @@ class CiphertextSection extends Section {
 class MaspTxSection extends Section {
   static noun = 'MASP Transaction'
   type = 'MaspTx' as 'MaspTx'
-  txid:               string
-  lockTime:           string
-  expiryHeight:       string|null
-  transparentBundle:  null|{
+  txid!:              string
+  lockTime!:          string
+  expiryHeight!:      string|null
+  transparentBundle!: null|{
     vin:              Array<{
       assetType:      string,
       value:          bigint,
@@ -82,7 +82,7 @@ class MaspTxSection extends Section {
       address:        string
     }>
   }
-  saplingBundle:      null|{
+  saplingBundle!:     null|{
     shieldedSpends:   Array<{
       cv:             string
       anchor:         string
@@ -120,12 +120,12 @@ class MaspTxSection extends Section {
 class MaspBuilderSection extends Section {
   static noun = 'MASP Builder'
   type = 'MaspBuilder' as 'MaspBuilder'
-  target:     string
-  assetTypes: Array<{
-    token:    string,
-    denom:    number,
-    position: number,
-    epoch?:   number
+  target!:     string
+  assetTypes!: Array<{
+    token:     string,
+    denom:     number,
+    position:  number,
+    epoch?:    number
   }>
   constructor (properties: Partial<MaspBuilderSection> = {}) {
     super()
@@ -139,13 +139,13 @@ class MaspBuilderSection extends Section {
 class HeaderSection extends Section {
   static noun = 'Header'
   type = 'Header' as 'Header'
-  chainId:    string
-  expiration: string|null
-  timestamp:  string
-  codeHash:   string
-  dataHash:   string
-  memoHash:   string
-  txType:     'Raw'|'Wrapper'|'Decrypted'|'Protocol'
+  chainId!:    string
+  expiration!: string|null
+  timestamp!:  string
+  codeHash!:   string
+  dataHash!:   string
+  memoHash!:   string
+  txType!:     'Raw'|'Wrapper'|'Decrypted'|'Protocol'
   constructor (properties: Partial<HeaderSection> = {}) {
     super()
     Core.assign(this, properties, [

@@ -29,15 +29,15 @@ class NamadaTransaction {
     })
   })
 
-  chainId:    string
-  expiration: string|null
-  timestamp:  string
-  codeHash:   string
-  dataHash:   string
-  memoHash:   string
-  txType:     'Raw'|'Wrapper'|'Decrypted'|'Protocol'
-  sections:   Sections.Section[]
-  content?:   object
+  chainId!:    string
+  expiration!: string|null
+  timestamp!:  string
+  codeHash!:   string
+  dataHash!:   string
+  memoHash!:   string
+  txType!:     'Raw'|'Wrapper'|'Decrypted'|'Protocol'
+  sections!:   Sections.Section[]
+  content?:    object
 
   constructor (properties: Partial<NamadaTransaction> = {}) {
     Core.assign(this, properties, [

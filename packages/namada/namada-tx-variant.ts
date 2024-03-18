@@ -2,8 +2,8 @@ import { Core } from '@fadroma/agent'
 import { Transaction } from './namada-tx-base'
 
 class NamadaUndecodedTransaction extends Transaction {
-  binary: Uint8Array
-  error:  Error
+  binary!: Uint8Array
+  error!:  Error
   constructor (properties: Partial<NamadaUndecodedTransaction> = {}) {
     super()
     Core.assign(this, properties, [ "binary", "error" ])

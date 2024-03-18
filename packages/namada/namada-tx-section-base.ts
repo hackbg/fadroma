@@ -1,6 +1,8 @@
+import { Core } from '@fadroma/agent'
+
 export class Section {
   static noun = 'Section'
-  type: null
+  type!: null
     |'Data'
     |'ExtraData'
     |'Code'
@@ -9,5 +11,10 @@ export class Section {
     |'MaspTx'
     |'MaspBuilder'
     |'Header'
+  constructor (properties: Partial<Section> = {}) {
+    Core.assign(this, properties, [
+      "type"
+    ])
+  }
 }
 

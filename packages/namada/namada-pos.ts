@@ -63,11 +63,11 @@ class PoSValidatorMetadata {
 
 class PoSValidator extends Staking.Validator {
   static fromNamadaAddress = (namadaAddress: string) => Object.assign(new this({}), { namadaAddress })
-  namadaAddress: Address
-  metadata:      PoSValidatorMetadata
-  commission:    PoSCommissionPair
-  state:         unknown
-  stake:         bigint
+  namadaAddress!: Address
+  metadata!:      PoSValidatorMetadata
+  commission!:    PoSCommissionPair
+  state!:         unknown
+  stake!:         bigint
   async fetchDetails (connection: Connection) {
     if (!this.namadaAddress) {
       const addressBinary = await connection.abciQuery(`/vp/pos/validator_by_tm_addr/${this.address}`)
@@ -125,8 +125,8 @@ class PoSValidator extends Staking.Validator {
 }
 
 class PoSCommissionPair {
-  commissionRate:              bigint
-  maxCommissionChangePerEpoch: bigint
+  commissionRate!:              bigint
+  maxCommissionChangePerEpoch!: bigint
   constructor (properties: Partial<PoSCommissionPair> = {}) {
     Core.assign(this, properties, [
       'commissionRate',

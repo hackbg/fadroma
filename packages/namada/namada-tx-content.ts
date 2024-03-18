@@ -1,4 +1,6 @@
 /** Index of inner transaction content. */
+
+import { Core } from '@fadroma/agent'
 import {
   InitProposal,
   VoteProposal
@@ -45,32 +47,62 @@ export {
 
 export class InitAccount {
   static noun = 'Account Init'
-  publicKeys: string[]
-  vpCodeHash: string
-  threshold:  bigint
+  publicKeys!: string[]
+  vpCodeHash!: string
+  threshold!:  bigint
+  constructor (properties: Partial<InitAccount> = {}) {
+    Core.assign(this, properties, [
+      "publicKeys",
+      "vpCodeHash",
+      "threshold"
+    ])
+  }
 }
 
 export class UpdateAccount {
   static noun = 'Account Update'
-  address:    string
-  publicKeys: string[]
-  vpCodeHash: string
-  threshold:  bigint
+  address!:    string
+  publicKeys!: string[]
+  vpCodeHash!: string
+  threshold!:  bigint
+  constructor (properties: Partial<UpdateAccount> = {}) {
+    Core.assign(this, properties, [
+      "address",
+      "publicKeys",
+      "vpCodeHash",
+      "threshold"
+    ])
+  }
 }
 
 export class RevealPK {
   static noun = 'PK Reveal'
-  pk: string
+  pk!: string
+  constructor (properties: Partial<RevealPK> = {}) {
+    Core.assign(this, properties, [
+      "pk"
+    ])
+  }
 }
 
 export class Transfer {
   static noun = 'Transfer'
-  source
-  target
-  token
-  amount
-  key
-  shielded
+  source!:   string
+  target!:   string
+  token!:    string
+  amount!:   bigint
+  key!:      string
+  shielded!: unknown
+  constructor (properties: Partial<Transfer> = {}) {
+    Core.assign(this, properties, [
+      "source",
+      "target",
+      "token",
+      "amount",
+      "key",
+      "shielded"
+    ])
+  }
 }
 
 export class IBC {}
