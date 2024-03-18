@@ -360,7 +360,7 @@ impl Decode {
                 inner.description.into()), //Option<String>,
             ("website".into(),
                 inner.website.into()), //Option<String>,
-            ("discord_handle".into(),
+            ("discordHandle".into(),
                 inner.discord_handle.into()), //Option<String>,
             ("avatar".into(),
                 inner.avatar.into()), //Option<String>,
@@ -566,7 +566,7 @@ impl Decode {
         let inner = UpdateAccount::try_from_slice(&binary[..])
             .map_err(|e|Error::new(&format!("{e}")))?;
         object(&[
-            ("addr".into(),
+            ("address".into(),
                 inner.addr.encode().into()),//        /*    pub addr: Address,
             ("vpCodeHash".into(),
                 inner.vp_code_hash.map(|x|format!("{x}")).into()),

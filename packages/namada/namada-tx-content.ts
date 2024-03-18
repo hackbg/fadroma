@@ -52,7 +52,7 @@ export class InitAccount {
 
 export class UpdateAccount {
   static noun = 'Account Update'
-  addr:       string
+  address:    string
   publicKeys: string[]
   vpCodeHash: string
   threshold:  bigint
