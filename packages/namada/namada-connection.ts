@@ -64,7 +64,7 @@ export class NamadaConnection extends CW.Connection {
         txsDecoded[i] = new TX.Transactions.Undecoded({ binary, error: error as any })
       }
     }
-    Object.assign(block, { txsDecoded })
+    Object.assign(block as any, { txsDecoded })
     return block as typeof block & { txsDecoded: TX.Transaction[] }
   }
 
