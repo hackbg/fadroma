@@ -1,15 +1,9 @@
 import { Core } from '@fadroma/agent'
-import {
-  variant, array, vec, zVec, u8, u32, u64, u128, u256, i128, string, option, variants, unit, struct, map, set,
-  bool
-} from '@hackbg/borshest'
 import type { Fields } from '@hackbg/borshest'
+import { Section } from './namada-tx-section-base'
 
-export class Section {
-  type: null|'Data'|'ExtraData'|'Code'|'Signature'|'Ciphertext'|'MaspTx'|'MaspBuilder'|'Header'
-}
-
-export class UnknownSection extends Section {
+class UnknownSection extends Section {
+  static noun = 'Unknown Section'
   type = null
   data: unknown
   constructor (data: unknown) {
@@ -18,7 +12,8 @@ export class UnknownSection extends Section {
   }
 }
 
-export class DataSection extends Section {
+class DataSection extends Section {
+  static noun = 'Data'
   type = 'Data' as 'Data'
   salt: string
   data: string
@@ -28,7 +23,8 @@ export class DataSection extends Section {
   }
 }
 
-export class ExtraDataSection extends Section {
+class ExtraDataSection extends Section {
+  static noun = 'Extra Data'
   type = 'ExtraData' as 'ExtraData'
   salt: string
   code: string
@@ -39,7 +35,8 @@ export class ExtraDataSection extends Section {
   }
 }
 
-export class CodeSection extends Section {
+class CodeSection extends Section {
+  static noun = 'Code'
   type = 'Code' as 'Code'
   salt: string
   code: string
@@ -50,7 +47,8 @@ export class CodeSection extends Section {
   }
 }
 
-export class SignatureSection extends Section {
+class SignatureSection extends Section {
+  static noun = 'Signature'
   type = 'Signature' as 'Signature'
   targets:    string[]
   signer:     string|string[]
@@ -61,11 +59,13 @@ export class SignatureSection extends Section {
   }
 }
 
-export class CiphertextSection extends Section {
+class CiphertextSection extends Section {
+  static noun = 'Ciphertext'
   type = 'Ciphertext' as 'Ciphertext'
 }
 
-export class MaspTxSection extends Section {
+class MaspTxSection extends Section {
+  static noun = 'MASP Transaction'
   type = 'MaspTx' as 'MaspTx'
   txid:               string
   lockTime:           string
@@ -117,7 +117,8 @@ export class MaspTxSection extends Section {
   }
 }
 
-export class MaspBuilderSection extends Section {
+class MaspBuilderSection extends Section {
+  static noun = 'MASP Builder'
   type = 'MaspBuilder' as 'MaspBuilder'
   target:     string
   assetTypes: Array<{
@@ -135,7 +136,8 @@ export class MaspBuilderSection extends Section {
   }
 }
 
-export class HeaderSection extends Section {
+class HeaderSection extends Section {
+  static noun = 'Header'
   type = 'Header' as 'Header'
   chainId:    string
   expiration: string|null
@@ -156,4 +158,17 @@ export class HeaderSection extends Section {
       'txType'
     ])
   }
+}
+
+export {
+  Section,
+  UnknownSection     as Unknown,
+  DataSection        as Data,
+  CodeSection        as Code,
+  ExtraDataSection   as ExtraData,
+  SignatureSection   as Signature,
+  CiphertextSection  as Ciphertext,
+  MaspTxSection      as MaspTx,
+  MaspBuilderSection as MaspBuilder,
+  HeaderSection      as Header
 }

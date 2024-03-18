@@ -1,13 +1,10 @@
-//export class UpdateStewardCommission extends Struct(
-  //['steward',    addr],
-  //['commission', map(addr, i256)]
-//) {
-  //declare steward:    Address
-  //declare commission: Map<string, bigint>
-//}
+export class UpdateStewardCommission {
+  static noun = 'Steward Commission Update'
+  steward:    string
+  commission: Map<string, bigint>
+}
 
-//export class ResignSteward extends Struct(
-  //["steward", addr],
-//) {
-  //declare steward: Address
-//}
+export class ResignSteward {
+  static noun = 'Steward Resignation'
+  steward: string
+}

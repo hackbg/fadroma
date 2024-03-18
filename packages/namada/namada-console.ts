@@ -1,19 +1,7 @@
 import { Core } from '@fadroma/agent'
-import type {
-  NamadaTransaction
-} from './namada-tx'
-import {
-  Section,
-  UnknownSection,
-  DataSection,
-  ExtraDataSection,
-  CodeSection,
-  SignatureSection,
-  CiphertextSection,
-  MaspTxSection,
-  MaspBuilderSection,
-  HeaderSection,
-} from './namada-tx-section'
+import type { Transaction } from './namada-tx-base'
+import type { VoteProposal } from './namada-gov-tx'
+import * as Sections from './namada-tx-section'
 import type {
   Validator
 } from './namada-pos'
@@ -21,7 +9,9 @@ import type {
 export class NamadaConsole extends Core.Console {
 
   printTx (
-    { txType, chainId, timestamp, expiration, codeHash, dataHash, memoHash, sections }: Partial<NamadaTransaction> = {},
+    {
+      txType, chainId, timestamp, expiration, codeHash, dataHash, memoHash, sections
+    }: Partial<Transaction> = {},
     indent = 0
   ) {
     this.log('-', Core.bold(`${txType} transaction:`))
@@ -35,7 +25,7 @@ export class NamadaConsole extends Core.Console {
   }
 
   printTxSections (
-    sections: Array<Partial<Section>> = [],
+    sections: Array<Partial<Sections.Section>> = [],
     indent = 0
   ) {
     console.log(Core.bold('  Sections:  '))
@@ -46,23 +36,23 @@ export class NamadaConsole extends Core.Console {
   }
 
   printTxSection (
-    section: Partial<Section> = {},
+    section: Partial<Sections.Section> = {},
     indent = 0
   ) {
     switch (true) {
-      case (section instanceof DataSection):
+      case (section instanceof Sections.Data):
         return this.printDataSection(section)
-      case (section instanceof ExtraDataSection):
+      case (section instanceof Sections.ExtraData):
         return this.printExtraDataSection(section)
-      case (section instanceof CodeSection):
+      case (section instanceof Sections.Code):
         return this.printCodeSection(section)
-      case (section instanceof SignatureSection):
+      case (section instanceof Sections.Signature):
         return this.printSignatureSection(section)
-      case (section instanceof CiphertextSection):
+      case (section instanceof Sections.Ciphertext):
         return this.printCiphertextSection(section)
-      case (section instanceof MaspTxSection):
+      case (section instanceof Sections.MaspTx):
         return this.printMaspTxSection(section)
-      case (section instanceof MaspBuilderSection):
+      case (section instanceof Sections.MaspBuilder):
         return this.printMaspBuilderSection(section)
       default:
         return this.printUnknownSection(section)
@@ -70,14 +60,14 @@ export class NamadaConsole extends Core.Console {
   }
 
   printUnknownSection (
-    _: Partial<UnknownSection> = {},
+    _: Partial<Sections.Unknown> = {},
     indent = 0
   ) {
     return this.warn('  Section: Unknown')
   }
 
   printDataSection (
-    { salt, data }: DataSection,
+    { salt, data }: Sections.Data,
     indent = 0
   ) {
     return this
@@ -87,7 +77,7 @@ export class NamadaConsole extends Core.Console {
   }
 
   printExtraDataSection (
-    { salt, code, tag }: ExtraDataSection,
+    { salt, code, tag }: Sections.ExtraData,
     indent = 0
   ) {
     return this
@@ -98,7 +88,7 @@ export class NamadaConsole extends Core.Console {
   }
 
   printCodeSection (
-    { salt, code, tag }: CodeSection,
+    { salt, code, tag }: Sections.Code,
     indent = 0
   ) {
     return this
@@ -109,7 +99,7 @@ export class NamadaConsole extends Core.Console {
   }
 
   printSignatureSection (
-    { targets, signer, signatures }: Partial<SignatureSection> = {},
+    { targets, signer, signatures }: Partial<Sections.Signature> = {},
     indent = 0
   ) {
     this
@@ -140,14 +130,16 @@ export class NamadaConsole extends Core.Console {
   }
 
   printCiphertextSection (
-    _: Partial<CiphertextSection> = {},
+    _: Partial<Sections.Ciphertext> = {},
     indent = 0
   ) {
     console.log('  Section: Ciphertext')
   }
 
   printMaspTxSection (
-    { txid, lockTime, expiryHeight, transparentBundle, saplingBundle }: Partial<MaspTxSection> = {},
+    {
+      txid, lockTime, expiryHeight, transparentBundle, saplingBundle
+    }: Partial<Sections.MaspTx> = {},
     indent = 0
   ) {
     this
@@ -206,7 +198,7 @@ export class NamadaConsole extends Core.Console {
   }
 
   printMaspBuilderSection (
-    _: Partial<MaspBuilderSection> = {},
+    _: Partial<Sections.MaspBuilder> = {},
     indent = 0
   ) {
     return this.warn('  Section: MaspBuilder')
@@ -228,6 +220,14 @@ export class NamadaConsole extends Core.Console {
       .log('Discord:        ', Core.bold(validator.metadata?.discordHandle||''))
       .log('Avatar:         ', Core.bold(validator.metadata?.avatar||''))
       .log('Description:    ', Core.bold(validator.metadata?.description||''))
+  }
+
+  printVoteProposal (proposal: VoteProposal) {
+    return this.log(Core.bold('  Decoded VoteProposal:'))
+      .log('    Proposal ID:', Core.bold(proposal.id))
+      .log('    Vote:       ', Core.bold(JSON.stringify(proposal.vote)))
+      .log('    Voter:      ', Core.bold(JSON.stringify(proposal.voter)))
+      .log('    Delegations:', Core.bold(JSON.stringify(proposal.delegations)))
   }
 
 }

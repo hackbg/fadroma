@@ -9,24 +9,14 @@ import {
   NamadaConnection,
   NamadaMnemonicIdentity
 } from './namada-connection'
-import {
-  NamadaTransaction,
-  NamadaRawTransaction,
-  NamadaWrapperTransaction,
-  NamadaDecryptedTransaction,
-  NamadaProtocolTransaction
-} from './namada-tx'
 export {
   initDecoder,
-  NamadaCLI                  as CLI,
-  NamadaConnection           as Connection,
-  NamadaMnemonicIdentity     as MnemonicIdentity,
-  NamadaTransaction          as Transaction,
-  NamadaRawTransaction       as RawTransaction,
-  NamadaWrapperTransaction   as WrapperTransaction,
-  NamadaDecryptedTransaction as DecryptedTransaction,
-  NamadaProtocolTransaction  as ProtocolTransaction
+  NamadaCLI              as CLI,
+  NamadaConnection       as Connection,
+  NamadaMnemonicIdentity as MnemonicIdentity,
 }
+export * as TX from './namada-tx'
+export { Transaction } from './namada-tx'
 
 export const chainIds = {
   testnet: 'luminara.4d6026bc59ee20d9664d3'
