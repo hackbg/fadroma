@@ -510,10 +510,11 @@ impl Decode {
 
     #[wasm_bindgen]
     pub fn tx_content_reveal_pk (binary: &[u8]) -> Result<Object, Error> {
-        let inner = PublicKey::try_from_slice(&binary[..])
+        let pk = PublicKey::try_from_slice(&binary[..])
             .map_err(|e|Error::new(&format!("{e}")))?;
-        object(&[
-        ])
+        Ok(to_object! {
+            "pk" = pk,
+        })
     }
 
     #[wasm_bindgen]

@@ -45,102 +45,37 @@ export {
 
 export class InitAccount {
   static noun = 'Account Init'
+  publicKeys: string[]
+  vpCodeHash: string
+  threshold:  bigint
 }
 
 export class UpdateAccount {
   static noun = 'Account Update'
+  addr:       string
+  publicKeys: string[]
+  vpCodeHash: string
+  threshold:  bigint
 }
 
 export class RevealPK {
   static noun = 'PK Reveal'
+  pk: string
 }
 
 export class Transfer {
   static noun = 'Transfer'
+  source
+  target
+  token
+  amount
+  key
+  shielded
 }
 
-//export class InitAccount extends Struct(
-  //['public_keys',  vec(pubkey)],
-  //['vp_code_hash', array(32, u8)],
-  //['threshold',    u8],
-//) {
-  //publicKeys
-  //vpCodeHash
-  //threshold
-  //print (console) {
-    //throw new Error('print InitAccount: not implemented')
-  //}
-//}
+export class IBC {}
 
-//export class UpdateAccount extends Struct(
-  //['addr',         addr],
-  //['vp_code_hash', option(array(32, u8))],
-  //['public_keys',  vec(pubkey)],
-  //['threshold',    option(u8)]
-//) {
-  //print (console) {
-    //throw new Error('print UpdateAccount: not implemented')
-  //}
-//}
-
-//export class RevealPK extends Struct() {
-  //print (console) {
-    //throw new Error('print RevealPK: not implemented')
-  //}
-//}
-
-//export class Transfer extends Struct(
-  //["source",   addr],
-  //["target",   addr],
-  //["token",    addr],
-  //["amount",   struct(
-    //["amount", i256],
-    //["denom",  u8]
-  //)],
-  //["key",      option(string)],
-  //["shielded", option(array(32, u8))]
-//) {
-  //declare source
-  //declare target
-  //declare token
-  //declare amount
-  //declare key
-  //declare shielded
-  //print (console) {
-    //console.log(Core.bold('  Decoded Transfer:'))
-      //.log('    Source:  ', Core.bold(this.source))
-      //.log('    Target:  ', Core.bold(this.target))
-      //.log('    Token:   ', Core.bold(this.token))
-      //.log('    Amount:  ', Core.bold(this.amount.amount))
-      //.log('      Denom: ', Core.bold(this.amount.denom))
-      //.log('    Key:     ', Core.bold(this.key))
-      //.log('    Shielded:', Core.bold(this.shielded))
-  //}
-//}
-
-//export class VPImplicit extends Struct() {
-  //print (console) {
-    //throw new Error('print VPImplicit: not implemented')
-  //}
-//}
-
-//export class VPUser extends Struct() {
-  //print (console) {
-    //throw new Error('print VPUser: not implemented')
-  //}
-//}
-
-//export class BridgePool extends Struct() {
-  //print (console) {
-    //throw new Error('print BridgePool: not implemented')
-  //}
-//}
-
-//export class IBC extends Struct() {
-  //print (console) {
-    //console.warn('decode and print IBC: not implemented')
-  //}
-//}
+export class BridgePool {}
 
 /** Mapping of target WASM to transaction kind. */
 export default {
