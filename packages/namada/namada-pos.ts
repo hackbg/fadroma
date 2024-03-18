@@ -74,14 +74,43 @@ class PoSValidator extends Staking.Validator {
       this.namadaAddress = connection.decode.address(addressBinary.slice(1))
     }
     const requests: Array<Promise<unknown>> = [
+
       connection.abciQuery(`/vp/pos/validator/metadata/${this.namadaAddress}`)
-        .then(binary => this.metadata   = new PoSValidatorMetadata(connection.decode.pos_validator_metadata(binary))),
+        .then(binary => {
+          if (binary[0] === 1) {
+            this.metadata = new PoSValidatorMetadata(connection.decode.pos_validator_metadata(binary.slice(1)))
+          }
+        })
+        .catch(e => connection.log.warn(
+          `Failed to decode validator metadata for ${this.namadaAddress}`
+        )),
       connection.abciQuery(`/vp/pos/validator/commission/${this.namadaAddress}`)
-        .then(binary => this.commission = new PoSCommissionPair(connection.decode.pos_commission_pair(binary))),
+        .then(binary => {
+          if (binary[0] === 1) {
+            this.commission = new PoSCommissionPair(connection.decode.pos_commission_pair(binary.slice(1)))
+          }
+        })
+        .catch(e => connection.log.warn(
+          `Failed to decode validator commission pair for ${this.namadaAddress}`
+        )),
       connection.abciQuery(`/vp/pos/validator/state/${this.namadaAddress}`)
-        .then(binary => this.state      = connection.decode.pos_validator_state(binary)),
+        .then(binary => {
+          if (binary[0] === 1) {
+            this.state = connection.decode.pos_validator_state(binary.slice(1))
+          }
+        })
+        .catch(e => connection.log.warn(
+          `Failed to decode validator state ${this.namadaAddress}`
+        )),
       connection.abciQuery(`/vp/pos/validator/stake/${this.namadaAddress}`)
-        .then(binary => this.stake      = decode(u256, binary)),
+        .then(binary => {
+          if (binary[0] === 1) {
+            this.stake = decode(u256, binary.slice(1))
+          }
+        })
+        .catch(e => connection.log.warn(
+          `Failed to decode validator stake ${this.namadaAddress}`
+        )),
     ]
     if (this.namadaAddress && !this.publicKey) {
       requests.push(connection.abciQuery(`/vp/pos/validator/consensus_key/${this.namadaAddress}`)

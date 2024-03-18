@@ -19,17 +19,17 @@ export * as TX from './namada-tx'
 export { Transaction } from './namada-tx'
 
 export const chainIds = {
-  testnet: 'luminara.4d6026bc59ee20d9664d3'
+  testnet: 'shielded-expedition.88f17d1d14'
 }
 
 export const testnets = new Set([
-  'https://rpc.luminara.icu'
+  'https://namada-testnet-rpc.itrocket.net'
 ])
 
 export const faucets = {
-  'luminara.4d6026bc59ee20d9664d3': new Set([
-    'https://faucet.luminara.icu/'
-  ])
+  //'luminara.4d6026bc59ee20d9664d3': new Set([
+    //'https://faucet.luminara.icu/'
+  //])
 }
 
 /** Connect to Namada in testnet mode. */
