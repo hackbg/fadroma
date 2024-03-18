@@ -4,23 +4,23 @@ import { Staking } from '@fadroma/cw'
 import { decode, u8, u64, u256, array, set } from '@hackbg/borshest'
 
 class PoSParameters {
-  maxProposalPeriod:             bigint
-  maxValidatorSlots:             bigint
-  pipelineLen:                   bigint
-  unbondingLen:                  bigint
-  tmVotesPerToken:               bigint
-  blockProposerReward:           bigint
-  blockVoteReward:               bigint
-  maxInflationRate:              bigint
-  targetStakedRatio:             bigint
-  duplicateVoteMinSlashRate:     bigint
-  lightClientAttackMinSlashRate: bigint
-  cubicSlashingWindowLength:     bigint
-  validatorStakeThreshold:       bigint
-  livenessWindowCheck:           bigint
-  livenessThreshold:             bigint
-  rewardsGainP:                  bigint
-  rewardsGainD:                  bigint
+  maxProposalPeriod!:             bigint
+  maxValidatorSlots!:             bigint
+  pipelineLen!:                   bigint
+  unbondingLen!:                  bigint
+  tmVotesPerToken!:               bigint
+  blockProposerReward!:           bigint
+  blockVoteReward!:               bigint
+  maxInflationRate!:              bigint
+  targetStakedRatio!:             bigint
+  duplicateVoteMinSlashRate!:     bigint
+  lightClientAttackMinSlashRate!: bigint
+  cubicSlashingWindowLength!:     bigint
+  validatorStakeThreshold!:       bigint
+  livenessWindowCheck!:           bigint
+  livenessThreshold!:             bigint
+  rewardsGainP!:                  bigint
+  rewardsGainD!:                  bigint
   constructor (properties: Partial<PoSParameters> = {}) {
     Core.assign(this, properties, [
       'maxProposalPeriod',
@@ -45,11 +45,11 @@ class PoSParameters {
 }
 
 class PoSValidatorMetadata {
-  email:         string
-  description:   string|null
-  website:       string|null
-  discordHandle: string|null
-  avatar:        string|null
+  email!:         string
+  description!:   string|null
+  website!:       string|null
+  discordHandle!: string|null
+  avatar!:        string|null
   constructor (properties: Partial<PoSValidatorMetadata>) {
     Core.assign(this, properties, [
       'email',
