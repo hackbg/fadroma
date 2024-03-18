@@ -55,7 +55,7 @@ export class NamadaConsole extends Core.Console {
       case (section instanceof Sections.MaspBuilder):
         return this.printMaspBuilderSection(section)
       default:
-        return this.printUnknownSection(section)
+        return this.printUnknownSection(section as any)
     }
   }
 

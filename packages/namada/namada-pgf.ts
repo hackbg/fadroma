@@ -1,9 +1,9 @@
 import { Core } from '@fadroma/agent'
 
 class PGFParameters {
-  stewards:              Set<string>
-  pgfInflationRate:      bigint
-  stewardsInflationRate: bigint
+  stewards!:              Set<string>
+  pgfInflationRate!:      bigint
+  stewardsInflationRate!: bigint
   constructor (properties: Partial<PGFParameters> = {}) {
     Core.assign(this, properties, [
       'stewards',

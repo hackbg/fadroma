@@ -3,12 +3,12 @@ import type { Address } from '@fadroma/agent'
 import { decode, u64 } from '@hackbg/borshest'
 
 class GovernanceParameters {
-  minProposalFund:         bigint
-  maxProposalCodeSize:     bigint
-  minProposalVotingPeriod: bigint
-  maxProposalPeriod:       bigint
-  maxProposalContentSize:  bigint
-  minProposalGraceEpochs:  bigint
+  minProposalFund!:         bigint
+  maxProposalCodeSize!:     bigint
+  minProposalVotingPeriod!: bigint
+  maxProposalPeriod!:       bigint
+  maxProposalContentSize!:  bigint
+  minProposalGraceEpochs!:  bigint
   constructor (properties: Partial<GovernanceParameters> = {}) {
     Core.assign(this, properties, [
       'minProposalFund',
@@ -22,13 +22,13 @@ class GovernanceParameters {
 }
 
 class GovernanceProposal {
-  id:               string
-  content:          Map<string, string>
-  author:           string
-  type:             unknown
-  votingStartEpoch: bigint
-  votingEndEpoch:   bigint
-  graceEpoch:       bigint
+  id!:               string
+  content!:          Map<string, string>
+  author!:           string
+  type!:             unknown
+  votingStartEpoch!: bigint
+  votingEndEpoch!:   bigint
+  graceEpoch!:       bigint
   constructor (properties: Partial<GovernanceProposal> = {}) {
     Core.assign(this, properties, [
       'id',
@@ -43,12 +43,12 @@ class GovernanceProposal {
 }
 
 class GovernanceProposalResult {
-  result:            "Passed"|"Rejected"
-  tallyType:         "TwoThirds"|"OneHalfOverOneThird"|"LessOneHalfOverOneThirdNay"
-  totalVotingPower:  bigint
-  totalYayPower:     bigint
-  totalNayPower:     bigint
-  totalAbstainPower: bigint
+  result!:            "Passed"|"Rejected"
+  tallyType!:         "TwoThirds"|"OneHalfOverOneThird"|"LessOneHalfOverOneThirdNay"
+  totalVotingPower!:  bigint
+  totalYayPower!:     bigint
+  totalNayPower!:     bigint
+  totalAbstainPower!: bigint
   constructor (properties: Partial<GovernanceProposalResult> = {}) {
     Core.assign(this, properties, [
       'result',
@@ -77,9 +77,9 @@ class GovernanceProposalResult {
 }
 
 class GovernanceVote {
-  validator: Address
-  delegator: Address
-  data:      "Yay"|"Nay"|"Abstain"
+  validator!: Address
+  delegator!: Address
+  data!:      "Yay"|"Nay"|"Abstain"
   constructor (properties: Partial<GovernanceVote> = {}) {
     Core.assign(this, properties, [
       'validator',
@@ -131,11 +131,14 @@ export async function getProposalInfo (connection: Connection, id: number) {
     connection.abciQuery(`/vp/governance/stored_proposal_result/${id}`),
   ])
   return {
-    proposal:
-      new GovernanceProposal(connection.decode.gov_proposal(proposal.slice(1))),
-    votes:
-      connection.decode.gov_votes(votes).map(vote=>new GovernanceVote(vote)),
-    result: (result[0] === 0) ? null :
-      new GovernanceProposalResult(connection.decode.gov_result(result.slice(1)))
+    proposal: new GovernanceProposal(
+      connection.decode.gov_proposal(proposal.slice(1))
+    ),
+    votes: connection.decode.gov_votes(votes).map(
+      vote=>new GovernanceVote(vote)
+    ),
+    result: (result[0] === 0) ? null : new GovernanceProposalResult(
+      connection.decode.gov_result(result.slice(1))
+    )
   }
 }
