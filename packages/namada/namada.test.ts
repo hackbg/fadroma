@@ -11,12 +11,16 @@ export default async function main () {
   const connection = Namada.testnet({
     url: 'https://namada-testnet-rpc.itrocket.net'
   })
-  console.log(await connection.getDelegationsAt('tnam1qpr2uzf9pgrd6sucp34wq5gss5rm2un5lszcwzqc'))
+  console.log(await connection.getDelegationsAt(
+    'tnam1qpr2uzf9pgrd6sucp34wq5gss5rm2un5lszcwzqc'
+  ))
   const test = await connection.getValidators({
-    details: true
+    details:         true,
+    parallel:        false,
+    parallelDetails: true,
   });
   //console.log({test})
-  console.log(await (await connection.getValidator('tnam1q9sdarpylwxd5vv3e8u6wstrpz052jhls5g4a3wg')).fetchDetails(connection))
+  //console.log(await (await connection.getValidator('tnam1q9sdarpylwxd5vv3e8u6wstrpz052jhls5g4a3wg')).fetchDetails(connection))
   //console.log(connection.decode.address(new Uint8Array([
     //0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   //])))

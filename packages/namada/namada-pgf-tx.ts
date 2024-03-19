@@ -14,7 +14,7 @@ export class UpdateStewardCommission {
 
 export class ResignSteward {
   static noun = 'Steward Resignation'
-  steward: string
+  steward!: string
   constructor (properties: Partial<ResignSteward> = {}) {
     Core.assign(this, properties, [
       "steward",

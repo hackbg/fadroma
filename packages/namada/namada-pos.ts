@@ -68,14 +68,15 @@ class PoSValidator extends Staking.Validator {
   commission!:    PoSCommissionPair
   state!:         unknown
   stake!:         bigint
-  async fetchDetails (connection: Connection) {
+  async fetchDetails (connection: Connection, options?: { parallel?: boolean }) {
+
     if (!this.namadaAddress) {
       const addressBinary = await connection.abciQuery(`/vp/pos/validator_by_tm_addr/${this.address}`)
       this.namadaAddress = connection.decode.address(addressBinary.slice(1))
     }
-    const requests: Array<Promise<unknown>> = [
 
-      connection.abciQuery(`/vp/pos/validator/metadata/${this.namadaAddress}`)
+    const requests: Array<()=>Promise<unknown>> = [
+      () => connection.abciQuery(`/vp/pos/validator/metadata/${this.namadaAddress}`)
         .then(binary => {
           if (binary[0] === 1) {
             this.metadata = new PoSValidatorMetadata(connection.decode.pos_validator_metadata(binary.slice(1)))
@@ -84,7 +85,7 @@ class PoSValidator extends Staking.Validator {
         .catch(e => connection.log.warn(
           `Failed to decode validator metadata for ${this.namadaAddress}`
         )),
-      connection.abciQuery(`/vp/pos/validator/commission/${this.namadaAddress}`)
+      () => connection.abciQuery(`/vp/pos/validator/commission/${this.namadaAddress}`)
         .then(binary => {
           if (binary[0] === 1) {
             this.commission = new PoSCommissionPair(connection.decode.pos_commission_pair(binary.slice(1)))
@@ -93,34 +94,50 @@ class PoSValidator extends Staking.Validator {
         .catch(e => connection.log.warn(
           `Failed to decode validator commission pair for ${this.namadaAddress}`
         )),
-      connection.abciQuery(`/vp/pos/validator/state/${this.namadaAddress}`)
+      () => connection.abciQuery(`/vp/pos/validator/state/${this.namadaAddress}`)
         .then(binary => {
           if (binary[0] === 1) {
             this.state = connection.decode.pos_validator_state(binary.slice(1))
           }
         })
         .catch(e => connection.log.warn(
-          `Failed to decode validator state ${this.namadaAddress}`
+          `Failed to decode validator state for ${this.namadaAddress}`
         )),
-      connection.abciQuery(`/vp/pos/validator/stake/${this.namadaAddress}`)
+      () => connection.abciQuery(`/vp/pos/validator/stake/${this.namadaAddress}`)
         .then(binary => {
           if (binary[0] === 1) {
             this.stake = decode(u256, binary.slice(1))
           }
         })
         .catch(e => connection.log.warn(
-          `Failed to decode validator stake ${this.namadaAddress}`
+          `Failed to decode validator stake for ${this.namadaAddress}`
         )),
     ]
+
     if (this.namadaAddress && !this.publicKey) {
-      requests.push(connection.abciQuery(`/vp/pos/validator/consensus_key/${this.namadaAddress}`)
-        .then(binary => this.publicKey  = Core.base16.encode(binary.slice(1))))
+      requests.push(() =>
+        connection.abciQuery(`/vp/pos/validator/consensus_key/${this.namadaAddress}`)
+        .then(binary => {
+          this.publicKey  = Core.base16.encode(binary.slice(1))
+        })
+        .catch(e => connection.log.warn(
+          `Failed to decode validator public key for ${this.namadaAddress}`
+        )))
     }
+
     if (this.namadaAddress && !this.address) {
       connection.log.warn("consensus address when fetching all validators: not implemented")
     }
-    await Promise.all(requests)
+
+    if (options?.parallel) {
+      connection.log.debug(`fetchDetails: ${requests.length} request(s) in parallel`)
+    } else {
+      connection.log.debug(`fetchDetails: ${requests.length} request(s) in sequence`)
+    }
+    await optionallyParallel(options?.parallel, requests)
+
     return this
+
   }
 }
 
@@ -174,8 +191,11 @@ export async function getTotalStaked (connection: Connection) {
 export async function getValidators (
   connection: Connection,
   options: Partial<Parameters<typeof Staking.getValidators>[1]> & {
-    addresses?: string[],
-    allStates?: boolean
+    addresses?:       string[],
+    allStates?:       boolean,
+    parallel?:        boolean,
+    parallelDetails?: boolean,
+    interval?:        number,
   } = {}
 ) {
   if (options.allStates) {
@@ -190,10 +210,18 @@ export async function getValidators (
     }
     const validators = addresses.map(address=>PoSValidator.fromNamadaAddress(address))
     if (options.details) {
-      if (!options.pagination) {
-        throw new Error("set pagination to not bombard the node")
+      if (options.parallel && !options.pagination) {
+        throw new Error("set parallel=false or pagination, so as not to bombard the node")
       }
-      await Promise.all(validators.map(validator=>validator.fetchDetails(connection)))
+      const thunks = validators.map(validator=>()=>validator.fetchDetails(connection, {
+        parallel: options?.parallelDetails
+      }))
+      if (options?.parallel) {
+        connection.log.debug(`getValidators: ${thunks.length} request(s) in parallel`)
+      } else {
+        connection.log.debug(`getValidators: ${thunks.length} request(s) in sequence`)
+      }
+      await optionallyParallel(options?.parallel, thunks)
     }
     return validators
   } else {
@@ -251,4 +279,15 @@ export async function getDelegationsAt (
   }
   const binary = await connection.abciQuery(query)
   return connection.decode.address_to_amount(binary) as Record<string, bigint>
+}
+
+async function optionallyParallel <T> (parallel: boolean, thunks: Array<()=>Promise<T>>) {
+  if (parallel) {
+    return await Promise.all(thunks.map(thunk=>thunk()))
+  }
+  const results = []
+  for (const thunk of thunks) {
+    results.push(await thunk())
+  }
+  return results
 }

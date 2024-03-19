@@ -93,10 +93,12 @@ export class NamadaConnection extends CW.Connection {
   }
 
   getValidators (options?: {
-    details?:    boolean,
-    pagination?: [number, number]
-    allStates?:  boolean,
-    addresses?:  string[],
+    details?:         boolean,
+    pagination?:      [number, number]
+    allStates?:       boolean,
+    addresses?:       string[],
+    parallel?:        boolean,
+    parallelDetails?: boolean,
   }) {
     return getValidators(this, options)
   }
