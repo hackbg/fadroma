@@ -1,0 +1,13 @@
+{
+  "name": "@fadroma/example",
+  "private": "true",
+  "main": "example.ts",
+  "dependencies": {
+    "@hackbg/fadroma": "link:.."
+  },
+  "devDependencies": {
+  },
+  "scripts": {
+    "fadroma": "time fadroma"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name":         "@fadroma/oci",
+  "version":      "1.0.0-rc.5",
+  "main":         "oci.ts",
+  "type":         "module",
+  "license":      "MIT",
+  "homepage":     "https://github.com/hackbg/fadroma",
+  "bugs":         "https://github.com/hackbg/fadroma/issues",
+  "repository":   {"type": "git", "url": "https://github.com/hackbg/fadroma", "directory": "oci"},
+  "description":  "Manage containers with Fadroma.",
+  "files":        [ "README.md", "*.ts" ],
+  "dependencies": {
+    "colors":         "1.4.0",
+    "dockerode":      "^4.0.2",
+    "@hackbg/logs":   "workspace:^",
+    "@hackbg/oops":   "workspace:^",
+    "@hackbg/file":   "workspace:^",
+    "@hackbg/hide":   "workspace:^",
+    "@fadroma/agent": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/dockerode": "^3.3.23",
+    "@hackbg/ensuite":  "^1.1.1"
+  },
+  "scripts": {
+    "check":   "tsc --noEmit",
+    "test":    "ensuite oci.test.ts",
+    "cov":     "ensuite-cov oci.test.ts",
+    "release": "pnpm check && pnpm cov all && ubik release --access public --otp 123123"
+  }
+}

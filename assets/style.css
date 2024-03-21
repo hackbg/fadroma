@@ -1,21 +1,50 @@
-* { box-sizing: border-box; margin: 0; padding: 0; line-height: 1.5; }
-
-html, body { min-height: 100%; height: 100% }
-
-body { color: #123; font-size: 16px; font-family: "Inter", sans-serif; }
-body { background-color: #f0f0f0; background-image: url('assets/bg.svg'); background-repeat: repeat; }
-
-body > header {
-  text-align: center;
-  max-width: 80rem;
-  margin: 0 auto;
-  padding: 2rem 2rem 1rem;
+* {
+  box-sizing: border-box; margin: 0; padding: 0; line-height: 1.5;
 }
-body > header { display: flex; flex-flow: row nowrap; justify-content: space-around; align-items: center; }
-body > header .logo, .logo img { display: block; margin: 0; flex-shrink: 1; }
-body > header .logo img { max-width: 16rem; max-height: 16rem; }
-body > header .badges { margin-bottom: 1rem; }
-body > header a.badge { display: inline-block; padding: 0.25rem 0.5rem; }
+html, body {
+  min-height: 100%; height: 100%
+}
+body {
+  color: #123;
+  font-size: 16px;
+  font-family: "Cantarell", sans-serif;
+  background-color: rgb(101, 179, 76);
+  background-image: url('bg.svg');
+  background-repeat: repeat;
+}
+  body > .content {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: flex-start;
+    background: #f0f0f0;
+    margin: 1rem;
+    border-radius: 1rem;
+    box-shadow: 3px 3px 6px rgba(0,0,0,0.1);
+  }
+  body > .content > header {
+    text-align: center;
+    margin: 0 auto;
+    padding: 2rem 2rem 1rem;
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: space-around;
+    align-items: center;
+    max-width: 20rem;
+  }
+    body > .content > header .logo {
+      display: block; margin: 0; flex-shrink: 1;
+      margin-bottom: 1rem;
+    }
+    body > .content > header .logo img {
+      display: block;
+      margin: 0;
+      flex-shrink: 1;
+      max-width: 16rem;
+      max-height: 16rem;
+    }
+    body > .content > header a.badge {
+      display: inline-block; padding: 0.25rem 0.5rem;
+    }
 
 section { padding: 1em; }
 
@@ -64,11 +93,14 @@ th { padding-right: 5em }
   grid-template-columns: 1fr 1fr 1fr 1fr;
   flex-flow: row wrap;
   justify-content: center;
-  max-width: 80rem;
-  margin: 0 auto 3rem;
+  margin: 0 0 3rem 0;
+  padding: 0.33rem 0.66rem 0 0;
 }
 
 @media (max-width: 80rem) {
+  body > .content {
+    flex-flow: row wrap;
+  }
   .grid {
     display: flex;
     flex-flow: column nowrap;
@@ -100,7 +132,7 @@ th { padding-right: 5em }
 
 .feature {
   padding: 1rem;
-  margin: 1rem 0.5rem 0;
+  margin: 1rem 0.66rem 0;
   border: 1px solid rgba(0,0,0,0.1);
   border-top-color: rgba(255,255,255,0.5);
   border-left-color: rgba(255,255,255,0.5);
@@ -109,15 +141,16 @@ th { padding-right: 5em }
   display: flex;
   flex-flow: column nowrap;
   background: #fff;
-}
-
-.feature .docs {
-  font-weight: bold;
-}
-
-#features .feature {
   min-height: 10rem;
+  border-radius: 0.5rem;
 }
+  .feature .docs {
+    font-weight: bold;
+  }
+  .feature .description {
+    line-height: 1.5;
+    font-size: 0.875rem;
+  }
 
 .left {
   text-align: left;
@@ -126,10 +159,6 @@ th { padding-right: 5em }
   text-align: center;
 }
 
-.feature .description {
-  line-height: 1.5;
-  font-size: 0.875rem;
-}
 
 code { font-size: 0.9375rem; }
 code.inline, code.block { background: #0c5749; color: white; font-family: monospace; font-weight: bold; }
@@ -175,9 +204,10 @@ pre, code {
 }
 
 p {
-  line-height: 1.5rem;
+  line-height: 1.75rem;
   margin-top: 0;
   margin-bottom: 0.5rem;
+  font-size: 1rem;
 }
 
 svg.icon {
@@ -215,10 +245,10 @@ a > svg.icon {
 }
 
 svg.icon-todo {
-  animation-name: hourglass;
-  animation-duration: 3s;
-  animation-delay: 1s;
-  animation-iteration-count: infinite;
+  /*animation-name: hourglass;*/
+  /*animation-duration: 3s;*/
+  /*animation-delay: 1s;*/
+  /*animation-iteration-count: infinite;*/
 }
 
 .links {

@@ -1,0 +1,27 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "out": "docs",
+    "customCss": "./typedoc.css",
+    "entryPointStrategy": "packages",
+    "entryPoints": [
+      "./fadroma.ts",
+      "./packages/agent",
+      "./packages/scrt",
+      "./packages/cw",
+      "./packages/oci",
+      "./packages/create",
+      "./packages/compile",
+      "./packages/devnet",
+      "./toolbox/ganesha",
+      "./toolbox/ensuite",
+      "./toolbox/cmds",
+      "./toolbox/conf",
+      "./toolbox/file",
+      "./toolbox/logs",
+      "./toolbox/oops",
+      "./toolbox/port",
+      "./toolbox/repo",
+      "./packages/cosmjs-esm",
+      "./packages/secretjs-esm"
+    ]
+}

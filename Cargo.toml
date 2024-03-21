@@ -1,41 +1,36 @@
 [package]
 name = "fadroma"
-version = "0.8.7"
+version = "0.9.0"
 edition = "2021"
 license = "AGPL-3.0"
 keywords = ["blockchain", "cosmos", "cosmwasm", "smart-contract"]
-description = "Tools and frequently used functionality for developing CosmWasm smart contracts"
+description = "Distributed application groundwork maintained at Hack.bg"
 repository = "https://github.com/hackbg/fadroma"
 readme = "README.md"
 authors = [
-  # Core maintainers:
   "Adam A. <adam@hack.bg>",
   "Asparuh Kamenov <aakamenov@hack.bg>",
   "denismaxim0v <denis_maxim0v@protonmail.com>",
-
-  # Featuring contributions by:
   "Chris Ricketts <chris.ricketts@steribar.com>",
   "Tibor Hudik <tibor@barrage.net>",
   "Wiz1991 <wizoftime92@gmail.com>",
   "hydropump3 <3ki2fiay@anonaddy.me>",
-
-  # SNIP-20 implementation based on:
   "Itzik <itzik@keytango.io>"
 ]
 
 [lib]
-path = "lib/lib.rs"
+path = "crates/fadroma/lib.rs"
 
 [package.metadata.docs.rs]
 rustc-args = ["--cfg", "docsrs"]
 all-features = true
 
 [features]
+default = ["scrt"]
 scrt = ["secret-cosmwasm-std"]
+scrt-staking = ["secret-cosmwasm-std/staking"]
 permit = ["scrt", "ripemd", "sha2", "remain", "bech32"]
 vk = ["scrt", "crypto", "subtle"]
-ensemble = [ "oorandom", "anyhow" ]
-ensemble-staking = [ "ensemble", "time/formatting", "staking" ]
 crypto = ["rand_core", "rand_chacha", "sha2"]
 snip20 = ["scrt", "permit", "vk"]
 
@@ -45,13 +40,13 @@ staking = ["secret-cosmwasm-std/staking"]
 
 [dependencies]
 # Supported platforms
-secret-cosmwasm-std = { version = "1.1.10", default-features = false, optional = true }
+secret-cosmwasm-std = { version = "1.1.11", default-features = false, optional = true }
 
 # Procedural macro crates
-fadroma-dsl = { version = "0.8.0", path = "./proc/fadroma-dsl" }
-fadroma-derive-canonize = { version = "0.3.5", path = "./proc/fadroma-derive-canonize" }
-fadroma-derive-serde = { version = "0.3.0", path = "./proc/fadroma-derive-serde" }
-fadroma-proc-auth = { version = "0.1.1", path = "./proc/fadroma-proc-auth" }
+fadroma-dsl = { version = "0.8.0", path = "./crates/fadroma-dsl" }
+fadroma-derive-canonize = { version = "0.3.5", path = "./crates/fadroma-derive-canonize" }
+fadroma-derive-serde = { version = "0.3.0", path = "./crates/fadroma-derive-serde" }
+fadroma-proc-auth = { version = "0.1.1", path = "./crates/fadroma-proc-auth" }
 
 # Dependencies
 serde = { version = "1.0.114", default-features = false, features = ["derive"] }
@@ -70,7 +65,7 @@ time = { optional = true, version = "0.3.17" }
 
 # Enable iterator for testing (not supported in production)
 [target.'cfg(not(target_arch="wasm32"))'.dependencies]
-secret-cosmwasm-std = { version = "1.1.10", default-features = false, features = ["iterator", "random"], optional = true }
+secret-cosmwasm-std = { version = "1.1.11", default-features = false, features = ["iterator", "random"], optional = true }
 
 [dev-dependencies]
 criterion = "0.4.0"

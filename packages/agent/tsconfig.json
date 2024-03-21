@@ -1,0 +1,25 @@
+{
+  "files": [
+    "agent.ts",
+    "agent.browser.ts",
+    "core.ts",
+    "chain.ts",
+    "program.ts",
+    "program.browser.ts",
+    "deploy.ts",
+    "stub.ts",
+    "store.ts",
+    "token.ts"
+  ],
+  "include": [],
+  "exclude": [ ".ubik", "*.dist.*", "node_modules" ],
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "noEmitOnError": true,
+    "skipLibCheck": true
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "files": [
+    "cw.ts",
+    "cw-base.ts",
+    "cw-identity.ts",
+    "cw-connection.ts",
+    "okp4/okp4.ts",
+    "okp4/okp4-cognitarium.ts",
+    "okp4/okp4-law-stone.ts",
+    "okp4/okp4-objectarium.ts"
+  ],
+  "include": [],
+  "exclude": [ ".ubik", "*.dist.*", "node_modules" ],
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "noEmitOnError": true,
+    "skipLibCheck": true,
+    "experimentalDecorators": true
+  }
+}

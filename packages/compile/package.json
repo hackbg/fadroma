@@ -1,0 +1,25 @@
+{
+  "name": "@fadroma/compile",
+  "version": "1.0.0-rc.3",
+  "license": "AGPL-3.0-only",
+  "main": "compile.ts",
+  "dependencies": {
+    "@hackbg/file": "workspace:*",
+    "@hackbg/logs": "workspace:*",
+    "@hackbg/cmds": "workspace:*",
+
+    "@fadroma/agent": "workspace:*",
+    "@fadroma/oci":   "workspace:*"
+  },
+  "scripts": {
+    "check": "time tsc --noEmit",
+    "test": "time ensuite compile.test.ts",
+    "cov": "time ensuite-cov compile.test.ts",
+    "clean": "rm -rf .ubik *.dist.*",
+
+    "release":        "time sh -c 'pnpm clean && pnpm i && && pnpm check && pnpm cov all && ubik release --otp 123123'",
+    "release:fast":   "time sh -c 'pnpm clean && pnpm i && pnpm check && ubik release --otp 123123'",
+    "release:faster": "time sh -c 'pnpm clean && pnpm i && ubik release --otp 123123'"
+  },
+  "license": "AGPL-3.0-only"
+}

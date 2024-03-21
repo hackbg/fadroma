@@ -1,5 +1,3 @@
-!wasm/*.sha256
-!wasm/.gitkeep
 *.cjs.js
 *.d.ts
 *.dist.*
@@ -29,3 +27,10 @@ wasm/*
 yarn-error.log
 yarn.lock
 !page/*.js
+examples/wasm
+*.tsbuildinfo
+*/*.tsbuildinfo
+**/*.tsbuildinfo
+*.js.map
+*.d.ts.map
+_tmp_*

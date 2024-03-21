@@ -4,6 +4,10 @@ jobs:
   site:
     name: build website
     runs-on: ubuntu-latest
+    env:
+      CARGO_INCREMENTAL: 0
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
     steps:
 
       - name: Get the source with submodules
@@ -23,6 +27,9 @@ jobs:
           toolchain: stable
           target: wasm32-unknown-unknown
           override: true
+
+      - name: Setup Rust cache
+        uses: mozilla-actions/sccache-action@v0.0.3
 
       - name: Generate Rust reference
         uses: actions-rs/cargo@v1
@@ -55,11 +62,11 @@ jobs:
           mv docs dist/docs/ts
           #mv coverage/lcov-report dist/docs/cov/ts
           mv .docs/* dist/docs
-          cp -r assets/* dist/docs
+          cp -r assets dist/docs
           tar -cvf dist/docs/nix shell.nix
 
       - name: Publish docs
-        if: github.ref_name == 'master'
+        if: github.ref_name == 'v2'
         run: |
           pwd
           ls -al
@@ -72,12 +79,13 @@ jobs:
           mv dist/docs/* ../page
           cp .gitmodules .. || true
           git checkout gh-pages
-          git submodule deinit -f ensuite
-          git rm -rf ensuite
+          git submodule deinit -f toolbox || true
+          git rm -rf toolbox || true
           git clean -fdx
           rm -rf stable unstable js
           cp -rv ../page/* .
           #mv ../.gitmodules . || true
+          ls -alh
           git config --global user.email "hello@hack.bg"
           git config --global user.name "hack.bg"
           git add .

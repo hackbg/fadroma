@@ -2,8 +2,12 @@ name: Fadroma (TypeScript)
 on: [push]
 jobs:
   js:
-    name: pnpm ci
+    name: PNPM CI
     runs-on: ubuntu-latest
+    env:
+      CARGO_INCREMENTAL: 0
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
     steps:
       - name: Clone with submodules
         uses: actions/checkout@v4
@@ -18,11 +22,15 @@ jobs:
           check-latest: true
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
+      - name: Setup Rust cache
+        uses: mozilla-actions/sccache-action@v0.0.3
       - name: Run pnpm ci
         env:
           FORCE_COLOR: 2
         run: |
-          sudo apt install -y wabt binaryen
+          git config --global user.email "hello@fadroma.tech"
+          git config --global user.name "Hello Fadroma"
+          sudo apt install -y wabt binaryen cloc
           mkdir -p wasm
           rustup default 1.69
           rustup target add wasm32-unknown-unknown --toolchain 1.69

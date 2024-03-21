@@ -2,19 +2,32 @@ name: Fadroma (Rust)
 on: [push]
 jobs:
   rs-publish:
-    name: cargo publish --dry-run
+    name: Cargo Check
     runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 2
+      CARGO_INCREMENTAL: 0
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
     steps:
       - name: Get the source, no submodules
         uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
           profile:   minimal
           toolchain: stable
           target:    wasm32-unknown-unknown
           override:  true
-      - name: Try building for WASM
-        run: cargo build --all-features --target wasm32-unknown-unknown
+      - name: Setup Rust cache
+        uses: mozilla-actions/sccache-action@v0.0.3
+      - name: Build Fadroma
+        run: |
+          cargo check --all-features
+      - name: Build Fadroma Ensemble
+        run: |
+          cd ensemble && cargo check --all-features
+
   #rs-coverage:
     #name: cargo tarpaulin
     #runs-on: ubuntu-latest

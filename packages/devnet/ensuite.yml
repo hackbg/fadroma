@@ -1,0 +1,7 @@
+coverage:
+  exclude:
+    - "*.test.*"
+    - "*.dist.*"
+    - coverage
+    - devnet.cli.cjs
+    - devnet.init.mjs

@@ -1,0 +1,29 @@
+{
+  "files": [
+    "scrt.ts",
+    "scrt-base.ts",
+    "scrt-connection.ts",
+    "scrt-identity.ts",
+    "scrt-faucets.ts",
+    "scrt-mocknet.ts",
+    "snip-20.ts",
+    "snip-21.ts",
+    "snip-22.ts",
+    "snip-23.ts",
+    "snip-24.ts",
+    "snip-25.ts",
+    "snip-721.ts",
+    "snip-722.ts"
+  ],
+  "include": [],
+  "exclude": [ ".ubik", "*.dist.*", "node_modules", "secretjs-esm" ],
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node10",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "noEmitOnError": true,
+    "skipLibCheck": true
+  }
+}

@@ -1,24 +1,37 @@
 coverage:
   exclude:
-    - "**/*.dist.*"
-    - "*.dist.*"
+    - "**/*/coverage/**/*"
     - "*/coverage/**/*"
-    - "build.impl.mjs"
     - "coverage/**/*"
-    - "connect/scrt/secretjs-esm"
-    - "connect/cw/cosmjs-esm"
-    - "devnets/devnet.init.mjs"
-    - "devnets/devnet.server.mjs"
+
+    - "**/*.dist.*"
+    - "*/*.dist.*"
+    - "*.dist.*"
+
+    - "*/*.test.*"
+    - "*.test.*"
+
+    - "*/*.cli.cjs"
+    - "*.cli.cjs"
+
     - "dist/**/*"
-    - "ensuite/**/*"
+
+    - "docs"
+    - "*/docs"
+
     - "examples/**/*"
     - "fadroma.browser.ts"
     - "fadroma.cli.cjs"
     - "fixtures/**/*"
-    - "schema"
-    - "shim/**/*"
-    - "spec/**/*"
+    - "toolbox/**/*"
     - "typedoc-theme.tsx"
+
+    - "packages/agent/test.ts"
+    - "packages/cosmjs-esm"
+    - "packages/secretjs-esm"
+    - "packages/devnet/devnet.init.mjs"
+    - "packages/schema"
+    - "packages/shim/**/*"
 
 header:
   title: Fadroma
@@ -65,58 +78,20 @@ sidebar:
       text: Supporting new chains
 
 routes:
-  - path: /index.html
-    page: index.pug
-    name: Fadroma
-  - path: /guide.html
-    page: GUIDE.ts.md
-    name: Getting started
-  - path: /dsl.html
-    page: proc/fadroma-dsl/README.md
-    name: Macro DSL
-  - path: /agent.html
-    page: spec/Agent.spec.ts.md
-    name: Agent
-  - path: /build.html
-    page: spec/Build.spec.ts.md
-    name: Building
-  - path: /connect.html
-    page: spec/Connect.spec.ts.md
-    name: Connecting
-  - path: /deploy.html
-    page: spec/Deploy.spec.ts.md
-    name: Deploying
-  - path: /devnet.html
-    page: spec/Devnet.spec.ts.md
-    name: Devnet
-  - path: /mocknet.html
-    page: spec/Mocknet.spec.ts.md
-    name: Mocknet
-  - path: /project.html
-    page: spec/Project.spec.ts.md
-    name: Project
-  - path: /scrt.html
-    page: spec/Scrt.spec.ts.md
-    name: Secret Network
-  - path: /snip20.html
-    page: spec/Snip20.spec.ts.md
-    name: SNIP-20 support
-  - path: /upload.html
-    page: spec/Upload.spec.ts.md
-    name: Uploading
-  - path: /factory.html
-    page: spec/Factory.spec.ts.md
-    name: Factory Pattern
-  - path: /impl.html
-    page: spec/Implementing.spec.ts.md
-    name: Implementing support for new chains
-  - path: /schema.html
-    page: schema/schema.pug
-    name: CosmWasm Schema Tool
+  - { path: /index.html,   page: index.pug,                  name: Fadroma }
+  - { path: /guide.html,   page: GUIDE.ts.md,                name: Getting started }
+  - { path: /dsl.html,     page: proc/fadroma-dsl/README.md, name: Macro DSL }
+  - { path: /agent.html,   page: agent/README.md,            name: Agent }
+  - { path: /build.html,   page: compile/README.md,          name: Building }
+  - { path: /devnet.html,  page: devnet/README.md,           name: Devnet }
+  - { path: /project.html, page: create/README.md,           name: Project }
+  - { path: /scrt.html,    page: scrt/README.md,             name: Secret Network }
+  - { path: /cw.html,      page: cw/README.md,               name: CosmWasm }
+  - { path: /schema.html,  page: schema/schema.pug,          name: CosmWasm Schema Tool }
 
 styles:
   - assets/fonts.css
-  - ensuite/node_modules/highlight.js/styles/school-book.css
+  - toolbox/ensuite/node_modules/highlight.js/styles/school-book.css
   - assets/style.css
 
 icons: # Icons as inline svg paths, see https://icomoon.io/#docs/inline-svg
@@ -164,8 +139,9 @@ features:
     info: |
       [**Fadroma**](https://fadroma.tech/) is a framework for building
       **decentralized applications** with Rust and TypeScript.
-      Fadroma makes it easy to write [CosmWasm](https://cosmwasm.com/)
-      smart contracts and integrate them into your Web app.
+      From a single token to a hundred-contract DEX and beyond, Fadroma
+      makes it easy to write [CosmWasm](https://cosmwasm.com/)
+      smart contracts, deploy them, and integrate them into your Web app.
     invert: true
     big: left
     links:
@@ -427,8 +403,8 @@ features:
       - icon: todo
         text: "WIP: Podman support"
       - icon: typescript
-        text: "Powered by @hackbg/dock"
-        href: https://www.npmjs.com/package/@hackbg/dock
+        text: "Powered by @fadroma/oci"
+        href: https://www.npmjs.com/package/@fadroma/oci
         bold: true
 
   - name: Scripting

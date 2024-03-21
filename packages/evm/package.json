@@ -1,0 +1,8 @@
+{
+  "name": "@fadroma/evm",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "@fadroma/agent": "workspace:*"
+  }
+}

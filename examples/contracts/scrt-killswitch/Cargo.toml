@@ -1,0 +1,13 @@
+[package]
+name = "scrt-killswitch-example"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fadroma = { path = "../..", features = ["scrt", "ensemble"] }
+counter = { package = "fadroma-example-derive-contract-interface", path = "../derive-contract-interface" }
+serde = { version = "1.0.114", default-features = false, features = ["derive"] }

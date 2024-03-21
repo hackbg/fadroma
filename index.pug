@@ -25,54 +25,57 @@ html(lang='en')
       svg(class=`icon icon-${id}`)
         use(xlink:href=`#${id}`)
 
-    header
-      
-      a.logo(href="https://github.com/hackbg/fadroma")
-        img(src='./logo.svg')
+    .content
 
-      div
-        p
-          strong Fadroma
-          |  is a
-          strong  decentralized application framework
-          |  maintained by
-          strong
-            | 
-            a(href="https://hack.bg") Hack.bg
-          |.
-        .badges.center
-          a.badge(href="https://docs.rs/fadroma")
-            img(title="View documentation for Fadroma Contracts" alt="View documentation for Fadroma Contracts" src="https://img.shields.io/crates/v/fadroma.svg?color=%2365b34c&style=for-the-badge")
-          a.badge(href="https://www.npmjs.com/package/@fadroma/agent")
-            img(src="https://img.shields.io/npm/v/@fadroma/agent?color=%2365b34c&label=%40fadroma%2Fcore&style=for-the-badge")
-          br
-          a.badge(href="https://www.npmjs.com/package/@fadroma/scrt")
-            img(src="https://img.shields.io/npm/v/@fadroma/scrt?color=%2365b34c&label=%40fadroma%2Fscrt&style=for-the-badge")
-          a.badge(href="https://github.com/hackbg/fadroma/releases.atom")
-            img(src="https://img.shields.io/badge/Releases-Feed-65b34c?logo=rss&style=for-the-badge")
+      header
+        
+        a.logo(href="https://github.com/hackbg/fadroma")
+          img(src='./assets/logo.svg')
 
-    #features
+        div
+          p
+          .badges.center
+            a.badge(href="https://github.com/hackbg/fadroma/releases.atom")
+              img(src="https://img.shields.io/badge/Releases-Feed-65b34c?logo=rss")
+            a.badge(href="https://docs.rs/fadroma")
+              img(title="View documentation for Fadroma Contracts" alt="View documentation for Fadroma Contracts" src="https://img.shields.io/crates/v/fadroma.svg?color=%2365b34c")
+            a.badge(href="https://www.npmjs.com/package/@fadroma/agent")
+              img(src="https://img.shields.io/npm/v/@fadroma/agent?color=%2365b34c&label=%40fadroma%2Fagent")
+            a.badge(href="https://www.npmjs.com/package/@fadroma/create")
+              img(src="https://img.shields.io/npm/v/@fadroma/create?color=%2365b34c&label=%40fadroma%2Fcreate")
+            a.badge(href="https://www.npmjs.com/package/@fadroma/compile")
+              img(src="https://img.shields.io/npm/v/@fadroma/compile?color=%2365b34c&label=%40fadroma%2Fcompile")
+            a.badge(href="https://www.npmjs.com/package/@fadroma/devnet")
+              img(src="https://img.shields.io/npm/v/@fadroma/devnet?color=%2365b34c&label=%40fadroma%2Fdevnet")
+            a.badge(href="https://www.npmjs.com/package/@fadroma/scrt")
+              img(src="https://img.shields.io/npm/v/@fadroma/scrt?color=%2365b34c&label=%40fadroma%2Fscrt")
+            a.badge(href="https://www.npmjs.com/package/@fadroma/cw")
+              img(src="https://img.shields.io/npm/v/@fadroma/cw?color=%2365b34c&label=%40fadroma%2Fcw")
+            a.badge(href="https://www.npmjs.com/package/@fadroma/evm")
+              img(src="https://img.shields.io/npm/v/@fadroma/evm?color=%2365b34c&label=%40fadroma%2Fevm")
 
-      .grid
-        each feature in self.features
-          .feature(style=feature.style class=[
-            feature.big    && `big-${feature.big}`,
-            feature.invert && `invert`,
-            feature.foss   && `foss`,
-          ].filter(Boolean).join(' '))
-            div
-              h2= feature.name
-              div.description!= self.markdown.render(feature.info||'')
-            .spacer
-            if feature.tags
-              each tag in feature.tags
-                .tag= tag
-            .links
-              for link in (feature.links || [])
-                a.docs(href=link.href)
-                  +icon(link.icon)
-                  if link.bold
-                    strong= link.text
-                  else
-                    = link.text
+      #features
+
+        .grid
+          each feature in self.features
+            .feature(style=feature.style class=[
+              feature.big    && `big-${feature.big}`,
+              feature.invert && `invert`,
+              feature.foss   && `foss`,
+            ].filter(Boolean).join(' '))
+              div
+                h2= feature.name
+                div.description!= self.markdown.render(feature.info||'')
+              .spacer
+              if feature.tags
+                each tag in feature.tags
+                  .tag= tag
+              .links
+                for link in (feature.links || [])
+                  a.docs(href=link.href)
+                    +icon(link.icon)
+                    if link.bold
+                      strong= link.text
+                    else
+                      = link.text
 

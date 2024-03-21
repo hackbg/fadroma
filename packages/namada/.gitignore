@@ -1,0 +1,5 @@
+!pkg
+!pkg/*.js
+!pkg/*.d.ts
+pkg/*.wasm
+target

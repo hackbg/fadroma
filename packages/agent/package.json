@@ -1,0 +1,31 @@
+{
+  "bin": { "fadroma-agent": "agent.cli.mjs" },
+  "name": "@fadroma/agent",
+  "type": "module",
+  "main": "agent.ts",
+  "browser": "agent.browser.ts",
+  "version": "2.0.0-rc.41",
+  "license": "AGPL-3.0-only",
+  "files": [ "*.ts", "!*.test.*" ],
+  "keywords": [ "cosmwasm", "scrt", "secret network", "interchain" ],
+  "description": "Isomorphic base layer for implementing dAPI clients. See @fadroma/scrt for Secret Network support.",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test":  "time ensuite agent.test.ts",
+    "cov":   "time ensuite-cov -r text -r lcov -- agent.test.ts",
+    "clean": "rm -rf .ubik *.dist.*",
+
+    "release":        "time sh -c 'pnpm clean && pnpm i && pnpm check && pnpm cov all && ubik release --otp 123123'",
+    "release:fast":   "time sh -c 'pnpm clean && pnpm i && pnpm check && ubik release --otp 123123'",
+    "release:faster": "time sh -c 'pnpm clean && pnpm i && ubik release --otp 123123 --no-git-checks'"
+  },
+  "dependencies": {
+    "@hackbg/4mat": "workspace:^",
+    "@hackbg/cmds": "workspace:*",
+    "@hackbg/dump": "workspace:^1.0.1",
+    "@hackbg/hide": "workspace:^1.0.4",
+    "@hackbg/into": "workspace:^1.0.1",
+    "@hackbg/logs": "workspace:^2.3.2",
+    "@hackbg/oops": "workspace:^1.1"
+  }
+}

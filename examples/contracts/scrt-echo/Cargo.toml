@@ -1,0 +1,12 @@
+[package]
+name = "scrt-echo"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+secret-cosmwasm-std = "1.1.11"
+serde = { version = "1.0.114", default-features = false, features = ["derive"] }

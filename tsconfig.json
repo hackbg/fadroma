@@ -1,27 +1,20 @@
 {
-  "extends": "./tsconfig.base.json",
   "exclude": [
-    "**/*.dist.*",
-    "**/*.mjs",
-    "**/*.spec.ts",
-    "**/dist/**/*",
-    "*.test.*",
-    "spec/*",
-    "agent",
-    "connect",
-    "coverage",
-    "ensuite",
-    "examples",
-    "fadroma.cli.cjs",
-    "fixtures",
-    "homepage",
-    "ops",
-    "packages/schema",
-    "platforms",
-    "shim",
-    "target",
-    "toolbox",
-    "typedoc-theme.tsx",
-    "types"
-  ]
+    ".ubik",
+    "*.dist.*",
+    "node_modules",
+    "toolbox/ganesha",
+    "packages/cosmjs-esm",
+    "packages/secretjs-esm"
+  ],
+  "compilerOptions": {
+    "target":                       "esnext",
+    "module":                       "esnext",
+    "moduleResolution":             "node",
+    "esModuleInterop":              true,
+    "allowSyntheticDefaultImports": true,
+    "noEmitOnError":                true,
+    "skipLibCheck":                 true,
+    "experimentalDecorators":       true
+  }
 }

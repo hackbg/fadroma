@@ -1,0 +1,35 @@
+{
+  "name": "@fadroma/create",
+  "version": "1.0.0-rc.6",
+  "license": "AGPL-3.0-only",
+  "main": "create.ts",
+  "type": "module",
+  "files": [
+    "!*",
+    "*.ts",
+    "!*.test.*",
+    "create.cli.cjs"
+  ],
+  "dependencies": {
+    "case": "^1.6.3",
+    "prompts": "^2.4.2",
+    "resolve.exports": "^2.0.2",
+
+    "@hackbg/file": "workspace:*",
+    "@hackbg/logs": "workspace:*",
+    "@hackbg/cmds": "workspace:*",
+
+    "@fadroma/agent": "workspace:*"
+  },
+  "scripts": {
+    "check": "time tsc --noEmit",
+    "test": "time ensuite create.test.ts",
+    "cov": "time ensuite-cov create.test.ts",
+    "clean": "rm -rf .ubik *.dist.*",
+
+    "release":        "time sh -c 'pnpm clean && pnpm i && && pnpm check && pnpm cov all && ubik release --otp 123123'",
+    "release:fast":   "time sh -c 'pnpm clean && pnpm i && pnpm check && ubik release --otp 123123'",
+    "release:faster": "time sh -c 'pnpm clean && pnpm i && ubik release --otp 123123'"
+  },
+  "license": "AGPL-3.0-only"
+}
