@@ -105,7 +105,9 @@ export class Transfer {
   }
 }
 
-export class IBC {}
+export class IBC {
+  static noun = 'IBC'
+}
 
 export class BridgePool {}
 
@@ -130,4 +132,5 @@ export default {
   'tx_update_steward_commission.wasm':   UpdateStewardCommission,
   'tx_vote_proposal.wasm':               VoteProposal,
   'tx_withdraw.wasm':                    Withdraw,
+  'tx_ibc.wasm':                         IBC,
 }
