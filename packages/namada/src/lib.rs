@@ -69,6 +69,7 @@ pub(crate) use namada::{
                 CommissionChange,
                 ConsensusKeyChange,
                 MetaDataChange,
+                Redelegation,
                 Unbond,
                 Withdraw
             },

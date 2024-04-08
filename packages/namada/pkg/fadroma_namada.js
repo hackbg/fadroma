@@ -435,6 +435,27 @@ export class Decode {
     * @param {Uint8Array} binary
     * @returns {object}
     */
+    static tx_content_bridge_pool(binary) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            const ptr0 = passArray8ToWasm0(binary, wasm.__wbindgen_malloc);
+            const len0 = WASM_VECTOR_LEN;
+            wasm.decode_tx_content_bridge_pool(retptr, ptr0, len0);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            var r2 = getInt32Memory0()[retptr / 4 + 2];
+            if (r2) {
+                throw takeObject(r1);
+            }
+            return takeObject(r0);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+    * @param {Uint8Array} binary
+    * @returns {object}
+    */
     static tx_content_change_consensus_key(binary) {
         try {
             const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
@@ -588,6 +609,27 @@ export class Decode {
             const ptr0 = passArray8ToWasm0(binary, wasm.__wbindgen_malloc);
             const len0 = WASM_VECTOR_LEN;
             wasm.decode_tx_content_reactivate_validator(retptr, ptr0, len0);
+            var r0 = getInt32Memory0()[retptr / 4 + 0];
+            var r1 = getInt32Memory0()[retptr / 4 + 1];
+            var r2 = getInt32Memory0()[retptr / 4 + 2];
+            if (r2) {
+                throw takeObject(r1);
+            }
+            return takeObject(r0);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+    * @param {Uint8Array} binary
+    * @returns {object}
+    */
+    static tx_content_redelegate(binary) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            const ptr0 = passArray8ToWasm0(binary, wasm.__wbindgen_malloc);
+            const len0 = WASM_VECTOR_LEN;
+            wasm.decode_tx_content_redelegate(retptr, ptr0, len0);
             var r0 = getInt32Memory0()[retptr / 4 + 0];
             var r1 = getInt32Memory0()[retptr / 4 + 1];
             var r2 = getInt32Memory0()[retptr / 4 + 2];

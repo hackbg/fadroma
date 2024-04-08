@@ -281,7 +281,7 @@ impl Decode {
             "tx_bond.wasm" =>
                 Self::tx_content_bond(binary),
             "tx_bridge_pool.wasm" =>
-                Ok(Object::new()),
+                Self::tx_content_bridge_pool(binary),
             "tx_change_consensus_key.wasm" =>
                 Self::tx_content_change_consensus_key(binary),
             "tx_change_validator_commission.wasm" =>
@@ -301,7 +301,7 @@ impl Decode {
             "tx_reactivate_validator.wasm" =>
                 Self::tx_content_reactivate_validator(binary),
             "tx_redelegate.wasm" =>
-                Ok(Object::new()),
+                Self::tx_content_redelegate(binary),
             "tx_resign_steward.wasm" =>
                 Self::tx_content_resign_steward(binary),
             "tx_reveal_pk.wasm" =>
@@ -379,6 +379,18 @@ impl Decode {
             ("source".into(),
                 inner.source.map(|a|a.encode()).into()) //        pub source: Option<Address>,*/
         ])
+    }
+
+    #[wasm_bindgen]
+    pub fn tx_content_bridge_pool (binary: &[u8]) -> Result<Object, Error> {
+        // TODO
+        Ok(Object::new())
+        //let inner = BridgePool::try_from_slice(&binary[..])
+            //.map_err(|e|Error::new(&format!("{e}")))?;
+        //Ok(to_object! {
+            //"tx_hash" = inner.tx_hash,
+            //"status"  = inner.status,
+        //})
     }
 
     #[wasm_bindgen]
@@ -496,6 +508,18 @@ impl Decode {
             .map_err(|e|Error::new(&format!("{e}")))?;
         Ok(to_object! {
             "address" = address,
+        })
+    }
+
+    #[wasm_bindgen]
+    pub fn tx_content_redelegate (binary: &[u8]) -> Result<Object, Error> {
+        let inner = Redelegation::try_from_slice(&binary[..])
+            .map_err(|e|Error::new(&format!("{e}")))?;
+        Ok(to_object! {
+            "srcValidator"  = inner.src_validator,
+            "destValidator" = inner.dest_validator,
+            "owner"         = inner.owner,
+            "amount"        = inner.amount,
         })
     }
 

@@ -88,6 +88,11 @@ export class Decode {
 * @param {Uint8Array} binary
 * @returns {object}
 */
+  static tx_content_bridge_pool(binary: Uint8Array): object;
+/**
+* @param {Uint8Array} binary
+* @returns {object}
+*/
   static tx_content_change_consensus_key(binary: Uint8Array): object;
 /**
 * @param {Uint8Array} binary
@@ -124,6 +129,11 @@ export class Decode {
 * @returns {object}
 */
   static tx_content_reactivate_validator(binary: Uint8Array): object;
+/**
+* @param {Uint8Array} binary
+* @returns {object}
+*/
+  static tx_content_redelegate(binary: Uint8Array): object;
 /**
 * @param {Uint8Array} binary
 * @returns {object}
@@ -192,6 +202,7 @@ export interface InitOutput {
   readonly decode_tx: (a: number, b: number) => void;
   readonly decode_tx_content_become_validator: (a: number, b: number, c: number) => void;
   readonly decode_tx_content_bond: (a: number, b: number, c: number) => void;
+  readonly decode_tx_content_bridge_pool: (a: number, b: number, c: number) => void;
   readonly decode_tx_content_change_consensus_key: (a: number, b: number, c: number) => void;
   readonly decode_tx_content_change_validator_commission: (a: number, b: number, c: number) => void;
   readonly decode_tx_content_change_validator_metadata: (a: number, b: number, c: number) => void;
@@ -200,6 +211,7 @@ export interface InitOutput {
   readonly decode_tx_content_init_account: (a: number, b: number, c: number) => void;
   readonly decode_tx_content_init_proposal: (a: number, b: number, c: number) => void;
   readonly decode_tx_content_reactivate_validator: (a: number, b: number, c: number) => void;
+  readonly decode_tx_content_redelegate: (a: number, b: number, c: number) => void;
   readonly decode_tx_content_reveal_pk: (a: number, b: number, c: number) => void;
   readonly decode_tx_content_transfer: (a: number, b: number, c: number) => void;
   readonly decode_tx_content_update_account: (a: number, b: number, c: number) => void;
