@@ -42,7 +42,7 @@ export const testnet = (options: Partial<NamadaConnection> = {}): NamadaConnecti
 }
 
 /** Namada CLI commands. */
-class NamadaCLI extends CLI {
+export default class NamadaCLI extends CLI {
 
   constructor (...args: ConstructorParameters<typeof CLI>) {
     super(...args)
