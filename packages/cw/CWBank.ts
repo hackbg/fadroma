@@ -1,8 +1,8 @@
 import { optionallyParallel } from '@hackbg/fadroma'
 import type { CosmWasmClient, SigningCosmWasmClient } from '@hackbg/cosmjs-esm'
 import type { Address, Token, Chain, Connection, SigningConnection } from '@hackbg/fadroma'
-import type { CWChain, CWConnection } from './cw-connection'
-import type { CWAgent, CWSigningConnection } from './cw-identity'
+import type { CWChain, CWConnection } from './CWConnection'
+import type { CWAgent, CWSigningConnection } from './CWIdentity'
 
 export async function fetchBalance (chain: CWConnection, {
   parallel = false,

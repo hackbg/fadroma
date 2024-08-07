@@ -20,26 +20,25 @@ export * as CosmJS from '@hackbg/cosmjs-esm'
 export {
   CWError            as Error,
   CWConsole          as Console
-} from './cw-base'
+} from './CWBase'
 export {
   CWChain            as Chain,
   CWConnection       as Connection,
-} from './cw-connection'
+} from './CWConnection'
 export {
   CWBlock       as Block,
   CWTransaction as Transaction,
   CWBatch       as Batch,
-} from './cw-tx'
+} from './CWTX'
 export {
   CWIdentity         as Identity,
   CWSignerIdentity   as SignerIdentity,
   CWMnemonicIdentity as MnemonicIdentity,
   encodeSecp256k1Signature
-} from './cw-identity'
-export * from './cw-chains'
-export * as Staking from './cw-staking'
-
-import { CWChain } from './cw-connection'
+} from './CWIdentity'
+export * from './CWChains'
+export * as Staking from './CWStaking'
+import { CWChain } from './CWConnection'
 
 export function connect (...args: Parameters<typeof CWChain.connect>) {
   return CWChain.connect(...args)

@@ -1,11 +1,11 @@
 import { bold, assign, Chain, Connection } from '@hackbg/fadroma'
 import type { Address, Message, CodeId, CodeHash, Token, ChainId } from '@hackbg/fadroma'
-import { CWAgent, CWSigningConnection, CWIdentity, CWMnemonicIdentity, CWSignerIdentity } from './cw-identity'
-import { CWConsole as Console, CWError as Error } from './cw-base'
-import { CWBlock, CWBatch } from './cw-tx'
-import * as CWBank    from './cw-bank'
-import * as CWCompute from './cw-compute'
-import * as CWStaking from './cw-staking'
+import { CWAgent, CWSigningConnection, CWIdentity, CWMnemonicIdentity, CWSignerIdentity } from './CWIdentity'
+import { CWConsole as Console, CWError as Error } from './CWBase'
+import { CWBlock, CWBatch } from './CWTX'
+import * as CWBank    from './CWBank'
+import * as CWCompute from './CWCompute'
+import * as CWStaking from './CWStaking'
 import { Amino, Proto, CosmWasmClient, SigningCosmWasmClient } from '@hackbg/cosmjs-esm'
 import type { Block } from '@hackbg/cosmjs-esm'
 
@@ -208,13 +208,13 @@ export class CWConnection extends Connection {
     return await CWCompute.query(this, ...args) as T
   }
 
-  fetchValidatorsImpl ({ details = false }: {
-    details?: boolean
+  fetchValidatorsImpl ({ fetchDetails = false }: {
+    fetchDetails?: boolean
   } = {}) {
-    return this.tendermintClient.then(()=>CWStaking.getValidators(this, { details }))
+    return this.tendermintClient.then(()=>CWStaking.fetchValidatorList(this, { fetchDetails }))
   }
 
-  fetchValidatorInfoImpl (address: Address): Promise<unknown> {
+  fetchValidatorInfoImpl (address: Address): Promise<CWStaking.Validator> {
     return Promise.all([
       this.queryClient,
       this.tendermintClient

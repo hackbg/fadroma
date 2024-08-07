@@ -1,9 +1,9 @@
 {
   "files": [
-    "cw.ts",
-    "cw-base.ts",
-    "cw-identity.ts",
-    "cw-connection.ts",
+    "CW.ts",
+    "CWBase.ts",
+    "CWIdentity.ts",
+    "CWConnection.ts",
     "okp4/okp4.ts",
     "okp4/okp4-cognitarium.ts",
     "okp4/okp4-law-stone.ts",

@@ -1,7 +1,6 @@
-import { CLI } from '../cw-base'
-import { CWError as Error } from '../cw-base'
-import { CWChain, CWConnection } from '../cw-connection'
-import { CWMnemonicIdentity } from '../cw-identity'
+import { CLI, CWError as Error } from '../CWBase'
+import { CWChain, CWConnection } from '../CWConnection'
+import { CWMnemonicIdentity } from '../CWIdentity'
 
 import { Objectarium, objectariumCodeIds } from './okp4-objectarium'
 import { Cognitarium, cognitariumCodeIds } from './okp4-cognitarium'

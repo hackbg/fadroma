@@ -4,7 +4,9 @@
 import { Error } from '@hackbg/oops'
 import { Console, Logged, bold, colors } from '@hackbg/logs'
 
-class FadromaError extends Error {}
+class FadromaError extends Error {
+  static Unimplemented = () => new this('not implemented!')
+}
 
 export { FadromaError as Error }
 
@@ -13,6 +15,7 @@ export * from '@hackbg/into'
 export * from '@hackbg/hide'
 export * from '@hackbg/4mat'
 export * from '@hackbg/dump'
+export { default as CLI } from '@hackbg/cmds'
 
 export async function timed <T> (
   fn: ()=>Promise<T>, cb: (ctx: { elapsed: string, result: T })=>unknown

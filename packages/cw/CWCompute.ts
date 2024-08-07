@@ -2,8 +2,8 @@ import type { CosmWasmClient, SigningCosmWasmClient } from '@hackbg/cosmjs-esm'
 import { Connection, SigningConnection, Agent, UploadedCode, Contract } from '@hackbg/fadroma'
 import type { Address, CodeId, Message, Token } from '@hackbg/fadroma'
 import { Amino } from '@hackbg/cosmjs-esm'
-import type { CWChain, CWConnection } from './cw-connection'
-import type { CWAgent, CWSigningConnection } from './cw-identity'
+import type { CWChain, CWConnection } from './CWConnection'
+import type { CWAgent, CWSigningConnection } from './CWIdentity'
 
 export async function fetchCodeInfo (
   chain: CWConnection, args: Parameters<Connection["fetchCodeInfoImpl"]>[0]

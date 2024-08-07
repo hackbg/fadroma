@@ -1,32 +1,22 @@
 {
-  "name": "@fadroma/cw",
+  "name": "@fadroma/tendermint",
   "type": "module",
-  "main": "cw.ts",
-  "files": [
-    "*.ts",
-    "archway/*.ts",
-    "axelar/*.ts",
-    "injective/*.ts",
-    "namada/*.ts",
-    "okp4/*.ts",
-    "osmosis/*.ts"
-  ],
-  "version": "1.0.0-rc.57",
+  "main": "TM.ts",
+  "files": [ "*.ts" ],
+  "version": "0.1.0",
   "license": "AGPL-3.0-only",
   "keywords": [
-    "cosmwasm", "interchain", "cosmos", "cosmjs", "stargate", "tendermint",
-    "archway", "axelar", "injective", "namada", "okp4", "osmosis"
+    "tendermint", "cosmwasm", "interchain", "cosmos", "cosmjs", "stargate"
   ],
-  "description": "CosmJS Stargate integration for Fadroma.",
+  "description": "Tendermint integration for Fadroma using CosmJS Stargate.",
   "dependencies": {
-    "@hackbg/cosmjs-esm": "workspace:*",
-    "@hackbg/cmds":       "workspace:*"
+    "@hackbg/cosmjs-esm": "workspace:*"
   },
   "peerDependencies": {
-    "@hackbg/fadroma":     "workspace:*"
+    "@hackbg/fadroma": "workspace:*"
   },
   "devDependencies": {
-    "@hackbg/fadroma":     "workspace:*"
+    "@hackbg/fadroma": "workspace:*"
   },
   "scripts": {
     "check":  "time tsc --noEmit",

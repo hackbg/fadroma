@@ -16,53 +16,12 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-export { Chain, Connection, Block, Transaction } from './src/Chain'
-export { Identity, Agent, SigningConnection, Batch } from './src/Agent'
-export { Backend } from './src/Backend'
-
 export { Proposal, Vote } from './src/dlt/Governance'
 export { Validator } from './src/dlt/Staking'
 export * as Token from './src/dlt/Token'
-
 export { SourceCode, RustSourceCode } from './src/compute/Source'
 export { Compiler, CompiledCode } from './src/compute/Compile'
 export { UploadedCode, UploadStore } from './src/compute/Upload'
 export { Contract } from './src/compute/Contract'
-
 export * from './src/Util'
-
-/** An address on a chain. */
-export type Address = string
-
-/** A chain's unique ID. */
-export type ChainId = string
-
-/** A 128-bit integer. */
-export type Uint128 = string
-
-/** A 256-bit integer. */
-export type Uint256 = string
-
-/** A 128-bit decimal fraction. */
-export type Decimal128 = string
-
-/** A 256-bit decimal fraction. */
-export type Decimal256 = string
-
-/** A transaction message that can be sent to a contract. */
-export type Message = string|Record<string, unknown>
-
-/** A transaction hash, uniquely identifying an executed transaction on a chain. */
-export type TxHash = string
-
-/** A code ID, identifying uploaded code on a chain. */
-export type CodeId = string
-
-/** The hash of a contract's code. */
-export type CodeHash = string
-
-/** The name of a deployment unit. Used to generate contract label. */
-export type Name = string
-
-/** A contract's full unique on-chain label. */
-export type Label = string
+export * from './src/API'

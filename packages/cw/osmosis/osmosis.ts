@@ -1,6 +1,6 @@
-import { CLI } from '../cw-base'
-import { CWConnection } from '../cw-connection'
-import { CWMnemonicIdentity } from '../cw-identity'
+import { CLI } from '../CWBase'
+import { CWConnection } from '../CWConnection'
+import { CWMnemonicIdentity } from '../CWIdentity'
 
 class OsmosisCLI extends CLI {}
 

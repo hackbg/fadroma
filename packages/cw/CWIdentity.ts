@@ -20,11 +20,11 @@ import {
   Batch
 } from '@hackbg/fadroma'
 import type { Address } from '@hackbg/fadroma'
-import { CWError as Error } from './cw-base'
-import { CWBatch } from './cw-tx'
-import * as CWBank    from './cw-bank'
-import * as CWCompute from './cw-compute'
-import * as CWStaking from './cw-staking'
+import { CWError as Error } from './CWBase'
+import { CWBatch } from './CWTX'
+import * as CWBank    from './CWBank'
+import * as CWCompute from './CWCompute'
+import * as CWStaking from './CWStaking'
 
 export class CWAgent extends Agent {
   constructor (properties: ConstructorParameters<typeof Agent>[0] & {

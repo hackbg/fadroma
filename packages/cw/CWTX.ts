@@ -1,9 +1,9 @@
 import { Block, Batch } from '@hackbg/fadroma'
-import { CWError as Error } from './cw-base'
+import { CWError as Error } from './CWBase'
 import { Chain } from '@hackbg/fadroma'
 import { Transaction } from '@hackbg/fadroma'
-import type { CWChain, CWConnection } from './cw-connection'
-import type { CWAgent } from './cw-identity'
+import type { CWChain, CWConnection } from './CWConnection'
+import type { CWAgent } from './CWIdentity'
 
 type CWBlockParameters =
   ConstructorParameters<typeof Block>[0] & Partial<Pick<CWBlock, 'rawTransactions'>>
