@@ -222,6 +222,8 @@ importers:
 
   features/schema: {}
 
+  features/shim: {}
+
   fixtures:
     dependencies:
       '@fadroma/deploy':
@@ -307,8 +309,6 @@ importers:
       '@hackbg/secretjs-esm':
         specifier: workspace:*
         version: link:../../vendored/secretjs-esm
-
-  platforms/shim: {}
 
   platforms/stub:
     devDependencies:

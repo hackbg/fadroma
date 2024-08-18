@@ -1,4 +1,5 @@
-import type { Chain } from '../API'
+import type { Chain, Address } from '../API'
+import { bold, timed } from '../Util'
 
 export async function fetchContractInfo (
   chain: Chain, ...args: Parameters<Chain["fetchContractInfo"]>

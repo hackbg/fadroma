@@ -7,12 +7,9 @@ export async function upload (agent: Agent, ...args: Parameters<Agent["upload"]>
   if (code instanceof Uint8Array) {
     template = code
   } else {
-    const { CompiledCode } = _$_HACK_$_
     if (typeof code === 'string' || code instanceof URL) {
-      code = new CompiledCode({ codePath: code })
-    } else {
-      code = new CompiledCode(code)
-    }
+      code = { codePath: code }
+    } 
     const t0 = performance.now()
     code = code as CompiledCode
     template = await (code as any).fetch()

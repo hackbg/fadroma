@@ -1,4 +1,5 @@
 import type { Agent } from '../API'
+import { bold, timed } from '../Util'
 
 export async function send (agent: Agent, ...args: Parameters<Agent["send"]>) {
 

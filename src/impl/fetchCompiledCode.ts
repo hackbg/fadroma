@@ -1,5 +1,5 @@
 import type { CompiledCode } from '../API'
-import { Console } from '../util'
+import { Console, bold } from '../Util'
 
 export async function fetchCompiledCode (code: CompiledCode) {
 

@@ -1,4 +1,5 @@
 import type { Chain } from '../API'
+import { bold } from '../Util'
 
 /** Implementation of Chain#fetchNextBlock -> Connection#fetchNextBlockImpl */
 export async function fetchNextBlock (chain: Chain): Promise<bigint> {
@@ -32,4 +33,3 @@ export async function fetchNextBlock (chain: Chain): Promise<bigint> {
   })
 
 }
-

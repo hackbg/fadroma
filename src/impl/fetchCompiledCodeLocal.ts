@@ -13,7 +13,7 @@ export async function fetchCompiledCodeLocal (code: CompiledCode) {
     if (code.codePath.protocol === 'file:') {
       return await readFile(fileURLToPath(code.codePath))
     } else {
-      return super.fetchImpl()
+      return fetchCompiledCode(code)
     }
   }
 

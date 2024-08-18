@@ -1,11 +1,12 @@
-import type { Agent } from '../API'
+import type { Agent, Address, Contract } from '../API'
+import { bold, timed, into } from '../Util'
 
 export async function instantiate (agent: Agent, ...args: Parameters<Agent["instantiate"]>) {
 
   let [contract, options] = args
 
   if (typeof contract === 'string') {
-    contract = new UploadedCode({ codeId: contract })
+    contract = { codeId: contract }
   }
 
   if (isNaN(Number(contract.codeId))) {
@@ -41,9 +42,10 @@ export async function instantiate (agent: Agent, ...args: Parameters<Agent["inst
     )
   })
 
-  return new Contract({
-    ...options, ...result
-  }) as Contract & {
+  return {
+    ...options,
+    ...result,
+  } as Contract & {
     address: Address
   }
 

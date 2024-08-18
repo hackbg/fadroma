@@ -1,4 +1,5 @@
-import type { Chain } from '../API'
+import type { Chain, CodeId, Address, Contract } from '../API'
+import { timed } from '../Util'
 
 export async function fetchCodeInstances (
   chain: Chain, ...args: Parameters<Chain["fetchCodeInstances"]>
