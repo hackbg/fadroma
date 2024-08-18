@@ -6,6 +6,7 @@ packages:
   - '!toolbox/ganesha/rollup'
   - '!toolbox/ganesha/test'
   - 'fixtures'
-  - 'packages/*'
+  - 'features/*'
+  - 'platforms/*'
   - 'vendored/*'
   - 'vendored/cosmjs-esm/protobuf.js'

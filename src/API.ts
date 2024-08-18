@@ -232,34 +232,34 @@ export interface Batch extends Logged {
 }
 
 interface SendOptions {
-  outputs: Record<Address, Record<string, Uint128>>,
-  sendFee?: Fee,
-  sendMemo?: string,
-  parallel?: boolean
+  readonly outputs: Record<Address, Record<string, Uint128>>,
+  readonly sendFee?: Fee,
+  readonly sendMemo?: string,
+  readonly parallel?: boolean
 }
 
 interface UploadOptions {
-  binary: Uint8Array,
-  reupload?: boolean,
-  uploadStore?: UploadStore,
-  uploadFee?: Fee
-  uploadMemo?: string
+  readonly binary: Uint8Array,
+  readonly reupload?: boolean,
+  readonly uploadStore?: UploadStore,
+  readonly uploadFee?: Fee
+  readonly uploadMemo?: string
 }
 
 interface InstantiateOptions extends Partial<Contract> {
-  initMsg: Into<Message>
-  initFee?: Fee
-  initSend?: Coin[]
-  initMemo?: string
+  readonly initMsg: Into<Message>
+  readonly initFee?: Fee
+  readonly initSend?: Coin[]
+  readonly initMemo?: string
 }
 
 interface ExecuteOptions {
-  address: Address
-  codeHash?: string
-  message: Message
-  execFee?: Fee
-  execSend?: Coin[]
-  execMemo?: string
+  readonly address: Address
+  readonly codeHash?: string
+  readonly message: Message
+  readonly execFee?: Fee
+  readonly execSend?: Coin[]
+  readonly execMemo?: string
 }
 
 export interface Block {

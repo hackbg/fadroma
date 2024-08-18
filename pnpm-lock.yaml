@@ -53,34 +53,34 @@ importers:
     devDependencies:
       '@fadroma/compile':
         specifier: workspace:^
-        version: link:packages/compile
+        version: link:features/compile
       '@fadroma/create':
         specifier: workspace:*
-        version: link:packages/create
+        version: link:features/create
       '@fadroma/cw':
         specifier: workspace:*
-        version: link:packages/cw
+        version: link:platforms/cw
       '@fadroma/deploy':
         specifier: workspace:*
-        version: link:packages/deploy
+        version: link:features/deploy
       '@fadroma/devnet':
         specifier: workspace:^
-        version: link:packages/devnet
+        version: link:features/devnet
       '@fadroma/fixtures':
         specifier: link:fixtures
         version: link:fixtures
       '@fadroma/namada':
         specifier: workspace:*
-        version: link:packages/namada
+        version: link:platforms/namada
       '@fadroma/oci':
         specifier: workspace:^
-        version: link:packages/oci
+        version: link:platforms/oci
       '@fadroma/scrt':
         specifier: workspace:*
-        version: link:packages/scrt
+        version: link:platforms/scrt
       '@fadroma/stub':
         specifier: workspace:*
-        version: link:packages/stub
+        version: link:platforms/stub
       '@ganesha/esbuild':
         specifier: workspace:^
         version: link:toolbox/ganesha/esbuild
@@ -133,29 +133,17 @@ importers:
         specifier: ^5.3.3
         version: 5.3.3
 
-  fixtures:
-    dependencies:
-      '@fadroma/deploy':
-        specifier: workspace:*
-        version: link:../packages/deploy
-      '@hackbg/fadroma':
-        specifier: workspace:*
-        version: link:..
-      '@hackbg/file':
-        specifier: workspace:*
-        version: link:../toolbox/file
-
-  packages/cli:
+  features/cli:
     dependencies:
       '@hackbg/cmds':
         specifier: workspace:*
         version: link:../../toolbox/cmds
 
-  packages/compile:
+  features/compile:
     dependencies:
       '@fadroma/oci':
         specifier: workspace:*
-        version: link:../oci
+        version: link:../../platforms/oci
       '@hackbg/cmds':
         specifier: workspace:*
         version: link:../../toolbox/cmds
@@ -169,7 +157,7 @@ importers:
         specifier: workspace:*
         version: link:../../toolbox/logs
 
-  packages/create:
+  features/create:
     dependencies:
       '@hackbg/cmds':
         specifier: workspace:*
@@ -193,32 +181,19 @@ importers:
         specifier: ^2.0.2
         version: 2.0.2
 
-  packages/cw:
-    dependencies:
-      '@hackbg/cmds':
-        specifier: workspace:*
-        version: link:../../toolbox/cmds
-      '@hackbg/cosmjs-esm':
-        specifier: workspace:*
-        version: link:../../vendored/cosmjs-esm
-    devDependencies:
-      '@hackbg/fadroma':
-        specifier: workspace:*
-        version: link:../..
+  features/deploy: {}
 
-  packages/deploy: {}
-
-  packages/devnet:
+  features/devnet:
     dependencies:
       '@fadroma/cw':
         specifier: workspace:*
-        version: link:../cw
+        version: link:../../platforms/cw
       '@fadroma/oci':
         specifier: workspace:*
-        version: link:../oci
+        version: link:../../platforms/oci
       '@fadroma/scrt':
         specifier: workspace:*
-        version: link:../scrt
+        version: link:../../platforms/scrt
       '@hackbg/cmds':
         specifier: workspace:^
         version: link:../../toolbox/cmds
@@ -245,13 +220,40 @@ importers:
         specifier: workspace:^
         version: link:../../toolbox/ganesha/oxc
 
-  packages/evm:
+  features/schema: {}
+
+  fixtures:
+    dependencies:
+      '@fadroma/deploy':
+        specifier: workspace:*
+        version: link:../features/deploy
+      '@hackbg/fadroma':
+        specifier: workspace:*
+        version: link:..
+      '@hackbg/file':
+        specifier: workspace:*
+        version: link:../toolbox/file
+
+  platforms/cw:
+    dependencies:
+      '@hackbg/cmds':
+        specifier: workspace:*
+        version: link:../../toolbox/cmds
+      '@hackbg/cosmjs-esm':
+        specifier: workspace:*
+        version: link:../../vendored/cosmjs-esm
+    devDependencies:
+      '@hackbg/fadroma':
+        specifier: workspace:*
+        version: link:../..
+
+  platforms/evm:
     dependencies:
       '@hackbg/fadroma':
         specifier: workspace:*
         version: link:../..
 
-  packages/namada:
+  platforms/namada:
     dependencies:
       '@fadroma/cw':
         specifier: workspace:*
@@ -266,7 +268,7 @@ importers:
         specifier: workspace:*
         version: link:../..
 
-  packages/oci:
+  platforms/oci:
     dependencies:
       '@hackbg/fadroma':
         specifier: workspace:*
@@ -297,9 +299,7 @@ importers:
         specifier: ^3.3.23
         version: 3.3.23
 
-  packages/schema: {}
-
-  packages/scrt:
+  platforms/scrt:
     dependencies:
       '@hackbg/fadroma':
         specifier: workspace:*
@@ -308,15 +308,15 @@ importers:
         specifier: workspace:*
         version: link:../../vendored/secretjs-esm
 
-  packages/shim: {}
+  platforms/shim: {}
 
-  packages/stub:
+  platforms/stub:
     devDependencies:
       '@hackbg/fadroma':
         specifier: workspace:*
         version: link:../..
 
-  packages/tendermint:
+  platforms/tendermint:
     dependencies:
       '@hackbg/cosmjs-esm':
         specifier: workspace:*
@@ -985,6 +985,9 @@ importers:
       gulp-uglify:
         specifier: ^3.0.2
         version: 3.0.2
+      jaguarjs-jsdoc:
+        specifier: github:dcodeIO/jaguarjs-jsdoc
+        version: https://codeload.github.com/dcodeIO/jaguarjs-jsdoc/tar.gz/ade85ac841f5ca8be40c60d506102039a036a8fa
       jsdoc:
         specifier: ^3.6.3
         version: 3.6.11
@@ -4637,6 +4640,10 @@ packages:
   jackspeak@2.3.6:
     resolution: {integrity: sha512-N3yCS/NegsOBokc8GAdM8UcmfsKiSS8cipheD/nivzr700H+nsMOxJjQnvwOcRYVuFkdH0wGUvW2WbXGmrZGbQ==}
     engines: {node: '>=14'}
+
+  jaguarjs-jsdoc@https://codeload.github.com/dcodeIO/jaguarjs-jsdoc/tar.gz/ade85ac841f5ca8be40c60d506102039a036a8fa:
+    resolution: {tarball: https://codeload.github.com/dcodeIO/jaguarjs-jsdoc/tar.gz/ade85ac841f5ca8be40c60d506102039a036a8fa}
+    version: 0.0.1
 
   jasmine-core@4.6.0:
     resolution: {integrity: sha512-O236+gd0ZXS8YAjFx8xKaJ94/erqUliEkJTDedyE7iHvv4ZVqi+q+8acJxu05/WJDKm512EUNn809In37nWlAQ==}
@@ -11786,6 +11793,8 @@ snapshots:
       '@isaacs/cliui': 8.0.2
     optionalDependencies:
       '@pkgjs/parseargs': 0.11.0
+
+  jaguarjs-jsdoc@https://codeload.github.com/dcodeIO/jaguarjs-jsdoc/tar.gz/ade85ac841f5ca8be40c60d506102039a036a8fa: {}
 
   jasmine-core@4.6.0: {}
 
