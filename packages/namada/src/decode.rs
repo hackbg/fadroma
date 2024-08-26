@@ -75,10 +75,8 @@ impl Decode {
         let data = EpochDuration::try_from_slice(&to_bytes(&source))
             .map_err(|e|Error::new(&format!("{e}")))?;
         Ok(to_object! {
-            "minNumOfBlocks" =
-                data.min_num_of_blocks,
-            "minDuration" =
-                data.min_duration.0,
+            "minNumOfBlocks" = data.min_num_of_blocks,
+            "minDuration"    = data.min_duration.0,
         })
     }
 
@@ -224,16 +222,7 @@ impl Decode {
 
     #[wasm_bindgen]
     pub fn pos_validator_metadata (source: Uint8Array) -> Result<Object, Error> {
-        let meta = ValidatorMetaData::try_from_slice(&to_bytes(&source))
-            .map_err(|e|Error::new(&format!("{e}")))?;
-        Ok(to_object! {
-            "name"          = meta.name,
-            "email"         = meta.email,
-            "description"   = meta.description,
-            "website"       = meta.website,
-            "discordHandle" = meta.discord_handle,
-            "avatar"        = meta.avatar,
-        })
+        auto_decode!(to_bytes(&source) => ValidatorMetaData)
     }
 
     #[wasm_bindgen]
@@ -279,14 +268,8 @@ impl Decode {
     }
 
     #[wasm_bindgen]
-    pub fn pgf_parameters (source: Uint8Array) -> Result<Object, Error> {
-        let params = PgfParameters::try_from_slice(&to_bytes(&source))
-            .map_err(|e|Error::new(&format!("{e}")))?;
-        Ok(to_object! {
-            "stewards"              = params.stewards,
-            "pgfInflationRate"      = params.pgf_inflation_rate,
-            "stewardsInflationRate" = params.stewards_inflation_rate,
-        })
+    pub fn pgf_parameters (source: Uint8Array) -> Result<JsValue, JsValue> {
+        auto_decode!(to_bytes(&source) => PgfParameters)
     }
 
     #[wasm_bindgen]

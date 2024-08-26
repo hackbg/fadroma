@@ -91,9 +91,9 @@ export class Decode {
   static pos_validator_set(source: Uint8Array): any;
 /**
 * @param {Uint8Array} source
-* @returns {object}
+* @returns {any}
 */
-  static pgf_parameters(source: Uint8Array): object;
+  static pgf_parameters(source: Uint8Array): any;
 /**
 * @param {Uint8Array} source
 * @returns {object}

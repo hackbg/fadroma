@@ -1,15 +1,5 @@
 use crate::{*, to_js::*};
 
-macro_rules! auto_decode {
-    ($source:ident -> $struct:ident) => { {
-        let data = $struct::try_from_slice(&$source)
-            .map_err(|e|Error::new(&format!("{e}")))?;
-        let json = serde_json::to_string(&data)
-            .map_err(|e|Error::new(&format!("{e}")))?;
-        js_sys::JSON::parse(&json)
-    } }
-}
-
 pub fn tx_content (tx: &Tx, result: Object) -> Result<Object, Error> {
     let mut tag: Option<String> = None;
     for section in tx.sections.iter() {
@@ -74,63 +64,63 @@ pub fn tx_content (tx: &Tx, result: Object) -> Result<Object, Error> {
 }
 
 fn become_validator (binary: &[u8]) -> Result<JsValue, JsValue> {
-    auto_decode!(binary -> BecomeValidator)
+    auto_decode!(binary => BecomeValidator)
 }
 
 fn bond (binary: &[u8]) -> Result<JsValue, JsValue> {
-    auto_decode!(binary -> Bond)
+    auto_decode!(binary => Bond)
 }
 
 fn change_consensus_key (binary: &[u8]) -> Result<JsValue, JsValue> {
-    auto_decode!(binary -> ConsensusKeyChange)
+    auto_decode!(binary => ConsensusKeyChange)
 }
 
 fn change_validator_commission (binary: &[u8]) -> Result<JsValue, JsValue> {
-    auto_decode!(binary -> CommissionChange)
+    auto_decode!(binary => CommissionChange)
 }
 
 fn change_validator_metadata (binary: &[u8]) -> Result<JsValue, JsValue> {
-    auto_decode!(binary -> MetaDataChange)
+    auto_decode!(binary => MetaDataChange)
 }
 
 fn claim_rewards (binary: &[u8]) -> Result<JsValue, JsValue> {
-    auto_decode!(binary -> ClaimRewards)
+    auto_decode!(binary => ClaimRewards)
 }
 
 fn init_account (binary: &[u8]) -> Result<JsValue, JsValue> {
-    auto_decode!(binary -> InitAccount)
+    auto_decode!(binary => InitAccount)
 }
 
 fn init_proposal (binary: &[u8]) -> Result<JsValue, JsValue> {
-    auto_decode!(binary -> InitProposalData)
+    auto_decode!(binary => InitProposalData)
 }
 
 fn redelegate (binary: &[u8]) -> Result<JsValue, JsValue> {
-    auto_decode!(binary -> Redelegation)
+    auto_decode!(binary => Redelegation)
 }
 
 fn transfer (binary: &[u8]) -> Result<JsValue, JsValue> {
-    auto_decode!(binary -> Transfer)
+    auto_decode!(binary => Transfer)
 }
 
 fn unbond (binary: &[u8]) -> Result<JsValue, JsValue> {
-    auto_decode!(binary -> Unbond)
+    auto_decode!(binary => Unbond)
 }
 
 fn update_account (binary: &[u8]) -> Result<JsValue, JsValue> {
-    auto_decode!(binary -> UpdateAccount)
+    auto_decode!(binary => UpdateAccount)
 }
 
 fn update_steward_commission (binary: &[u8]) -> Result<JsValue, JsValue> {
-    auto_decode!(binary -> UpdateStewardCommission)
+    auto_decode!(binary => UpdateStewardCommission)
 }
 
 fn vote_proposal (binary: &[u8]) -> Result<JsValue, JsValue> {
-    auto_decode!(binary -> VoteProposalData)
+    auto_decode!(binary => VoteProposalData)
 }
 
 fn withdraw (binary: &[u8]) -> Result<JsValue, JsValue> {
-    auto_decode!(binary -> Withdraw)
+    auto_decode!(binary => Withdraw)
 }
 
 fn deactivate_validator (binary: &[u8]) -> Result<Object, Error> {

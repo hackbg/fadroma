@@ -505,7 +505,7 @@ export class Decode {
     }
     /**
     * @param {Uint8Array} source
-    * @returns {object}
+    * @returns {any}
     */
     static pgf_parameters(source) {
         try {

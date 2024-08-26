@@ -144,3 +144,13 @@ pub use tx::*;
         }
     }
 }
+
+#[macro_export] macro_rules! auto_decode {
+    ($source:expr => $struct:ident) => { {
+        let data = $struct::try_from_slice(&$source)
+            .map_err(|e|Error::new(&format!("{e}")))?;
+        let json = serde_json::to_string(&data)
+            .map_err(|e|Error::new(&format!("{e}")))?;
+        js_sys::JSON::parse(&json)
+    } }
+}
