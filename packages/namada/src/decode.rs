@@ -41,32 +41,19 @@ impl Decode {
     #[wasm_bindgen]
     pub fn storage_keys () -> Result<Object, Error> {
         Ok(to_object! {
-            "epochDuration" =
-                get_epoch_duration_storage_key().to_string(),
-            "epochsPerYear" =
-                get_epochs_per_year_key().to_string(),
-            "gasCostTable" =
-                get_gas_cost_key().to_string(),
-            "gasScale" =
-                get_gas_scale_key().to_string(),
-            "implicitVpCodeHash" =
-                get_implicit_vp_key().to_string(),
-            "maspEpochMultipler" =
-                get_masp_epoch_multiplier_key().to_string(),
-            "maspFeePaymentGasLimit" =
-                get_masp_fee_payment_gas_limit_key().to_string(),
-            "maxBlockGas" =
-                get_max_block_gas_key().to_string(),
-            "maxProposalBytes" =
-                get_max_proposal_bytes_key().to_string(),
-            "maxTxBytes" =
-                get_max_tx_bytes_key().to_string(),
-            "isNativeTokenTransferable" =
-                get_native_token_transferable_key().to_string(),
-            "txAllowlist" =
-                get_tx_allowlist_storage_key().to_string(),
-            "vpAllowlist" =
-                get_vp_allowlist_storage_key().to_string(),
+            "epochDuration" = get_epoch_duration_storage_key().to_string(),
+            "epochsPerYear" = get_epochs_per_year_key().to_string(),
+            "gasCostTable" = get_gas_cost_key().to_string(),
+            "gasScale" = get_gas_scale_key().to_string(),
+            "implicitVpCodeHash" = get_implicit_vp_key().to_string(),
+            "maspEpochMultipler" = get_masp_epoch_multiplier_key().to_string(),
+            "maspFeePaymentGasLimit" = get_masp_fee_payment_gas_limit_key().to_string(),
+            "maxBlockGas" = get_max_block_gas_key().to_string(),
+            "maxProposalBytes" = get_max_proposal_bytes_key().to_string(),
+            "maxTxBytes" = get_max_tx_bytes_key().to_string(),
+            "isNativeTokenTransferable" = get_native_token_transferable_key().to_string(),
+            "txAllowlist" = get_tx_allowlist_storage_key().to_string(),
+            "vpAllowlist" = get_vp_allowlist_storage_key().to_string(),
         })
     }
 
@@ -221,7 +208,7 @@ impl Decode {
     }
 
     #[wasm_bindgen]
-    pub fn pos_validator_metadata (source: Uint8Array) -> Result<Object, Error> {
+    pub fn pos_validator_metadata (source: Uint8Array) -> Result<JsValue, JsValue> {
         auto_decode!(to_bytes(&source) => ValidatorMetaData)
     }
 

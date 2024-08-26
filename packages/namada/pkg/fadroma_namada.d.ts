@@ -71,9 +71,9 @@ export class Decode {
   static pos_parameters(source: Uint8Array): object;
 /**
 * @param {Uint8Array} source
-* @returns {object}
+* @returns {any}
 */
-  static pos_validator_metadata(source: Uint8Array): object;
+  static pos_validator_metadata(source: Uint8Array): any;
 /**
 * @param {Uint8Array} source
 * @returns {object}

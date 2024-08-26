@@ -429,7 +429,7 @@ export class Decode {
     }
     /**
     * @param {Uint8Array} source
-    * @returns {object}
+    * @returns {any}
     */
     static pos_validator_metadata(source) {
         try {
