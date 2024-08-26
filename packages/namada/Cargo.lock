@@ -1447,6 +1447,7 @@ dependencies = [
  "masp_primitives 1.0.0 (git+https://github.com/anoma/masp?tag=v1.1.0)",
  "masp_proofs 1.0.0 (git+https://github.com/anoma/masp?tag=v1.1.0)",
  "namada_sdk",
+ "serde_json",
  "tendermint 0.34.1",
  "tendermint-rpc 0.34.1",
  "wasm-bindgen",
@@ -4794,11 +4795,12 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.117"
+version = "1.0.127"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "455182ea6142b14f93f4bc5320a2b31c1f266b66a4a5c858b013302a5d8cbfc3"
+checksum = "8043c06d9f82bd7271361ed64f415fe5e12a77fdb52e573e7f06a516dea329ad"
 dependencies = [
  "itoa",
+ "memchr",
  "ryu",
  "serde",
 ]
