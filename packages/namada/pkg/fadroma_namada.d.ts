@@ -71,9 +71,9 @@ export class Decode {
   static pos_parameters(source: Uint8Array): object;
 /**
 * @param {Uint8Array} source
-* @returns {any}
+* @returns {object}
 */
-  static pos_validator_metadata(source: Uint8Array): any;
+  static pos_validator_metadata(source: Uint8Array): object;
 /**
 * @param {Uint8Array} source
 * @returns {object}
@@ -91,9 +91,9 @@ export class Decode {
   static pos_validator_set(source: Uint8Array): any;
 /**
 * @param {Uint8Array} source
-* @returns {any}
+* @returns {object}
 */
-  static pgf_parameters(source: Uint8Array): any;
+  static pgf_parameters(source: Uint8Array): object;
 /**
 * @param {Uint8Array} source
 * @returns {object}
@@ -149,10 +149,11 @@ export interface InitOutput {
   readonly decode_gov_proposal_code_key: (a: number, b: number) => void;
   readonly decode_gov_votes: (a: number, b: number) => void;
   readonly decode_gov_result: (a: number, b: number) => void;
-  readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+  readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
   readonly __wbindgen_free: (a: number, b: number, c: number) => void;
+  readonly wasm_bindgen__convert__closures__invoke3_mut__h016dc00eec081a1b: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly __wbindgen_exn_store: (a: number) => void;
 }
 

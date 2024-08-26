@@ -208,8 +208,8 @@ impl Decode {
     }
 
     #[wasm_bindgen]
-    pub fn pos_validator_metadata (source: Uint8Array) -> Result<JsValue, JsValue> {
-        auto_decode!(to_bytes(&source) => ValidatorMetaData)
+    pub fn pos_validator_metadata (source: Uint8Array) -> Result<Object, JsValue> {
+        auto_decode_object!(to_bytes(&source) => ValidatorMetaData)
     }
 
     #[wasm_bindgen]
@@ -255,8 +255,8 @@ impl Decode {
     }
 
     #[wasm_bindgen]
-    pub fn pgf_parameters (source: Uint8Array) -> Result<JsValue, JsValue> {
-        auto_decode!(to_bytes(&source) => PgfParameters)
+    pub fn pgf_parameters (source: Uint8Array) -> Result<Object, JsValue> {
+        auto_decode_object!(to_bytes(&source) => PgfParameters)
     }
 
     #[wasm_bindgen]

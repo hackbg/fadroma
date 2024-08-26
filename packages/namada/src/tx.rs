@@ -1,5 +1,93 @@
 use crate::*;
 
+pub fn tx (tx: &Tx) -> Result<Object, Error> {
+    tx_content(tx, to_object! {
+        "id"         = hex::encode_upper(&tx.header_hash().to_vec()),
+        "chainId"    = tx.header().chain_id.as_str(),
+        "expiration" = tx.header().expiration.map(|t|t.to_rfc3339()),
+        "timestamp"  = tx.header().timestamp.to_rfc3339(),
+        "type"       = tx_type(&tx)?,
+        "atomic"     = tx.header().atomic,
+        "batch"      = tx_batch(&tx)?,
+        "sections"   = tx_sections(&tx)?,
+    })
+}
+
+pub fn tx_type (tx: &Tx) -> Result<Object, Error> {
+    Ok(match tx.header().tx_type {
+        TxType::Wrapper(tx) => {
+            let multiplier: u64 = tx.gas_limit.into();
+            to_object! {
+                "Wrapper" = to_object! {
+                    "fee"                 = tx.fee,
+                    "pk"                  = tx.pk,
+                    "payer"               = tx.fee_payer(),
+                    "gasLimit"            = tx.gas_limit,
+                    "feeAmountPerGasUnit" = tx.fee.amount_per_gas_unit.to_string_precise(),
+                    "feeToken"            = tx.fee.token.to_string(),
+                    "multiplier"          = multiplier,
+                    "gasLimitMultiplier"  = multiplier as i64,
+                },
+            }
+        },
+        TxType::Protocol(txp) => to_object! {
+            "Protocol" = to_object! {
+                "pk" = txp.pk,
+                "tx" = match txp.tx {
+                    ProtocolTxType::EthereumEvents     => "EthereumEvents",
+                    ProtocolTxType::BridgePool         => "BridgePool",
+                    ProtocolTxType::ValidatorSetUpdate => "ValidatorSetUpdate",
+                    ProtocolTxType::EthEventsVext      => "EthEventsVext",
+                    ProtocolTxType::BridgePoolVext     => "BridgePoolVext",
+                    ProtocolTxType::ValSetUpdateVext   => "ValSetUpdateVext",
+                },
+            },
+        },
+        TxType::Raw => to_object! {
+            "Raw" = Object::new(),
+        }
+    })
+}
+
+pub fn tx_batch (tx: &Tx) -> Result<Array, Error> {
+    let batch = Array::new();
+    for commitment in tx.header().batch.iter() {
+        batch.push(&JsValue::from(object(&[
+
+            ("hash".into(),     commitment.get_hash().raw().into()),
+
+            ("codeHash".into(), commitment.code_sechash().raw().into()),
+            ("code".into(),     match tx.code(&commitment) {
+                Some(x) => match std::str::from_utf8(&x) {
+                    Ok(text) => to_object! { "text" = text, }.into(),
+                    Err(_) => to_object! { "binary" = hex::encode_upper(x), }.into()
+                },
+                None => JsValue::NULL
+            }),
+
+            ("dataHash".into(), commitment.data_sechash().raw().into()),
+            ("data".into(),     match tx.data(&commitment) {
+                Some(x) => match std::str::from_utf8(&x) {
+                    Ok(text) => to_object! { "text" = text, }.into(),
+                    Err(_) => to_object! { "binary" = hex::encode_upper(x), }.into()
+                },
+                None => JsValue::NULL
+            }),
+
+            ("memoHash".into(), commitment.memo_sechash().raw().into()),
+            ("memo".into(),     match tx.memo(&commitment) {
+                Some(x) => match std::str::from_utf8(&x) {
+                    Ok(text) => to_object! { "text" = text, }.into(),
+                    Err(_) => to_object! { "binary" = hex::encode_upper(x), }.into()
+                },
+                None => JsValue::NULL
+            }),
+
+        ])?));
+    }
+    Ok(batch)
+}
+
 pub fn tx_sections (tx: &Tx) -> Result<Array, Error> {
     let sections = Array::new();
     for section in tx.sections.iter() {
@@ -259,3 +347,166 @@ fn section_header (header: &TxHeader) -> Result<Object, Error> {
     ])
 }
 
+pub fn tx_content (tx: &Tx, result: Object) -> Result<Object, Error> {
+    let mut tag: Option<String> = None;
+    for section in tx.sections.iter() {
+        if let Section::Code(code) = section {
+            tag = code.tag.clone();
+            if tag.is_some() {
+                break
+            }
+        }
+    }
+    if tag.is_none() {
+        return Ok(result)
+    }
+    let mut binary: Option<&[u8]> = None;
+    for section in tx.sections.iter() {
+        if let Section::Data(data) = section {
+            binary = Some(&data.data);
+            break
+        }
+    }
+    if binary.is_none() {
+        return Ok(result)
+    }
+    let binary = binary.unwrap();
+    let tag = tag.unwrap();
+    let data = match tag.as_str() {
+        "tx_become_validator.wasm" => become_validator(binary)?,
+        "tx_bond.wasm" => bond(binary)?,
+        "tx_bridge_pool.wasm" => bridge_pool(binary)?.into(),
+        "tx_change_consensus_key.wasm" => change_consensus_key(binary)?,
+        "tx_change_validator_commission.wasm" => change_validator_commission(binary)?,
+        "tx_change_validator_metadata.wasm" => change_validator_metadata(binary)?,
+        "tx_claim_rewards.wasm" => claim_rewards(binary)?.into(),
+        "tx_deactivate_validator.wasm" => deactivate_validator(binary)?.into(),
+        "tx_ibc.wasm" => Object::new().into(),
+        "tx_init_account.wasm" => init_account(binary)?,
+        "tx_init_proposal.wasm" => init_proposal(binary)?.into(),
+        "tx_reactivate_validator.wasm" => reactivate_validator(binary)?.into(),
+        "tx_redelegate.wasm" => redelegate(binary)?.into(),
+        "tx_resign_steward.wasm" => resign_steward(binary)?.into(),
+        "tx_reveal_pk.wasm" => reveal_pk(binary)?.into(),
+        "tx_transfer.wasm" => transfer(binary)?.into(),
+        "tx_unbond.wasm" => unbond(binary)?.into(),
+        "tx_unjail_validator.wasm" => unjail_validator(binary)?.into(),
+        "tx_update_account.wasm" => update_account(binary)?,
+        "tx_update_steward_commission.wasm" => update_steward_commission(binary)?,
+        "tx_vote_proposal.wasm" => vote_proposal(binary)?,
+        "tx_withdraw.wasm" => withdraw(binary)?.into(),
+        "vp_implicit.wasm" => Object::new().into(),
+        "vp_user.wasm" => Object::new().into(),
+        _ => {
+            // TODO: console warn
+            Object::new().into()
+        },
+    };
+    let content = object(&[
+        ("type".into(), tag.into()),
+        ("data".into(), data.into()),
+    ])?;
+    Reflect::set(&result, &"content".into(), &content.into())?;
+    Ok(result)
+}
+
+fn become_validator (binary: &[u8]) -> Result<Object, JsValue> {
+    auto_decode_object!(binary => BecomeValidator)
+}
+
+fn bond (binary: &[u8]) -> Result<Object, JsValue> {
+    auto_decode_object!(binary => Bond)
+}
+
+fn change_consensus_key (binary: &[u8]) -> Result<Object, JsValue> {
+    auto_decode_object!(binary => ConsensusKeyChange)
+}
+
+fn change_validator_commission (binary: &[u8]) -> Result<Object, JsValue> {
+    auto_decode_object!(binary => CommissionChange)
+}
+
+fn change_validator_metadata (binary: &[u8]) -> Result<Object, JsValue> {
+    auto_decode_object!(binary => MetaDataChange)
+}
+
+fn claim_rewards (binary: &[u8]) -> Result<Object, JsValue> {
+    auto_decode_object!(binary => ClaimRewards)
+}
+
+fn init_account (binary: &[u8]) -> Result<Object, JsValue> {
+    auto_decode_object!(binary => InitAccount)
+}
+
+fn init_proposal (binary: &[u8]) -> Result<Object, JsValue> {
+    auto_decode_object!(binary => InitProposalData)
+}
+
+fn redelegate (binary: &[u8]) -> Result<Object, JsValue> {
+    auto_decode_object!(binary => Redelegation)
+}
+
+fn transfer (binary: &[u8]) -> Result<Object, JsValue> {
+    auto_decode_object!(binary => Transfer)
+}
+
+fn unbond (binary: &[u8]) -> Result<Object, JsValue> {
+    auto_decode_object!(binary => Unbond)
+}
+
+fn update_account (binary: &[u8]) -> Result<Object, JsValue> {
+    auto_decode_object!(binary => UpdateAccount)
+}
+
+fn update_steward_commission (binary: &[u8]) -> Result<Object, JsValue> {
+    auto_decode_object!(binary => UpdateStewardCommission)
+}
+
+fn vote_proposal (binary: &[u8]) -> Result<Object, JsValue> {
+    auto_decode_object!(binary => VoteProposalData)
+}
+
+fn withdraw (binary: &[u8]) -> Result<Object, JsValue> {
+    auto_decode_object!(binary => Withdraw)
+}
+
+fn deactivate_validator (binary: &[u8]) -> Result<Object, Error> {
+    let address = Address::try_from_slice(&binary[..])
+        .map_err(|e|Error::new(&format!("{e}")))?;
+    Ok(to_object! { "address" = address, })
+}
+
+fn reactivate_validator (binary: &[u8]) -> Result<Object, Error> {
+    let address = Address::try_from_slice(&binary[..])
+        .map_err(|e|Error::new(&format!("{e}")))?;
+    Ok(to_object! { "address" = address, })
+}
+
+fn resign_steward (binary: &[u8]) -> Result<Object, Error> {
+    let address = Address::try_from_slice(&binary[..])
+        .map_err(|e|Error::new(&format!("{e}")))?;
+    Ok(to_object! { "address" = address, })
+}
+
+fn reveal_pk (binary: &[u8]) -> Result<Object, Error> {
+    let pk = PublicKey::try_from_slice(&binary[..])
+        .map_err(|e|Error::new(&format!("{e}")))?;
+    Ok(to_object! { "pk" = pk, })
+}
+
+fn unjail_validator (binary: &[u8]) -> Result<Object, Error> {
+    let address = Address::try_from_slice(&binary[..])
+        .map_err(|e|Error::new(&format!("{e}")))?;
+    Ok(to_object! { "address" = address, })
+}
+
+fn bridge_pool (_binary: &[u8]) -> Result<Object, Error> {
+    // TODO
+    Ok(Object::new())
+    //let inner = BridgePool::try_from_slice(&binary[..])
+        //.map_err(|e|Error::new(&format!("{e}")))?;
+    //Ok(to_object! {
+        //"tx_hash" = inner.tx_hash,
+        //"status"  = inner.status,
+    //})
+}
