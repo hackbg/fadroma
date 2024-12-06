@@ -1,0 +1,48 @@
+[package]
+name = "fadroma-namada"
+version = "0.1.0"
+edition = "2021"
+resolver = "2"
+
+[lib]
+crate-type = [ "cdylib", "rlib" ]
+path = "decoder/namada.rs"
+
+[dependencies]
+js-sys = "0.3.70"
+web-sys = "0.3.70"
+wasm-bindgen = "0.2.93"
+
+hex = "0.4.3"
+
+tendermint = "0.34.0"
+tendermint-rpc = { version = "0.34.0", default-features = false }
+
+namada_sdk = { git = "https://github.com/anoma/namada", tag = "v0.45.1", default-features = false }
+masp_primitives = { git = "https://github.com/anoma/masp", tag = "v1.1.0" }
+masp_proofs = { git = "https://github.com/anoma/masp", tag = "v1.1.0", default-features = false, features = ["local-prover"] }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.13"
+
+# https://doc.rust-lang.org/cargo/reference/profiles.html
+[profile.release]
+lto = true
+
+[profile.dev]
+opt-level = 3
+lto = true
+
+# wasm-pack specific configuration
+[package.metadata.wasm-pack.profile.release]
+# https://docs.rs/wasm-opt/latest/wasm_opt/
+wasm-opt = ['-O4']
+
+[package.metadata.wasm-pack.profile.dev]
+wasm-opt = false
+
+[package.metadata.wasm-pack.profile.dev.wasm-bindgen]
+omit-default-module-path = true
+
+[package.metadata.wasm-pack.profile.release.wasm-bindgen]
+omit-default-module-path = true

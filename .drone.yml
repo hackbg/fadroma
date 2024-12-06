@@ -1,0 +1,17 @@
+---
+kind: pipeline
+type: docker
+name: test namada package
+trigger: { event: [ push ] }
+steps:
+- name: git
+  image: alpine/git:latest
+  commands:
+  - echo $HOME
+  - ls -al $HOME
+  - printf $(git rev-parse --abbrev-ref HEAD) > BRANCH
+  - cat BRANCH
+- name: build
+  image: denoland/deno:2.1.3
+  commands:
+  - cd namada && deno test

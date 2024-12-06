@@ -1,0 +1,136 @@
+doctype html
+html(lang='en')
+
+  head
+    meta(charset='utf-8')
+    title CosmWasm JSON Schema Viewer and Converter · Fadroma by Hack.bg
+    script(data-goatcounter="https://goat.fadroma.hack.bg/count" async src="//goat.fadroma.hack.bg/count.js")
+    style(type="text/css")
+      include ../assets/fonts.css
+      include ../assets/style.css
+      include ./schema.css
+
+  body.schema-converter
+
+    svg(
+      style="position:absolute;width:0;height:0;overflow:hidden"
+      version="1.1"
+      xmlns="http://www.w3.org/2000/svg"
+      xmlns:xlink="http://www.w3.org/1999/xlink"
+    )
+      defs
+        each icon in self.icons
+          symbol(id=icon.id viewBox=icon.viewBox)
+            title= icon.title
+            path(d=icon.path)
+
+    mixin icon (id)
+      svg(class=`icon icon-${id}`)
+        use(xlink:href=`#${id}`)
+
+    mixin field (name)
+      .schema-field(data-name=name)
+        span.name= name
+        hr
+        span.value
+
+    header.schema-converter-header
+      h1.row
+        img(src="../banner2.svg" alt="Fadroma" style="height:3em;margin:0 0.5rem 0 0")
+        span Schema Browser
+      .schema-converter-input
+        button(data-name="AddFromURL") Add from URL
+        button(data-name="AddFromFile") Add from file
+        button(data-name="AddFromClipboard") Add from clipboard
+
+    content.schemas
+
+    template.schema-template
+      .schema
+        .schema-header.row
+          .row.wrap
+            .schema-field(style="white-space:nowrap" data-name="Name")
+              strong.value
+              span &nbsp;
+            .schema-field(style="white-space:nowrap" data-name="Version")
+              span v
+              strong.value
+            .schema-url
+              span(style='font-weight:normal') From:&nbsp;
+              span(data-name="Source")
+                span.value
+          .grow
+          .schema-actions.row.wrap(style='display:none')
+            label
+              strong Download as:
+            .row
+              button JSON (pretty)
+              button JSON (compact)
+              button YAML
+              button HTML
+              button(data-name="Markdown") Markdown
+          button(style="white-space:nowrap" data-name="Convert") Convert ▼
+          .vsep
+          button(style="white-space:nowrap" data-name="Show") Show details ▼
+          button(style="white-space:nowrap" data-name="Hide") Hide details ▲
+
+        .schema-content
+          .row.schema-overview
+            .schema-description
+            .schema-metadata(style="display:none")
+              .schema-api
+                strong API overview:
+                +field("Instantiate")
+                +field("Transaction methods")
+                +field("Query methods")
+                +field("Migrate methods")
+                +field("Sudo methods")
+                +field("Responses")
+              .schema-definitions
+                strong Type definitions:
+
+    footer.row
+      span This tool is part of
+      strong
+        a.logo(href="https://github.com/hackbg/fadroma") Fadroma
+      span by
+      strong
+        a.logo(href="https://hack.bg") Hack.bg
+      .grow
+      span All submitted data is processed securely in your browser, never uploaded anywhere.
+      .grow
+      button(data-name="Clear") Clear local storage
+
+    .schema-converter-modal(data-name="URL" style="display:none;visibility:hidden")
+      .schema-converter-modal-background
+      .schema-converter-modal-content
+        strong Fetch contract schema from URL:
+        input.schema-converter-modal-input(type="text" size="50" placeholder="enter URL to a CosmWasm schema")
+        div.row
+          button.schema-converter-modal-upload Upload
+          .grow
+          button.schema-converter-modal-cancel Cancel
+        .schema-converter-modal-error
+
+    .schema-converter-modal(data-name="File" style="display:none;visibility:hidden")
+      .schema-converter-modal-background
+      .schema-converter-modal-content
+        strong Upload contract schema from file:
+        input.schema-converter-modal-input(type="text" size="50" placeholder="enter URL to a CosmWasm schema")
+        div.row
+          button.schema-converter-modal-upload Upload
+          .grow
+          button.schema-converter-modal-cancel Cancel
+        .schema-converter-modal-error
+
+    script(type="module").
+      globalThis.App = import('./page/schema.gui.mjs')
+        .then(({ default: App })=>new App())
+        .catch(error=>document.body.innerHTML = `<pre>${error.stack||error.message}</pre>`)
+      //-for (const url of [
+        //-'https://docs.okp4.network/assets/files/okp4-law-stone-f26aee4b82425895e7f93cb468b1b639.json',
+        //-'https://docs.okp4.network/assets/files/okp4-cognitarium-38b87179f0c3c7c6f7b35f81306caf25.json',
+        //-'https://docs.okp4.network/assets/files/okp4-objectarium-eada0cda6e11102840a1c57adfa7132e.json',
+      //-]) {
+        //-await app.loadUrl(url)
+      //-}

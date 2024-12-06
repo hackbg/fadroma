@@ -1,0 +1,4 @@
+check:
+  deno check index.ts
+test:
+  deno test 2>&1 | less
