@@ -11,13 +11,15 @@ console.log(decoder.storage_keys())
 
 const url = 'https://rpc.knowable.run/'
 const namada = await Namada.connect({ url })
+
+
 //console.log(await namada.getConnection().abciQuery(
   //'/shell/value/#tnam1qsqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxdl54l/max_tx_bytes'
 //))
-console.log(await namada.fetchBalance(
-  'tnam1qrklwz5rvjqv9qafdgkjwn94pke770w46gzggsm9',
-  'tnam1q87wtaqqtlwkw927gaff34hgda36huk0kgry692a',
-))
+//console.log(await namada.fetchBalance(
+  //'tnam1qrklwz5rvjqv9qafdgkjwn94pke770w46gzggsm9',
+  //'tnam1q87wtaqqtlwkw927gaff34hgda36huk0kgry692a',
+//))
 
 //console.log(await namada.fetchEpochDuration())
 //console.log(await namada.fetchProtocolParameters())

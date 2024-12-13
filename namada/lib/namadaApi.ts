@@ -26,7 +26,8 @@ import { fetchValidatorsBelowCapacity, fetchValidatorsConsensus } from './namada
 
 /** Slices first argument of implementation signature
   * (see https://stackoverflow.com/a/67605309) */
-type Method<F> = F extends (arg0: never, ...rest: infer R) => infer T ? (...args: R) => T : never
+type Method<F> = F extends (arg0: never, ...rest: infer R) =>
+  infer T ? ((...args: R) => T) : never
 
 export interface Api {
   fetchBalance:                 Method<typeof fetchBalance>
