@@ -79,6 +79,7 @@ export function blockFromResponses (
     transactions: decodedTransactions.map(tx=>({
       hash: tx?.id,
       ...tx,
+      chain: chain!,
       get block () { return block }
     })),
   }

@@ -24,9 +24,9 @@ export type Chain = TendermintChain & Api & {
 
 export interface ConnectionBase extends TendermintConnection {
   abciQuery (path: string): Promise<Uint8Array>
-  readonly chain?: Chain
+  readonly chain:  Chain
   readonly decode: Decoder
-  readonly log: Console
+  readonly log:    Console
 }
 
 export type Connection = ConnectionBase & Api

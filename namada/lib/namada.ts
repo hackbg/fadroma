@@ -45,10 +45,9 @@ export function createChain (): Namada.Chain {
   }
   for (const [methodName, method] of Object.entries(Impl)) {
     const name = methodName as keyof Api
-    type Conn = ReturnType<Namada.Chain["getConnection"]>
     type Args = Parameters<typeof method>
     type Retd = ReturnType<typeof method>
-    type CallType = (self: Conn, ...params: Args) => Retd
+    type CallType = (self: Namada.ConnectionBase, ...params: Args) => Retd
     Object.assign(chain, {
       [name]: (...args: Parameters<typeof method>) => {
         const connection = chain.getConnection()
@@ -62,22 +61,24 @@ export function createChain (): Namada.Chain {
 
 export function createConnection (chain: Namada.Chain, url: string|URL): Namada.Connection {
   const connection: Namada.ConnectionBase = {
+    alive: true,
     get chain (): Namada.Chain {
       return chain as unknown as Namada.Chain
     },
     get decode () {
       return Decode as unknown as Namada.Decoder
     },
-    abcQuery () {},
-    log: new Console(String(url)),
-    url
+    abciQuery () {
+      return Promise.resolve(new Uint8Array())
+    },
+    log: new Console(String(url)) as any,
+    url,
   }
   for (const [methodName, method] of Object.entries(Impl)) {
     const name = methodName as keyof Api
-    type Conn = ReturnType<Namada.Chain["getConnection"]>
     type Args = Parameters<typeof method>
     type Retd = ReturnType<typeof method>
-    type CallType = (self: Conn, ...params: Args) => Retd
+    type CallType = (self: Namada.ConnectionBase, ...params: Args) => Retd
     Object.assign(connection, {
       [name]: (...args: Parameters<typeof method>) => {
         const callMethod = method as CallType

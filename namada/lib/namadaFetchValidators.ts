@@ -24,10 +24,12 @@ export async function fetchValidators (
   const namadaAddresses = await fetchValidatorAddresses(connection, options?.epoch)
   for (const namadaAddress of namadaAddresses) {
     validatorsByNamadaAddress[namadaAddress] = {
-      chain:     connection.chain,
-      publicKey: null as any, // FIXME: explicitly state nullability
-      address:   null as any, // FIXME: in the type definition
-      namadaAddress
+      chain:            connection.chain!,
+      publicKey:        null as any, // FIXME: explicitly state nullability
+      address:          null as any, // FIXME: in the type definition
+      namadaAddress,
+      votingPower:      null as any,
+      proposerPriority: null as any,
     }
   }
   // This is how we will store the public keys. This needs to be done only once,
@@ -58,7 +60,7 @@ export async function fetchValidators (
     tendermintMetadata = (await getValidators(connection, { ...options||{} }))
       // `getValidators` returns an array, so we rekey it by public key.
       // (Identifier rebinding would have been really nice here.)
-      .reduce((vs, v)=>Object.assign(vs, {[v.publicKey]: v}), {}) as Record<string, {
+      .reduce((vs: any, v: any)=>Object.assign(vs, {[v.publicKey]: v}), {}) as Record<string, {
         address:          string,
         publicKey:        string,
         votingPower:      bigint,
@@ -119,14 +121,16 @@ export async function * fetchValidatorsIter (connection: Namada.ConnectionBase, 
     ? addresses
     : await fetchValidatorAddresses(connection, epoch)
   const meta: Namada.TendermintMetadata = (await getValidators(connection)).reduce(
-    (vs, v)=>Object.assign(vs, {[v.publicKey]: v}), {}
+    (vs: any, v: any)=>Object.assign(vs, {[v.publicKey]: v}), {}
   )
   for (const namadaAddress of namadaAddresses) {
     const validator: Namada.Validator = {
-      chain:         connection.chain,
-      publicKey:     null as any, // FIXME: explicitly state nullability
-      address:       null as any, // FIXME: in the type definition
-      namadaAddress
+      chain:            connection.chain!,
+      publicKey:        null as any, // FIXME: explicitly state nullability
+      address:          null as any, // FIXME: in the type definition
+      namadaAddress,
+      votingPower:      null as any,
+      proposerPriority: null as any,
     }
     const requests = getRequests(connection, meta, validator, namadaAddress, options?.epoch)
     await optionallyParallel(parallel, requests)

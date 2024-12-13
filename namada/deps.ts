@@ -3,7 +3,7 @@ export { decode, u64, u256 } from '@hackbg/borshest'
 export { Console, bold } from '@hackbg/logs'
 export { Case, base16 } from '@hackbg/4mat'
 
-import type { Address, Hash, Chain, ChainId, Uint128 } from '@hackbg/fadroma'
+import type { Address, Hash, Chain, Connection, ChainId, Uint128 } from '@hackbg/fadroma'
 
 export async function tendermintConnect (options: {
   url: string|URL,
@@ -14,11 +14,11 @@ export async function tendermintConnect (options: {
   return {}
 }
 
-export interface TendermintChain {
+export interface TendermintChain extends Chain {
   bech32Prefix?: string
 }
 
-export interface TendermintConnection {
+export interface TendermintConnection extends Connection {
   url: string|URL
 }
 
@@ -37,10 +37,11 @@ export interface TendermintTransaction {
 }
 
 export interface TendermintBlock {
-  hash: unknown
+  hash:   unknown
+  height: unknown
 }
 
-export function optionallyParallel (...args: any[]) {
+export function optionallyParallel (...args: any[]): any {
   throw new Error('not implemented')
 }
 
