@@ -34,3 +34,21 @@ export async function fetchCodeInfo (
     throw new Error('fetchCodeInfo takes 0 or 1 arguments')
   }
 }
+
+  //[>* Fetch info about all code IDs uploaded to the chain. <]
+  //fetchCodeInfo ():
+    //Promise<Record<CodeId, UploadedCode>>
+  //[>* Fetch info about a single code ID. <]
+  //fetchCodeInfo (codeId: CodeId, options?: { parallel?: boolean }):
+    //Promise<UploadedCode>
+  //[>* Fetch info about multiple code IDs. <]
+  //fetchCodeInfo (codeIds: Iterable<CodeId>, options?: { parallel?: boolean }):
+    //Promise<Record<CodeId, UploadedCode>>
+  //fetchCodeInfo (...args: unknown[]): Promise<unknown> {
+    //return fetchCodeInfo(this, ...args as Parameters<Chain["fetchCodeInfo"]>)
+  //}
+  //[>* Chain-specific implementation of fetchCodeInfo. <]
+  //abstract fetchCodeInfoImpl (parameters?: {
+    //codeIds?:  CodeId[]
+    //parallel?: boolean
+  //}): Promise<Record<CodeId, UploadedCode>>

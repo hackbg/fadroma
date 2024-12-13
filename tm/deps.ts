@@ -1,11 +1,2 @@
-export type {
-  Address,
-  Block,
-  Chain,
-  ChainId,
-  Connection,
-  Hash,
-  Height,
-  Transaction,
-  Uint128
-} from '@hackbg/fadroma'
+export { makeChain, makeConnection, timed, optionallyParallel } from '@hackbg/fadroma'
+export type * from '@hackbg/fadroma'

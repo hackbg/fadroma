@@ -1,5 +1,5 @@
-import type { Height } from '../deps.ts'
-import type { Connection } from './tmTypes.ts'
+import type { Address, Height, Uint128 } from '../deps.ts'
+import type * as Tendermint from './tmTypes.ts'
 
 /** Slices first argument of implementation signature
   * (see https://stackoverflow.com/a/67605309) */
@@ -13,80 +13,130 @@ export interface Api {
   blockResults:      Method<typeof fetchBlockResults>
   blockSearch:       Method<typeof fetchBlockSearch>
   blockchain:        Method<typeof fetchBlockchain>
-  broadcastTx:       Method<typeof broadcastTx>
   commit:            Method<typeof fetchCommit>
   genesis:           Method<typeof fetchGenesis>
   health:            Method<typeof fetchHealth>
   numUnconfirmedTxs: Method<typeof fetchNumUnconfirmedTxs>
   status:            Method<typeof fetchStatus>
+  tx:                Method<typeof fetchTx>
+  txSearch:          Method<typeof fetchTxSearch>
+  validators:        Method<typeof fetchValidators>
 
-  subscribeNewBlock ():       Promise<void>
-  subscribeNewBlockHeader (): Promise<void>
-  subscribeTx (options: { query: never }): Promise<void>
+  subscribe:         Method<typeof subscribe>
+  broadcastTx:       Method<typeof broadcastTx>
 
-  tx          (params: never): Promise<void>
-  txSearch    (params: never): Promise<void>
-  txSearchAll (params: never): Promise<void>
+  fetchBalance (connection: Tendermint.Connection, address: Address, token: string):
+    Promise<Uint128>
+  fetchBalance (connection: Tendermint.Connection, address: Address, tokens?: string[]):
+    Promise<Record<string, Uint128>>
+  fetchBalance (connection: Tendermint.Connection, addresses: Address[], token: string):
+    Promise<Record<Address, Uint128>>
+  fetchBalance (connection: Tendermint.Connection, addresses: Address[], tokens?: string):
+    Promise<Record<Address, Record<string, Uint128>>>
+  /** Chain-specific implementation of native token transfer. */
+  send (connection: Tendermint.Connection, parameters: {
+    outputs:   Record<Address, Record<string, Uint128>>,
+    sendFee?:  Token.IFee,
+    sendMemo?: string,
+    parallel?: boolean
+  }): Promise<unknown>
+}
 
-  validators    (params: never): Promise<void>
-  validatorsAll (options: { height: Height }): Promise<void>
+export default {
+  fetchAbciInfo,
+  fetchAbciQuery,
+  fetchBlock,
+  fetchBlockResults,
+  fetchBlockSearch,
+  fetchBlockchain,
+  fetchCommit,
+  fetchGenesis,
+  fetchHealth,
+  fetchNumUnconfirmedTxs,
+  fetchStatus,
+  fetchTx,
+  fetchTxSearch,
+  fetchValidators,
+
+  subscribe,
+  broadcastTx,
 }
 
 export async function fetchAbciInfo (
-  connection: Connection
+  connection: Tendermint.Connection
 ) {}
 
 export async function fetchAbciQuery (
-  connection: Connection,
+  connection: Tendermint.Connection,
   path:       string,
   data:       Uint8Array,
   parameters: { height?: Height, prove?: boolean }
 ) {}
 
 export async function fetchBlock (
-  connection: Connection,
+  connection: Tendermint.Connection,
   parameters: { height?: Height }
 ) {}
 
 export async function fetchBlockResults (
-  connection: Connection,
+  connection: Tendermint.Connection,
   parameters: { height?: Height }
 ) {}
 
 export async function fetchBlockSearch (
-  connection: Connection,
+  connection: Tendermint.Connection,
   query:      string,
   parameters: { page?: number, perPage?: number, orderBy?: string }
 ) {}
 
 export async function fetchBlockchain (
-  connection: Connection,
+  connection: Tendermint.Connection,
   parameters: { min?: Height, max?: Height }
 ) {}
 
-export async function broadcastTx (
-  connection: Connection,
-  method:     'sync'|'async'|'commit',
-  tx:         Uint8Array
-) {}
-
 export async function fetchCommit (
-  connection: Connection,
+  connection: Tendermint.Connection,
   height:     Height
 ) {}
 
 export async function fetchGenesis (
-  connection: Connection
+  connection: Tendermint.Connection
 ) {}
 
 export async function fetchHealth (
-  connection: Connection
+  connection: Tendermint.Connection
 ) {}
 
 export async function fetchNumUnconfirmedTxs (
-  connection: Connection
+  connection: Tendermint.Connection
 ) {}
 
 export async function fetchStatus (
-  connection: Connection
+  connection: Tendermint.Connection
+) {}
+
+export async function fetchTx (
+  connection: Tendermint.Connection,
+) {
+}
+
+export async function fetchTxSearch (
+  connection: Tendermint.Connection,
+) {
+}
+
+export async function fetchValidators (
+  connection: Tendermint.Connection,
+) {
+}
+
+export async function subscribe (
+  connection: Tendermint.Connection,
+  subscribeTo: 'block'|'header'|{query: string}
+) {}
+
+export async function broadcastTx (
+  connection: Tendermint.Connection,
+  method:     'sync'|'async'|'commit',
+  tx:         Uint8Array
 ) {}

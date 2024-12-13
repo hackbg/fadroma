@@ -16,12 +16,12 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-export * from './lib/types.ts'
-export * from './lib/util.ts'
-//export * from './lib/agent.ts'
-export * from './lib/backend.ts'
-//export * from './lib/chain.ts'
+import { Format } from './deps.ts'
+export const Case = Format.Case
+export const base16 = Format.base16
 
-import * as Deps from './deps.ts'
-export const Case = Deps.Format.Case
-export const base16 = Deps.Format.base16
+export * from './lib/coreConnect.ts'
+export * from './lib/coreConsole.ts'
+export * from './lib/coreError.ts'
+export * from './lib/coreTiming.ts'
+export * from './lib/coreTypes.ts'

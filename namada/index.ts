@@ -17,4 +17,4 @@
 **/
 
 export { connect } from './lib/namada.ts'
-export type * from './lib/namadaTypes.ts'
+export * from './lib/namadaTypes.ts'

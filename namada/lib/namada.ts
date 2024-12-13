@@ -1,4 +1,4 @@
-import { tendermintConnect } from '../deps.ts'
+import { makeChain, makeConnection, Tendermint } from '../deps.ts'
 import init, { Decode } from '../pkg/fadroma_namada.js'
 import type { Api } from './namadaApi.ts'
 import Impl from './namadaApi.ts'
@@ -11,9 +11,9 @@ export const bech32Prefix = 'tnam'
 
 export const hdAccountIndex = 0
 
-export async function connect (
-  properties: Parameters<typeof tendermintConnect>[0] & { decoder?: string|URL|Uint8Array }
-): Promise<Namada.Chain> {
+export async function connect (properties: Parameters<typeof Tendermint.connect>[0] & {
+  decoder?: string|URL|Uint8Array
+}): Promise<Namada.Chain> {
   if (properties?.decoder) {
     await initDecoder(properties.decoder)
   } else {
@@ -21,7 +21,7 @@ export async function connect (
   }
   properties ??= {} as Partial<typeof properties>
   properties.bech32Prefix ??= "tnam"
-  return await tendermintConnect(properties || ({} as Partial<typeof properties>)) as Namada.Chain
+  return await Tendermint.connect(properties) as Namada.Chain
 }
 
 export async function initDecoder (decoder: string|URL|Uint8Array): Promise<Namada.Decoder> {
@@ -35,56 +35,31 @@ export async function initDecoder (decoder: string|URL|Uint8Array): Promise<Nama
 
 export function createChain (): Namada.Chain {
   const connections: Namada.Connection[] = []
-  const chain: Partial<Namada.Chain> & Pick<Namada.Chain, 'connections'|'getConnection'> = {
-    get connections () {
-      return connections
-    },
-    getConnection () {
-      return connections[0]
+  return makeChain({
+    methods: Impl,
+    chain: {
+      get connections () { return connections },
+      getConnection: () => connections[0]
     }
-  }
-  for (const [methodName, method] of Object.entries(Impl)) {
-    const name = methodName as keyof Api
-    type Args = Parameters<typeof method>
-    type Retd = ReturnType<typeof method>
-    type CallType = (self: Namada.ConnectionBase, ...params: Args) => Retd
-    Object.assign(chain, {
-      [name]: (...args: Parameters<typeof method>) => {
-        const connection = chain.getConnection()
-        const method = connection[name] as CallType;
-        return method(connection, ...args)
-      }
-    })
-  }
-  return chain as Namada.Chain
+  }) as Namada.Chain
 }
 
 export function createConnection (chain: Namada.Chain, url: string|URL): Namada.Connection {
-  const connection: Namada.ConnectionBase = {
-    alive: true,
-    get chain (): Namada.Chain {
-      return chain as unknown as Namada.Chain
-    },
-    get decode () {
-      return Decode as unknown as Namada.Decoder
-    },
-    abciQuery () {
-      return Promise.resolve(new Uint8Array())
-    },
-    log: new Console(String(url)) as any,
-    url,
-  }
-  for (const [methodName, method] of Object.entries(Impl)) {
-    const name = methodName as keyof Api
-    type Args = Parameters<typeof method>
-    type Retd = ReturnType<typeof method>
-    type CallType = (self: Namada.ConnectionBase, ...params: Args) => Retd
-    Object.assign(connection, {
-      [name]: (...args: Parameters<typeof method>) => {
-        const callMethod = method as CallType
-        return callMethod(connection, ...args)
-      }
-    })
-  }
-  return connection as Namada.Connection
+  return makeConnection({
+    methods: Impl,
+    connection: {
+      alive: true,
+      get chain (): Namada.Chain {
+        return chain as unknown as Namada.Chain
+      },
+      get decode () {
+        return Decode as unknown as Namada.Decoder
+      },
+      abciQuery () {
+        return Promise.resolve(new Uint8Array())
+      },
+      log: new Console(String(url)) as any,
+      url,
+    }
+  }) as Namada.Connection
 }
