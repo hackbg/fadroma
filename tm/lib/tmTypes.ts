@@ -1,4 +1,5 @@
 import * as Base from '../deps.ts'
+import type { Api } from './tmApi.ts'
 
 export interface Chain extends Base.Chain {
   bech32Prefix?: string

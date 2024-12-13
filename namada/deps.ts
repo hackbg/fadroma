@@ -6,15 +6,6 @@ export * as Tendermint from '@fadroma/tm'
 
 import type { Address, Hash, Chain, Connection, ChainId, Uint128 } from '@hackbg/fadroma'
 
-export async function tendermintConnect (options: {
-  url: string|URL,
-  chainId?: ChainId,
-  bech32Prefix?: string
-}) {
-  throw new Error('todo!')
-  return {}
-}
-
 export function optionallyParallel (...args: any[]): any {
   throw new Error('not implemented')
 }

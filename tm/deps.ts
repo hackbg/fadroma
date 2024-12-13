@@ -5,6 +5,7 @@ export type {
   ChainId,
   Connection,
   Hash,
+  Height,
   Transaction,
   Uint128
 } from '@hackbg/fadroma'
