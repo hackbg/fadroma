@@ -1,7 +1,7 @@
 export type { Address, Hash, ChainId, Uint128 }
 export { decode, u64, u256 } from '@hackbg/borshest'
 export { Console, bold } from '@hackbg/logs'
-export { base16 } from '@hackbg/4mat'
+export { Case, base16 } from '@hackbg/4mat'
 
 import type { Address, Hash, Chain, ChainId, Uint128 } from '@hackbg/fadroma'
 
@@ -36,7 +36,9 @@ export interface TendermintTransaction {
   hash:  Hash
 }
 
-export interface TendermintBlock {}
+export interface TendermintBlock {
+  hash: unknown
+}
 
 export function optionallyParallel (...args: any[]) {
   throw new Error('not implemented')

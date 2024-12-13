@@ -1,12 +1,13 @@
 import type * as Namada from './namadaTypes.ts'
+import { fetchStorageValue } from './namadaFetchStorageValue.ts'
 
 export async function fetchProtocolParameters (
-  connection: Pick<Namada.ConnectionBase, 'fetchStorageValueImpl'|'decode'>
+  connection: Namada.ConnectionBase
 ) {
   const keys = connection.decode.storage_keys();
   const parameters: Record<string, unknown> = {}
   await Promise.all(Object.entries(connection.decode.storage_keys())
-    .map(([name, key])=>connection.fetchStorageValueImpl(key).then(binary=>{
+    .map(([name, key])=>fetchStorageValue(connection, key).then(binary=>{
       //console.log({name, key, binary})
       if (binary.length === 0) {
         return

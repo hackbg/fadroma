@@ -1,5 +1,5 @@
 import type * as Namada from './namadaTypes.ts'
-import { decode, u256 } from '../deps.ts'
+import { decode, u256, optionallyParallel, base16 } from '../deps.ts'
 
 /** Fetch details for a Namada validator. */
 export async function fetchValidatorDetails (connection: Namada.ConnectionBase, options?: {
@@ -13,7 +13,7 @@ export async function fetchValidatorDetails (connection: Namada.ConnectionBase, 
       throw new Error('missing tendermint or namada address for validator')
     }
     const addressBinary = await connection.abciQuery(`/vp/pos/validator_by_tm_addr/${validator.address}`)
-    validator.namadaAddress = connection.decode.address(addressBinary.slice(1))
+    Object.assign(validator, { namadaAddress: connection.decode.address(addressBinary.slice(1)) })
     connection.log.info(validator.address, 'is', validator.namadaAddress)
   }
   const v = validator.namadaAddress
@@ -22,19 +22,25 @@ export async function fetchValidatorDetails (connection: Namada.ConnectionBase, 
       connection.log.warn(...args)
       return null
     }
+
   const requests: Array<()=>Promise<unknown>> = [
+
     () => connection.abciQuery(`/vp/pos/validator/metadata/${v}`)
-      .then((binary: Uint8Array) => binary[0] && (validator.metadata = connection.decode.pos_validator_metadata(binary.slice(1))))
+      .then((binary: Uint8Array) => binary[0] && ((validator as any).metadata = connection.decode.pos_validator_metadata(binary.slice(1))))
       .catch(warn(`Failed to provide validator metadata for ${v}`)),
+
     () => connection.abciQuery(`/vp/pos/validator/commission/${v}`)
-      .then((binary: Uint8Array) => validator.commission = connection.decode.pos_commission_pair(binary))
+      .then((binary: Uint8Array) => (validator as any).commission = connection.decode.pos_commission_pair(binary))
       .catch(warn(`Failed to provide validator commission pair for ${v}`)),
+
     () => connection.abciQuery(`/vp/pos/validator/state/${v}` + (epoch?`/${epoch}`:''))
-      .then((binary: Uint8Array) => validator.state = connection.decode.pos_validator_state(binary))
+      .then((binary: Uint8Array) => (validator as any).state = connection.decode.pos_validator_state(binary))
       .catch(warn(`Failed to provide validator state for ${v}`)),
+
     () => connection.abciQuery(`/vp/pos/validator/stake/${v}` + (epoch?`/${epoch}`:''))
-      .then((binary: Uint8Array) => binary[0] && (validator.stake = decode(u256, binary.slice(1))))
+      .then((binary: Uint8Array) => binary[0] && ((validator as any).stake = decode(u256, binary.slice(1))))
       .catch(warn(`Failed to provide validator stake for ${v}`)),
+
     () => connection.abciQuery(`/vp/pos/validator/consensus_key/${v}`)
       .then((binary: Uint8Array) => {
         const publicKey = base16.encode(binary.slice(2))
@@ -45,9 +51,10 @@ export async function fetchValidatorDetails (connection: Namada.ConnectionBase, 
           })
         }
         validator.publicKey = publicKey
-      })
-      .catch(warn(`Failed to decode validator public key for ${v}`))
+      }).catch(warn(`Failed to decode validator public key for ${v}`))
+
   ]
+
   const prefix = `validator ${v} details: ${requests.length} request(s)`
   if (options?.parallel) {
     connection.log.debug(prefix, `in parallel`)

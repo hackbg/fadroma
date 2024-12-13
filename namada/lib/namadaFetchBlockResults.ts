@@ -1,4 +1,5 @@
 import type * as Namada from './namadaTypes.ts'
+import { Case } from '../deps.ts'
 
 export async function fetchBlockResults (
   connection: Namada.ConnectionBase,
