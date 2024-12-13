@@ -1,6 +1,9 @@
 import type * as Namada from './namadaTypes.ts'
+import type { Tendermint } from '../deps.ts'
 import { fetchValidatorAddresses } from './namadaFetchValidatorAddresses.ts'
 import { base16, decode, u256, optionallyParallel, getValidators } from '../deps.ts'
+
+type TendermintMetadata = Record<string, Tendermint.Validator>
 
 export async function fetchValidators (
   connection: Namada.ConnectionBase,
@@ -54,7 +57,7 @@ export async function fetchValidators (
   // Other validators don't have these values, and if you need to e.g. cross-reference
   // by past public key or consensus address, you will have to persist them yourself.
   // (https://github.com/hackbg/undexer does that)
-  let tendermintMetadata: Namada.TendermintMetadata = {}
+  let tendermintMetadata: TendermintMetadata = {}
   if (options?.tendermintMetadata ?? true) {
     publicKeys ??= await fetchAndPopulatePublicKeys(options.tendermintMetadata === 'parallel')
     tendermintMetadata = (await getValidators(connection, { ...options||{} }))
@@ -120,7 +123,7 @@ export async function * fetchValidatorsIter (connection: Namada.ConnectionBase, 
   const namadaAddresses = addresses?.length
     ? addresses
     : await fetchValidatorAddresses(connection, epoch)
-  const meta: Namada.TendermintMetadata = (await getValidators(connection)).reduce(
+  const meta: TendermintMetadata = (await getValidators(connection)).reduce(
     (vs: any, v: any)=>Object.assign(vs, {[v.publicKey]: v}), {}
   )
   for (const namadaAddress of namadaAddresses) {
@@ -143,7 +146,7 @@ export async function * fetchValidatorsIter (connection: Namada.ConnectionBase, 
   * do not launch the requests yet. */
 const getRequests = (
   connection: Namada.ConnectionBase,
-  meta:       Namada.TendermintMetadata,
+  meta:       TendermintMetadata,
   validator:  Namada.Validator,
   address:    Namada.Address,
   epoch?:     Namada.Epoch,
@@ -197,7 +200,7 @@ const getAbciQueryPaths = (address: Namada.Address, epoch?: Namada.Epoch) => {
 /** Define the callbacks that assign the decoded values to a given validator. */
 const getDecoders = (
   connection:         Namada.ConnectionBase,
-  tendermintMetadata: Namada.TendermintMetadata,
+  tendermintMetadata: TendermintMetadata,
   validator:          Namada.Validator,
 ) => ({
   decodeMetadata (binary: Uint8Array) {

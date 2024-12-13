@@ -1,28 +1,18 @@
-import type {
-  Address,
-  TendermintBlock,
-  TendermintChain,
-  TendermintConnection,
-  TendermintTransaction,
-  TendermintMetadata,
-  TendermintValidator,
-  Uint128,
-} from '../deps.ts'
-
+import type { Address, Tendermint, Uint128, } from '../deps.ts'
 import type { Api } from './namadaApi.ts'
 
-export type { Address, TendermintMetadata }
+export type { Address }
 
 export type Epoch = number|bigint|string
 
 export type Height = number|bigint|string
 
-export type Chain = TendermintChain & Api & {
+export type Chain = Tendermint.Chain & Api & {
   readonly connections: Connection[]
   getConnection (): Connection
 }
 
-export interface ConnectionBase extends TendermintConnection {
+export interface ConnectionBase extends Tendermint.Connection {
   abciQuery (path: string): Promise<Uint8Array>
   readonly chain:  Chain
   readonly decode: Decoder
@@ -82,7 +72,7 @@ export interface GovernanceProposalResult {
 }
 
 /** Describes a Namada validator. */
-export interface Validator extends TendermintValidator {
+export interface Validator extends Tendermint.Validator {
   readonly chain:          Chain,
   readonly namadaAddress?: Address
   readonly metadata?:      ValidatorMetadata
@@ -120,7 +110,7 @@ export interface GovernanceProposalWasm {
   readonly wasm?:   Uint8Array
 }
 
-export interface Block extends TendermintBlock {
+export interface Block extends Tendermint.Block {
   readonly chain: Chain
   readonly responses?: {
     readonly block:    { url: string, response: string }
@@ -147,7 +137,7 @@ export interface Block extends TendermintBlock {
   readonly transactions: Transaction[]
 }
 
-export interface Transaction extends TendermintTransaction {
+export interface Transaction extends Tendermint.Transaction {
   readonly block?: Block
   readonly data?: {
     readonly expiration?:          string|null

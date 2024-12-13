@@ -2,6 +2,7 @@
   "nodeModulesDir": "auto",
   "imports": {
     "@hackbg/fadroma":  "../core/index.ts",
+    "@fadroma/tm":      "../tm/index.ts",
     "@hackbg/logs":     "npm:@hackbg/logs",
     "@hackbg/4mat":     "npm:@hackbg/4mat",
     "@hackbg/borshest": "npm:@hackbg/borshest"
