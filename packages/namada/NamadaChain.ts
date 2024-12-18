@@ -172,4 +172,16 @@ export default class NamadaChain extends CW.Chain {
   fetchTotalStaked (epoch?: Epoch) {
     return this.getConnection().fetchTotalStakedImpl(epoch)
   }
+  fetchDenomination (token: string) {
+    return this.getConnection().fetchDenominationImpl(token)
+  }
+  fetchTotalSupply (token: string) {
+    return this.getConnection().fetchTotalSupplyImpl(token)
+  }
+  fetchEffectiveNativeSupply () {
+    return this.getConnection().fetchEffectiveNativeSupplyImpl()
+  }
+  fetchStakingRewardsRate () {
+    return this.getConnection().fetchStakingRewardsRateImpl()
+  }
 }

@@ -156,6 +156,18 @@ export default class NamadaConnection extends CW.Connection {
   fetchBondWithSlashingImpl (delegator: string, validator: string, epoch?: Epoch.Epoch) {
     return PoS.fetchBondWithSlashing(this, delegator, validator, epoch)
   }
+  fetchDenominationImpl (token: string) {
+    return Token.fetchDenomination(this, token)
+  }
+  fetchTotalSupplyImpl (token: string) {
+    return Token.fetchTotalSupply(this, token)
+  }
+  fetchEffectiveNativeSupplyImpl () {
+    return Token.fetchEffectiveNativeSupply(this)
+  }
+  fetchStakingRewardsRateImpl () {
+    return Token.fetchStakingRewardsRate(this)
+  }
 }
 
 export function fetchStorageValue (
