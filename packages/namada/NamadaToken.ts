@@ -1,5 +1,5 @@
 import { decode, u64 } from '@hackbg/borshest'
-import type { NamadaConnection as Connection } from './namada-connection'
+import type { NamadaConnection as Connection } from './NamadaConnection'
 
 export async function fetchDenomination (connection: Connection, token: string) {
   const binary = await connection.abciQuery(`/vp/token/denomination/${token}`)
