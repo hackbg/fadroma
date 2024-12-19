@@ -362,4 +362,14 @@ impl Decode {
             "totalAbstainPower" = result.total_abstain_power,
         })
     }
+
+    #[wasm_bindgen]
+    pub fn pos_rewards_rates (source: Uint8Array) -> Result<Object, Error> {
+        let result = PosRewardsRates::try_from_slice(&to_bytes(&source))
+            .map_err(|e|Error::new(&format!("{e}")))?;
+        Ok(to_object! {
+            "stakingRewardsRate" = result.staking_rewards_rate,
+            "inflationRate"      = result.inflation_rate,
+        })
+    }
 }

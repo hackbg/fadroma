@@ -75,7 +75,8 @@ pub(crate) use namada_sdk::{
             ValidatorState,
             ValidatorStateInfo,
             WeightedValidator,
-        }
+        },
+        rewards::PosRewardsRates,
     },
     storage::KeySeg,
     string_encoding::Format,

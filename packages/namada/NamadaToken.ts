@@ -3,7 +3,7 @@ import type { NamadaConnection as Connection } from './NamadaConnection'
 
 export async function fetchDenomination (connection: Connection, token: string) {
   const binary = await connection.abciQuery(`/vp/token/denomination/${token}`)
-  return connection.decode.denomination(binary)
+  return decode(u8, binary)
 }
 export async function fetchTotalSupply (connection: Connection, token: string) {
   const binary = await connection.abciQuery(`/vp/token/total_supply/${token}`)
