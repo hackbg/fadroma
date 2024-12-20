@@ -128,10 +128,10 @@ importers:
         version: 13.3.0
       typedoc:
         specifier: 0.25.13
-        version: 0.25.13(typescript@5.6.3)
+        version: 0.25.13(typescript@5.7.2)
       typescript:
-        specifier: ^5.6.3
-        version: 5.6.3
+        specifier: ^5.7.2
+        version: 5.7.2
 
   fixtures:
     dependencies:
@@ -350,10 +350,10 @@ importers:
         version: 13.3.0
       typedoc:
         specifier: ^0.25.4
-        version: 0.25.13(typescript@5.6.3)
+        version: 0.25.13(typescript@5.7.2)
       typescript:
-        specifier: ~5.6.3
-        version: 5.6.3
+        specifier: ~5.7.2
+        version: 5.7.2
 
   toolbox/4mat:
     dependencies:
@@ -719,8 +719,8 @@ importers:
         specifier: ^8.0.1
         version: 8.0.1
       typescript:
-        specifier: ~5.6.3
-        version: 5.6.3
+        specifier: ~5.7.2
+        version: 5.7.2
 
   vendored/cosmjs-esm:
     dependencies:
@@ -6614,11 +6614,6 @@ packages:
 
   typescript@5.3.3:
     resolution: {integrity: sha512-pXWcraxM0uxAS+tN0AG/BF2TyqmHO014Z070UsJ+pFvYuRSq8KH8DmWpnbXe0pEPDHXZV3FcAbJkijJ5oNEnWw==}
-    engines: {node: '>=14.17'}
-    hasBin: true
-
-  typescript@5.6.3:
-    resolution: {integrity: sha512-hjcS1mhfuyi4WW8IWtjP7brDrG2cuDZukyrYrSauoXGNgx0S7zceP07adYkJycEr56BOUTNPzbInooiN3fn1qw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -14084,14 +14079,6 @@ snapshots:
       shiki: 0.10.1
       typescript: 5.3.3
 
-  typedoc@0.25.13(typescript@5.6.3):
-    dependencies:
-      lunr: 2.3.9
-      marked: 4.3.0
-      minimatch: 9.0.5
-      shiki: 0.14.7
-      typescript: 5.6.3
-
   typedoc@0.25.13(typescript@5.7.2):
     dependencies:
       lunr: 2.3.9
@@ -14110,8 +14097,6 @@ snapshots:
       yaml: 2.6.1
 
   typescript@5.3.3: {}
-
-  typescript@5.6.3: {}
 
   typescript@5.7.2: {}
 
