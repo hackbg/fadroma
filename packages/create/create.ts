@@ -188,7 +188,7 @@ export class Project extends ProjectDirectory {
         //"@fadroma/devnet": "*",
         "@hackbg/ganesha": "^4.2.0",
         "@hackbg/ubik":    "^2.0.0",
-        "typescript":      "~5.3.3",
+        "typescript":      "~5.7.2",
       },
       scripts: {
         "fadroma": "fadroma",
