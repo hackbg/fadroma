@@ -123,7 +123,10 @@ export interface NamadaDecoder {
     rewardsGainD:                  bigint
   }>
 
-  pos_validator_state (_: Uint8Array): unknown
+  pos_rewards_rates (_: Uint8Array): Partial<{
+    stakingRewardsRate: unknown
+    inflationRate:      unknown
+  }>
 
   storage_keys (): {
     epochDuration:             string

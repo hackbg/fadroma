@@ -125,6 +125,11 @@ export class Decode {
 * @returns {object}
 */
   static gov_result(source: Uint8Array): object;
+/**
+* @param {Uint8Array} source
+* @returns {object}
+*/
+  static pos_rewards_rates(source: Uint8Array): object;
 }
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -156,6 +161,7 @@ export interface InitOutput {
   readonly decode_balance_key: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly decode_gov_votes: (a: number, b: number) => void;
   readonly decode_gov_result: (a: number, b: number) => void;
+  readonly decode_pos_rewards_rates: (a: number, b: number) => void;
   readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
