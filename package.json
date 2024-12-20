@@ -33,7 +33,7 @@
     "docs:render":    "ensuite-render",
     "docs:typedoc":   "typedoc",
     "fadroma":        "FADROMA_PROJECT=./examples fadroma",
-    "prepare":        "husky install",
+    "prepare":        "husky install || true",
     "test":           "time ensuite index.test.ts",
     "test:fast":      "ensuite index.test.ts --parallel",
 
@@ -108,7 +108,7 @@
     "@types/prompts":       "^2.4.8",
     "@types/secure-random": "^1.1.3",
 
-    "typescript":  "^5.6.3",
+    "typescript":  "^5.7.2",
     "typedoc":     "0.25.13",
     "husky":       "^8.0.3",
     "lint-staged": "^13.3.0",
