@@ -2,3 +2,7 @@ check:
   deno check index.ts
 test:
   deno test --allow-read=pkg 2>&1 | less
+build-debug:
+  wasm-pack build --dev --target web && rm -v pkg/package.json pkg/.gitignore
+build-release:
+  wasm-pack build --release --target web && rm -v pkg/package.json pkg/.gitignore

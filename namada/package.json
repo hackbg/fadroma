@@ -1,3 +1,8 @@
 {
-  "name": "@fadroma/namada"
+  "name": "@fadroma/namada",
+  "version": "1.0.0",
+  "scripts": {
+    "build:wasm:dev":  "wasm-pack build --dev --target web && rm -v pkg/package.json pkg/.gitignore",
+    "build:wasm:prod": "wasm-pack build --release --target web && rm -v pkg/package.json pkg/.gitignore"
+  }
 }
