@@ -1,7 +1,7 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Error, Console } from '@hackbg/fadroma'
+import { Error, Console } from 'npm:@hackbg/fadroma'
 export class ScrtError extends Error {}
 export class ScrtConsole extends Console { label = '@fadroma/scrt' }
 export const console = new ScrtConsole()
@@ -22,7 +22,7 @@ export {
   into,
   randomBase64,
   randomBech32,
-} from '@hackbg/fadroma'
+} from 'npm:@hackbg/fadroma'
 
 export const withIntoError = <T>(p: Promise<T>): Promise<T> =>
   p.catch(intoError)

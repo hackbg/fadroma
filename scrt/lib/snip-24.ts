@@ -1,4 +1,4 @@
-import type { Token, ChainId, Address } from '@hackbg/fadroma'
+import type { Token, ChainId, Address } from 'npm:@hackbg/fadroma'
 
 /** Data used for creating a signature as per the SNIP-24 spec:
   * https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-24.md#permit-content---stdsigndoc

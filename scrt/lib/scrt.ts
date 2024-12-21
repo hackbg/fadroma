@@ -19,7 +19,7 @@
 import { ScrtChain } from './scrt-chain'
 import faucets from './scrt-faucets'
 
-export * as SecretJS from '@hackbg/secretjs-esm'
+export * as SecretJS from 'npm:@hackbg/secretjs-esm'
 
 export {
   ScrtError             as Error,
@@ -99,7 +99,7 @@ export async function mocknet (options: Partial<ScrtChain> = {}): Promise<ScrtCh
 export async function devnet (options): Promise<ScrtChain> {
   let devnet
   try {
-    devnet = await import('@fadroma/devnet')
+    devnet = await import('npm:@fadroma/devnet')
   } catch (e) {
     throw new Error('Failed to import @fadroma/devnet. Is it installed?')
   }

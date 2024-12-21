@@ -1,2 +1,2 @@
-export { makeChain, makeConnection, timed, optionallyParallel } from '@hackbg/fadroma'
-export type * from '@hackbg/fadroma'
+export { makeChain, makeConnection, timed, optionallyParallel } from 'npm:@hackbg/fadroma'
+export type * from 'npm:@hackbg/fadroma'

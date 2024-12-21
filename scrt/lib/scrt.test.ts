@@ -1,10 +1,10 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import * as Devnet from '@fadroma/devnet'
+import * as Devnet from 'npm:@fadroma/devnet'
 import * as Scrt from './scrt'
-import { fixture, testConnectionWithBackend } from '@fadroma/fixtures'
-import { Token } from '@hackbg/fadroma'
+import { fixture, testConnectionWithBackend } from 'npm:@fadroma/fixtures'
+import { Token } from 'npm:@hackbg/fadroma'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { webcrypto } from 'node:crypto'
@@ -20,7 +20,7 @@ export const packageRoot = dirname(resolve(fileURLToPath(import.meta.url)))
 const joinWith = (sep: string, ...strings: string[]) => strings.join(sep)
 const mnemonic = 'define abandon palace resource estate elevator relief stock order pool knock myth brush element immense task rapid habit angry tiny foil prosper water news'
 
-import { Suite } from '@hackbg/ensuite'
+import { Suite } from 'npm:@hackbg/ensuite'
 export default new Suite([
   ['chain',    testScrtChain],
   ['snip-20',  () => import('./snip/snip-20.test')],
