@@ -1,4 +1,19 @@
-import type { Chain, Block } from './coreTypes.ts'
+import type { Entity } from './coreEntity.ts'
+import type { Chain } from './coreChain.ts'
+import type { Transaction } from './coreTx.ts'
+import { bold } from '../deps.ts'
+
+/** The building block of a blockchain,
+  * containing zero or more transactions. */
+export interface Block extends Entity {
+  chain:        Chain
+  height:       Height
+  header:       unknown
+  transactions: Transaction[]
+}
+
+/** Block height. */
+export type Height = number|bigint
 
 /** Implementation of Connection#fetchBlock -> Connection#fetchBlockImpl */
 export async function fetchBlock (chain: Chain, ...args: Parameters<Chain["fetchBlock"]>):
