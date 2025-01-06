@@ -11,8 +11,8 @@ export function makeChain ({ chain, methods }: {
     Object.assign(chain, {
       [name]: (...args: unknown[]) => {
         const connection = chain.getConnection()
-        const method = connection[name] as typeof method
-        connection[name](connection, ...args)
+        const m = connection[name as keyof typeof connection] as typeof method
+        m(connection, ...args)
       }
     })
   }
