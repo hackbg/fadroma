@@ -15,7 +15,7 @@ export interface Block extends Entity {
 /** Block height. */
 export type Height = number|bigint
 
-/** Implementation of Connection#fetchBlock -> Connection#fetchBlockImpl */
+/** ementation of Chain#fetchBlock -> Connection#fetchBlock */
 export async function fetchBlock (chain: Chain, ...args: Parameters<Chain["fetchBlock"]>):
   Promise<Block>
 {
@@ -23,13 +23,13 @@ export async function fetchBlock (chain: Chain, ...args: Parameters<Chain["fetch
     if (typeof args[0] === 'object') {
       if ('height' in args[0] && !!args[0].height) {
         chain.log.debug(`Fetching block with height ${args[0].height}`)
-        return chain.getConnection().fetchBlockImpl({
+        return chain.connect().fetchBlock({
           raw:    args[0].raw,
           height: BigInt(args[0].height as number)
         })
       } else if ('hash' in args[0] && !!args[0].hash) {
         chain.log.debug(`Fetching block with hash ${args[0].hash}`)
-        return chain.getConnection().fetchBlockImpl({
+        return chain.connect().fetchBlock({
           raw:  args[0].raw,
           hash: args[0].hash as string,
         })
@@ -39,7 +39,7 @@ export async function fetchBlock (chain: Chain, ...args: Parameters<Chain["fetch
     }
   }
   chain.log.debug(`Fetching latest block`)
-  return chain.getConnection().fetchBlockImpl()
+  return chain.connect().fetchBlock()
 }
 
 export async function fetchNextBlock (chain: Chain):
@@ -54,7 +54,8 @@ export async function fetchNextBlock (chain: Chain):
     const t = + new Date()
     return new Promise(async (resolve, reject)=>{
       try {
-        while (chain.getConnection().alive) {
+        const connection = chain.connect()
+        while (connection.alive) {
           await new Promise(ok=>setTimeout(ok, chain.blockInterval))
           chain.log(
             `Waiting for block > ${bold(String(startingHeight))} ` +
@@ -77,7 +78,7 @@ export async function fetchNextBlock (chain: Chain):
   //[>* Get the current block height. <]
   //fetchHeight (): Promise<bigint> {
     //this.log.debug('Querying block height')
-    //return this.getConnection().fetchHeightImpl()
+    //return this.connect().fetchHeight()
   //}
 
   //[>* Wait until the block height increments, or until `this.alive` is set to false. <]
@@ -100,10 +101,10 @@ export async function fetchNextBlock (chain: Chain):
   //}
 //
   //[>* Chain-specific implementation of fetchBlock. <]
-  //abstract fetchBlockImpl (parameters?:
+  //abstract fetchBlock (parameters?:
     //{ raw?: boolean } & ({ height: number|bigint }|{ hash: string })
   //): Promise<Block>
   //[>* Chain-specific implementation of fetchHeight. <]
-  //abstract fetchHeightImpl ():
+  //abstract fetchHeight ():
     //Promise<bigint>
   //[>* Chain-specific implementation of fetchBalance. <]

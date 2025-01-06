@@ -3,44 +3,21 @@ import type { Block, Height } from './coreBlock.ts'
 import type { Hash } from './coreHash.ts'
 import type { Agent, Signer } from './coreAgent.ts'
 import { Console } from '../deps.ts'
-
 /** An address on a chain. */
 export type Address = string
-
-/** Represents the backend of a chain managed by this library (such as a devnet). */
-export interface ChainBackend extends LoggingEntity {
-  chain:    Chain
-  gasToken: string
-
-  connect   ():                 Promise<Chain>
-  connect   (name: string):     Promise<Agent>
-  connect   (identity: Signer): Promise<Agent>
-  getSigner (name: string):     Promise<Signer>
-}
-
 /** A chain's unique ID. */
 export type ChainId = string
-
-/** A chain's second simplest representation. */
-export type Chain = { id: ChainId }
-
-/** A chain's log stream. */
-export type ChainLog = LoggingEntity & Chain & { log: ChainLogger }
-
-/** A chain's log messages. */
-export class ChainLogger extends Console {
-  static unknownChains = 0
-}
-
-/** A chain connection provider. */
-export interface ChainConnect extends ChainLog {
-  /** Get a connection from the chain's connection pool. */
-  getConnection (): Connection<this>
-  /** Connection pool. */
-  connections: Connection<this>[]
-}
-
-/** A chain's user-facing methods. */
+/** A chain's full representation. */
+export type Chain = ChainRef & ChainLog & ChainApi & ChainConnect
+/** Reference to chain by id. */
+export type ChainRef = { id: ChainId }
+/** Chain as log event stream. */
+export type ChainLog = ChainRef & LoggingEntity & { log: ChainLogger }
+/** Connection provider method. */
+export type ChainConnect = { connect: ()=>Connection }
+/** Chain constructor arguments. */
+export type ChainConfig = ChainRef & Partial<ChainLog> & Partial<ChainConnect>
+/** Chain API methods. */
 export interface ChainApi {
   /** Fetch defails about the latest block. */
   fetchBlock (): Promise<Block>
@@ -55,44 +32,36 @@ export interface ChainApi {
   /** Fetch the block after it increments. */
   fetchNextHeight (): Promise<Block>
 }
-
-/** Construct a chain from parameters. */
-export function chain <C extends Chain> (
-  from: ChainConnect & { log?: ChainLogger }
-): C {
-  if (!from) throw new Error('pass at least { id, connections, getConnection }')
-  if (!from.log) from.log = new ChainLogger(
-    from.name || from.id || `Unknown chain #${++ChainLogger.unknownChains}`
-  )
-  return bindChainMethods(from, [])
+/** Represents an individual remote API endpoint. */
+export type Connection = ChainApi & { chain: Chain, url: string|URL, alive: boolean }
+/** A chain's log and error handler. */
+export class ChainLogger extends Console {
+  static unknownChains = 0
+  static unknownChain  = () => `Unknown chain #${++this.unknownChains}`
+  static noConnections = () => new Error('no connections')
 }
-
+/** Construct a chain from parameters. */
+export function chain <C extends Chain> (from: Partial<C>): C & { log: NonNullable<C["log"]> } {
+  if (!from.id || !from.connect) throw new Error('pass at least { id, connect }')
+  if (!from.log) from.log = new ChainLogger(from.name || from.id || ChainLogger.unknownChain())
+  return bindChainMethods(from as C, [])
+}
 /** This provides dispatch from a chain's method to a connection's identically named methods,
   * enabling load balancing, parallel querying of multiple endpoints, etc. */
-function bindChainMethods <C extends Chain> (
-  from:    ChainConnect & { log?: ChainLogger },
-  methods: Array<keyof C>
-): C {
-  const chain = from as unknown as C
+function bindChainMethods <C extends Chain> (from: C, methods: Array<keyof C>): C {
+  const chain = from as unknown as (C & ChainApi)
   for (const m of methods) {
-    chain[m] = ((...args: unknown[]) => {
-      const connection = from.getConnection()
-      const method     = connection[m]
-      return method(connection, ...args)
-    }) as C[typeof m]
+    chain[m as unknown as keyof C] = ((...args: any[]) => {
+      if (!chain.connect) throw ChainLogger.noConnections()
+      const connection = chain.connect()
+      const method = connection[m as unknown as keyof Connection] as any
+      method(connection, ...args)
+    }) as unknown as (C & ChainApi)[keyof ChainApi]
   }
   return chain
 }
-
-/** Represents an individual remote API endpoint. */
-export interface Connection<C extends Chain> extends LoggingEntity {
-  chain: C
-  url:   string|URL
-  alive: boolean
-}
-
-export function connection <C extends Chain> ({ connection, methods }: {
-  connection: Partial<Connection<C>>,
+export function connection ({ connection, methods }: {
+  connection: Partial<Connection>,
   methods:    Record<string, Function>
 }) {
   for (const [name, method] of Object.entries(methods)) {
@@ -101,4 +70,15 @@ export function connection <C extends Chain> ({ connection, methods }: {
     })
   }
   return connection
+}
+
+/** Represents the backend of a managed chain (such as a devnet). */
+export type ChainBackend = LoggingEntity & {
+  chain:    Chain
+  connect   ():                 Promise<Chain>
+  connect   (name: string):     Promise<Agent>
+  connect   (identity: Signer): Promise<Agent>
+  getSigner (name: string):     Promise<Signer>
+  /** For providing initial balances. */
+  gasToken: string
 }
