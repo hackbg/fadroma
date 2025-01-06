@@ -11,14 +11,17 @@ async function tendermintConnect (options: {
   hdAccountIndex?: string,
 }): Promise<Tendermint.Chain> {
   const chain: Tendermint.Chain = {
-    bech32Prefix: options.bech32Prefix,
     id:           options.chainId!,
+    bech32Prefix: options.bech32Prefix,
     connections:  await Promise.all(options.urls.map(url=>createTendermintConnection(chain, url))),
   }
   return makeChain({ methods: Impl, chain })
 }
 
-async function createTendermintConnection (chain: Tendermint.Chain, url: string|URL) {
+async function createTendermintConnection (
+  chain: Tendermint.Chain, 
+  url:   string|URL
+): Promise<Tendermint.Connection> {
   return makeConnection({
     methods: Impl,
     connection: {

@@ -1,7 +1,7 @@
 check:
   deno check test.ts
 test:
-  deno test test.ts
+  deno test --coverage test.ts
 push:
   git push
 tpush:

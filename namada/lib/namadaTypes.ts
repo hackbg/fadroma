@@ -138,7 +138,7 @@ export interface Block extends Tendermint.Block {
 }
 
 export interface Transaction extends Tendermint.Transaction {
-  readonly block?: Block
+  readonly block?: Height
   readonly data?: {
     readonly expiration?:          string|null
     readonly timestamp?:           string

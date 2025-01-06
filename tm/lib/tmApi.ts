@@ -1,5 +1,6 @@
 import type { Address, Height, Uint128 } from '../deps.ts'
 import type * as Tendermint from './tmTypes.ts'
+import type { Fee } from './tmToken.ts'
 
 /** Slices first argument of implementation signature
   * (see https://stackoverflow.com/a/67605309) */
@@ -36,7 +37,7 @@ export interface Api {
   /** Chain-specific implementation of native token transfer. */
   send (connection: Tendermint.Connection, parameters: {
     outputs:   Record<Address, Record<string, Uint128>>,
-    sendFee?:  Token.IFee,
+    sendFee?:  Fee,
     sendMemo?: string,
     parallel?: boolean
   }): Promise<unknown>

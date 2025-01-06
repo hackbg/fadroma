@@ -1,8 +1,19 @@
-export type ContractAddress = string
+import type { Address, Hash, Chain } from '../deps.ts'
 
-export type ContractCodeId = string|number
+/** A code ID, identifying uploaded code on a chain. */
+export type CodeId = string|number
+
+/** The hash of a contract's code. */
+export type CodeHash = string
+
+/** A transaction message that can be sent to a contract. */
+export type Message = string|Record<string, unknown>
+
+export type ContractAddress = Address
+
+export type ContractCodeId = CodeId
  
-export type ContractCodeHash = string
+export type ContractCodeHash = CodeHash
 
 export interface SourceProvider {
   fetchSource (...args: unknown[]): Promise<SourceCode>
@@ -100,7 +111,7 @@ export interface CosmWasmAgentApi extends AgentApi {
     binary:       Uint8Array,
     reupload?:    boolean,
     uploadStore?: UploadStore,
-    uploadFee?:   Token.IFee
+    uploadFee?:   Token.Fee
     uploadMemo?:  string
   }): Promise<Partial<UploadedCode & {
     chainId: ChainId,
@@ -109,8 +120,8 @@ export interface CosmWasmAgentApi extends AgentApi {
   /** Chain-specific implementation of contract instantiation. */
   instantiateImpl (parameters: Partial<Contract> & {
     initMsg:   Into<Message>
-    initFee?:  Token.IFee
-    initSend?: Token.ICoin[]
+    initFee?:  Token.Fee
+    initSend?: Token.Coin[]
     initMemo?: string
   }):
     Promise<Contract & { address: Address }>
@@ -119,8 +130,8 @@ export interface CosmWasmAgentApi extends AgentApi {
     address:   Address
     codeHash?: string
     message:   Message
-    execFee?:  Token.IFee
-    execSend?: Token.ICoin[]
+    execFee?:  Token.Fee
+    execSend?: Token.Coin[]
     execMemo?: string
   }): Promise<T>
 }

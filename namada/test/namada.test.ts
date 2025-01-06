@@ -1,4 +1,3 @@
-#!/usr/bin/env -S node --import @ganesha/esbuild
 import * as Namada from '../index.ts'
 import { readFileSync } from 'node:fs'
 import { initDecoder } from '../lib/namada.ts'

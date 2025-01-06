@@ -1,0 +1,6 @@
+{
+  "nodeModulesDir": "auto",
+  "imports": {
+    "npm:@hackbg/fadroma": "../core/index.ts"
+  }
+}

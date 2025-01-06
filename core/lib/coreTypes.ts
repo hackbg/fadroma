@@ -16,17 +16,8 @@ export type Decimal128 = string
 /** A 256-bit decimal fraction. */
 export type Decimal256 = string
 
-/** A transaction message that can be sent to a contract. */
-export type Message = string|Record<string, unknown>
-
 /** A transaction hash, uniquely identifying an executed transaction on a chain. */
 export type TxHash = string
-
-/** A code ID, identifying uploaded code on a chain. */
-export type CodeId = string
-
-/** The hash of a contract's code. */
-export type CodeHash = string
 
 /** The name of a deployment unit. Used to generate contract label. */
 export type Name = string
@@ -51,7 +42,9 @@ export interface Identity {
 }
 
 /** Represents a chain. */
-export interface Chain extends Identity {}
+export interface Chain extends Identity {
+  alive?: boolean
+}
 
 /** Represents a chain with internal API methods and connection pool. */
 export interface ChainBase<C> extends Chain {

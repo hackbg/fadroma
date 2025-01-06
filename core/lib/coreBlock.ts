@@ -1,3 +1,5 @@
+import type { Chain, Block } from './coreTypes.ts'
+
 /** Implementation of Connection#fetchBlock -> Connection#fetchBlockImpl */
 export async function fetchBlock (chain: Chain, ...args: Parameters<Chain["fetchBlock"]>):
   Promise<Block>
