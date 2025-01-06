@@ -1,24 +1,38 @@
-import type { Entity } from './coreEntity.ts'
+import type { Entity, Hash } from './coreEntity.ts'
 import type { Chain, ChainApi } from './coreChain.ts'
-import type { Transaction } from './coreTx.ts'
+import type { Agent } from './coreAgent.ts'
 import { bold } from '../deps.ts'
 
+/** Block height. */
+export type Height = number|bigint
 /** The building block of a blockchain,
   * containing zero or more transactions. */
-export interface Block extends Entity {
+export interface Block extends Entity<string> {
   chain:        Chain
   height:       Height
   header:       unknown
   transactions: Transaction[]
 }
+/** A transaction hash, uniquely identifying an executed transaction on a chain. */
+export type TxHash = Hash
+/** A transaction in a block on a chain. */
+export interface Transaction extends Entity<Hash> {
+  chain: Chain,
+  block: Height,
+  hash:  Hash,
+  data:  unknown
+}
 
-/** Block height. */
-export type Height = number|bigint
+/** A batch of transactions. */
+export interface Batch {
+  /** Add a transaction to the batch. */
+  add (tx: unknown): this
+  /** Submit the batch. */
+  submit (agent: Agent): Promise<unknown>
+}
 
 /** ementation of Chain#fetchBlock -> Connection#fetchBlock */
-export async function fetchBlock (chain: ChainApi, ...args: Parameters<Chain["fetchBlock"]>):
-  Promise<Block>
-{
+export function fetchBlock (chain: ChainApi, ...args: Parameters<Chain["fetchBlock"]>): Promise<Block> {
   if (args[0]) {
     if (typeof args[0] === 'object') {
       if ('height' in args[0] && !!args[0].height) {
@@ -42,10 +56,8 @@ export async function fetchBlock (chain: ChainApi, ...args: Parameters<Chain["fe
   return chain.fetchBlock()
 }
 
-export async function fetchNextBlock (chain: ChainApi):
-  Promise<bigint>
-{
-  return chain.fetchHeight().then(async startingHeight=>{
+export function fetchNextBlock (chain: ChainApi): Promise<bigint> {
+  return chain.fetchHeight().then((startingHeight: string|number|bigint)=>{
     startingHeight = BigInt(startingHeight)
     chain.log.log(
       `Waiting for block > ${bold(String(startingHeight))}`,

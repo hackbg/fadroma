@@ -1,8 +1,17 @@
-import type { LoggingEntity } from './coreEntity.ts'
+import type { Hash, LoggingEntity } from './coreEntity.ts'
 import type { Block, Height } from './coreBlock.ts'
-import type { Hash } from './coreHash.ts'
 import type { Agent, Signer } from './coreAgent.ts'
 import { Console } from '../deps.ts'
+/** Represents the backend of a managed chain (such as a devnet). */
+export type ChainBackend = LoggingEntity<ChainId, ChainLogger> & {
+  chain:    Chain
+  connect   ():                 Promise<Chain>
+  connect   (name: string):     Promise<Agent>
+  connect   (identity: Signer): Promise<Agent>
+  getSigner (name: string):     Promise<Signer>
+  /** For providing initial balances. */
+  gasToken: string
+}
 /** An address on a chain. */
 export type Address = string
 /** A chain's unique ID. */
@@ -12,13 +21,11 @@ export type Chain = ChainRef & ChainLog & ChainApi & ChainConnect & ChainPoll
 /** Reference to chain by id. */
 export type ChainRef = { id: ChainId }
 /** Chain as log event stream. */
-export type ChainLog = ChainRef & LoggingEntity & { log: ChainLogger }
+export type ChainLog = LoggingEntity<ChainId, ChainLogger>
 /** Connection provider method. */
-export type ChainConnect = { connect: ()=>Connection }
+export type ChainConnect = { connect: (url?: string|URL)=>Connection }
 /** Chain polling settings. */
 export type ChainPoll = { blockInterval: number, alive: boolean }
-/** Chain constructor arguments. */
-export type ChainConfig = ChainRef & Partial<ChainLog> & Partial<ChainConnect> & Partial<ChainPoll>
 /** Chain API methods. */
 export type ChainApi = ChainLog & ChainPoll & {
   /** Fetch defails about the latest block. */
@@ -44,15 +51,14 @@ export class ChainLogger extends Console {
 }
 /** Construct a chain from parameters. */
 export function chain <C extends Chain, A extends ChainApi> (
-  from:    Partial<C> = {},
-  methods: Partial<A> = {}
+  config: Partial<C> = {}, api: A
 ): C & { log: NonNullable<C["log"]> } {
-  if (!from.id) throw new Error('pass at least { id }')
-  from.log     ??= new ChainLogger(from.name || from.id || ChainLogger.unknownChain())
-  from.connect ??= () => connection({ connection: {}, methods: {} })
-  from.alive   ??= true
-  const chain = from as unknown as (C & A)
-  for (const m of Object.keys(methods)) {
+  const chain = config as unknown as (C & A)
+  if (!chain.id) throw new Error('pass at least { id }')
+  chain.log     ??= new ChainLogger(chain.name || chain.id || ChainLogger.unknownChain())
+  chain.connect ??= (url?: string|URL) => connection(chain as C, api as A, url)
+  chain.alive   ??= true
+  for (const m of Object.keys(api)) {
     /** This dispatches from a chain's method to the identically named method
       * on the connection returned by `connect()`, enabling  load balancing,
       * parallel querying of multiple endpoints, and other similar strategies
@@ -64,22 +70,20 @@ export function chain <C extends Chain, A extends ChainApi> (
       method(...args) }) as unknown as (C & A)[keyof A] }
   return chain
 }
-export function connection ({ connection, methods }: {
-  connection: Partial<Connection>, methods: Record<string, (...args: unknown[])=>unknown>
-}): Connection {
-  for (const [name, method] of Object.entries(methods)) {
-    Object.assign(connection, { [name]: (...args: unknown[]) => method(connection, ...args) })
+export function connection <C extends Chain, A extends ChainApi> (
+  chain: C,
+  api:   A,
+  url?:  string|URL
+): Connection {
+  const c: Partial<Connection> = {
+    chain,
+    url,
+    id: `${chain.id} @ ${url||'not connected'}`,
+    log: chain.log,
   }
-  return connection as Connection
-}
-
-/** Represents the backend of a managed chain (such as a devnet). */
-export type ChainBackend = LoggingEntity & {
-  chain:    Chain
-  connect   ():                 Promise<Chain>
-  connect   (name: string):     Promise<Agent>
-  connect   (identity: Signer): Promise<Agent>
-  getSigner (name: string):     Promise<Signer>
-  /** For providing initial balances. */
-  gasToken: string
+  for (const [name, method] of Object.entries(api)) {
+    c[name as keyof typeof c] = ((...args: unknown[]) =>
+      method(connection, ...args)) as unknown as any//typeof c[keyof typeof c]
+  }
+  return c as Connection
 }

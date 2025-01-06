@@ -1,3 +1,5 @@
+import { Format } from '../deps.ts'
+
 /** A 128-bit integer. */
 export type Uint128 = number|string|bigint
 
@@ -9,3 +11,5 @@ export type Decimal128 = number|string
 
 /** A 256-bit decimal fraction. */
 export type Decimal256 = number|string
+
+export const base16 = Format.base16

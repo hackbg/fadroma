@@ -68,9 +68,6 @@ export type Swap = Pair<SwapSide>
 /** One side of a swap. */
 export type SwapSide = TokenAmount|NonFungible|Array<(TokenAmount|NonFungible)>
 
-/////////////////////////////////
-
-
 /** An amount of a fungible token. */
 class TokenAmount {
   public amount: Uint128

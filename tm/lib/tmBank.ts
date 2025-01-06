@@ -1,12 +1,6 @@
-import type * as Tendermint from './tmTypes.ts'
-
-export function fetchBalance (connection: Tendermint.Connection) {
-  throw new Error("todo")
-}
-
-export function send (connection: Tendermint.Connection) {
-  throw new Error("todo")
-}
+import type { Connection } from './tmChain.ts'
+export function fetchBalance (connection: Connection) { throw new Error("todo") }
+export function send (connection: Connection) { throw new Error("todo") }
 
 //import type { Address } from '../deps.ts'
 //import { optionallyParallel } from '../deps.ts'

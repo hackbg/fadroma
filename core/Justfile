@@ -1,5 +1,5 @@
-check:
-  deno check index.ts
 test:
   deno test --coverage --allow-read=pkg 2>&1
   deno coverage
+check:
+  deno check index.ts
