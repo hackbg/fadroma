@@ -8,17 +8,19 @@ export type Address = string
 /** A chain's unique ID. */
 export type ChainId = string
 /** A chain's full representation. */
-export type Chain = ChainRef & ChainLog & ChainApi & ChainConnect
+export type Chain = ChainRef & ChainLog & ChainApi & ChainConnect & ChainPoll
 /** Reference to chain by id. */
 export type ChainRef = { id: ChainId }
 /** Chain as log event stream. */
 export type ChainLog = ChainRef & LoggingEntity & { log: ChainLogger }
 /** Connection provider method. */
 export type ChainConnect = { connect: ()=>Connection }
+/** Chain polling settings. */
+export type ChainPoll = { blockInterval: number }
 /** Chain constructor arguments. */
-export type ChainConfig = ChainRef & Partial<ChainLog> & Partial<ChainConnect>
+export type ChainConfig = ChainRef & Partial<ChainLog> & Partial<ChainConnect> & Partial<ChainPoll>
 /** Chain API methods. */
-export interface ChainApi {
+export type ChainApi = {
   /** Fetch defails about the latest block. */
   fetchBlock (): Promise<Block>
   /** Fetch defails about the block at the given height. */
@@ -41,35 +43,37 @@ export class ChainLogger extends Console {
   static noConnections = () => new Error('no connections')
 }
 /** Construct a chain from parameters. */
-export function chain <C extends Chain> (from: Partial<C>): C & { log: NonNullable<C["log"]> } {
-  if (!from.id || !from.connect) throw new Error('pass at least { id, connect }')
+export function chain <C extends Chain> (
+  from:    Partial<C>        = {},
+  methods: Partial<ChainApi> = {}
+): C & { log: NonNullable<C["log"]> } {
+  if (!from.id) throw new Error('pass at least { id }')
   if (!from.log) from.log = new ChainLogger(from.name || from.id || ChainLogger.unknownChain())
-  return bindChainMethods(from as C, [])
-}
-/** This provides dispatch from a chain's method to a connection's identically named methods,
-  * enabling load balancing, parallel querying of multiple endpoints, etc. */
-function bindChainMethods <C extends Chain> (from: C, methods: Array<keyof C>): C {
+  if (!from.connect) from.connect = () => connection({ connection: {}, methods: {} })
   const chain = from as unknown as (C & ChainApi)
-  for (const m of methods) {
-    chain[m as unknown as keyof C] = ((...args: any[]) => {
+  for (const m of Object.keys(methods)) {
+    /** This dispatches from a chain's method to the identically named method
+      * on the connection returned by `connect()`, enabling  load balancing,
+      * parallel querying of multiple endpoints, and other similar strategies
+      * to be implemented at the Chain object level (by hooking this logic). */
+    chain[m as unknown as keyof C] = ((...args: unknown[]) => {
       if (!chain.connect) throw ChainLogger.noConnections()
       const connection = chain.connect()
-      const method = connection[m as unknown as keyof Connection] as any
+      const method = connection[m as unknown as keyof Connection] as (...args: unknown[])=>unknown
       method(connection, ...args)
     }) as unknown as (C & ChainApi)[keyof ChainApi]
   }
   return chain
 }
 export function connection ({ connection, methods }: {
-  connection: Partial<Connection>,
-  methods:    Record<string, Function>
-}) {
+  connection: Partial<Connection>, methods: Record<string, (...args: unknown[])=>unknown>
+}): Connection {
   for (const [name, method] of Object.entries(methods)) {
     Object.assign(connection, {
       [name]: (...args: unknown[]) => method(connection, ...args)
     })
   }
-  return connection
+  return connection as Connection
 }
 
 /** Represents the backend of a managed chain (such as a devnet). */

@@ -24,13 +24,13 @@ export async function fetchBlock (chain: Chain, ...args: Parameters<Chain["fetch
       if ('height' in args[0] && !!args[0].height) {
         chain.log.debug(`Fetching block with height ${args[0].height}`)
         return chain.connect().fetchBlock({
-          raw:    args[0].raw,
+          //raw:    args[0].raw,
           height: BigInt(args[0].height as number)
         })
       } else if ('hash' in args[0] && !!args[0].hash) {
         chain.log.debug(`Fetching block with hash ${args[0].hash}`)
         return chain.connect().fetchBlock({
-          raw:  args[0].raw,
+          //raw:  args[0].raw,
           hash: args[0].hash as string,
         })
       }
