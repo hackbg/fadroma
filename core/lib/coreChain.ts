@@ -16,11 +16,11 @@ export type ChainLog = ChainRef & LoggingEntity & { log: ChainLogger }
 /** Connection provider method. */
 export type ChainConnect = { connect: ()=>Connection }
 /** Chain polling settings. */
-export type ChainPoll = { blockInterval: number }
+export type ChainPoll = { blockInterval: number, alive: boolean }
 /** Chain constructor arguments. */
 export type ChainConfig = ChainRef & Partial<ChainLog> & Partial<ChainConnect> & Partial<ChainPoll>
 /** Chain API methods. */
-export type ChainApi = {
+export type ChainApi = ChainLog & ChainPoll & {
   /** Fetch defails about the latest block. */
   fetchBlock (): Promise<Block>
   /** Fetch defails about the block at the given height. */
@@ -43,35 +43,32 @@ export class ChainLogger extends Console {
   static noConnections = () => new Error('no connections')
 }
 /** Construct a chain from parameters. */
-export function chain <C extends Chain> (
-  from:    Partial<C>        = {},
-  methods: Partial<ChainApi> = {}
+export function chain <C extends Chain, A extends ChainApi> (
+  from:    Partial<C> = {},
+  methods: Partial<A> = {}
 ): C & { log: NonNullable<C["log"]> } {
   if (!from.id) throw new Error('pass at least { id }')
-  if (!from.log) from.log = new ChainLogger(from.name || from.id || ChainLogger.unknownChain())
-  if (!from.connect) from.connect = () => connection({ connection: {}, methods: {} })
-  const chain = from as unknown as (C & ChainApi)
+  from.log     ??= new ChainLogger(from.name || from.id || ChainLogger.unknownChain())
+  from.connect ??= () => connection({ connection: {}, methods: {} })
+  from.alive   ??= true
+  const chain = from as unknown as (C & A)
   for (const m of Object.keys(methods)) {
     /** This dispatches from a chain's method to the identically named method
       * on the connection returned by `connect()`, enabling  load balancing,
       * parallel querying of multiple endpoints, and other similar strategies
       * to be implemented at the Chain object level (by hooking this logic). */
-    chain[m as unknown as keyof C] = ((...args: unknown[]) => {
+    chain[m as unknown as keyof A] = ((...args: unknown[]) => {
       if (!chain.connect) throw ChainLogger.noConnections()
       const connection = chain.connect()
       const method = connection[m as unknown as keyof Connection] as (...args: unknown[])=>unknown
-      method(connection, ...args)
-    }) as unknown as (C & ChainApi)[keyof ChainApi]
-  }
+      method(...args) }) as unknown as (C & A)[keyof A] }
   return chain
 }
 export function connection ({ connection, methods }: {
   connection: Partial<Connection>, methods: Record<string, (...args: unknown[])=>unknown>
 }): Connection {
   for (const [name, method] of Object.entries(methods)) {
-    Object.assign(connection, {
-      [name]: (...args: unknown[]) => method(connection, ...args)
-    })
+    Object.assign(connection, { [name]: (...args: unknown[]) => method(connection, ...args) })
   }
   return connection as Connection
 }

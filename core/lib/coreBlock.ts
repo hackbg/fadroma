@@ -1,5 +1,5 @@
 import type { Entity } from './coreEntity.ts'
-import type { Chain } from './coreChain.ts'
+import type { Chain, ChainApi } from './coreChain.ts'
 import type { Transaction } from './coreTx.ts'
 import { bold } from '../deps.ts'
 
@@ -16,20 +16,20 @@ export interface Block extends Entity {
 export type Height = number|bigint
 
 /** ementation of Chain#fetchBlock -> Connection#fetchBlock */
-export async function fetchBlock (chain: Chain, ...args: Parameters<Chain["fetchBlock"]>):
+export async function fetchBlock (chain: ChainApi, ...args: Parameters<Chain["fetchBlock"]>):
   Promise<Block>
 {
   if (args[0]) {
     if (typeof args[0] === 'object') {
       if ('height' in args[0] && !!args[0].height) {
         chain.log.debug(`Fetching block with height ${args[0].height}`)
-        return chain.connect().fetchBlock({
+        return chain.fetchBlock({
           //raw:    args[0].raw,
           height: BigInt(args[0].height as number)
         })
       } else if ('hash' in args[0] && !!args[0].hash) {
         chain.log.debug(`Fetching block with hash ${args[0].hash}`)
-        return chain.connect().fetchBlock({
+        return chain.fetchBlock({
           //raw:  args[0].raw,
           hash: args[0].hash as string,
         })
@@ -39,10 +39,10 @@ export async function fetchBlock (chain: Chain, ...args: Parameters<Chain["fetch
     }
   }
   chain.log.debug(`Fetching latest block`)
-  return chain.connect().fetchBlock()
+  return chain.fetchBlock()
 }
 
-export async function fetchNextBlock (chain: Chain):
+export async function fetchNextBlock (chain: ChainApi):
   Promise<bigint>
 {
   return chain.fetchHeight().then(async startingHeight=>{
@@ -54,7 +54,7 @@ export async function fetchNextBlock (chain: Chain):
     const t = + new Date()
     return new Promise(async (resolve, reject)=>{
       try {
-        const connection = chain.connect()
+        const connection = chain
         while (connection.alive) {
           await new Promise(ok=>setTimeout(ok, chain.blockInterval))
           chain.log(
