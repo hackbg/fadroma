@@ -19,7 +19,6 @@
 export * from './lib/coreAgent.ts'
 export * from './lib/coreBlock.ts'
 export * from './lib/coreChain.ts'
-export * from './lib/coreConnection.ts'
 export * from './lib/coreEntity.ts'
 export * from './lib/coreError.ts'
 export * from './lib/coreHash.ts'

@@ -5,4 +5,4 @@ export * as Oops from 'npm:@hackbg/oops'
 export * as Format from 'npm:@hackbg/4mat'
 
 export * as Logs from 'npm:@hackbg/logs'
-export { bold } from 'npm:@hackbg/logs'
+export { Console, bold } from 'npm:@hackbg/logs'

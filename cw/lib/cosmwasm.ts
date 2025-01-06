@@ -1,5 +1,8 @@
 import type { Address, Hash, Chain } from '../deps.ts'
 
+/** A contract's full unique on-chain label. */
+export type ContractLabel = string
+
 /** A code ID, identifying uploaded code on a chain. */
 export type CodeId = string|number
 
