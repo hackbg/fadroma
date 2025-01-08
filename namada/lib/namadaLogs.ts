@@ -1,5 +1,7 @@
+import type { Uint128 } from '../deps.ts'
+import type { Transaction } from './namadaTx.ts'
+import type { Validator } from './namadaValidator.ts'
 import { Console, bold } from '../deps.ts'
-import type * as Namada from './namadaTypes.ts'
 
 class NamadaConsole extends Console {
 
@@ -7,7 +9,7 @@ class NamadaConsole extends Console {
     this.warn("Decoder binary not provided; trying to decode Namada objects will fail.")
   }
 
-  printTx (tx: Partial<Namada.Transaction> = {}) {
+  printTx (tx: Partial<Transaction> = {}) {
     this.log('-', bold(`${tx.data?.txType} transaction:`))
       .log('  Chain ID:  ', bold(tx.chain?.id))
       .log('  Timestamp: ', bold(tx.data?.timestamp))
@@ -15,7 +17,7 @@ class NamadaConsole extends Console {
       .log('  Sections:  ', bold(tx.data?.sections?.length))
   }
 
-  printValidator (validator: Namada.Validator) {
+  printValidator (validator: Validator) {
     return this
       .log('Validator:      ', bold(validator.namadaAddress))
       .log('  Address:      ', bold(validator.address))

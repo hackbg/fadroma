@@ -3,5 +3,10 @@
   "imports": {
     "npm:@hackbg/fadroma":  "./core/index.ts",
     "npm:@fadroma/tm":      "./tm/index.ts"
+  },
+  "lint": {
+    "rules": {
+      "exclude": ["no-async-promise-executor"]
+    }
   }
 }

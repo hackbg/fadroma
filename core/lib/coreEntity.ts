@@ -31,3 +31,8 @@ export interface LoggingEntity<I extends Id, L extends Logs.Console> extends Ent
 
 /** Block hash. */
 export type Hash = string
+
+/** Slices first argument of implementation signature
+  * (see https://stackoverflow.com/a/67605309) */
+export type Method<F> = F extends (arg0: never, ...rest: infer R) =>
+  infer T ? ((...args: R) => T) : never

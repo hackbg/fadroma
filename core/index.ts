@@ -17,14 +17,9 @@
 **/
 
 export * from './lib/coreAgent.ts'
-export * from './lib/coreBlock.ts'
 export * from './lib/coreChain.ts'
 export * from './lib/coreEntity.ts'
 export * from './lib/coreError.ts'
+export * from './lib/coreLogger.ts'
 export * from './lib/coreNumber.ts'
 export * from './lib/coreTiming.ts'
-
-/** Slices first argument of implementation signature
-  * (see https://stackoverflow.com/a/67605309) */
-export type Method<F> = F extends (arg0: never, ...rest: infer R) =>
-  infer T ? ((...args: R) => T) : never

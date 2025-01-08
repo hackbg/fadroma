@@ -16,5 +16,4 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-export { connect } from './lib/namada.ts'
-export * from './lib/namadaTypes.ts'
+export * from './lib/namada.ts'

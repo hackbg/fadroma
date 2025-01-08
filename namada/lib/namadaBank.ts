@@ -1,4 +1,3 @@
-import type * as Namada from './namadaTypes.ts'
 import { decode, u256 } from '../deps.ts'
 
 export async function fetchBalance (connection: Namada.ConnectionBase, parameters: {
@@ -27,3 +26,4 @@ export async function fetchBalance (connection: Namada.ConnectionBase, parameter
   }
   return result
 }
+

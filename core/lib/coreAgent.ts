@@ -1,7 +1,7 @@
 import type { Logs } from '../deps.ts'
 import type { LoggingEntity, Hash } from './coreEntity.ts'
 import type { Chain, Address } from './coreChain.ts'
-import type { Batch } from './coreBlock.ts'
+import type { Batch } from './coreChain.ts'
 import type { Uint128 } from './coreNumber.ts'
 
 /** A cryptographic identity. */

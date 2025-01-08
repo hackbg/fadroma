@@ -1,4 +1,4 @@
-import type { Connection } from './tmChain.ts'
+import type { Connection } from './tm.ts'
 export function fetchBalance (connection: Connection) { throw new Error("todo") }
 export function send (connection: Connection) { throw new Error("todo") }
 
