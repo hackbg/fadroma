@@ -1,5 +1,5 @@
-import { base64, Chain, Identity, Agent, SigningConnection } from 'npm:@hackbg/fadroma'
-import type { ChainId, CodeHash, Message } from 'npm:@hackbg/fadroma'
+import { base64, Chain, Identity, Agent, SigningConnection } from '@hackbg/fadroma'
+import type { ChainId, CodeHash, Message } from '@hackbg/fadroma'
 import { SecretNetworkClient, Wallet } from 'npm:@hackbg/secretjs-esm'
 import type { EncryptionUtils } from 'npm:@hackbg/secretjs-esm'
 import { ScrtError as Error, bold, colors, assign, Bip39, Bip39EN } from './scrt-base'

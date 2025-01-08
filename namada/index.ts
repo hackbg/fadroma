@@ -17,3 +17,4 @@
 **/
 
 export * from './lib/namada.ts'
+export { NamadaLogger as Logger } from './lib/namadaLogs.ts'

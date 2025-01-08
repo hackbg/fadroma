@@ -1,6 +1,6 @@
 import type { TxResponse } from 'npm:@hackbg/secretjs-esm'
-import { Chain, Agent, Connection, Address, UploadedCode, Contract } from 'npm:@hackbg/fadroma'
-import type { CodeId, SigningConnection } from 'npm:@hackbg/fadroma'
+import { Chain, Agent, Connection, Address, UploadedCode, Contract } from '@hackbg/fadroma'
+import type { CodeId, SigningConnection } from '@hackbg/fadroma'
 import { bold, withIntoError } from './scrt-base'
 import faucets from './scrt-faucets'
 import type { ScrtChain, ScrtConnection } from './scrt-chain'

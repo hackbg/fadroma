@@ -1,5 +1,5 @@
-import 'npm:@hackbg/fadroma'
-import 'npm:@fadroma/tm'
+import '@hackbg/fadroma'
+import '@fadroma/tm'
 import './namada/index.ts'
 import './cw/index.ts'
 import './scrt/index.ts'

@@ -9,7 +9,7 @@ export const fetchEpoch = async ({ abciQuery }: ConnectionBase, height?: Height)
   }
   return decode(u64, await abciQuery("/shell/epoch"))
 }
-export const fetchEpochDuration = async ({ decode, fetchStorageValue }: ConnectionBase) =>
-  decode.epoch_duration(await fetchStorageValue(decode.storage_keys().epochDuration))
+export const fetchEpochDuration = async ({ decoder, fetchStorageValue }: ConnectionBase) =>
+  decoder.epoch_duration(await fetchStorageValue(decoder.storage_keys().epochDuration))
 export const fetchEpochFirstBlock = async ({ abciQuery }: ConnectionBase) =>
   Number(decode(u64, await abciQuery('/shell/first_block_height_of_current_epoch')))

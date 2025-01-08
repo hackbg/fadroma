@@ -1,12 +1,9 @@
+import type { ConnectionBase } from './namada.ts'
 import { decode, u256 } from '../deps.ts'
 
-export async function fetchBalance (connection: Namada.ConnectionBase, parameters: {
+export const fetchBalance = async ({ decoder, abciQuery }: ConnectionBase, parameters: {
   addresses: Record<string, string[]>,
-  parallel?: false
-}): Promise<Record<string, Record<string, string>>> {
-  if (parameters.parallel) {
-    connection.log.warn('Parallel balance fetching on Namada is not supported yet.')
-  }
+}): Promise<Record<string, Record<string, string>>> => {
   const result: Record<string, Record<string, string>> = {}
   for (const [address, tokens] of Object.entries(parameters.addresses)) {
     result[address] = {}
@@ -14,9 +11,9 @@ export async function fetchBalance (connection: Namada.ConnectionBase, parameter
       if (token.split('1')[1]?.length !== 40) {
         throw new Error(`Invalid token address: ${token}`)
       }
-      const balanceKey  = connection.decode.balance_key(token, address)
+      const balanceKey  = decoder.balance_key(token, address)
       const balanceAbci = `/shell/value/${balanceKey}`
-      const balance     = await connection.abciQuery(balanceAbci)
+      const balance     = await abciQuery(balanceAbci)
       if (balance.length > 0) {
         result[address][token] = String(decode(u256, balance))
       } else {

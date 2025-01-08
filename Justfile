@@ -10,3 +10,5 @@ fpush:
   git push --force
 ftpush:
   git push --tags --force
+cloc:
+  for mod in {core/lib,tm/lib,namada/lib}; do echo $mod; cloc $mod; done

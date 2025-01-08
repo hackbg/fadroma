@@ -1,8 +1,8 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Contract, Token } from 'npm:@hackbg/fadroma'
-import type { CodeHash, Uint128, Address } from 'npm:@hackbg/fadroma'
+import { Contract, Token } from '@hackbg/fadroma'
+import type { CodeHash, Uint128, Address } from '@hackbg/fadroma'
 import { ScrtConsole as Console, bold, colors, randomBase64 } from '../scrt-base'
 import type { Permit } from './snip-24'
 

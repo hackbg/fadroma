@@ -4,7 +4,7 @@
 import * as Devnet from 'npm:@fadroma/devnet'
 import * as Scrt from './scrt'
 import { fixture, testConnectionWithBackend } from 'npm:@fadroma/fixtures'
-import { Token } from 'npm:@hackbg/fadroma'
+import { Token } from '@hackbg/fadroma'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { webcrypto } from 'node:crypto'

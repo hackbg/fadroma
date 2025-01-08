@@ -1,10 +1,8 @@
+import type { ConnectionBase } from './namada.ts'
 export type PGFParameters = Partial<{
   stewards:              Set<string>
   pgfInflationRate:      bigint
   stewardsInflationRate: bigint
 }>
-
-export async function fetchPGFParameters (connection: Namada.ConnectionBase) {
-  const binary = await connection.abciQuery(`/vp/pgf/parameters`)
-  return connection.decode.pgf_parameters(binary)
-}
+export const fetchPGFParameters = async ({ decoder, abciQuery }: ConnectionBase) =>
+  decoder.pgf_parameters(await abciQuery(`/vp/pgf/parameters`))

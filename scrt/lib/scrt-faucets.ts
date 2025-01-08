@@ -4,7 +4,7 @@
 
 // Private module, don't reexport!
 
-import type { ChainId } from 'npm:@hackbg/fadroma'
+import type { ChainId } from '@hackbg/fadroma'
 
 export default {
   'secret-4': new Set([

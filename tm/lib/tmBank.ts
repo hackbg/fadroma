@@ -1,4 +1,20 @@
 import type { Connection } from './tm.ts'
+import type { Address, Uint128 } from '../deps.ts'
+import type { Fee } from './tmToken.ts'
+export type BankApi = {
+  fetchBalance (api: Connection, address: Address, token: string): Promise<Uint128>
+  fetchBalance (api: Connection, address: Address, tokens?: string[]): Promise<Record<string, Uint128>>
+  fetchBalance (api: Connection, addresses: Address[], token: string): Promise<Record<Address, Uint128>>
+  fetchBalance (api: Connection, addresses: Address[], tokens?: string): Promise<Record<Address, Record<string, Uint128>>>
+  /** Chain-specific implementation of native token transfer. */
+  send (api: Connection, parameters: SendOptions): Promise<unknown>
+}
+export type SendOptions = {
+  outputs: Record<Address, Record<string, Uint128>>,
+  sendFee?: Fee,
+  sendMemo?: string,
+  parallel?: boolean
+}
 export function fetchBalance (connection: Connection) { throw new Error("todo") }
 export function send (connection: Connection) { throw new Error("todo") }
 

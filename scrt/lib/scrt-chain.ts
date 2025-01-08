@@ -1,6 +1,6 @@
 import { SecretNetworkClient } from 'npm:@hackbg/secretjs-esm'
-import { Chain, Connection, Token, base16 } from 'npm:@hackbg/fadroma'
-import type { ChainId } from 'npm:@hackbg/fadroma'
+import { Chain, Connection, Token, base16 } from '@hackbg/fadroma'
+import type { ChainId } from '@hackbg/fadroma'
 import { ScrtAgent } from './scrt-identity'
 import { ScrtBlock } from './scrt-tx'
 import * as ScrtBank from './scrt-bank'

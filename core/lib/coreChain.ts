@@ -1,4 +1,4 @@
-import type { Hash, Entity, LoggingEntity } from './coreEntity.ts'
+import type { Hash, Entity, LoggingEntity, Method } from './coreEntity.ts'
 import type { Agent, Signer } from './coreAgent.ts'
 import { CoreLogger } from './coreLogger.ts'
 import { bold } from '../deps.ts'
@@ -16,13 +16,13 @@ export type Address = string
 /** A chain's unique ID. */
 export type ChainId = string
 /** Reference to chain by id. */
-export type ChainRef = { id: ChainId }
+export type ChainRef = Entity<ChainId>
 /** A chain's full representation. */
-export type Chain = ChainRef & ChainApi & { connect: (url?: string|URL)=>Connection };
+export type Chain = ChainRef & Api & { connect: (url?: string|URL)=>Connection };
 /** Represents an individual remote API endpoint. */
-export type Connection = ChainRef & ChainApi & { url?: string|URL }
+export type Connection = ChainRef & Api & { url?: string|URL }
 /** Chain API methods. */
-export type ChainApi = LoggingEntity<ChainId, CoreLogger> & {
+export type Api = LoggingEntity<ChainId, CoreLogger> & {
   /** Whether the connection is active. */
   live: boolean
   /** Fetch defails about the latest block. */
@@ -42,19 +42,13 @@ export type ChainApi = LoggingEntity<ChainId, CoreLogger> & {
 export type Height = number|bigint
 /** Global unit of event time. Contains zero or more transactions. */
 export type Block = Entity<string> & {
-  chain:  ChainRef
-  height: Height
-  header: unknown
-  transactions: Transaction[]
+  chain: ChainRef, height: Height, header: unknown, transactions: Transaction[]
 }
 /** A transaction hash, uniquely identifying an executed transaction on a chain. */
 export type TxHash = Hash
 /** A transaction in a block on a chain. */
 export type Transaction = Entity<TxHash> & {
-  chain: ChainRef,
-  block: Height,
-  hash:  Hash,
-  data:  unknown
+  chain: ChainRef, block: Height, hash: Hash, data: unknown
 }
 /** A batch of transactions. */
 export interface Batch {
@@ -64,14 +58,14 @@ export interface Batch {
   submit (agent: Agent): Promise<unknown>
 }
 /** Describe a chain. */
-export const chain = (state: Partial<Chain> = {}, api: ChainApi): Chain => {
-  const chain = state as unknown as Chain & ChainApi || {}
+export const chain = (state: Partial<Chain> = {}, api: Api): Chain => {
+  const chain = state as unknown as Chain & Api || {}
   if (!chain.id) throw new Error('pass at least { id }')
   chain.live = true
   chain.log ??= new CoreLogger(chain.name || chain.id || CoreLogger.unknownChain())
   chain.connect ??= (url?: string|URL) => connection(chain, api, url)
   const bind = (name: string, method: (...args: unknown[])=>unknown) => [
-    name as keyof ChainApi,
+    name as keyof Api,
     (...args: unknown[]) => method(chain.connect(), ...args)
   ]
   // The bound API:
@@ -81,75 +75,46 @@ export const chain = (state: Partial<Chain> = {}, api: ChainApi): Chain => {
   return chain
 }
 /** Describe a connection to a given `chain` by a given `url` */
-export const connection = (chain: Chain, api: ChainApi, url?: string|URL): Connection => {
-  const connection = {
-    ...chain, 
-    url,
-    log: new CoreLogger(chain.log.label + ' @ ' + url?.toString())
-  }
+export const connection = (chain: Chain, api: Api, url?: string|URL): Connection => {
+  const log = new CoreLogger(chain.log.label + ' @ ' + url?.toString())
+  const connection = { ...chain, url, log }
   const bind = (name: string, method: (...args: unknown[])=>unknown) => [
-    name as keyof ChainApi,
-    (...args: unknown[]) => method(connection, ...args)
+    name as keyof Api, (...args: unknown[]) => method(connection, ...args)
   ];
   // The bound API:
   const bound = Object.fromEntries(Object.entries(api).map(([name, method])=>bind(name, method)))
   Object.assign(connection, bound)
   return connection
 }
-export const fetchHeight = (chain: ChainApi): Promise<Height> =>
+export const fetchHeight = (chain: Api): Promise<Height> =>
   chain.fetchBlock().then(({ height })=>BigInt(height))
-export const fetchNextHeight = (chain: ChainApi, interval: number = 1000): Promise<bigint> =>
+export const fetchNextHeight = (chain: Api, interval: number = 1000): Promise<bigint> =>
   chain.fetchNextBlock(interval).then(({ height })=>BigInt(height))
-export const fetchNextBlock = (chain: ChainApi, interval: number = 1000): Promise<bigint> =>
+export const fetchNextBlock = (chain: Api, interval: number = 1000): Promise<bigint> =>
   chain.fetchHeight().then(startingHeight => {
     chain.log.waitingForNextBlock(startingHeight, interval)
     const t0 = performance.now()
-    return new Promise(async (resolve, reject)=>{
-      try {
-        const connection = chain
-        while (connection.live) {
-          const height = await chain.fetchHeight()
-          if (height > startingHeight) {
-            chain.log.log(`Block height incremented to ${bold(String(height))}, proceeding`)
-            return resolve(BigInt(height as unknown as number))
-          } else {
-            await new Promise(ok=>setTimeout(ok, interval))
-            const t1 = performance.now()
-            chain.log.waitingForNextBlock(startingHeight, interval, `+${(t1-t0)}ms`)
-          }
+    return new Promise(async (resolve, reject)=>{ try {
+      const connection = chain
+      while (connection.live) {
+        const height = await chain.fetchHeight()
+        if (height > startingHeight) {
+          const t1 = performance.now()
+          chain.log.waitingForNextBlock(startingHeight, interval, `@${(t1-t0)}ms: ${bold(String(height))}, proceeding`)
+          return resolve(BigInt(height as unknown as number))
+        } else {
+          await new Promise(ok=>setTimeout(ok, interval))
+          const t2 = performance.now()
+          chain.log.waitingForNextBlock(startingHeight, interval, `+${(t2-t0)}ms`)
         }
-        throw new Error('endpoint dead, not waiting for next block')
-      } catch (e) {
-        reject(e)
       }
-    })
+      throw new Error('endpoint dead, not waiting for next block')
+    } catch (e) {
+      reject(e)
+    } })
   })
-export const api = {
+export const impl = {
   fetchHeight,
   fetchNextHeight,
   fetchNextBlock,
 }
-
-//export function fetchBlock (chain: ChainApi, ...args: Parameters<Chain["fetchBlock"]>): Promise<Block> {
-  //if (args[0]) {
-    //if (typeof args[0] === 'object') {
-      //if ('height' in args[0] && !!args[0].height) {
-        //chain.log.fetchingBlockByHeight(args[0]?.height)
-        //return chain.fetchBlock({
-          ////raw:    args[0].raw,
-          //height: BigInt(args[0].height as number)
-        //})
-      //} else if ('hash' in args[0] && !!args[0].hash) {
-        //chain.log.fetchingBlockByHash(args[0]?.hash)
-        //return chain.fetchBlock({
-          ////raw:  args[0].raw,
-          //hash: args[0].hash as string,
-        //})
-      //}
-    //} else {
-      //throw new Error('Invalid arguments, pass {height:number} or {hash:string}')
-    //}
-  //}
-  //chain.log.debug(`Fetching latest block`)
-  //return chain.fetchBlock()
-//}

@@ -1,6 +1,6 @@
-import { optionallyParallel } from 'npm:@hackbg/fadroma'
+import { optionallyParallel } from '@hackbg/fadroma'
 import { withIntoError } from './scrt-base'
-import type { Address, Token, Chain, Connection, SigningConnection } from 'npm:@hackbg/fadroma'
+import type { Address, Token, Chain, Connection, SigningConnection } from '@hackbg/fadroma'
 import type { ScrtConnection } from './scrt-chain'
 import type { ScrtSigningConnection } from './scrt-identity'
 
