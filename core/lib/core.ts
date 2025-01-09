@@ -184,13 +184,14 @@ export const impl: Impl<Api, Deps & Api> = {
 }
 /** A cryptographic identity. */
 export type Signer = {
-  publicKey?: Hash, sign (_: unknown): unknown
+  publicKey?: Hash,
+  sign (_: unknown): unknown
 }
 /** Binds an `Signer` to a `Chain`, enabling broadcasting of transactions. */
 export type Agent = Signer & AgentApi & LoggingEntity<Hash, Console> & {
-  chain: Chain,
+  chain:   () => ChainRef,
+  batch:   () => Batch,
   address: Address,
-  batch(): Batch
 }
 export type AgentApi = {
   fetchBalance (): Promise<Record<string, Uint128>>

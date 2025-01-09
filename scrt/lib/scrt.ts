@@ -72,14 +72,14 @@ export type Identity = {
   address?: Address,
   encryptionUtils?: EncryptionUtils
 }
-export interface Agent {
+export type Agent = Core.Agent & {
   log:      Console,
   address:  Address,
   chain:    () => Core.ChainRef,
   identity: Identity,
   /** Set permissive fees by default. */
   fees: { upload: Tendermint.Fee, init: Tendermint.Fee, exec: Tendermint.Fee, send: Tendermint.Fee },
-  setMaxGas: () => Promise<this>,
+  setMaxGas: () => Promise<void>,
   account: ReturnType<SecretNetworkClient['query']['auth']['account']>,
   getNonce: () => Promise<{ accountNumber: number, sequence: number }>,
   encrypt: (codeHash: CosmWasm.CodeHash, msg: CosmWasm.Message) => any,
@@ -216,11 +216,11 @@ export const agentMethods = (chain: Chain, agent: Agent, api: SecretNetworkClien
     exec:   gasToken.fee(1000000),
     send:   gasToken.fee(1000000),
   },
-  setMaxGas: async () => {
-    const { gas } = await chain.fetchLimits()
+  setMaxGas: async (deps: AgentDeps, gas?: unknown) => {
+    gas ??= (await chain.fetchLimits()).gas
     const max = gasToken.fee(gas)
-    this.fees = { upload: max, init: max, exec: max, send: max }
-    return this
+    deps.fees = { upload: max, init: max, exec: max, send: max }
+    return deps
   },
   get account (): ReturnType<SecretNetworkClient['query']['auth']['account']> {
     return api.query.auth.account({ address: agent.address })

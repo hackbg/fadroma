@@ -42,9 +42,9 @@ export type BatchResult = {
 }
 export const batch = (agent: Agent, api?: SecretNetworkClient): BatchDeps => {
   const batch: BatchDeps = {
-    log: agent.log,
+    log:   agent.log,
+    chain: agent.chain,
     agent,
-    chain: () => ({ id: agent.chain.id }), 
     api,
     messages: [],
     add: (): Batch & BatchDeps => batch,
