@@ -32,7 +32,6 @@ import {
 import * as Bank from './scrtBank.ts'
 import * as Batch from './scrtBatch.ts'
 import * as Compute from './scrtCompute.ts'
-import faucets from './scrtFaucet.ts'
 export class Error extends Tendermint.Error {}
 export class Console extends Tendermint.Console {
   override label = '@fadroma/scrt'
@@ -74,6 +73,7 @@ export type Identity = {
   encryptionUtils?: EncryptionUtils
 }
 export interface Agent {
+  log:      Console,
   address:  Address,
   chain:    () => Core.ChainRef,
   identity: Identity,
@@ -149,12 +149,9 @@ const chainMethods = (api: any) => Object.assign(api, {
     }
     return connection
   },
-  connect: ({ chainId, urls = [] }: { chainId: Core.ChainId, urls: (string|URL)[] }): Promise<Chain> => {
-    const chain = new Chain({ chainId })
-    const connections = urls.map(url=>new Connection({
-      chain,
-      url: url.toString()
-    }))
+  connect: ({ id, urls = [] }: { id: Core.ChainId, urls: (string|URL)[] }): Chain => {
+    const chain = Tendermint.chain({ id, urls })
+    const connections = urls.map(url=>new Connection({ chain, url: url.toString() }))
     chain.connections = connections
     return chain
   },
@@ -178,6 +175,26 @@ const chainMethods = (api: any) => Object.assign(api, {
       }),
 })
 export const connectionMethods = (api: SecretNetworkClient) => ({
+  fetchBalance:       Bank.fetchBalance,
+  fetchCodeInfo:      Compute.fetchCodeInfo,
+  fetchCodeInstances: Compute.fetchCodeInstances,
+  fetchContractInfo:  Compute.fetchContractInfo,
+  query:              Compute.query,
+  fetchBlock: async (parameter?): Promise<Block> => {
+    if (!parameter) {
+      let {
+        block_id: { hash, part_set_header } = {},
+        block: { header, data, evidence, last_commit } = {}
+      } = await api.query.tendermint.getLatestBlock({})
+      if (hash instanceof Uint8Array) {
+        hash = base16.encode(hash) as any
+      }
+      return {
+        id: hash as any,
+        height: Number(header?.height)
+      } as Block
+    }
+  },
   //constructor: (properties?: Partial<Connection>) => {
     ////super(properties as Partial<Connection>)
     //api.api ??= new SecretNetworkClient({ url: api.url!, chainId: api.chainId!, })
@@ -190,27 +207,6 @@ export const connectionMethods = (api: SecretNetworkClient) => ({
     //}
     //api.api = new SecretNetworkClient({ chainId, url })
   //},
-  fetchBlock: async (parameter?): Promise<Block> => {
-    if (!parameter) {
-      let {
-        block_id: { hash, part_set_header } = {},
-        block: { header, data, evidence, last_commit } = {}
-      } = await api.api.query.tendermint.getLatestBlock({})
-      if (hash instanceof Uint8Array) {
-        hash = base16.encode(hash) as any
-      }
-      return {
-        id: hash as any,
-        height: Number(header?.height)
-      } as Block
-    }
-  },
-  fetchHeight:        async () => (await api.fetchBlockImpl()).height,
-  fetchBalance:       Bank.fetchBalance,
-  fetchCodeInfo:      Compute.fetchCodeInfo,
-  fetchCodeInstances: Compute.fetchCodeInstances,
-  fetchContractInfo:  Compute.fetchContractInfo,
-  query:              Compute.query,
 })
 export const agentMethods = (chain: Chain, agent: Agent, api: SecretNetworkClient) => ({
   batch: (): Batch.Batch => Batch.batch(agent),

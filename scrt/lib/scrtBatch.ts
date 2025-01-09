@@ -1,6 +1,5 @@
 import {
   Address,
-  Agent,
   ChainId,
   ChainRef,
   CodeHash,
@@ -16,7 +15,7 @@ import {
   Tendermint,
   bold
 } from '../deps.ts'
-import type { Console } from './scrt.ts'
+import type { Console, Agent } from './scrt.ts'
 export type Batch = Tendermint.Batch & {
   /** Messages to encrypt. */
   messages: Array<BatchMessage>
@@ -42,14 +41,14 @@ export type BatchResult = {
   label?:    Label
 }
 export const batch = (agent: Agent, api?: SecretNetworkClient): BatchDeps => {
-  const batch = {
+  const batch: BatchDeps = {
     log: agent.log,
     agent,
     chain: () => ({ id: agent.chain.id }), 
     api,
     messages: [],
-    add: (): BatchDeps => batch,
-    submit: async (_agent: Agent) => { throw new Error('todo') },
+    add: (): Batch & BatchDeps => batch,
+    submit: (_agent: Agent) => { throw new Error('todo') },
   }
   return batch
 }
@@ -134,16 +133,16 @@ export const encryptExec = async (agent: Agent, exec: {
   callback_sig: null,
   callback_code_hash: '',
 })
-const simulateBatch = ({ api }: BatchDeps) =>
-  Promise.resolve(api).then(api=>api.tx.simulate(batch.messages))
+const simulateBatch = ({ api, messages }: Batch) =>
+  Promise.resolve(api).then(api=>api.tx.simulate(messages))
 const submitBatch = async ({ chain, api, fees, messages, agent, log }: BatchDeps, { memo = "" }: { memo: string }): Promise<BatchResult[]> => {
-  const api = await Promise.resolve(batch.chain!.api)
+  //const api = await Promise.resolve(batch.chain!.api)
   const chainId  = chain().id
   const limit    = Number(fees?.exec?.amount[0].amount) || undefined
   const gas      = messages.length * (limit || 0)
   const results: BatchResult[] = []
   try {
-    const txResult = await api.tx.broadcast(messages as any, { gasLimit: gas })
+    const txResult = await api!.tx.broadcast(messages as any, { gasLimit: gas })
     if (txResult.code !== 0) {
       const error = `(in batch): gRPC error ${txResult.code}: ${txResult.rawLog}`
       throw Object.assign(new Error(error), txResult)
@@ -183,14 +182,14 @@ const submitBatch = async ({ chain, api, fees, messages, agent, log }: BatchDeps
 /** Format the messages for API v1beta1 like secretcli and generate a multisig-ready
   * unsigned transaction batch; don't execute it, but save it in
   * `state/$CHAIN_ID/transactions` and output a signing command for it to the console. */
-const saveBatch = async ({ log, agent, messages: encryptedMessages }: BatchDeps, name?: string) => {
+const saveBatch = async ({ log, agent, chain, messages: encryptedMessages }: BatchDeps, name?: string) => {
   // Number of batch, just for identification in console
   name ??= name || `TX.${+new Date()}`
   // Get signer's account number and sequence via the canonical API
   const { accountNumber, sequence } = await agent!.getNonce()//chain.url, chain!.address)
   // Print the body of the batch
   log.debug(`Messages in batch:`)
-  for (const msg of messages??[]) {
+  for (const msg of encryptedMessages??[]) {
     log.debug(' ', JSON.stringify(msg))
   }
   // The base Batch class stores messages as (immediately resolved) promises
@@ -213,7 +212,7 @@ const saveBatch = async ({ log, agent, messages: encryptedMessages }: BatchDeps,
     .info(`Run the following command to sign the batch:
 \nsecretcli tx sign /dev/stdin --output-document=${output} \\
 --offline --from=YOUR_MULTISIG_MEMBER_ACCOUNT_NAME_HERE --multisig=${agent!.address} \\
---chain-id=${chain!.chainId} --account-number=${accountNumber} --sequence=${sequence} \\
+--chain-id=${chain().id} --account-number=${accountNumber} --sequence=${sequence} \\
 <<< ${txdata}`)
     .br()
     .debug(`Batch contents:`, JSON.stringify(unsigned, null, 2))
