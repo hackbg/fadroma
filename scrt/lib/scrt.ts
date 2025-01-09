@@ -40,12 +40,6 @@ import faucets from './scrtFaucet.ts'
 export class Error extends Tendermint.Error {}
 export class Console extends Tendermint.Console {
   override label = '@fadroma/scrt'
-  withIntoError = <T>(p: Promise<T>): Promise<T> => p.catch(this.intoError)
-  intoError = async (e: object)=>{
-    e = await Promise.resolve(e)
-    this.error(e)
-    throw Object.assign(new Error(), e)
-  }
 }
 export const console = new Console()
 /** Represents a Secret Network API endpoint. */
@@ -61,7 +55,21 @@ export type Chain = Tendermint.Chain & {
   connections:   Connection[],
 }
 /** Represents the dependencies of the API methods. */
-export type Deps = Tendermint.Deps
+export type Deps = Tendermint.Deps & {
+  withIntoError <T>(p: Promise<T>): Promise<T>
+  api: SecretNetworkClient,
+}
+export type AgentDeps = Deps & {
+  agent:   Agent,
+  address: Address,
+  wallet:  Wallet,
+  fees: {
+    upload: Tendermint.Fee,
+    init:   Tendermint.Fee,
+    exec:   Tendermint.Fee, 
+    send:   Tendermint.Fee
+  },
+}
 export type Block = Tendermint.Block
 export type Batch = Tendermint.Batch & {
   /** Messages to encrypt. */
@@ -99,7 +107,13 @@ export type Agent = Tendermint.Agent & {
 /** Smallest unit of native token. */
 export const gasToken = new Token.Native('uscrt')
 
-const chainMethods = (api: any) => Object.assign(x, {
+const chainMethods = (api: any) => Object.assign(api, {
+  withIntoError: <T>(p: Promise<T>): Promise<T> => p.catch(api.intoError),
+  intoError: async (e: object) => {
+    e = await Promise.resolve(e)
+    api.error(e)
+    throw Object.assign(new Error(), e)
+  },
   getConnection: (): Connection => {
     const [connection] = api.connections || []
     if (!connection) {

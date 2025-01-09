@@ -1,14 +1,14 @@
 import { Address, CosmWasm, bold } from '../deps.ts'
 import type { TxResponse } from '../deps.ts'
-import type { Deps, Connection } from './scrt.ts'
+import type { Deps, AgentDeps, Connection } from './scrt.ts'
 import faucets from './scrtFaucet.ts'
 export const fetchCodeInfo = async (
-  { chain, api }: Deps, ...args: Parameters<CosmWasm.Api["fetchCodeInfo"]>
+  { chain, api, withIntoError }: Deps, ...args: Parameters<CosmWasm.Api["fetchCodeInfo"]>
 ): Promise<Record<CosmWasm.CodeId, CosmWasm.UploadedCode>> => {
   const result: Record<CosmWasm.CodeId, CosmWasm.UploadedCode> = {}
   await withIntoError(api.query.compute.codes({})).then(({code_infos})=>{
     for (const { code_id, code_hash, creator } of code_infos||[]) {
-      if (!args?.codeIds || args.codeIds.includes(code_id!)) {
+      if (!args[0] || args[0].includes(code_id!)) {
         result[code_id!] = new UploadedCode({
           chainId:  chain().id,
           codeId:   code_id,
@@ -21,9 +21,9 @@ export const fetchCodeInfo = async (
   return result
 }
 export const fetchCodeInstances = async (
-  { chain, api, log }: Deps, ...args: Parameters<CosmWasm.Api["fetchCodeInstances"]>
+  { chain, api, log, withIntoError }: Deps, ...args: Parameters<CosmWasm.Api["fetchCodeInstances"]>
 ): Promise<Record<CosmWasm.CodeId, Record<Address, CosmWasm.Contract>>> => {
-  if (args.parallel) log.warn('fetchCodeInstances in parallel: not implemented')
+  if (args[2]?.parallel) log.warn('fetchCodeInstances in parallel: not implemented')
   const result: Record<CosmWasm.CodeId, Record<Address, CosmWasm.Contract>> = {}
   for (const [codeId, Contract] of Object.entries(args.codeIds)) {
     let codeHash: string
@@ -49,7 +49,7 @@ export const fetchCodeInstances = async (
   return result
 }
 export const fetchContractInfo = async (
-  { chain, api, log }: Deps, ...args: Parameters<CosmWasm.Api["fetchContractInfo"]>
+  { chain, api, log, withIntoError }: Deps, ...args: Parameters<CosmWasm.Api["fetchContractInfo"]>
 ): Promise<{
   [address in keyof typeof args["contracts"]]: InstanceType<typeof args["contracts"][address]>
 }> => {
@@ -69,21 +69,21 @@ export const fetchContractInfo = async (
       //.ContractInfo!.label!
   //}
 }
-export const query = async (conn: Deps, args: Parameters<Connection["queryImpl"]>[0]) => {
-  const api = await Promise.resolve(conn.api)
+export const query = async (deps: Deps, args: Parameters<Connection["queryImpl"]>[0]) => {
+  const { withIntoError } = deps
+  const api = await Promise.resolve(deps.api)
   return withIntoError(api.query.compute.queryContract({
     contract_address: args.address,
     code_hash:        args.codeHash,
     query:            args.message as Record<string, unknown>
   }))
 }
-export const upload = async (
-  { chain, api, address, fees, log }: AgentDeps, ...args: Parameters<CosmWasm.Api["upload"]>
-) => {
+export const upload = async (deps: AgentDeps, ...args: Parameters<CosmWasm.Api["upload"]>) => {
+  const { chain, api, address, fees, log, withIntoError } = deps
   const gasLimit = Number(fees.upload?.amount[0].amount) || undefined
   const result = await withIntoError(api.tx.compute.storeCode({
     sender:         address,
-    wasm_byte_code: args.binary,
+    wasm_byte_code: args[0].binary,
     source:         "",
     builder:        ""
   }, { gasLimit }))
@@ -117,9 +117,9 @@ export const upload = async (
     log.error(`Code ID not found in result`, { result })
     throw new Error('upload failed')
   }
-  const { codeHash } = await agent.chain.fetchCodeInfo(codeId)
+  const { codeHash } = await fetchCodeInfo(deps, codeId)
   return new CosmWasm.UploadedCode({
-    chainId:   agent.chain.chainId,
+    chainId:   chain().id,
     codeId,
     codeHash,
     uploadBy:  address,
@@ -128,7 +128,7 @@ export const upload = async (
   })
 }
 export const instantiate = async (
-  { chain, api, address, log, fees }: AgentDeps, ...args: Parameters<CosmWasm.Api["instantiate"]>
+  { chain, api, address, log, fees, withIntoError }: AgentDeps, ...args: Parameters<CosmWasm.Api["instantiate"]>
 ) => {
   const parameters = {
     sender:     address,
@@ -146,11 +146,7 @@ export const instantiate = async (
     api.tx.compute.instantiateContract(parameters, instantiateOptions)
   )
   if (result.code !== 0) {
-    log.error('Init failed:', {
-      parameters,
-      instantiateOptions,
-      result
-    })
+    log.error('Init failed:', { parameters, instantiateOptions, result })
     throw new Error(`init of code id ${args[0].codeId} failed`)
   }
   return new Contract({
@@ -170,7 +166,7 @@ export const execute = async (
   { api, log, address }: AgentDeps, ...args: Parameters<CosmWasm.Api["execute"]>
 ) => {
   const tx = {
-    sender:           conn.address!,
+    sender:           address!,
     contract_address: args[0].address,
     code_hash:        args[0].codeHash,
     msg:              args[0].message as Record<string, unknown>,

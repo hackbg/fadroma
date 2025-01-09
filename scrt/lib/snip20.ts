@@ -145,9 +145,9 @@ const fetchMetadata = async (deps: Snip20Deps): Promise<deps> => {
     throw new Error("can't fetch metadata without agent")
   }
   return Promise.all([
-    deps.chain.fetchContractInfo(deps.address).then(({codeHash}) =>
+    fetchContractInfo(deps, deps.address).then(({codeHash}) =>
       deps.codeHash = codeHash),
-    deps.fetchTokenInfo().then(({ name, symbol, decimals, total_supply }: Snip20TokenInfo) =>
+    fetchTokenInfo(deps).then(({ name, symbol, decimals, total_supply }: Snip20TokenInfo) =>
       Object.assign(deps, { name, symbol, decimals, total_supply }))
   ]).then(()=>deps)
 }
