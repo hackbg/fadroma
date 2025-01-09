@@ -69,7 +69,7 @@ export type EndBlockEvent = {
 }
 /** Describe a Tendermint chain. */
 export const chain = (state: Partial<Core.Chain> & ChainOptions, api = impl): Chain =>
-  Core.chain(state, api)
+  Core.chain(state, api as any) as Chain
 /** Dependencies of Tendermint API methods. */
 export type Deps = Core.Deps
 /** Methods available for interacting with Tendermint chains. */

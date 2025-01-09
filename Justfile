@@ -1,7 +1,10 @@
+test:
+  deno test --coverage --allow-read=./namada/pkg/fadroma_namada_bg.wasm test.ts
+  deno coverage
+cov:
+  deno coverage --detailed
 check:
   deno check test.ts
-test:
-  deno test --coverage test.ts
 push:
   git push
 tpush:

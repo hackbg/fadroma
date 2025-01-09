@@ -81,7 +81,7 @@ export interface Batch {
   submit (agent: Agent): Promise<unknown>
 }
 /** Describe a chain. */
-export const chain = <A extends Api, D extends Deps>(state: Partial<Chain> = {}, api: Impl<A, D>): Chain => {
+export const chain = (state: Partial<Chain> = {}, api = impl): Chain => {
   const chain = state as unknown as Chain & Api || {}
   if (!chain.id) throw new Error('pass at least { id }')
   chain.live  = true
@@ -98,7 +98,7 @@ export const chain = <A extends Api, D extends Deps>(state: Partial<Chain> = {},
   return chain
 }
 /** Describe a connection to a given `chain` by a given `url` */
-export const connection = <A extends Api, D extends Deps>(chain: Chain, api: Impl<A, D>, url?:  string|URL): Connection => {
+export const connection = (chain: Chain, api = impl, url?: string|URL): Connection => {
   const log = new Console(chain.log.label + ' @ ' + url?.toString())
   const connection = { ...chain, url, log }
   const bind = (name: string, method: (...args: any[])=>any) => [

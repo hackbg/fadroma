@@ -1,16 +1,11 @@
 import * as Namada from '../index.ts'
 import { readFileSync } from 'node:fs'
-import { initDecoder } from '../lib/namada.ts'
-import { Console } from '../lib/namadaLogs.ts'
-
+import { Console, initDecoder } from '../lib/namada.ts'
 const console = new Console('test')
-
-const decoder = await initDecoder(readFileSync('./pkg/fadroma_namada_bg.wasm'))
+const decoder = await initDecoder(readFileSync('./namada/pkg/fadroma_namada_bg.wasm'))
 console.log(decoder.storage_keys())
-
 const url = 'https://rpc.knowable.run/'
-const namada = await Namada.connect({ url })
-
+const namada = await Namada.chain({ id: 'test', url })
 
 //console.log(await namada.getConnection().abciQuery(
   //'/shell/value/#tnam1qsqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxdl54l/max_tx_bytes'

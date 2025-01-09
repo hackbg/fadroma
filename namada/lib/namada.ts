@@ -1,13 +1,13 @@
 import { Core, Tendermint } from '../deps.ts'
 import init, { Decode } from '../pkg/fadroma_namada.js'
 import type { Decoder } from './namadaDecode.ts'
-import * as Bank from './namadaBank.ts'
+import * as Bank  from './namadaBank.ts'
 import * as Block from './namadaBlock.ts'
-import * as Pos from './namadaPos.ts'
+import * as Pos   from './namadaPos.ts'
 import * as Epoch from './namadaEpoch.ts'
-import * as Gov from './namadaGov.ts'
-import * as Pgf from './namadaPgf.ts'
-import * as Val from './namadaValidator.ts'
+import * as Gov   from './namadaGov.ts'
+import * as Pgf   from './namadaPgf.ts'
+import * as Val   from './namadaValidator.ts'
 /** A Namada error. */
 export class Error extends Tendermint.Error {}
 /** A Namada logger. */
@@ -39,7 +39,7 @@ export async function chain (properties: Parameters<typeof Tendermint.chain>[0] 
   chain.connect = (url?: string|URL) => {
     if (!url) throw new Error('pass rpc url')
     url = url.toString()
-    return chain.connections[url] ??= Core.connection(chain, impl, url) as Connection
+    return chain.connections[url] ??= Core.connection(chain, impl as any, url) as Connection
   }
   return chain
 }
