@@ -1,6 +1,5 @@
 import { Core, Tendermint } from '../deps.ts'
 import init, { Decode } from '../pkg/fadroma_namada.js'
-import { NamadaLogger as Console } from './namadaLogs.ts'
 import type { Decoder } from './namadaDecode.ts'
 import * as Bank from './namadaBank.ts'
 import * as Block from './namadaBlock.ts'
@@ -8,7 +7,22 @@ import * as Pos from './namadaPos.ts'
 import * as Epoch from './namadaEpoch.ts'
 import * as Gov from './namadaGov.ts'
 import * as Pgf from './namadaPgf.ts'
-import * as Validator from './namadaValidator.ts'
+import * as Val from './namadaValidator.ts'
+/** A Namada error. */
+export class Error extends Tendermint.Error {}
+/** A Namada logger. */
+export class Console extends Tendermint.Console {
+  warnNoDecoder = () =>
+    this.warn("Decoder binary not provided; trying to decode Namada objects will fail.")
+}
+/** The dependencies expected by Namada API methods. */
+export type ApiDeps = Tendermint.Connection & {
+  log:               Console
+  chain:             () => Core.ChainRef
+  abciQuery:         (path: string) => Promise<Uint8Array>
+  fetchStorageValue: (key:  string) => Promise<Uint8Array>
+  decoder:           Decoder
+}
 /** Methods available for interacting with Namada chains. */
 export type Api = Tendermint.Api & {
   fetchStorageValue:            Core.Method<typeof fetchStorageValue>
@@ -28,20 +42,19 @@ export type Api = Tendermint.Api & {
   fetchProposalResult:          Core.Method<typeof Gov.fetchProposalResult>
   fetchProposalVotes:           Core.Method<typeof Gov.fetchProposalVotes>
   fetchProposalWasm:            Core.Method<typeof Gov.fetchProposalWasm>
-  fetchPGFParameters:           Core.Method<typeof Pgf.fetchPGFParameters>
-  fetchValidator:               Core.Method<typeof Validator.fetchValidator>
-  fetchValidatorAddresses:      Core.Method<typeof Validator.fetchValidatorAddresses>
-  fetchValidatorStake:          Core.Method<typeof Validator.fetchValidatorStake>
-  fetchValidators:              Core.Method<typeof Validator.fetchValidators>
-  fetchValidatorsBelowCapacity: Core.Method<typeof Validator.fetchValidatorsBelowCapacity>
-  fetchValidatorsConsensus:     Core.Method<typeof Validator.fetchValidatorsConsensus>
-  fetchValidatorsIter:          Core.Method<typeof Validator.fetchValidatorsIter>
+  fetchPgfParameters:           Core.Method<typeof Pgf.fetchPgfParameters>
+  fetchValidator:               Core.Method<typeof Val.fetchValidator>
+  fetchValidatorAddresses:      Core.Method<typeof Val.fetchValidatorAddresses>
+  fetchValidatorStake:          Core.Method<typeof Val.fetchValidatorStake>
+  fetchValidators:              Core.Method<typeof Val.fetchValidators>
+  fetchValidatorsBelowCapacity: Core.Method<typeof Val.fetchValidatorsBelowCapacity>
+  fetchValidatorsConsensus:     Core.Method<typeof Val.fetchValidatorsConsensus>
+  fetchValidatorsIter:          Core.Method<typeof Val.fetchValidatorsIter>
 }
 /** A Namada chain. */
-export type Chain = Tendermint.Chain & Api & {
-  readonly connections: Record<string, Connection>,
-  connect (url: string|URL): Connection
-}
+export type Chain = Tendermint.Chain & Api & { readonly connections: Record<string, Connection> }
+/** A connection to a Namada chain. */
+export type Connection = ApiDeps & Api
 /** Describe a Namada chain. */
 export async function chain (properties: Parameters<typeof Tendermint.chain>[0] & {
   decoder?: string|URL|Uint8Array
@@ -66,16 +79,6 @@ export async function chain (properties: Parameters<typeof Tendermint.chain>[0] 
   }
   return chain
 }
-/** A connection to a Namada chain. */
-export type Connection = ApiDeps & Api
-/** The dependencies of Namada API methods. */
-export type ApiDeps = Tendermint.Connection & {
-  chain (): Core.ChainRef
-  abciQuery (path: string): Promise<Uint8Array>
-  fetchStorageValue (key: string): Promise<Uint8Array>
-  log: Console
-  decoder: Decoder
-}
 export const coinType = 118
 export const bech32Prefix = 'tnam'
 export const hdAccountIndex = 0
@@ -93,9 +96,7 @@ export const fetchProtocolParameters = async (api: ApiDeps) => {
   const { decoder } = api
   const parameters: Record<string, unknown> = {}
   await Promise.all(Object.entries(decoder.storage_keys())
-    .map(([name, key])=>fetchStorageValue(
-      api, key as string
-    ).then(binary=>{
+    .map(([name, key])=>fetchStorageValue(api, key as string).then(binary=>{
       if (binary.length === 0) return
       switch (name) {
         case 'gasCostTable':
@@ -119,14 +120,6 @@ export const fetchProtocolParameters = async (api: ApiDeps) => {
 }
 /** Default implementation of Namada client API. */
 export const impl = {
-  ...Tendermint.impl,
-  ...Bank,
-  ...Block,
-  ...Pos,
-  ...Epoch,
-  ...Gov,
-  ...Pgf,
-  ...Validator,
-  fetchStorageValue,
-  fetchProtocolParameters,
+  ...Tendermint.impl, ...Bank, ...Block, ...Pos, ...Epoch, ...Gov, ...Pgf, ...Val,
+  fetchStorageValue, fetchProtocolParameters,
 }

@@ -1,9 +1,49 @@
-import type { Hash, Entity, LoggingEntity, Method } from './coreEntity.ts'
-import type { Agent, Signer } from './coreAgent.ts'
-import { CoreLogger } from './coreLogger.ts'
-import { bold } from '../deps.ts'
+import type { Uint128 } from './coreNumber.ts'
+import { Oops, Logs, bold, randomColor } from '../deps.ts'
+/** A Fadroma error. */
+export class Error extends Oops.Error {}
+/** A Fadroma logger. */
+export class Console extends Logs.Console {
+  static unknownChains = 0
+  static unknownChain  = () => `Unknown chain #${++this.unknownChains}`
+  static noConnections = () => new Error('no connections')
+  fetchingBlockByHeight = (h: unknown, ...args: unknown[]) =>
+    this.debug(`fetching block by height ${h}`, ...args)
+  fetchingBlockByHash = (h: unknown, ...args: unknown[]) =>
+    this.debug(`fetching block by hash ${h}`, ...args)
+  waitingForNextBlock = (h: unknown, t: unknown, ...args: unknown[]) =>
+    this.debug(`checking for block >${h} every ${t}ms`, ...args)
+}
+/** An unique string-based identifier. */
+export type Id = string|number|bigint
+/** A color. */
+export type Color = unknown;
+/** The name of a deployment unit. Used to generate contract label. */
+export type Name = string
+/** Represents a uniquely identifiable entity. */
+export interface Entity<I extends Id> {
+  /** Unique identifier. */
+  id:     I
+  /** Human-friendly name. */
+  name?:  Name
+  /** Identifying color. */
+  color?: Color
+}
+export function assignColor <I extends Id> (identity: Entity<I>): Entity<I> & { color: unknown } {
+  identity.color = randomColor({ luminosity: 'dark', seed: String(identity.id) })
+  return identity as Entity<I> & { color: unknown }
+}
+export interface LoggingEntity<I extends Id, L extends Console> extends Entity<I> {
+  log: L
+}
+/** Block hash. */
+export type Hash = string
+/** Slices first argument of implementation signature
+  * (see https://stackoverflow.com/a/67605309) */
+export type Method<F> = F extends (arg0: never, ...rest: infer R) =>
+  infer T ? ((...args: R) => T) : never
 /** Represents the backend of a managed chain (such as a devnet). */
-export type ChainBackend = LoggingEntity<ChainId, CoreLogger> & {
+export type ChainBackend = LoggingEntity<ChainId, Console> & {
   connect   ():                 Promise<Chain>
   connect   (name: string):     Promise<Agent>
   connect   (identity: Signer): Promise<Agent>
@@ -22,16 +62,14 @@ export type Chain = ChainRef & ApiDeps & Api & { connect: (url?: string|URL)=>Co
 /** Represents an individual remote API endpoint. */
 export type Connection = ChainRef & ApiDeps & Api & { url?: string|URL }
 /** Dependencies of chain API methods. */
-export type ApiDeps = LoggingEntity<ChainId, CoreLogger> & {
+export type ApiDeps = LoggingEntity<ChainId, Console> & {
   /** Whether the connection is active. */
   live: boolean
 }
 /** Chain API methods. */
 export type Api = {
-  /** Fetch defails about the latest block. */
-  fetchBlock (): Promise<Block>
-  /** Fetch defails about a spcific. */
-  fetchBlock (options: { height?: Height, hash?: Hash, results?: boolean }): Promise<Block>
+  /** Fetch defails about a block. */
+  fetchBlock (options?: { height?: Height, hash?: Hash, results?: boolean }): Promise<Block>
   /** Fetch the current block height. */
   fetchHeight (): Promise<Height>
   /** Fetch the block data after the height increments. */
@@ -63,7 +101,7 @@ export const chain = (state: Partial<Chain> = {}, api: Api): Chain => {
   const chain = state as unknown as Chain & Api || {}
   if (!chain.id) throw new Error('pass at least { id }')
   chain.live = true
-  chain.log ??= new CoreLogger(chain.name || chain.id || CoreLogger.unknownChain())
+  chain.log ??= new Console(chain.name || chain.id || Console.unknownChain())
   chain.connect ??= (url?: string|URL) => connection(chain, api, url)
   const bind = (name: string, method: (...args: any[])=>any) => [
     name as keyof Api, (...args: any[]) => method(chain.connect(), ...args)
@@ -76,7 +114,7 @@ export const chain = (state: Partial<Chain> = {}, api: Api): Chain => {
 }
 /** Describe a connection to a given `chain` by a given `url` */
 export const connection = (chain: Chain, api: Api, url?:  string|URL): Connection => {
-  const log = new CoreLogger(chain.log.label + ' @ ' + url?.toString())
+  const log = new Console(chain.log.label + ' @ ' + url?.toString())
   const connection = { ...chain, url, log }
   const bind = (name: string, method: (...args: any[])=>any) => [
     name as keyof Api, (...args: any[]) => method(connection, ...args)
@@ -117,4 +155,17 @@ export const impl = {
   fetchHeight,
   fetchNextHeight,
   fetchNextBlock,
+}
+/** A cryptographic identity. */
+export type Signer = {
+  publicKey?: Hash, sign (_: unknown): unknown
+}
+/** Binds an `Signer` to a `Chain`, enabling broadcasting of transactions. */
+export type Agent = Signer & AgentApi & LoggingEntity<Hash, Console> & {
+  chain: Chain,
+  address: Address,
+  batch(): Batch
+}
+export type AgentApi = {
+  fetchBalance (): Promise<Record<string, Uint128>>
 }

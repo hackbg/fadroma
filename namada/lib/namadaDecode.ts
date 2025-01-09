@@ -1,5 +1,5 @@
 import type { GovernanceParameters } from './namadaGov.ts'
-import type { PGFParameters } from './namadaPgf.ts'
+import type { PgfParameters } from './namadaPgf.ts'
 import type { StakingParameters } from './namadaPos.ts'
 import type { Block } from './namadaBlock.ts'
 import type { Transaction, TxContent } from './namadaTx.ts'
@@ -49,7 +49,7 @@ export interface Decoder {
     totalAbstainPower: bigint
   }>
 
-  pgf_parameters (_: Uint8Array): PGFParameters
+  pgf_parameters (_: Uint8Array): PgfParameters
 
   pos_commission_pair (_: Uint8Array): {
     epoch:                       string

@@ -1,4 +1,8 @@
 import { Core, Case } from '../deps.ts'
+/** A Tendermint error .*/
+export class Error extends Core.Error {}
+/** A Tendermint logger .*/
+export class Console extends Core.Console {}
 /** Methods available for interacting with Tendermint chains. */
 export type Api = Core.Api & {
   fetchAbciInfo:          Core.Method<typeof impl["fetchAbciInfo"]>
@@ -84,9 +88,6 @@ export type EndBlockEvent = {
 /** Describe a Tendermint chain. */
 export const chain = (state: Partial<Core.Chain> & ChainOptions, api = impl): Chain =>
   Core.chain(state, api)
-/** Describe a Tendermint connection. */
-export const connection = (chain: Chain, url?: string|URL) =>
-  Core.connection(chain, impl, url)
 export const fetchBlock = async (
   api: Connection, options?: { height?: Height, hash?: string, results?: boolean }
 ): Promise<Block> => {

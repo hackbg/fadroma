@@ -16,10 +16,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-export * from './lib/coreAgent.ts'
-export * from './lib/coreChain.ts'
-export * from './lib/coreEntity.ts'
-export * from './lib/coreError.ts'
-export * from './lib/coreLogger.ts'
+export * from './lib/core.ts'
 export * from './lib/coreNumber.ts'
 export * from './lib/coreTiming.ts'

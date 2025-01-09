@@ -148,7 +148,7 @@ export const fetchValidators = async (
   const namadaAddresses = await fetchValidatorAddresses(connection, options?.epoch)
   for (const namadaAddress of namadaAddresses) {
     validatorsByNamadaAddress[namadaAddress] = {
-      chain:            connection.chain!,
+      //chain:            connection.chain!,
       publicKey:        null as any, // FIXME: explicitly state nullability
       address:          null as any, // FIXME: in the type definition
       namadaAddress,
