@@ -22,17 +22,15 @@ import {
   SecretNetworkClient,
   Wallet,
   EncryptionUtils,
-  MsgStoreCode,
-  MsgInstantiateContract,
-  MsgExecuteContract,
   Address,
   Bip39,
   Bip39EN,
-  bold,
   base16,
-  base64
+  base64,
+  ChainId
 } from '../deps.ts'
 import * as Bank from './scrtBank.ts'
+import * as Batch from './scrtBatch.ts'
 import * as Compute from './scrtCompute.ts'
 import faucets from './scrtFaucet.ts'
 export class Error extends Tendermint.Error {}
@@ -127,16 +125,16 @@ export const agent = (config: { log: Console, identity: Identity|EncryptionUtils
       throw new Error('identity must be Identity instance, { mnemonic }, or { encryptionUtils }')
     }
   }
-  config.#connection = new SigningConnection({ chain: config.chain, identity: config.identity })
+  //config.#connection = new SigningConnection({ chain: config.chain, identity: config.identity })
 }
-export type SigningConnection = {
-  api: SecretNetworkClient,
-  get identity (): Identity,
-  send: (...args: Parameters<SigningConnection["send"]>) => Promise<unknown>,
-  upload: (...args: Parameters<SigningConnection["upload"]>) => Promise<unknown>,
-  instantiate: (...args: Parameters<SigningConnection["instantiate"]>) => Promise<unknown>,
-  execute: <T> (...args: Parameters<SigningConnection["execute"]>) => Promise<T>,
-}
+//export type SigningConnection = {
+  //api: SecretNetworkClient,
+  //get identity (): Identity,
+  //send: (...args: Parameters<SigningConnection["send"]>) => Promise<unknown>,
+  //upload: (...args: Parameters<SigningConnection["upload"]>) => Promise<unknown>,
+  //instantiate: (...args: Parameters<SigningConnection["instantiate"]>) => Promise<unknown>,
+  //execute: <T> (...args: Parameters<SigningConnection["execute"]>) => Promise<T>,
+//}
 const chainMethods = (api: any) => Object.assign(api, {
   withIntoError: <T>(p: Promise<T>): Promise<T> => p.catch(api.intoError),
   intoError: async (e: object) => {
@@ -179,19 +177,19 @@ const chainMethods = (api: any) => Object.assign(api, {
         return { gas: max_gas }
       }),
 })
-export const connectionMethods = (api: any) => ({
-  constructor: (properties?: Partial<Connection>) => {
-    //super(properties as Partial<Connection>)
-    api.api ??= new SecretNetworkClient({ url: api.url!, chainId: api.chainId!, })
-    const {chainId, url} = api
-    if (!chainId) {
-      throw new Error("can't authenticate without chainId")
-    }
-    if (!url) {
-      throw new Error("can't connect without url")
-    }
-    api.api = new SecretNetworkClient({ chainId, url })
-  },
+export const connectionMethods = (api: SecretNetworkClient) => ({
+  //constructor: (properties?: Partial<Connection>) => {
+    ////super(properties as Partial<Connection>)
+    //api.api ??= new SecretNetworkClient({ url: api.url!, chainId: api.chainId!, })
+    //const {chainId, url} = api
+    //if (!chainId) {
+      //throw new Error("can't authenticate without chainId")
+    //}
+    //if (!url) {
+      //throw new Error("can't connect without url")
+    //}
+    //api.api = new SecretNetworkClient({ chainId, url })
+  //},
   fetchBlock: async (parameter?): Promise<Block> => {
     if (!parameter) {
       let {
@@ -207,38 +205,33 @@ export const connectionMethods = (api: any) => ({
       } as Block
     }
   },
-  fetchHeight: async () => (await api.fetchBlockImpl()).height,
-  fetchBalance: (...args: Parameters<Tendermint.Api["fetchBalance"]>) =>
-    Bank.fetchBalance(api, ...args),
-  fetchCodeInfo: (...args: Parameters<CosmWasm.Api["fetchCodeInfo"]>) =>
-    Compute.fetchCodeInfo(api, ...args),
-  fetchCodeInstances: (...args: Parameters<CosmWasm.Api["fetchCodeInstances"]>) =>
-    Compute.fetchCodeInstances(api, ...args),
-  fetchContractInfo: (...args: Parameters<CosmWasm.Api["fetchContractInfo"]>) =>
-    Compute.fetchContractInfo(api, ...args),
-  query: <T> (parameters: Parameters<CosmWasm.Api["query"]>[0]): Promise<T> =>
-    Compute.query(api, parameters) as Promise<T>,
+  fetchHeight:        async () => (await api.fetchBlockImpl()).height,
+  fetchBalance:       Bank.fetchBalance,
+  fetchCodeInfo:      Compute.fetchCodeInfo,
+  fetchCodeInstances: Compute.fetchCodeInstances,
+  fetchContractInfo:  Compute.fetchContractInfo,
+  query:              Compute.query,
 })
-export const agentMethods = x => ({
-  batch: (agent: Agent): Batch => batch(agent),
+export const agentMethods = (chain: Chain, agent: Agent, api: SecretNetworkClient) => ({
+  batch: (): Batch.Batch => Batch.batch(agent),
   fees: {
     upload: gasToken.fee(10000000),
     init:   gasToken.fee(10000000),
     exec:   gasToken.fee(1000000),
     send:   gasToken.fee(1000000),
   },
-  async setMaxGas (): Promise<this> {
-    const { gas } = await this.chain.fetchLimits()
+  setMaxGas: async () => {
+    const { gas } = await chain.fetchLimits()
     const max = gasToken.fee(gas)
     this.fees = { upload: max, init: max, exec: max, send: max }
     return this
   },
   get account (): ReturnType<SecretNetworkClient['query']['auth']['account']> {
-    return this.getConnection().api.query.auth.account({ address: this.address })
+    return api.query.auth.account({ address: agent.address })
   },
   async getNonce (): Promise<{ accountNumber: number, sequence: number }> {
     const result: any = await this.account ?? (() => {
-      throw new Error(`Cannot find account "${this.address}", make sure it has a balance.`)
+      throw new Error(`Cannot find account "${agent.address}", make sure it has a balance.`)
     })()
     const { account_number, sequence } = result.account
     return { accountNumber: Number(account_number), sequence: Number(sequence) }
@@ -247,30 +240,16 @@ export const agentMethods = x => ({
     if (!codeHash) {
       throw new Error("can't encrypt message without code hash")
     }
-    const { encryptionUtils } = this.getConnection().api as any
+    const { encryptionUtils } = api as any
     const encrypted = await encryptionUtils.encrypt(codeHash, msg as object)
     return base64.encode(encrypted)
   },
 })
-export const signingConnectionMethods = (x: any) => ({
-  constructor (
-    properties: Omit<ConstructorParameters<typeof SigningConnection>[0], 'identity'>
-      & { identity: Identity, url: string|URL }
-  ) {
-    super(properties)
-    this.api = this.identity.getApi({
-      chainId: this.chain.chainId,
-      url:     properties.url
-    })
-  },
-  api: SecretNetworkClient,
-  get identity (): Identity { return super.identity as unknown as Identity },
-  send: (...args: Parameters<typeof Bank["send"]>) =>
-    Bank.send(this, ...args),
-  upload: (...args: Parameters<typeof Compute["upload"]>) =>
-    Compute.upload(this, ...args),
-  instantiate: (...args: Parameters<typeof Compute["instantiate"]>) =>
-    Compute.instantiate(this, ...args),
-  execute: <T> (...args: Parameters<typeof Compute["execute"]>): Promise<T> =>
-    Compute.execute(this, ...args) as T
+export const signingConnectionMethods = (identity: Identity, chainId: ChainId, url: string|URL) => ({
+  identity,
+  api:         identity.getApi({ chainId, url }),
+  send:        Bank.send,
+  upload:      Compute.upload,
+  instantiate: Compute.instantiate,
+  execute:     Compute.query,
 })

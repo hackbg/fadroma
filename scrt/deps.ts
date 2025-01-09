@@ -32,7 +32,7 @@ export * as Tendermint from '@fadroma/tm'
 export type { Token, Coin, Fee } from '@fadroma/tm'
 
 export * as CosmWasm from '@fadroma/cw'
-export type { CodeId, CodeHash, Label, Message, Contract } from '@fadroma/cw'
+export type { CodeId, CodeHash, Label, Message, Contract, UploadedCode } from '@fadroma/cw'
 export { fetchContractInfo } from '@fadroma/cw'
 
 export * as SecretJS from '@hackbg/secretjs-esm'

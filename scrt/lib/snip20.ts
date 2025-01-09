@@ -14,11 +14,19 @@ export type Snip20Config = {
 }
 export type Snip20 = Snip20Config & {
   /** The address of the token contract. */
-  address:     Address
+  address: Address
   /** THe code hash of the token contract. */
-  codeHash?:   CosmWasm.CodeHash
+  codeHash?: CosmWasm.CodeHash
   /** The total supply of the token. */
   totalSupply: Uint128
+}
+export type Snip20Deps = CosmWasm.ClientDeps & {
+  id:        string,
+  address?:  Address,
+  codeHash?: CosmWasm.CodeHash
+  chain?:    Chain,
+  agent?:    { address?: Address },
+  log:       Console,
 }
 export type Snip20InitMsg = Snip20Config & {
   /** The admin of the token. */
@@ -27,18 +35,14 @@ export type Snip20InitMsg = Snip20Config & {
   prng_seed: string
   /** The settings for the token. */
   config: {
-    public_total_supply?: boolean
     enable_mint?: boolean
     enable_burn?: boolean
-    enable_deposit?: boolean
     enable_redeem?: boolean
-    // Allow unknown properties:
-    [name: string]: unknown
+    enable_deposit?: boolean
+    public_total_supply?: boolean
   }
   /** Initial balances. */
   initial_balances?: {address: Address, amount: Uint128}[]
-  // Allow to be cast as Record<string, unknown>:
-  [name: string]: unknown
 }
 export type Snip20Allowance = {
   spender: Address
@@ -56,7 +60,7 @@ export type Snip20TokenInfo = {
 export type ViewingKey = string
 /** A contract's viewing key methods. */
 export type ViewingKeyClient = {
-  create (_: Snip20Deps, entropy?: any): Promise<Uint8Array>
+  create (_: Snip20Deps, entropy?: unknown): Promise<Uint8Array>
   set (_: Snip20Deps, key: ViewingKey): Promise<void>
 }
 export interface Snip20Api {
@@ -101,10 +105,8 @@ export interface Snip20Api {
   /** Send tokens to address.
     * Same as transfer but allows for receive callback. */
   send (amount: Uint128, recipient: Address, callback?: string|object): Promise<unknown>
-  sendFrom (
-    owner: Address, amount: Uint128, recipient: String,
-    hash?: CosmWasm.CodeHash, msg?: string, memo?: string
-  ): Promise<unknown>
+  sendFrom (owner: Address, amount: Uint128, recipient: string,
+            hash?: CosmWasm.CodeHash, msg?: string, memo?: string): Promise<unknown>
 }
 /** Create a SNIP20 init message. */
 export const initSnip20 = ({
@@ -129,35 +131,17 @@ export const initSnip20 = ({
     prng_seed: prngSeed,
   }
 }
-export type Snip20Deps = CosmWasm.ClientDeps & {
-  id:        string,
-  address?:  Address,
-  codeHash?: CosmWasm.CodeHash
-  chain?:    Chain,
-  agent:     { address?: Address },
-  log:       Console,
-}
 const fetchMetadata = async (deps: Snip20Deps) => {
   const info: { codeHash?: CosmWasm.CodeHash } = {}
   const { address, chain, codeHash } = deps
-  if (!address) {
-    throw new Error("can't fetch metadata without contract address")
-  }
-  if (!chain) {
-    throw new Error("can't fetch metadata without agent")
-  }
+  if (!address) throw new Error("can't fetch metadata without contract address")
+  if (!chain) throw new Error("can't fetch metadata without agent")
   return Promise.all([
-    fetchContractInfo(deps, deps.address)
-      .then(({codeHash}: {codeHash: CosmWasm.CodeHash}) =>info.codeHash = codeHash),
-    fetchTokenInfo(deps, deps.address)
-      .then(({ name, symbol, decimals, total_supply }: Snip20TokenInfo) => Object.assign(info, {
-        name,
-        symbol,
-        decimals, 
-        total_supply
-      }))
+    fetchContractInfo(deps, deps.address).then(({codeHash}: {codeHash: CosmWasm.CodeHash}) =>
+      info.codeHash = codeHash),
+    fetchTokenInfo(deps).then(({ name, symbol, decimals, total_supply }: Snip20TokenInfo) =>
+      Object.assign(info, camelize({ name, symbol, decimals,  total_supply })))
   ])
-  return camelize(deps)
 }
 const fetchTokenInfo = async ({ query }: Snip20Deps) => {
   const msg = { token_info: {} }

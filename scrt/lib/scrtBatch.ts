@@ -16,7 +16,7 @@ import {
   Tendermint,
   bold
 } from '../deps.ts'
-import type { Console } from './cw.ts'
+import type { Console } from './scrt.ts'
 export type Batch = Tendermint.Batch & {
   /** Messages to encrypt. */
   messages: Array<BatchMessage>
@@ -60,7 +60,7 @@ export const uploadInBatch = (_deps: BatchDeps, _code: never, _options: never) =
 }
 export const instantiateInBatch = (
   { agent, messages }: BatchDeps,
-  code: CodeId|{id: CodeId}|{codeId: CodeId}
+  code: CodeId|{id: CodeId}|{codeId: CodeId},
   options: { label: Label, initMsg: Message, initSend: Coin[] },
 ) => {
   messages.push(new MsgInstantiateContract({
