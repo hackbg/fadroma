@@ -1,8 +1,13 @@
 {
   "nodeModulesDir": "auto",
   "imports": {
-    "@hackbg/fadroma":  "./core/index.ts",
-    "@fadroma/tm":      "./tm/index.ts"
+    "@hackbg/fadroma":      "./core/index.ts",
+    "@hackbg/fadroma/test": "./core/test/core.test.ts",
+    "@fadroma/cw":          "./cw/index.ts",
+    "@fadroma/tm":          "./tm/index.ts",
+    "@fadroma/scrt":        "./scrt/index.ts",
+    "@fadroma/scrt/test":   "./scrt/test/scrt.test.ts",
+    "@hackbg/secretjs-esm": "npm:@hackbg/secretjs-esm"
   },
   "lint": {
     "rules": {

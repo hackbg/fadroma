@@ -313,7 +313,8 @@
   "workspace": {
     "dependencies": [
       "npm:@hackbg/4mat@*",
-      "npm:@hackbg/logs@*"
+      "npm:@hackbg/logs@*",
+      "npm:@hackbg/secretjs-esm@*"
     ]
   }
 }

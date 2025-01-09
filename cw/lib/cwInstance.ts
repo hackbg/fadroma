@@ -1,5 +1,4 @@
 
-
   //[>* Fetch a contract's details wrapped in a `Contract` instance. <]
   //fetchContractInfo (
     //address:   Address
@@ -35,3 +34,30 @@
     //contracts: { [address: Address]: typeof Contract },
     //parallel?: boolean
   //}): Promise<Record<Address, Contract>>
+  //[>* Call a given program's transaction method. <]
+  //async execute <T> (
+    //contract: Address|Partial<Contract>,
+    //message:  Message,
+    //options?: Omit<Parameters<SigningConnection["executeImpl"]>[0],
+      //'address'|'codeHash'|'message'>
+  //): Promise<T> {
+    //return await execute(this, contract, message, options) as T
+  //}
+
+
+
+  //[>* Query a contract by address. <]
+  //query <T> (contract: Address, message: Message):
+    //Promise<T>
+  //[>* Query a contract object. <]
+  //query <T> (contract: { address: Address }, message: Message):
+    //Promise<T>
+  //query <T> (...args: unknown[]): Promise<unknown> {
+    //return query(this, ...args as Parameters<Chain["query"]>)
+  //}
+  //[>* Chain-specific implementation of query. <]
+  //abstract queryImpl <T> (parameters: {
+    //address:   Address
+    //codeHash?: string
+    //message:   Message
+  //}): Promise<T>

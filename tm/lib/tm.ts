@@ -15,6 +15,8 @@ export type Chain       = Core.Chain & Api & ChainOptions
 export type Connection  = Core.Connection & Api & ChainOptions
 /** A Tendermint transaction. */
 export type Transaction = Core.Transaction
+/** A batch of Tendermint transactions. */
+export type Batch       = Core.Batch
 /** The height of a Tendermint block. */
 export type Height      = Core.Height
 /** A Tendermint block. */
