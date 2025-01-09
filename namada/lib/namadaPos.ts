@@ -1,5 +1,5 @@
 import type { Address } from '../deps.ts'
-import type { ApiDeps } from './namada.ts'
+import type { Deps } from './namada.ts'
 import type { Epoch } from './namadaEpoch.ts'
 import { decode, u64, u256 } from '../deps.ts'
 export type StakingParameters = Partial<{
@@ -22,19 +22,19 @@ export type StakingParameters = Partial<{
   rewardsGainD:                  bigint
 }>
 /** Fetch staking parameters. */
-export async function fetchStakingParameters ({abciQuery, decoder}: ApiDeps) {
+export async function fetchStakingParameters ({abciQuery, decoder}: Deps) {
   const binary = await abciQuery("/vp/pos/pos_params")
   return decoder.pos_parameters(binary)
 }
 /** Fetch total staked NAMNAM. */
-export async function fetchTotalStaked ({abciQuery}: ApiDeps, epoch?: number|bigint|string) {
+export async function fetchTotalStaked ({abciQuery}: Deps, epoch?: number|bigint|string) {
   let query = "/vp/pos/total_stake"
   if (epoch!==undefined) query += `/${epoch}`
   const binary = await abciQuery(query)
   return decode(u64, binary)
 }
 export async function fetchBondWithSlashing (
-  {abciQuery}: ApiDeps, delegator: Address, validator: Address, epoch?: Epoch,
+  {abciQuery}: Deps, delegator: Address, validator: Address, epoch?: Epoch,
 ) {
   let query = `/vp/pos/bond_with_slashing/${delegator}/${validator}`
   if (epoch) query += `/${epoch}`
@@ -42,11 +42,11 @@ export async function fetchBondWithSlashing (
   return decode(u256, totalStake)
 }
 /** Fetch all delegations. */
-export const fetchDelegations = async ({abciQuery, decoder}: ApiDeps, address: Address) =>
+export const fetchDelegations = async ({abciQuery, decoder}: Deps, address: Address) =>
   decoder.addresses(await abciQuery(`/vp/pos/delegations/${address}`))
 /** Fetch delegations at given address. */
 export const fetchDelegationsAt = async (
-  {abciQuery, decoder}: ApiDeps, address: Address, epoch?: Epoch
+  {abciQuery, decoder}: Deps, address: Address, epoch?: Epoch
 ): Promise<Record<string, bigint>> => {
   let query = `/vp/pos/delegations_at/${address}`
   epoch = Number(epoch)

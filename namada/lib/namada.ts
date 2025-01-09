@@ -15,8 +15,47 @@ export class Console extends Tendermint.Console {
   warnNoDecoder = () =>
     this.warn("Decoder binary not provided; trying to decode Namada objects will fail.")
 }
+/** A Namada chain. */
+export type Chain = Tendermint.Chain & Api & { readonly connections: Record<string, Connection> }
+/** A connection to a Namada chain. */
+export type Connection = Deps & Api
+/** Describe a Namada chain. */
+export async function chain (properties: Parameters<typeof Tendermint.chain>[0] & {
+  decoder?: string|URL|Uint8Array
+}): Promise<Chain> {
+  // Init the WASM translation blob.
+  if (properties?.decoder) {
+    await initDecoder(properties.decoder)
+  } else {
+    new Console().warnNoDecoder()
+  }
+  // Set default properties.
+  properties ??= {} as Partial<typeof properties>
+  properties.bech32Prefix ??= "tnam"
+  // Construct chain.
+  const chain = Tendermint.chain({ ...properties }) as Chain
+  // Construct one connection.
+  Object.assign(chain, {connections: {}})
+  chain.connect = (url?: string|URL) => {
+    if (!url) throw new Error('pass rpc url')
+    url = url.toString()
+    return chain.connections[url] ??= Core.connection(chain, impl, url) as Connection
+  }
+  return chain
+}
+export const coinType = 118
+export const bech32Prefix = 'tnam'
+export const hdAccountIndex = 0
+export const initDecoder = async (decoder: string|URL|Uint8Array): Promise<Decoder> => {
+  if (decoder instanceof Uint8Array) {
+    await init(decoder)
+  } else if (decoder) {
+    await init(await fetch(decoder))
+  }
+  return Decode as unknown as Decoder
+}
 /** The dependencies expected by Namada API methods. */
-export type ApiDeps = Tendermint.Connection & {
+export type Deps = Tendermint.Connection & {
   log:               Console
   chain:             () => Core.ChainRef
   abciQuery:         (path: string) => Promise<Uint8Array>
@@ -51,48 +90,9 @@ export type Api = Tendermint.Api & {
   fetchValidatorsConsensus:     Core.Method<typeof Val.fetchValidatorsConsensus>
   fetchValidatorsIter:          Core.Method<typeof Val.fetchValidatorsIter>
 }
-/** A Namada chain. */
-export type Chain = Tendermint.Chain & Api & { readonly connections: Record<string, Connection> }
-/** A connection to a Namada chain. */
-export type Connection = ApiDeps & Api
-/** Describe a Namada chain. */
-export async function chain (properties: Parameters<typeof Tendermint.chain>[0] & {
-  decoder?: string|URL|Uint8Array
-}): Promise<Chain> {
-  // Init the WASM translation blob.
-  if (properties?.decoder) {
-    await initDecoder(properties.decoder)
-  } else {
-    new Console().warnNoDecoder()
-  }
-  // Set default properties.
-  properties ??= {} as Partial<typeof properties>
-  properties.bech32Prefix ??= "tnam"
-  // Construct chain.
-  const chain = Tendermint.chain({ ...properties }) as Chain
-  // Construct one connection.
-  Object.assign(chain, {connections: {}})
-  chain.connect = (url?: string|URL) => {
-    if (!url) throw new Error('pass rpc url')
-    url = url.toString()
-    return chain.connections[url] ??= Core.connection(chain, impl as Core.Api, url) as Connection
-  }
-  return chain
-}
-export const coinType = 118
-export const bech32Prefix = 'tnam'
-export const hdAccountIndex = 0
-export const initDecoder = async (decoder: string|URL|Uint8Array): Promise<Decoder> => {
-  if (decoder instanceof Uint8Array) {
-    await init(decoder)
-  } else if (decoder) {
-    await init(await fetch(decoder))
-  }
-  return Decode as unknown as Decoder
-}
-export const fetchStorageValue = ({abciQuery}: ApiDeps, key: string): Promise<Uint8Array> =>
+export const fetchStorageValue = ({abciQuery}: Deps, key: string): Promise<Uint8Array> =>
   abciQuery(`/shell/value/${key}`)
-export const fetchProtocolParameters = async (api: ApiDeps) => {
+export const fetchProtocolParameters = async (api: Deps) => {
   const { decoder } = api
   const parameters: Record<string, unknown> = {}
   await Promise.all(Object.entries(decoder.storage_keys())
@@ -119,7 +119,7 @@ export const fetchProtocolParameters = async (api: ApiDeps) => {
   return parameters
 }
 /** Default implementation of Namada client API. */
-export const impl = {
+export const impl: Core.Impl<Api, Api & Deps> = {
   ...Tendermint.impl, ...Bank, ...Block, ...Pos, ...Epoch, ...Gov, ...Pgf, ...Val,
   fetchStorageValue, fetchProtocolParameters,
 }

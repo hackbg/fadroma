@@ -2,5 +2,10 @@
   "nodeModulesDir": "auto",
   "imports": {
     "@hackbg/fadroma": "../core/index.ts"
+  },
+  "lint": {
+    "rules": {
+      "exclude": ["no-async-promise-executor", "require-await"]
+    }
   }
 }

@@ -58,9 +58,9 @@ export type ChainId = string
 /** Reference to chain by id. */
 export type ChainRef = Entity<ChainId>
 /** A chain's full representation. */
-export type Chain = ChainRef & ApiDeps & Api & { connect: (url?: string|URL)=>Connection };
+export type Chain = ChainRef & Deps & Api & { connect: (url?: string|URL)=>Connection };
 /** Represents an individual remote API endpoint. */
-export type Connection = ChainRef & ApiDeps & Api & { url?: string|URL }
+export type Connection = ChainRef & Deps & Api & { url?: string|URL }
 /** Block height. */
 export type Height = number|bigint
 /** Global unit of event time. Contains zero or more transactions. */
@@ -81,7 +81,7 @@ export interface Batch {
   submit (agent: Agent): Promise<unknown>
 }
 /** Describe a chain. */
-export const chain = <A extends Api>(state: Partial<Chain> = {}, api: A): Chain => {
+export const chain = <A extends Api, D extends Deps>(state: Partial<Chain> = {}, api: Impl<A, D>): Chain => {
   const chain = state as unknown as Chain & Api || {}
   if (!chain.id) throw new Error('pass at least { id }')
   chain.live  = true
@@ -98,7 +98,7 @@ export const chain = <A extends Api>(state: Partial<Chain> = {}, api: A): Chain 
   return chain
 }
 /** Describe a connection to a given `chain` by a given `url` */
-export const connection = <A extends Api>(chain: Chain, api: A, url?:  string|URL): Connection => {
+export const connection = <A extends Api, D extends Deps>(chain: Chain, api: Impl<A, D>, url?:  string|URL): Connection => {
   const log = new Console(chain.log.label + ' @ ' + url?.toString())
   const connection = { ...chain, url, log }
   const bind = (name: string, method: (...args: any[])=>any) => [
@@ -110,7 +110,7 @@ export const connection = <A extends Api>(chain: Chain, api: A, url?:  string|UR
   return connection
 }
 /** Dependencies of chain API methods. */
-export type ApiDeps = LoggingEntity<ChainId, Console> & {
+export type Deps = LoggingEntity<ChainId, Console> & {
   /** The connection URL. */
   url?: URL|string
   /** Whether the connection is active. */
@@ -136,11 +136,11 @@ export type Api = {
   /** Fetch the block after it increments. */
   fetchNextHeight (interval?: number): Promise<Height>
 }
-export const fetchHeight     = (api: Api): Promise<Height> =>
+export const fetchHeight = (api: Api): Promise<Height> =>
   api.fetchBlock().then(({height})=>BigInt(height))
 export const fetchNextHeight = (api: Api, interval: number = 1000): Promise<bigint> =>
   api.fetchNextBlock(interval).then(({height})=>BigInt(height))
-export const fetchNextBlock  = (api: Api&ApiDeps, interval: number = 1000): Promise<Block> =>
+export const fetchNextBlock = (api: Api&Deps, interval: number = 1000): Promise<Block> =>
   api.fetchHeight().then(startingHeight => {
     api.log.waitingForNextBlock(startingHeight, interval)
     const t0 = performance.now()
@@ -165,12 +165,12 @@ export const fetchNextBlock  = (api: Api&ApiDeps, interval: number = 1000): Prom
     } })
   })
 /** Type of chain API implementation. */
-export type Impl<A extends Api, D extends ApiDeps> = {
+export type Impl<A extends Api, D extends Deps> = {
   [k in keyof A]: A[k] extends (...args: infer A) => infer T
     ? ((deps: D, ...args: A) => T)
     : never
 };
-export const impl: Impl<Api, ApiDeps & Api> = {
+export const impl: Impl<Api, Deps & Api> = {
   fetchBlock (_, __) { throw new Error('base fetchBlock is not implemented') },
   fetchNextBlock,
   fetchHeight,

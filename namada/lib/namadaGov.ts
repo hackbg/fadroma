@@ -1,4 +1,4 @@
-import type { ApiDeps } from './namada.ts'
+import type { Deps } from './namada.ts'
 import type { Decoder } from './namadaDecode.ts'
 import { decode, u64 } from '../deps.ts'
 export type GovernanceParameters = Partial<{
@@ -34,25 +34,25 @@ export type GovernanceProposalWasm = {
   readonly wasm?:   Uint8Array
 }
 export const GOV_INTERNAL_ADDRESS = "tnam1q5qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrw33g6"
-export const fetchGovernanceParameters = async ({ abciQuery, decoder }: ApiDeps) =>
+export const fetchGovernanceParameters = async ({ abciQuery, decoder }: Deps) =>
   decoder.gov_parameters(await abciQuery(`/vp/governance/parameters`))
-export const fetchProposalCount = async ({ abciQuery }: ApiDeps) =>
+export const fetchProposalCount = async ({ abciQuery }: Deps) =>
   decode(u64, await abciQuery(`/shell/value/#${GOV_INTERNAL_ADDRESS}/counter`)) as bigint
 export const fetchProposalInfo = async (
-  { abciQuery, decoder }: ApiDeps, id: number|bigint
+  { abciQuery, decoder }: Deps, id: number|bigint
 ): Promise<ReturnType<Decoder["gov_proposal"]>|null> => {
   const response = await abciQuery(`/vp/governance/proposal/${id}`)
   if (response[0] === 0) return null
   return decoder.gov_proposal(response.slice(1)) as ReturnType<Decoder["gov_proposal"]>
 }
 export const fetchProposalVotes = async (
-  { abciQuery, decoder }: ApiDeps, id: number|bigint
+  { abciQuery, decoder }: Deps, id: number|bigint
 ): Promise<ReturnType<Decoder["gov_votes"]>> => {
   const decoded = decoder.gov_votes(await abciQuery(`/vp/governance/proposal/${id}/votes`))
   return decoded as ReturnType<Decoder["gov_votes"]>
 }
 export const fetchProposalWasm = async (
-  { abciQuery, decoder }: ApiDeps, id: number|bigint
+  { abciQuery, decoder }: Deps, id: number|bigint
 ): Promise<GovernanceProposalWasm|null> => {
   id = BigInt(id)
   const codeKey = decoder.gov_proposal_code_key(BigInt(id))
@@ -67,7 +67,7 @@ export const fetchProposalWasm = async (
   }
 }
 export const fetchProposalResult = async (
-  { abciQuery, decoder }: ApiDeps, id: number|bigint
+  { abciQuery, decoder }: Deps, id: number|bigint
 ): Promise<GovernanceProposalResult|null> => {
   const response = await abciQuery(`/vp/governance/stored_proposal_result/${id}`)
   if (response[0] === 0) return null

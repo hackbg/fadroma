@@ -1,5 +1,5 @@
 import type { Tendermint, Address } from '../deps.ts'
-import type { ApiDeps } from './namada.ts'
+import type { Deps } from './namada.ts'
 import type { Epoch } from './namadaEpoch.ts'
 import { Core, base16, decode, u256, getValidators } from '../deps.ts'
 /** Describes a Namada validator. */
@@ -32,14 +32,14 @@ export type ValidatorState = {
 }
 /** Fetch details about one validator. */
 export const fetchValidator = async (
-  api: ApiDeps, namadaAddress: Address, options?: { epoch?: Epoch }
+  api: Deps, namadaAddress: Address, options?: { epoch?: Epoch }
 ) => {
   const validator = { chain: api.chain, address: null as any, namadaAddress }
   return await fetchValidatorDetails(api, {...options, validator})
 }
 /** Fetch the stake of a given validator. */
 export const fetchValidatorStake = async (
-  { abciQuery }: ApiDeps, address: Address, epoch?: Epoch,
+  { abciQuery }: Deps, address: Address, epoch?: Epoch,
 ) => {
   let query = `/vp/pos/validator/stake/${address}`
   if (epoch) query += `/${epoch}`
@@ -49,7 +49,7 @@ export const fetchValidatorStake = async (
 }
 /** Fetch addresses of all known validators. */
 export const fetchValidatorAddresses = async (
-  { abciQuery, decoder }: ApiDeps, epoch?: Epoch
+  { abciQuery, decoder }: Deps, epoch?: Epoch
 ): Promise<Address[]> => {
   let query = "/vp/pos/validator/addresses"
   if (epoch!==undefined) query += `/${epoch}`
@@ -57,7 +57,7 @@ export const fetchValidatorAddresses = async (
 }
 /** Fetch info about the set of validators currently participating in consensus. */
 export async function fetchValidatorsConsensus (
-  { abciQuery, decoder }: ApiDeps, epoch?: Epoch
+  { abciQuery, decoder }: Deps, epoch?: Epoch
 ) {
   let query = "/vp/pos/validator_set/consensus"
   if (epoch!==undefined) query += `/${epoch}`
@@ -65,7 +65,7 @@ export async function fetchValidatorsConsensus (
 }
 /** Fetch info about the set of validators currently below capacity. */
 export async function fetchValidatorsBelowCapacity (
-  { abciQuery, decoder }: ApiDeps, epoch?: Epoch
+  { abciQuery, decoder }: Deps, epoch?: Epoch
 ) {
   let query = "/vp/pos/validator_set/below_capacity"
   if (epoch!==undefined) query += `/${epoch}`
@@ -78,7 +78,7 @@ const byBondedStake = (a: {bondedStake: number|bigint}, b: {bondedStake: number|
     : 0
 /** Fetch details for a Namada validator. */
 export const fetchValidatorDetails = async (
-  { abciQuery, decoder, log }: ApiDeps,
+  { abciQuery, decoder, log }: Deps,
   options?: { epoch?: Epoch, parallel?: boolean, validator?: Partial<Validator> }
 ) => {
   const { epoch, validator = {}, parallel = false } = options || {}
@@ -127,7 +127,7 @@ export const fetchValidatorDetails = async (
 }
 type TendermintMetadata = Record<string, Tendermint.Validator>
 export const fetchValidators = async (
-  connection: ApiDeps,
+  connection: Deps,
   options: Partial<Parameters<typeof getValidators>[1]> & {
     epoch?:              Epoch
     //details?:         boolean,
@@ -234,7 +234,7 @@ export const fetchValidators = async (
   return Object.values(validatorsByNamadaAddress)
 }
 /** Generator implementation of fetchValidators. */
-export async function * fetchValidatorsIter (connection: ApiDeps, options?: {
+export async function * fetchValidatorsIter (connection: Deps, options?: {
   epoch?:     Epoch,
   parallel?:  boolean,
   addresses?: string[]
@@ -264,7 +264,7 @@ export async function * fetchValidatorsIter (connection: ApiDeps, options?: {
   * of data about a validator (metadata, state, stake, commmission, consensus key) but
   * do not launch the requests yet. */
 const getRequests = (
-  connection: ApiDeps,
+  connection: Deps,
   meta:       TendermintMetadata,
   validator:  Validator,
   address:    Address,
@@ -286,7 +286,7 @@ const getRequests = (
   return requests
 }
 /** Generates a warning handler for each request. */
-const getWarnings = (connection: ApiDeps, address: Address, epoch?: Epoch) => {
+const getWarnings = (connection: Deps, address: Address, epoch?: Epoch) => {
   const warn = (msg: string) => (_: Error) => {
     if (!isNaN(epoch as number)) msg += ` for epoch ${epoch}`
     connection.log.warn(`${address}:`, msg)
@@ -315,7 +315,7 @@ const getAbciQueryPaths = (address: Address, epoch?: Epoch) => {
 }
 /** Define the callbacks that assign the decoded values to a given validator. */
 const getDecoders = (
-  { decoder }:        ApiDeps,
+  { decoder }:        Deps,
   tendermintMetadata: TendermintMetadata,
   validator:          Validator,
 ) => ({
@@ -345,7 +345,7 @@ const getDecoders = (
 })
 
 //export async function fetchValidatorsBelowCapacity2 (
-  //connection: ApiDeps
+  //connection: Deps
 //) {
     //let validators = await fetchValidatorsBelowCapacity(connection)
     //if (options?.max) {

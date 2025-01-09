@@ -71,7 +71,7 @@ export type EndBlockEvent = {
 export const chain = (state: Partial<Core.Chain> & ChainOptions, api = impl): Chain =>
   Core.chain(state, api)
 /** Dependencies of Tendermint API methods. */
-export type ApiDeps = Core.ApiDeps
+export type Deps = Core.Deps
 /** Methods available for interacting with Tendermint chains. */
 export type Api = Core.Api & {
   fetchAbciInfo:          Core.Method<typeof fetchAbciInfo>
@@ -91,7 +91,7 @@ export type Api = Core.Api & {
   broadcastTx:            Core.Method<typeof broadcastTx>
 }
 export const fetchBlock = async (
-  api: Connection, options?: { height?: Height, hash?: string, results?: boolean }
+  api: Deps, options?: { height?: Height, hash?: string, results?: boolean }
 ): Promise<Block> => {
   const { url } = api || {}
   const { height, hash, results = false } = options || {}
@@ -105,7 +105,7 @@ export const fetchBlock = async (
   return { ...block, results: blockResults }
 }
 export const fetchBlockResults = async (
-  { url }: Connection, options?: { height?: Height, hash?: string }
+  { url }: Deps, options?: { height?: Height, hash?: string }
 ): Promise<BlockResults> => {
   const { height, hash } = options || {}
   if (!url) throw new Error("can't fetch block results: missing connection URL")
@@ -133,50 +133,50 @@ const camelize = (object: object) => {
   return returned as BlockResults
 }
 
-export const fetchAbciInfo  = async (_api: Api) =>
+export const fetchAbciInfo  = async (_api: Deps) =>
   { throw new Error('not implemented') }
 
-export const fetchAbciQuery = async (_api: Api, _path: string, _data: Uint8Array, _parameters: { height?: Height, prove?: boolean }) =>
+export const fetchAbciQuery = async (_api: Deps, _path: string, _data: Uint8Array, _parameters: { height?: Height, prove?: boolean }) =>
   { throw new Error('not implemented') }
 
-export const fetchBlockSearch = async (_api: Api, _query: string, _parameters: { page?: number, perPage?: number, orderBy?: string }) =>
+export const fetchBlockSearch = async (_api: Deps, _query: string, _parameters: { page?: number, perPage?: number, orderBy?: string }) =>
   { throw new Error('not implemented') }
 
-export const fetchBlockchain = async (_api: Api, _parameters: { min?: Height, max?: Height }) =>
+export const fetchBlockchain = async (_api: Deps, _parameters: { min?: Height, max?: Height }) =>
   { throw new Error('not implemented') }
 
-export const fetchCommit = async (_api: Api, _height: Height) =>
+export const fetchCommit = async (_api: Deps, _height: Height) =>
   { throw new Error('not implemented') }
 
-export const fetchGenesis = async (_api: Api) =>
+export const fetchGenesis = async (_api: Deps) =>
   { throw new Error('not implemented') }
 
-export const fetchHealth = async (_api: Api) =>
+export const fetchHealth = async (_api: Deps) =>
   { throw new Error('not implemented') }
 
-export const fetchNumUnconfirmedTxs = async (_api: Api) =>
+export const fetchNumUnconfirmedTxs = async (_api: Deps) =>
   { throw new Error('not implemented') }
 
-export const fetchStatus = async (_api: Api) =>
+export const fetchStatus = async (_api: Deps) =>
   { throw new Error('not implemented') }
 
-export const fetchTx = async (_api: Api) =>
+export const fetchTx = async (_api: Deps) =>
   { throw new Error('not implemented') }
 
-export const fetchTxSearch = async (_api: Api) =>
+export const fetchTxSearch = async (_api: Deps) =>
   { throw new Error('not implemented') }
 
-export const fetchValidators = async (_api: Api) =>
+export const fetchValidators = async (_api: Deps) =>
   { throw new Error('not implemented') }
 
-export const subscribe = async (_api: Api, _subscribeTo: 'block'|'header'|{query: string}) =>
+export const subscribe = async (_api: Deps, _subscribeTo: 'block'|'header'|{query: string}) =>
   { throw new Error('not implemented') }
 
-export const broadcastTx = async (_api: Api, _method: 'sync'|'async'|'commit', _tx: Uint8Array) =>
+export const broadcastTx = async (_api: Deps, _method: 'sync'|'async'|'commit', _tx: Uint8Array) =>
   { throw new Error('not implemented') }
 
 /** Default implementation of Tendermint client API. */
-export const impl: Core.Impl<Api, ApiDeps & Api> = {
+export const impl: Core.Impl<Api, Deps & Api> = {
   ...Core.impl,
   fetchBlock,
   fetchBlockResults,

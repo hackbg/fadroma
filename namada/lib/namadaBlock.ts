@@ -1,6 +1,6 @@
 import { Tendermint } from '../deps.ts'
 import type { Core } from '../deps.ts'
-import type { Chain, ApiDeps } from './namada.ts'
+import type { Chain, Deps } from './namada.ts'
 import type { Transaction } from './namadaTx.ts'
 import type { Decoder } from './namadaDecode.ts'
 /** The height of a Namada block. */
@@ -12,7 +12,7 @@ export type Block = Tendermint.Block & {
   readonly transactions: Transaction[]
 }
 export const fetchBlock = async (
-  api: ApiDeps, options?: { height?: Height, hash?: string, results?: boolean }
+  api: Deps, options?: { height?: Height, hash?: string, results?: boolean }
 ): Promise<Block> => {
   const block = Tendermint.fetchBlock(api, options)
   return decodeBlock(api.decoder, api.chain(), 0, "", "")
@@ -48,7 +48,7 @@ export const decodeBlock = (
   //return Object.assign(block, { transactions })
 //}
 //export const fetchBlockByHeight = async (
-  //{ url, decoder, chain }: ApiDeps,
+  //{ url, decoder, chain }: Deps,
   //{ height }: { height?: number|string|bigint, }
 //): Promise<Block> => {
   //// Fetch block and results as undecoded JSON
