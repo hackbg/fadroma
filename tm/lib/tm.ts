@@ -1,5 +1,4 @@
 import { Core, Case } from '../deps.ts'
-import type { Height, Method } from '../deps.ts'
 /** Chain global configuration pertinent to Tendermint-based chains only. */
 export type ChainOptions = {
   bech32Prefix?:   string,

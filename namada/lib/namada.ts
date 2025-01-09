@@ -59,8 +59,11 @@ export async function chain (properties: Parameters<typeof Tendermint.chain>[0] 
   const chain = Tendermint.chain({ ...properties }) as Chain
   // Construct one connection.
   Object.assign(chain, {connections: {}})
-  chain.connect = (url: string|URL) =>
-    chain.connections[url.toString()] ??= Core.connection(chain, impl, url)
+  chain.connect = (url?: string|URL) => {
+    if (!url) throw new Error('pass rpc url')
+    url = url.toString()
+    return chain.connections[url] ??= Core.connection(chain, impl as Core.Api, url) as Connection
+  }
   return chain
 }
 export type Connection = ConnectionBase & Api
