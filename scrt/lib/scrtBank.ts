@@ -1,8 +1,7 @@
-import { optionallyParallel } from '@hackbg/fadroma'
-import { withIntoError } from './scrt-base'
-import type { Address, Token, Chain, Connection, SigningConnection } from '@hackbg/fadroma'
-import type { ScrtConnection } from './scrt-chain'
-import type { ScrtSigningConnection } from './scrt-identity'
+import { optionallyParallel } from '../deps.ts'
+import type { Address, Token, Chain, Connection, SigningConnection } from '../deps.ts'
+import { withIntoError } from './scrt.ts'
+import type { ScrtConnection, ScrtSigningConnection } from './scrt.ts'
 
 export async function fetchBalance ({ api }: ScrtConnection, {
   parallel = false,
@@ -10,15 +9,9 @@ export async function fetchBalance ({ api }: ScrtConnection, {
 }: Parameters<Connection["fetchBalanceImpl"]>[0]) {
   const queries = []
   for (const [address, tokens] of Object.entries(addresses)) {
-    for (const token of tokens) {
-      queries.push(()=>withIntoError(api.query.bank.balance({
-        address,
-        denom: token
-      })).then(response=>({
-        address,
-        token,
-        balance: response.balance
-      })))
+    for (const denom of tokens) {
+      queries.push(()=>withIntoError(api.query.bank.balance({ address, denom }))
+        .then(response=>({ address, token: denom, balance: response.balance })))
     }
   }
   const result: Record<Address, Record<string, string>> = {}

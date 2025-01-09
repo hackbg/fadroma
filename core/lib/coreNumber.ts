@@ -13,3 +13,5 @@ export type Decimal128 = number|string
 export type Decimal256 = number|string
 
 export const base16 = Format.base16
+
+export const pickRandom = <T>(set: Set<T>): T => [...set][Math.floor(Math.random()*set.size)]

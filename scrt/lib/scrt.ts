@@ -16,49 +16,31 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import { Error, Console } from '@hackbg/fadroma'
-import { base16, base64, Connection, Token, Chain, Identity, Agent, SigningConnection } from '@hackbg/fadroma'
-import type { ChainId } from '@hackbg/fadroma'
-import type { ChainId, CodeHash, Message } from '@hackbg/fadroma'
-import { SecretNetworkClient, Wallet } from 'npm:@hackbg/secretjs-esm'
-import type { EncryptionUtils } from 'npm:@hackbg/secretjs-esm'
-import { SecretNetworkClient } from 'npm:@hackbg/secretjs-esm'
-import { ScrtBlock } from './scrtTx.ts'
-import * as ScrtBank from './scrtBank.ts'
-import * as ScrtCompute from './scrtCompute.ts'
-import * as ScrtStaking from './scrtPos.ts'
-import * as ScrtGovernance from './scrtGov.ts'
+import { Core, Tendermint, SecretJS } from '../deps.ts'
+import * as Bank from './scrtBank.ts'
+import * as Compute from './scrtCompute.ts'
+import * as Pos from './scrtPos.ts'
+import * as Gov from './scrtGov.ts'
 import faucets from './scrtFaucet.ts'
-import { ScrtBatch } from './scrtTx.ts'
-export class ScrtError extends Error {}
-export class ScrtConsole extends Console { label = '@fadroma/scrt' }
-export const console = new ScrtConsole()
-export {
-  Bip32, Bip39, Bip39EN,
-  Ed25519, SHA256, Secp256k1,
-  assign,
-  base16, base64, bech32,
-  bold,
-  brailleDump,
-  colors,
-  into,
-  randomBase64,
-  randomBech32,
-} from '@hackbg/fadroma'
-export * as SecretJS from 'npm:@hackbg/secretjs-esm'
-export { ScrtBatch as Batch, } from './scrtTx.ts'
-export { default as faucets } from './scrtFaucet.ts'
-//export * as Mocknet from './mocknet/scrt-mocknet'
-export * as Snip20 from './snip20.ts'
-export * as Snip24 from './snip24.ts'
-export * as Snip721 from './snip721.ts'
+import { ScrtBlock, ScrtBatch } from './scrtTx.ts'
+export class Error extends Tendermint.Error {}
+export class Console extends Tendermint.Console {
+  label = '@fadroma/scrt'
+  withIntoError = <T>(p: Promise<T>): Promise<T> => p.catch(this.intoError)
+  intoError = async (e: object)=>{
+    e = await Promise.resolve(e)
+    this.error(e)
+    throw Object.assign(new Error(), e)
+  }
+}
+export const console = new Console()
 export const chainIds = {
   mainnet: 'secret-4',
   testnet: 'pulsar-3',
 }
-export function connect (...args: Parameters<typeof ScrtChain["connect"]>) {
+export function connect (...args: Parameters<typeof Chain["connect"]>) {
   if (!args[0]) args[0] = {} as any
-  return ScrtChain.connect(...args)
+  return Chain.connect(...args)
 } 
 /** See https://docs.scrt.network/secret-network-documentation/development/resources-api-contract-addresses/connecting-to-the-network/mainnet-secret-4#api-endpoints */
 export const mainnets = new Set([
@@ -70,8 +52,8 @@ export const mainnets = new Set([
   'https://secret-api.lavenderfive.com',
 ])
 /** Connect to the Secret Network Mainnet. */
-export function mainnet (options: Partial<ScrtChain> = {}): Promise<ScrtChain> {
-  return ScrtChain.connect({
+export function mainnet (options: Partial<Chain> = {}): Promise<Chain> {
+  return Chain.connect({
     chainId: chainIds.mainnet, urls: [...mainnets], ...options||{}
   })
 }
@@ -80,59 +62,57 @@ export const testnets = new Set([
   'https://api.pulsar3.scrttestnet.com/'
 ])
 /** Connect to the Secret Network Testnet. */
-export function testnet (options: Partial<ScrtChain> = {}): Promise<ScrtChain> {
-  return ScrtChain.connect({
+export function testnet (options: Partial<Chain> = {}): Promise<Chain> {
+  return Chain.connect({
     chainId: chainIds.testnet, urls: [...testnets], ...options||{}
   })
 }
-const pickRandom = <T>(set: Set<T>): T => [...set][Math.floor(Math.random()*set.size)]
 /** Connect to a mock implementation of Secret Network. */
-export async function mocknet (options: Partial<ScrtChain> = {}): Promise<ScrtChain> {
-  const chain = await ScrtChain.connect({ chainId: 'scrt-mocknet', })
+export async function mocknet (options: Partial<Chain> = {}): Promise<Chain> {
+  const chain = await Chain.connect({ chainId: 'scrt-mocknet', })
   chain.connections = [new ScrtMocknetConnection({ chain })]
   return chain
 }
-export async function devnet (options): Promise<ScrtChain> {
+export async function devnet (options): Promise<Chain> {
   let devnet
   try {
     devnet = await import('npm:@fadroma/devnet')
   } catch (e) {
-    throw new Error('Failed to import @fadroma/devnet. Is it installed?')
+    throw new Error('failed to import @fadroma/devnet. is it installed?')
   }
 }
-export const withIntoError = <T>(p: Promise<T>): Promise<T> =>
-  p.catch(intoError)
-const intoError = async (e: object)=>{
-  e = await Promise.resolve(e)
-  console.error(e)
-  throw Object.assign(new Error(), e)
+export type Chain = Tendermint.Chain & {
+  connect (options: { id?: string, urls?: (string|URL)[] }): Chain,
+  getConnection: () => Connection,
+  authenticate:  (...args: unknown[]) => Promise<ScrtAgent>,
+  fetchLimits:   () => Promise<{ gas: number }>,
+  connections:   Connection[],
 }
-export class ScrtChain extends Chain {
-  declare connections: ScrtConnection[]
-  getConnection (): ScrtConnection {
+export type Connection = Tendermint.Connection
+export type ApiDeps = Tendermint.ApiDeps
+
+const addChainMethods = (x: any) => Object.assign(x, {
+  getConnection: (): ScrtConnection => {
     const [connection] = this.connections || []
     if (!connection) {
-      throw new Error('No available connections.')
+      throw new Error('no available connections.')
     }
     return connection
-  }
-  static async connect ({ chainId, urls = [] }: {
-    chainId: ChainId,
-    urls:    (string|URL)[]
-  }): Promise<ScrtChain> {
-    const chain = new ScrtChain({ chainId })
+  },
+  connect: async ({ chainId, urls = [] }: { chainId: Core.ChainId, urls: (string|URL)[] }): Promise<Chain> => {
+    const chain = new Chain({ chainId })
     const connections = urls.map(url=>new ScrtConnection({
       chain,
       url: url.toString()
     }))
     chain.connections = connections
     return chain
-  }
-  async authenticate (...args: unknown[]): Promise<ScrtAgent> {
+  },
+  authenticate: async (...args: unknown[]): Promise<ScrtAgent> => {
     if (args.length === 0) {
       return new ScrtAgent({
         chain:    this,
-        api:      new SecretNetworkClient({
+        api:      new SecretJS.SecretNetworkClient({
           chainId: this.chainId,
           url:     this.getConnection().url
         }),
@@ -141,8 +121,8 @@ export class ScrtChain extends Chain {
     } else {
       throw new Error("unimplemented!")
     }
-  }
-  async fetchLimits (): Promise<{ gas: number }> {
+  },
+  fetchLimits: async (): Promise<{ gas: number }> => {
     const params = { subspace: "baseapp", key: "BlockParams" }
     const { param } = await this.api.query.params.params(params)
     let { max_bytes, max_gas } = JSON.parse(param?.value??'{}')
@@ -152,17 +132,14 @@ export class ScrtChain extends Chain {
       this.log.warn(`Chain returned negative max gas limit. Defaulting to: ${max_gas}`)
     }
     return { gas: max_gas }
-  }
-}
+  },
+})
 /** Represents a Secret Network API endpoint. */
 export class ScrtConnection extends Connection {
-
   /** Underlying API client. */
   declare api: SecretNetworkClient
-
   /** Smallest unit of native token. */
   static gasToken = new Token.Native('uscrt')
-
   constructor (properties?: Partial<ScrtConnection>) {
     super(properties as Partial<Connection>)
     this.api ??= new SecretNetworkClient({ url: this.url!, chainId: this.chainId!, })
@@ -175,7 +152,6 @@ export class ScrtConnection extends Connection {
     }
     this.api = new SecretNetworkClient({ chainId, url })
   }
-
   override async fetchBlockImpl (parameter?): Promise<ScrtBlock> {
     if (!parameter) {
       let {
@@ -191,46 +167,25 @@ export class ScrtConnection extends Connection {
       })
     }
   }
-
-  override async fetchHeightImpl () {
-    const { height } = await this.fetchBlockImpl()
-    return height
-  }
-
-  override async fetchBalanceImpl (
-    ...args: Parameters<Connection["fetchBalanceImpl"]>
-  ) {
-    return await ScrtBank.fetchBalance(this, ...args)
-  }
-
-  override async fetchCodeInfoImpl (
-    ...args: Parameters<Connection["fetchCodeInfoImpl"]>
-  ) {
-    return await ScrtCompute.fetchCodeInfo(this, ...args)
-  }
-
-  override async fetchCodeInstancesImpl (
-    ...args: Parameters<Connection["fetchCodeInstancesImpl"]>
-  ) {
-    return await ScrtCompute.fetchCodeInstances(this, ...args)
-  }
-
-  override async fetchContractInfoImpl (
-    ...args: Parameters<Connection["fetchContractInfoImpl"]>
-  ) {
-    return await ScrtCompute.fetchContractInfo(this, ...args)
-  }
-
-  override async queryImpl <T> (parameters: Parameters<Connection["queryImpl"]>[0]): Promise<T> {
-    return await ScrtCompute.query(this, parameters) as T
-  }
+  override fetchHeightImpl = async () =>
+    (await this.fetchBlockImpl()).height
+  override fetchBalanceImpl = (...args: Parameters<Connection["fetchBalanceImpl"]>) =>
+    Bank.fetchBalance(this, ...args)
+  override fetchCodeInfoImpl = (...args: Parameters<Connection["fetchCodeInfoImpl"]>) =>
+    Compute.fetchCodeInfo(this, ...args)
+  fetchCodeInstancesImpl = (...args: Parameters<Connection["fetchCodeInstancesImpl"]>) =>
+    Compute.fetchCodeInstances(this, ...args)
+  fetchContractInfoImpl = (...args: Parameters<Connection["fetchContractInfoImpl"]>) =>
+    Compute.fetchContractInfo(this, ...args)
+  queryImpl = <T> (parameters: Parameters<Connection["queryImpl"]>[0]): Promise<T> =>
+    Compute.query(this, parameters) as T
 }
 export class ScrtAgent extends Agent {
   constructor (properties: ConstructorParameters<typeof Agent>[0]) {
     super(properties)
-    if (!(this.identity instanceof ScrtIdentity)) {
+    if (!(this.identity instanceof Identity)) {
       if (!(typeof this.identity === 'object')) {
-        throw new Error('identity must be ScrtIdentity instance, { mnemonic }, or { encryptionUtils }')
+        throw new Error('identity must be Identity instance, { mnemonic }, or { encryptionUtils }')
       } else if ((this.identity as { mnemonic?: string }).mnemonic) {
         this.log.debug('Identifying with mnemonic')
         this.identity = new ScrtMnemonicIdentity(this.identity)
@@ -238,14 +193,14 @@ export class ScrtAgent extends Agent {
         this.log.debug('Identifying with signer (encryptionUtils)')
         this.identity = new ScrtSignerIdentity(this.identity)
       } else {
-        throw new Error('identity must be ScrtIdentity instance, { mnemonic }, or { encryptionUtils }')
+        throw new Error('identity must be Identity instance, { mnemonic }, or { encryptionUtils }')
       }
     }
     this.#connection = new ScrtSigningConnection({ chain: this.chain, identity: this.identity })
   }
 
-  declare chain:    ScrtChain
-  declare identity: ScrtIdentity
+  declare chain:    Chain
+  declare identity: Identity
   #connection: ScrtSigningConnection
   override getConnection () {
     return this.#connection
@@ -293,7 +248,7 @@ export class ScrtAgent extends Agent {
 export class ScrtSigningConnection extends SigningConnection {
   constructor (
     properties: Omit<ConstructorParameters<typeof SigningConnection>[0], 'identity'>
-      & { identity: ScrtIdentity, url: string|URL }
+      & { identity: Identity, url: string|URL }
   ) {
     super(properties)
     this.api = this.identity.getApi({
@@ -302,8 +257,8 @@ export class ScrtSigningConnection extends SigningConnection {
     })
   }
   api: SecretNetworkClient
-  get identity (): ScrtIdentity {
-    return super.identity as unknown as ScrtIdentity
+  get identity (): Identity {
+    return super.identity as unknown as Identity
   }
   async sendImpl (...args: Parameters<SigningConnection["sendImpl"]>) {
     return await ScrtBank.send(this, ...args)
@@ -318,14 +273,14 @@ export class ScrtSigningConnection extends SigningConnection {
     return await ScrtCompute.execute(this, ...args) as T
   }
 }
-export abstract class ScrtIdentity extends Identity {
+export abstract class Identity extends Identity {
   abstract getApi ({chainId, url}: {chainId: ChainId, url: string|URL}): SecretNetworkClient
 
   static fromKeplr = () => {
     throw new Error('unimplemented')
   }
 }
-export class ScrtSignerIdentity extends ScrtIdentity {
+export class ScrtSignerIdentity extends Identity {
   encryptionUtils?: EncryptionUtils
   constructor ({ encryptionUtils, ...properties }: Partial<ScrtSignerIdentity>) {
     super(properties)
@@ -338,7 +293,7 @@ export class ScrtSignerIdentity extends ScrtIdentity {
     })
   }
 }
-export class ScrtMnemonicIdentity extends ScrtIdentity {
+export class ScrtMnemonicIdentity extends Identity {
   wallet: Wallet
   constructor ({
     mnemonic = Bip39.generateMnemonic(Bip39EN),

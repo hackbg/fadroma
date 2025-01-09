@@ -1,18 +1,11 @@
-import type { TxResponse } from 'npm:@hackbg/secretjs-esm'
-import { Chain, Agent, Connection, Address, UploadedCode, Contract } from '@hackbg/fadroma'
-import type { CodeId, SigningConnection } from '@hackbg/fadroma'
-import { bold, withIntoError } from './scrt-base'
-import faucets from './scrt-faucets'
-import type { ScrtChain, ScrtConnection } from './scrt-chain'
-import type { ScrtAgent, ScrtSigningConnection } from './scrt-identity'
-
-export async function fetchCodeInfo (
-  { chainId, api }: ScrtConnection,
+import { Address, CosmWasm, bold } from '../deps.ts'
+import type { ApiDeps, Connection } from './scrt.ts'
+import faucets from './scrtFaucet.ts'
+export const fetchCodeInfo = async (
+  { chainId, api }: ApiDeps,
   args: Parameters<Connection["fetchCodeInfoImpl"]>[0]
-):
-  Promise<Record<CodeId, UploadedCode>>
-{
-  const result: Record<CodeId, UploadedCode> = {}
+): Promise<Record<CosmWasm.CodeId, CosmWasm.UploadedCode>> => {
+  const result: Record<CosmWasm.CodeId, CosmWasm.UploadedCode> = {}
   await withIntoError(api.query.compute.codes({})).then(({code_infos})=>{
     for (const { code_id, code_hash, creator } of code_infos||[]) {
       if (!args?.codeIds || args.codeIds.includes(code_id!)) {
@@ -27,17 +20,14 @@ export async function fetchCodeInfo (
   })
   return result
 }
-
-export async function fetchCodeInstances (
-  { chainId, api, log }: ScrtConnection,
+export const fetchCodeInstances = async (
+  { chainId, api, log }: ApiDeps,
   args: Parameters<Connection["fetchCodeInstancesImpl"]>[0]
-):
-  Promise<Record<CodeId, Record<Address, Contract>>>
-{
+): Promise<Record<CosmWasm.CodeId, Record<Address, CosmWasm.Contract>>> => {
   if (args.parallel) {
     log.warn('fetchCodeInstances in parallel: not implemented')
   }
-  const result: Record<CodeId, Record<Address, Contract>> = {}
+  const result: Record<CosmWasm.CodeId, Record<Address, CosmWasm.Contract>> = {}
   for (const [codeId, Contract] of Object.entries(args.codeIds)) {
     let codeHash: string
     const instances = {}
@@ -61,15 +51,12 @@ export async function fetchCodeInstances (
   }
   return result
 }
-
-export async function fetchContractInfo (
-  { chainId, api, log }: ScrtConnection,
+export const fetchContractInfo = async (
+  { chainId, api, log }: ApiDeps,
   args: Parameters<Connection["fetchContractInfoImpl"]>[0]
-):
-  Promise<{
-    [address in keyof typeof args["contracts"]]: InstanceType<typeof args["contracts"][address]>
-  }>
-{
+): Promise<{
+  [address in keyof typeof args["contracts"]]: InstanceType<typeof args["contracts"][address]>
+}> => {
   if (args.parallel) {
     log.warn('fetchContractInfo in parallel: not implemented')
   }
@@ -88,11 +75,7 @@ export async function fetchContractInfo (
       //.ContractInfo!.label!
   //}
 }
-
-export async function query (
-  conn: ScrtConnection,
-  args: Parameters<Connection["queryImpl"]>[0]
-) {
+export const query = async (conn: ApiDeps, args: Parameters<Connection["queryImpl"]>[0]) => {
   const api = await Promise.resolve(conn.api)
   return withIntoError(api.query.compute.queryContract({
     contract_address: args.address,
@@ -100,7 +83,6 @@ export async function query (
     query:            args.message as Record<string, unknown>
   }))
 }
-
 export async function upload (
   agent: ScrtSigningConnection,
   args: Parameters<SigningConnection["uploadImpl"]>[0]
@@ -252,7 +234,7 @@ export async function execute (
 }
 
 export function decodeError (result: TxResponse) {
-  const error = `ScrtConnection#execute: gRPC error ${result.code}: ${result.rawLog}`
+  const error = `scrt execute: gRPC error ${result.code}: ${result.rawLog}`
   // make the original result available on request
   const original = structuredClone(result)
   Object.defineProperty(result, "original", {
