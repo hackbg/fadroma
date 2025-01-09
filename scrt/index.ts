@@ -1,4 +1,5 @@
 export * from './lib/scrt.ts'
-export * as Snip20 from './lib/snip20.ts'
-export * as Snip24 from './lib/snip24.ts'
-export * as Snip721 from './lib/snip721.ts'
+export * from './lib/snip20.ts'
+export * from './lib/snip22.ts'
+export * from './lib/snip24.ts'
+export * from './lib/snip721.ts'

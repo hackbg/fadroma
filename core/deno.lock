@@ -108,5 +108,15 @@
         "has-flag"
       ]
     }
+  },
+  "workspace": {
+    "dependencies": [
+      "npm:@hackbg/4mat@*",
+      "npm:@hackbg/dump@*",
+      "npm:@hackbg/hide@*",
+      "npm:@hackbg/into@*",
+      "npm:@hackbg/logs@*",
+      "npm:@hackbg/oops@*"
+    ]
   }
 }

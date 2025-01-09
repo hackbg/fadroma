@@ -1,5 +1,12 @@
 import type { Tendermint, Core, Address } from '../deps.ts'
 
+export type Snip20Permit = Permit<'allowance'|'balance'|'history'|'owner'>
+
+export type QueryWithPermit <Q, P> = { with_permit: { query: Q, permit: P } }
+
+export const createPermitMsg = <Q> (query: Q, permit: Snip20Permit) =>
+  ({ with_permit: { query, permit } })
+
 /** Data used for creating a signature as per the SNIP-24 spec:
   * https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-24.md#permit-content---stdsigndoc
   * This type is case sensitive! */

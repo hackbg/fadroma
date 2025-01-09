@@ -18,6 +18,11 @@ export type ContractCodeId = CodeId
  
 export type ContractCodeHash = CodeHash
 
+export type Deps = {
+  query:   <T>(...args: unknown[])=>Promise<T>,
+  execute: <T>(...args: unknown[])=>Promise<T>,
+}
+
 export interface SourceProvider {
   fetchSource (...args: unknown[]): Promise<SourceCode>
 }

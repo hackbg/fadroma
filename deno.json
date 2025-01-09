@@ -1,10 +1,20 @@
 {
   "nodeModulesDir": "auto",
   "imports": {
+    "@hackbg/4mat":         "npm:@hackbg/4mat",
+    "@hackbg/dump":         "npm:@hackbg/dump",
+    "@hackbg/hide":         "npm:@hackbg/hide",
+    "@hackbg/into":         "npm:@hackbg/into",
+    "@hackbg/logs":         "npm:@hackbg/logs",
+    "@hackbg/oops":         "npm:@hackbg/oops",
+
     "@hackbg/fadroma":      "./core/index.ts",
     "@hackbg/fadroma/test": "./core/test/core.test.ts",
-    "@fadroma/cw":          "./cw/index.ts",
+
     "@fadroma/tm":          "./tm/index.ts",
+
+    "@fadroma/cw":          "./cw/index.ts",
+
     "@fadroma/scrt":        "./scrt/index.ts",
     "@fadroma/scrt/test":   "./scrt/test/scrt.test.ts",
     "@hackbg/secretjs-esm": "npm:@hackbg/secretjs-esm"

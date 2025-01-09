@@ -1,10 +1,10 @@
-export * as Dump from 'npm:@hackbg/dump'
-export * as Hide from 'npm:@hackbg/hide'
-export * as Into from 'npm:@hackbg/into'
-export * as Oops from 'npm:@hackbg/oops'
+export * as Dump from '@hackbg/dump'
+export * as Hide from '@hackbg/hide'
+export * as Into from '@hackbg/into'
+export * as Oops from '@hackbg/oops'
 
-export * as Format from 'npm:@hackbg/4mat'
-export { Case } from 'npm:@hackbg/4mat'
+export * as Format from '@hackbg/4mat'
+export { Case } from '@hackbg/4mat'
 
-export * as Logs from 'npm:@hackbg/logs'
-export { Console, bold, randomColor } from 'npm:@hackbg/logs'
+export * as Logs from '@hackbg/logs'
+export { Console, bold, randomColor } from '@hackbg/logs'

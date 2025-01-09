@@ -29,6 +29,7 @@ import {
   Bip39,
   Bip39EN,
   bold,
+  base16,
   base64
 } from '../deps.ts'
 import * as Bank from './scrtBank.ts'
@@ -282,7 +283,6 @@ export class SigningConnection extends SigningConnection {
     return await Compute.execute(this, ...args) as T
   }
 }
-
 /** TODO: Upload in batch. */
 export const uploadInBatch = (
   { agent, messages }: Batch,
@@ -292,7 +292,7 @@ export const uploadInBatch = (
   throw new Error('Batch#upload: not implemented')
   return this
 }
-const instantiateInBatch = (
+export const instantiateInBatch = (
   { agent, messages }: Batch,
   code:    Parameters<Batch["instantiate"]>[0],
   options: Parameters<Batch["instantiate"]>[1],
@@ -308,8 +308,7 @@ const instantiateInBatch = (
   }))
   return this
 }
-
-const executeInBatch = (
+export const executeInBatch = (
   { agent, messages }: Batch,
   contract: Parameters<Batch["execute"]>[0],
   message:  Parameters<Batch["execute"]>[1],
@@ -326,23 +325,9 @@ const executeInBatch = (
   }))
   return this
 }
-
-/** Format the messages for API v1 like secretjs and encrypt them. */
-const encryptBatch = ({ agent, log, messages = [] }): Promise<any[]> =>
-  Promise.all(messages.map((message: object) => {
-    switch (true) {
-      case (message instanceof MsgStoreCode):           return encryptUpload(message)
-      case (message instanceof MsgInstantiateContract): return encryptInit(agent, message as any)
-      case (message instanceof MsgExecuteContract):     return encryptExec(agent, message as any)
-      default: {
-        log.error(`Invalid batch message:`, message)
-        throw new Error(`invalid batch message: ${message}`)
-      }
-    }
-  }))
-const encryptUpload = async (upload: any): Promise<any> =>
+export const encryptUpload = async (upload: any): Promise<any> =>
   { throw new Error('not implemented') }
-const encryptInit = async (agent: Agent, init: {
+export const encryptInit = async (agent: Agent, init: {
   codeId:   CosmWasm.CodeId,
   codeHash: CosmWasm.CodeHash,
   label:    CosmWasm.ContractLabel
@@ -358,7 +343,7 @@ const encryptInit = async (agent: Agent, init: {
   callback_sig: null,
   callback_code_hash: '',
 })
-const encryptExec = async (agent: Agent, exec: {
+export const encryptExec = async (agent: Agent, exec: {
   sender:   Address,
   contract: Address,
   codeHash: CosmWasm.CodeHash,
@@ -373,6 +358,16 @@ const encryptExec = async (agent: Agent, exec: {
   callback_sig: null,
   callback_code_hash: '',
 })
+/** Format the messages for API v1 like secretjs and encrypt them. */
+const encryptBatch = ({ agent, log, messages = [] }): Promise<any[]> =>
+  Promise.all(messages.map((message: object) => {
+    switch (true) {
+      case (message instanceof MsgStoreCode):           return encryptUpload(message)
+      case (message instanceof MsgInstantiateContract): return encryptInit(agent, message as any)
+      case (message instanceof MsgExecuteContract):     return encryptExec(agent, message as any)
+      default: throw new Error(`unsupported batch message: ${message}`)
+    }
+  }))
 const simulateBatch = (batch: Batch, ) => {
   Promise.resolve(batch.chain!.api).then(api=>api.tx.simulate(batch.messages))
 const submitBatch = async (batch: Batch, { memo = "" }: { memo: string }): Promise<BatchResult[]> => {
@@ -420,7 +415,6 @@ const submitBatch = async (batch: Batch, { memo = "" }: { memo: string }): Promi
   }
   return results
 }
-
 /** Format the messages for API v1beta1 like secretcli and generate a multisig-ready
   * unsigned transaction batch; don't execute it, but save it in
   * `state/$CHAIN_ID/transactions` and output a signing command for it to the console. */
@@ -466,14 +460,12 @@ const saveBatch = async (batch: Batch, name?: string) => {
     unsignedTxBody: JSON.stringify(unsigned)
   }
 }
-
 const composeUnsignedTx = (encryptedMessages: any[], memo?: string): any => {
   const fee = Connection.gas(10000000).asFee()
   const auth_info = { signer_infos: [], fee: { ...fee, gas: fee.gas, payer: "", granter: "" }, }
   const body = { memo, messages: encryptedMessages, timeout_height: "0", extension_options: [], non_critical_extension_options: [] }
   return { auth_info, signatures: [], body }
 }
-
 const shellescape = (a: string[]) => {
   const ret: string[] = [];
   for (let s of a) {

@@ -1,5 +1,13 @@
 {
   "nodeModulesDir": "auto",
+  "imports": {
+    "@hackbg/dump": "npm:@hackbg/dump",
+    "@hackbg/hide": "npm:@hackbg/hide",
+    "@hackbg/into": "npm:@hackbg/into",
+    "@hackbg/oops": "npm:@hackbg/oops",
+    "@hackbg/4mat": "npm:@hackbg/4mat",
+    "@hackbg/logs": "npm:@hackbg/logs"
+  },
   "lint": {
     "rules": {
       "exclude": ["no-async-promise-executor"]
