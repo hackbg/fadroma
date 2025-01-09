@@ -129,5 +129,4 @@ export const impl = {
   ...Validator,
   fetchStorageValue,
   fetchProtocolParameters,
-  fetchBlock () {}
 }

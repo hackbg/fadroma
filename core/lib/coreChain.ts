@@ -18,19 +18,20 @@ export type ChainId = string
 /** Reference to chain by id. */
 export type ChainRef = Entity<ChainId>
 /** A chain's full representation. */
-export type Chain = ChainRef & Api & { connect: (url?: string|URL)=>Connection };
+export type Chain = ChainRef & ApiDeps & Api & { connect: (url?: string|URL)=>Connection };
 /** Represents an individual remote API endpoint. */
-export type Connection = ChainRef & Api & { url?: string|URL }
-/** Chain API methods. */
-export type Api = LoggingEntity<ChainId, CoreLogger> & {
+export type Connection = ChainRef & ApiDeps & Api & { url?: string|URL }
+/** Dependencies of chain API methods. */
+export type ApiDeps = LoggingEntity<ChainId, CoreLogger> & {
   /** Whether the connection is active. */
   live: boolean
+}
+/** Chain API methods. */
+export type Api = {
   /** Fetch defails about the latest block. */
   fetchBlock (): Promise<Block>
-  /** Fetch defails about the block at the given height. */
-  fetchBlock ({ height }: { height: Height }): Promise<Block>
-  /** Fetch defails about the block with the given hash. */
-  fetchBlock ({ hash }: { hash: Hash }): Promise<Block>
+  /** Fetch defails about a spcific. */
+  fetchBlock (options: { height?: Height, hash?: Hash, results?: boolean }): Promise<Block>
   /** Fetch the current block height. */
   fetchHeight (): Promise<Height>
   /** Fetch the block data after the height increments. */
@@ -64,9 +65,8 @@ export const chain = (state: Partial<Chain> = {}, api: Api): Chain => {
   chain.live = true
   chain.log ??= new CoreLogger(chain.name || chain.id || CoreLogger.unknownChain())
   chain.connect ??= (url?: string|URL) => connection(chain, api, url)
-  const bind = (name: string, method: (...args: unknown[])=>unknown) => [
-    name as keyof Api,
-    (...args: unknown[]) => method(chain.connect(), ...args)
+  const bind = (name: string, method: (...args: any[])=>any) => [
+    name as keyof Api, (...args: any[]) => method(chain.connect(), ...args)
   ]
   // The bound API:
   const bound = Object.fromEntries(Object.entries(api).map(([name, method])=>bind(name, method)))
@@ -75,37 +75,37 @@ export const chain = (state: Partial<Chain> = {}, api: Api): Chain => {
   return chain
 }
 /** Describe a connection to a given `chain` by a given `url` */
-export const connection = (chain: Chain, api: Api, url?: string|URL): Connection => {
+export const connection = (chain: Chain, api: Api, url?:  string|URL): Connection => {
   const log = new CoreLogger(chain.log.label + ' @ ' + url?.toString())
   const connection = { ...chain, url, log }
-  const bind = (name: string, method: (...args: unknown[])=>unknown) => [
-    name as keyof Api, (...args: unknown[]) => method(connection, ...args)
+  const bind = (name: string, method: (...args: any[])=>any) => [
+    name as keyof Api, (...args: any[]) => method(connection, ...args)
   ];
   // The bound API:
   const bound = Object.fromEntries(Object.entries(api).map(([name, method])=>bind(name, method)))
   Object.assign(connection, bound)
   return connection
 }
-export const fetchHeight = (chain: Api): Promise<Height> =>
-  chain.fetchBlock().then(({ height })=>BigInt(height))
-export const fetchNextHeight = (chain: Api, interval: number = 1000): Promise<bigint> =>
-  chain.fetchNextBlock(interval).then(({ height })=>BigInt(height))
-export const fetchNextBlock = (chain: Api, interval: number = 1000): Promise<bigint> =>
-  chain.fetchHeight().then(startingHeight => {
-    chain.log.waitingForNextBlock(startingHeight, interval)
+export const fetchHeight = (api: Api): Promise<Height> =>
+  api.fetchBlock().then(({ height })=>BigInt(height))
+export const fetchNextHeight = (api: Api, interval: number = 1000): Promise<bigint> =>
+  api.fetchNextBlock(interval).then(({ height })=>BigInt(height))
+export const fetchNextBlock = (api: ApiDeps&Api, interval: number = 1000): Promise<bigint> =>
+  api.fetchHeight().then(startingHeight => {
+    api.log.waitingForNextBlock(startingHeight, interval)
     const t0 = performance.now()
     return new Promise(async (resolve, reject)=>{ try {
-      const connection = chain
+      const connection = api
       while (connection.live) {
-        const height = await chain.fetchHeight()
+        const height = await api.fetchHeight()
         if (height > startingHeight) {
           const t1 = performance.now()
-          chain.log.waitingForNextBlock(startingHeight, interval, `@${(t1-t0)}ms: ${bold(String(height))}, proceeding`)
+          api.log.waitingForNextBlock(startingHeight, interval, `@${(t1-t0)}ms: ${bold(String(height))}, proceeding`)
           return resolve(BigInt(height as unknown as number))
         } else {
           await new Promise(ok=>setTimeout(ok, interval))
           const t2 = performance.now()
-          chain.log.waitingForNextBlock(startingHeight, interval, `+${(t2-t0)}ms`)
+          api.log.waitingForNextBlock(startingHeight, interval, `+${(t2-t0)}ms`)
         }
       }
       throw new Error('endpoint dead, not waiting for next block')
