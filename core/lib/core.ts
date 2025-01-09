@@ -61,22 +61,6 @@ export type ChainRef = Entity<ChainId>
 export type Chain = ChainRef & ApiDeps & Api & { connect: (url?: string|URL)=>Connection };
 /** Represents an individual remote API endpoint. */
 export type Connection = ChainRef & ApiDeps & Api & { url?: string|URL }
-/** Dependencies of chain API methods. */
-export type ApiDeps = LoggingEntity<ChainId, Console> & {
-  /** Whether the connection is active. */
-  live: boolean
-}
-/** Chain API methods. */
-export type Api = {
-  /** Fetch defails about a block. */
-  fetchBlock (options?: { height?: Height, hash?: Hash, results?: boolean }): Promise<Block>
-  /** Fetch the current block height. */
-  fetchHeight (): Promise<Height>
-  /** Fetch the block data after the height increments. */
-  fetchNextBlock (interval?: number): Promise<Block>
-  /** Fetch the block after it increments. */
-  fetchNextHeight (interval?: number): Promise<Height>
-}
 /** Block height. */
 export type Height = number|bigint
 /** Global unit of event time. Contains zero or more transactions. */
@@ -97,10 +81,11 @@ export interface Batch {
   submit (agent: Agent): Promise<unknown>
 }
 /** Describe a chain. */
-export const chain = (state: Partial<Chain> = {}, api: Api): Chain => {
+export const chain = <A extends Api>(state: Partial<Chain> = {}, api: A): Chain => {
   const chain = state as unknown as Chain & Api || {}
   if (!chain.id) throw new Error('pass at least { id }')
-  chain.live = true
+  chain.live  = true
+  chain.chain = () => ({ id: chain.id })
   chain.log ??= new Console(chain.name || chain.id || Console.unknownChain())
   chain.connect ??= (url?: string|URL) => connection(chain, api, url)
   const bind = (name: string, method: (...args: any[])=>any) => [
@@ -113,7 +98,7 @@ export const chain = (state: Partial<Chain> = {}, api: Api): Chain => {
   return chain
 }
 /** Describe a connection to a given `chain` by a given `url` */
-export const connection = (chain: Chain, api: Api, url?:  string|URL): Connection => {
+export const connection = <A extends Api>(chain: Chain, api: A, url?:  string|URL): Connection => {
   const log = new Console(chain.log.label + ' @ ' + url?.toString())
   const connection = { ...chain, url, log }
   const bind = (name: string, method: (...args: any[])=>any) => [
@@ -124,22 +109,50 @@ export const connection = (chain: Chain, api: Api, url?:  string|URL): Connectio
   Object.assign(connection, bound)
   return connection
 }
-export const fetchHeight = (api: Api): Promise<Height> =>
-  api.fetchBlock().then(({ height })=>BigInt(height))
+/** Dependencies of chain API methods. */
+export type ApiDeps = LoggingEntity<ChainId, Console> & {
+  /** The connection URL. */
+  url?: URL|string
+  /** Whether the connection is active. */
+  live: boolean
+  /** Return a descriptior for this chain. */
+  chain (): ChainRef
+}
+/** Chain API methods. */
+export type Api = {
+  /** Fetch defails about a block. */
+  fetchBlock (options?: {
+    /** Fetch by height. Otherwise fetches latest. */
+    height?:  Height,
+    /** Fetch by hash or confirm hash when fetching by height. */
+    hash?:    Hash,
+    /** Fetch block results, too? */
+    results?: boolean
+  }): Promise<Block>
+  /** Fetch the block data after the height increments. */
+  fetchNextBlock (interval?: number): Promise<Block>
+  /** Fetch the current block height. */
+  fetchHeight (): Promise<Height>
+  /** Fetch the block after it increments. */
+  fetchNextHeight (interval?: number): Promise<Height>
+}
+export const fetchHeight     = (api: Api): Promise<Height> =>
+  api.fetchBlock().then(({height})=>BigInt(height))
 export const fetchNextHeight = (api: Api, interval: number = 1000): Promise<bigint> =>
-  api.fetchNextBlock(interval).then(({ height })=>BigInt(height))
-export const fetchNextBlock = (api: ApiDeps&Api, interval: number = 1000): Promise<bigint> =>
+  api.fetchNextBlock(interval).then(({height})=>BigInt(height))
+export const fetchNextBlock  = (api: Api&ApiDeps, interval: number = 1000): Promise<Block> =>
   api.fetchHeight().then(startingHeight => {
     api.log.waitingForNextBlock(startingHeight, interval)
     const t0 = performance.now()
     return new Promise(async (resolve, reject)=>{ try {
       const connection = api
       while (connection.live) {
-        const height = await api.fetchHeight()
-        if (height > startingHeight) {
+        const block = await api.fetchBlock()
+        if (block.height > startingHeight) {
           const t1 = performance.now()
-          api.log.waitingForNextBlock(startingHeight, interval, `@${(t1-t0)}ms: ${bold(String(height))}, proceeding`)
-          return resolve(BigInt(height as unknown as number))
+          api.log.waitingForNextBlock(startingHeight, interval,
+            `@${(t1-t0)}ms: ${bold(String(block.height))}, proceeding`)
+          return resolve(block)
         } else {
           await new Promise(ok=>setTimeout(ok, interval))
           const t2 = performance.now()
@@ -151,10 +164,17 @@ export const fetchNextBlock = (api: ApiDeps&Api, interval: number = 1000): Promi
       reject(e)
     } })
   })
-export const impl = {
+/** Type of chain API implementation. */
+export type Impl<A extends Api, D extends ApiDeps> = {
+  [k in keyof A]: A[k] extends (...args: infer A) => infer T
+    ? ((deps: D, ...args: A) => T)
+    : never
+};
+export const impl: Impl<Api, ApiDeps & Api> = {
+  fetchBlock (_, __) { throw new Error('base fetchBlock is not implemented') },
+  fetchNextBlock,
   fetchHeight,
   fetchNextHeight,
-  fetchNextBlock,
 }
 /** A cryptographic identity. */
 export type Signer = {

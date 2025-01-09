@@ -3,24 +3,6 @@ import { Core, Case } from '../deps.ts'
 export class Error extends Core.Error {}
 /** A Tendermint logger .*/
 export class Console extends Core.Console {}
-/** Methods available for interacting with Tendermint chains. */
-export type Api = Core.Api & {
-  fetchAbciInfo:          Core.Method<typeof impl["fetchAbciInfo"]>
-  fetchAbciQuery:         Core.Method<typeof impl["fetchAbciQuery"]>
-  fetchBlockResults:      Core.Method<typeof impl["fetchBlockResults"]>
-  fetchBlockSearch:       Core.Method<typeof impl["fetchBlockSearch"]>
-  fetchBlockchain:        Core.Method<typeof impl["fetchBlockchain"]>
-  fetchCommit:            Core.Method<typeof impl["fetchCommit"]>
-  fetchGenesis:           Core.Method<typeof impl["fetchGenesis"]>
-  fetchHealth:            Core.Method<typeof impl["fetchHealth"]>
-  fetchNumUnconfirmedTxs: Core.Method<typeof impl["fetchNumUnconfirmedTxs"]>
-  fetchStatus:            Core.Method<typeof impl["fetchStatus"]>
-  fetchTx:                Core.Method<typeof impl["fetchTx"]>
-  fetchTxSearch:          Core.Method<typeof impl["fetchTxSearch"]>
-  fetchValidators:        Core.Method<typeof impl["fetchValidators"]>
-  //subscribe:   Method<typeof subscribe>
-  //broadcastTx: Method<typeof broadcastTx>
-}
 /** Chain global configuration pertinent to Tendermint-based chains only. */
 export type ChainOptions = {
   bech32Prefix?:   string,
@@ -88,6 +70,26 @@ export type EndBlockEvent = {
 /** Describe a Tendermint chain. */
 export const chain = (state: Partial<Core.Chain> & ChainOptions, api = impl): Chain =>
   Core.chain(state, api)
+/** Dependencies of Tendermint API methods. */
+export type ApiDeps = Core.ApiDeps
+/** Methods available for interacting with Tendermint chains. */
+export type Api = Core.Api & {
+  fetchAbciInfo:          Core.Method<typeof fetchAbciInfo>
+  fetchAbciQuery:         Core.Method<typeof fetchAbciQuery>
+  fetchBlockResults:      Core.Method<typeof fetchBlockResults>
+  fetchBlockSearch:       Core.Method<typeof fetchBlockSearch>
+  fetchBlockchain:        Core.Method<typeof fetchBlockchain>
+  fetchCommit:            Core.Method<typeof fetchCommit>
+  fetchGenesis:           Core.Method<typeof fetchGenesis>
+  fetchHealth:            Core.Method<typeof fetchHealth>
+  fetchNumUnconfirmedTxs: Core.Method<typeof fetchNumUnconfirmedTxs>
+  fetchStatus:            Core.Method<typeof fetchStatus>
+  fetchTx:                Core.Method<typeof fetchTx>
+  fetchTxSearch:          Core.Method<typeof fetchTxSearch>
+  fetchValidators:        Core.Method<typeof fetchValidators>
+  subscribe:              Core.Method<typeof subscribe>
+  broadcastTx:            Core.Method<typeof broadcastTx>
+}
 export const fetchBlock = async (
   api: Connection, options?: { height?: Height, hash?: string, results?: boolean }
 ): Promise<Block> => {
@@ -130,23 +132,66 @@ const camelize = (object: object) => {
   }
   return returned as BlockResults
 }
+
+export const fetchAbciInfo  = async (_api: Api) =>
+  { throw new Error('not implemented') }
+
+export const fetchAbciQuery = async (_api: Api, _path: string, _data: Uint8Array, _parameters: { height?: Height, prove?: boolean }) =>
+  { throw new Error('not implemented') }
+
+export const fetchBlockSearch = async (_api: Api, _query: string, _parameters: { page?: number, perPage?: number, orderBy?: string }) =>
+  { throw new Error('not implemented') }
+
+export const fetchBlockchain = async (_api: Api, _parameters: { min?: Height, max?: Height }) =>
+  { throw new Error('not implemented') }
+
+export const fetchCommit = async (_api: Api, _height: Height) =>
+  { throw new Error('not implemented') }
+
+export const fetchGenesis = async (_api: Api) =>
+  { throw new Error('not implemented') }
+
+export const fetchHealth = async (_api: Api) =>
+  { throw new Error('not implemented') }
+
+export const fetchNumUnconfirmedTxs = async (_api: Api) =>
+  { throw new Error('not implemented') }
+
+export const fetchStatus = async (_api: Api) =>
+  { throw new Error('not implemented') }
+
+export const fetchTx = async (_api: Api) =>
+  { throw new Error('not implemented') }
+
+export const fetchTxSearch = async (_api: Api) =>
+  { throw new Error('not implemented') }
+
+export const fetchValidators = async (_api: Api) =>
+  { throw new Error('not implemented') }
+
+export const subscribe = async (_api: Api, _subscribeTo: 'block'|'header'|{query: string}) =>
+  { throw new Error('not implemented') }
+
+export const broadcastTx = async (_api: Api, _method: 'sync'|'async'|'commit', _tx: Uint8Array) =>
+  { throw new Error('not implemented') }
+
 /** Default implementation of Tendermint client API. */
-export const impl = {
+export const impl: Core.Impl<Api, ApiDeps & Api> = {
   ...Core.impl,
   fetchBlock,
   fetchBlockResults,
-  async fetchAbciInfo (_api: Api) {},
-  async fetchAbciQuery (_api: Api, _path: string, _data: Uint8Array, _parameters: { height?: Height, prove?: boolean }) {},
-  async fetchBlockSearch (_api: Api, _query: string, _parameters: { page?: number, perPage?: number, orderBy?: string }) {},
-  async fetchBlockchain (_api: Api, _parameters: { min?: Height, max?: Height }) {},
-  async fetchCommit (_api: Api, _height: Height) {},
-  async fetchGenesis (_api: Api) {},
-  async fetchHealth (_api: Api) {},
-  async fetchNumUnconfirmedTxs (_api: Api) {},
-  async fetchStatus (_api: Api) {},
-  async fetchTx (_api: Api) {},
-  async fetchTxSearch (_api: Api) {},
-  async fetchValidators (_api: Api) {},
-  async subscribe (_api: Api, _subscribeTo: 'block'|'header'|{query: string}) {},
-  async broadcastTx (_api: Api, _method: 'sync'|'async'|'commit', _tx: Uint8Array) {},
+  fetchAbciInfo,
+  fetchAbciQuery,
+  fetchBlockSearch,
+  fetchBlockchain,
+  fetchCommit,
+  fetchGenesis,
+  fetchHealth,
+  fetchNumUnconfirmedTxs,
+  fetchStatus,
+  fetchTx,
+  fetchTxSearch,
+  fetchValidators,
+  subscribe,
+  broadcastTx,
 }

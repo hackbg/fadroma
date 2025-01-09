@@ -6,7 +6,7 @@
   },
   "lint": {
     "rules": {
-      "exclude": ["no-async-promise-executor"]
+      "exclude": ["no-async-promise-executor", "require-await"]
     }
   }
 }

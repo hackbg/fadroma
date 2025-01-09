@@ -248,7 +248,7 @@ export async function * fetchValidatorsIter (connection: ApiDeps, options?: {
   )
   for (const namadaAddress of namadaAddresses) {
     const validator: Validator = {
-      chain:            connection.chain!,
+      //chain:            connection.chain!,
       publicKey:        null as any, // FIXME: explicitly state nullability
       address:          null as any, // FIXME: in the type definition
       namadaAddress,
