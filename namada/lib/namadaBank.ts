@@ -1,7 +1,7 @@
-import type { ConnectionBase } from './namada.ts'
+import type { ApiDeps } from './namada.ts'
 import { decode, u256 } from '../deps.ts'
 
-export const fetchBalance = async ({ decoder, abciQuery }: ConnectionBase, parameters: {
+export const fetchBalance = async ({ decoder, abciQuery }: ApiDeps, parameters: {
   addresses: Record<string, string[]>,
 }): Promise<Record<string, Record<string, string>>> => {
   const result: Record<string, Record<string, string>> = {}

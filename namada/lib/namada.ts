@@ -9,7 +9,7 @@ import * as Epoch from './namadaEpoch.ts'
 import * as Gov from './namadaGov.ts'
 import * as Pgf from './namadaPgf.ts'
 import * as Validator from './namadaValidator.ts'
-/** The methods available for interacting with Namada chains. */
+/** Methods available for interacting with Namada chains. */
 export type Api = Tendermint.Api & {
   fetchStorageValue:            Core.Method<typeof fetchStorageValue>
   fetchProtocolParameters:      Core.Method<typeof fetchProtocolParameters>
@@ -66,8 +66,10 @@ export async function chain (properties: Parameters<typeof Tendermint.chain>[0] 
   }
   return chain
 }
-export type Connection = ConnectionBase & Api
-export type ConnectionBase = Tendermint.Connection & {
+/** A connection to a Namada chain. */
+export type Connection = ApiDeps & Api
+/** The dependencies of Namada API methods. */
+export type ApiDeps = Tendermint.Connection & {
   chain (): Core.ChainRef
   abciQuery (path: string): Promise<Uint8Array>
   fetchStorageValue (key: string): Promise<Uint8Array>
@@ -85,37 +87,47 @@ export const initDecoder = async (decoder: string|URL|Uint8Array): Promise<Decod
   }
   return Decode as unknown as Decoder
 }
-export const fetchStorageValue = ({abciQuery}: ConnectionBase, key: string): Promise<Uint8Array> =>
+export const fetchStorageValue = ({abciQuery}: ApiDeps, key: string): Promise<Uint8Array> =>
   abciQuery(`/shell/value/${key}`)
-export const fetchProtocolParameters = async (api: ConnectionBase) => {
+export const fetchProtocolParameters = async (api: ApiDeps) => {
   const { decoder } = api
   const parameters: Record<string, unknown> = {}
-  await Promise.all(Object.entries(decoder.storage_keys()).map(([name, key])=>fetchStorageValue(
-    api, key as string
-  ).then(binary=>{
-    if (binary.length === 0) return
-    switch (name) {
-      case 'gasCostTable':              return parameters[name]=decoder.gas_cost_table(binary)
-      case 'epochDuration':             return parameters[name]=decoder.epoch_duration(binary)
-      case 'maxTxBytes':                return parameters[name]=decoder.u32(binary)
-      case 'txAllowlist':
-      case 'vpAllowlist':               return parameters[name]=decoder.vec_string(binary)
-      case 'isNativeTokenTransferable': return parameters[name]=!!binary[0]
-      case 'implicitVpCodeHash':        return parameters[name]=decoder.code_hash(binary)
-      default: return parameters[name]=decoder.u64(binary)
-    }
-  })))
+  await Promise.all(Object.entries(decoder.storage_keys())
+    .map(([name, key])=>fetchStorageValue(
+      api, key as string
+    ).then(binary=>{
+      if (binary.length === 0) return
+      switch (name) {
+        case 'gasCostTable':
+          return parameters[name]=decoder.gas_cost_table(binary)
+        case 'epochDuration':
+          return parameters[name]=decoder.epoch_duration(binary)
+        case 'maxTxBytes':
+          return parameters[name]=decoder.u32(binary)
+        case 'txAllowlist':
+        case 'vpAllowlist':
+          return parameters[name]=decoder.vec_string(binary)
+        case 'isNativeTokenTransferable':
+          return parameters[name]=!!binary[0]
+        case 'implicitVpCodeHash':
+          return parameters[name]=decoder.code_hash(binary)
+        default:
+          return parameters[name]=decoder.u64(binary)
+      }
+    })))
   return parameters
 }
+/** Default implementation of Namada client API. */
 export const impl = {
   ...Tendermint.impl,
-  fetchStorageValue,
-  fetchProtocolParameters,
   ...Bank,
   ...Block,
   ...Pos,
   ...Epoch,
   ...Gov,
   ...Pgf,
-  ...Validator
+  ...Validator,
+  fetchStorageValue,
+  fetchProtocolParameters,
+  fetchBlock () {}
 }
