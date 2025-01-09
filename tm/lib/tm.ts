@@ -75,23 +75,7 @@ export const chain = (state: Partial<Core.Chain> & ChainOptions, api = impl): Ch
 /** Dependencies of Tendermint API methods. */
 export type Deps = Core.Deps
 /** Methods available for interacting with Tendermint chains. */
-export type Api = Core.Api & {
-  fetchAbciInfo:          Core.Method<typeof fetchAbciInfo>
-  fetchAbciQuery:         Core.Method<typeof fetchAbciQuery>
-  fetchBlockResults:      Core.Method<typeof fetchBlockResults>
-  fetchBlockSearch:       Core.Method<typeof fetchBlockSearch>
-  fetchBlockchain:        Core.Method<typeof fetchBlockchain>
-  fetchCommit:            Core.Method<typeof fetchCommit>
-  fetchGenesis:           Core.Method<typeof fetchGenesis>
-  fetchHealth:            Core.Method<typeof fetchHealth>
-  fetchNumUnconfirmedTxs: Core.Method<typeof fetchNumUnconfirmedTxs>
-  fetchStatus:            Core.Method<typeof fetchStatus>
-  fetchTx:                Core.Method<typeof fetchTx>
-  fetchTxSearch:          Core.Method<typeof fetchTxSearch>
-  fetchValidators:        Core.Method<typeof fetchValidators>
-  subscribe:              Core.Method<typeof subscribe>
-  broadcastTx:            Core.Method<typeof broadcastTx>
-}
+export type Api = Core.Api & Core.ToApi<typeof impl>
 export const fetchBlock = async (
   api: Deps, options?: { height?: Height, hash?: string, results?: boolean }
 ): Promise<Block> => {
@@ -178,7 +162,7 @@ export const broadcastTx = async (_api: Deps, _method: 'sync'|'async'|'commit', 
   { throw new Error('not implemented') }
 
 /** Default implementation of Tendermint client API. */
-export const impl: Core.Impl<Api, Deps & Api> = {
+export const impl = {
   ...Core.impl,
   fetchBlock,
   fetchBlockResults,

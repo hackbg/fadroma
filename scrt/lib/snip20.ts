@@ -131,10 +131,11 @@ export const initSnip20 = ({
   }
 }
 export type Snip20Deps = CosmWasm.Deps & {
-  id:    string,
+  id:       string,
   address?: Address,
-  agent: { address?: Address },
-  log:   Console,
+  chain?:   Chain,
+  agent:    { address?: Address },
+  log:      Console,
 }
 const fetchMetadata = async (deps: Snip20Deps): Promise<deps> => {
   if (!deps || !deps.address) {

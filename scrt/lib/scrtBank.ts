@@ -1,9 +1,7 @@
 import { optionallyParallel } from '../deps.ts'
 import type { Address, Token, Chain, Connection, SigningConnection } from '../deps.ts'
-import { withIntoError } from './scrt.ts'
-import type { ScrtConnection, ScrtSigningConnection } from './scrt.ts'
 
-export async function fetchBalance ({ api }: ScrtConnection, {
+export async function fetchBalance ({ api }: Deps, {
   parallel = false,
   addresses
 }: Parameters<Connection["fetchBalanceImpl"]>[0]) {
@@ -15,7 +13,8 @@ export async function fetchBalance ({ api }: ScrtConnection, {
     }
   }
   const result: Record<Address, Record<string, string>> = {}
-  const responses = await optionallyParallel(parallel, queries)
+  type Response = {address: string, token: string, balance: { amount: string }}
+  const responses: Array<Response> = await optionallyParallel(parallel, queries)
   for (const { address, token, balance } of responses) {
     result[address] ??= {}
     result[address][token] = balance?.amount!
@@ -23,7 +22,7 @@ export async function fetchBalance ({ api }: ScrtConnection, {
   return result
 }
 
-export async function send (agent: ScrtSigningConnection, {
+export async function send ({ address }: Deps, {
   parallel = false,
   outputs,
   sendFee,
@@ -40,15 +39,13 @@ export async function send (agent: ScrtSigningConnection, {
       sender, recipient, amounts, transaction
     })))
   }
-  const result: Record<Address, {
-    sender:      Address,
-    recipient:   Address,
-    amounts:     Record<string, string>
-    transaction: unknown
-  }> = {}
-  const responses = await optionallyParallel(parallel, transactions)
+  type Response = {
+    sender: Address, recipient: Address, amounts: Record<string, string>, transaction: unknown
+  }
+  const result: Record<Address, Response> = {}
+  const responses: Array<Response> = await optionallyParallel(parallel, transactions)
   for (const response of responses) {
-    result[response.recipient] = response
+    result[(response).recipient] = response
   }
   return result
 

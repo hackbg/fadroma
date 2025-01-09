@@ -12,8 +12,13 @@
     "@hackbg/fadroma/test": "./core/test/core.test.ts",
 
     "@fadroma/tm":          "./tm/index.ts",
+    "@fadroma/tm/test":     "./tm/test/tm.test.ts",
+
+    "@fadroma/namada":      "./cw/index.ts",
+    "@fadroma/namada/test": "./cw/test/cw.test.ts",
 
     "@fadroma/cw":          "./cw/index.ts",
+    "@fadroma/cw/test":     "./cw/test/cw.test.ts",
 
     "@fadroma/scrt":        "./scrt/index.ts",
     "@fadroma/scrt/test":   "./scrt/test/scrt.test.ts",

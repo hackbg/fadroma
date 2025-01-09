@@ -1,4 +1,4 @@
-import type { Address, Hash, Chain } from '../deps.ts'
+import type { Core, Tendermint, Into, Address, Hash, Chain, ChainId } from '../deps.ts'
 
 /** A contract's full unique on-chain label. */
 export type ContractLabel = string
@@ -17,6 +17,8 @@ export type ContractAddress = Address
 export type ContractCodeId = CodeId
  
 export type ContractCodeHash = CodeHash
+
+export type UploadStore = Map<CodeHash, UploadedCode>
 
 export type Deps = {
   query:   <T>(...args: unknown[])=>Promise<T>,
@@ -77,7 +79,7 @@ export type ContractConstructor<C extends Contract> = (...args: unknown[]) => C|
 
 export type ContractMessage = string|number|boolean|object
 
-export interface CosmWasmChainApi extends ChainApi {
+export type Api = Tendermint.Api & {
   fetchCodeInfo ():
     Promise<Record<CodeId, UploadedCode>>
   fetchCodeInfo (codeId: CodeId, options?: { parallel?: boolean }):
@@ -93,8 +95,8 @@ export interface CosmWasmChainApi extends ChainApi {
     Promise<Record<CodeId, Record<ContractAddress, Contract>>>
   fetchCodeInstances <C extends Contract> (Contract: C, codeIds:  Iterable<CodeId>, options?: { parallel?: boolean }):
     Promise<Record<CodeId, Record<ContractAddress, C>>>
-  fetchCodeInstances (codeIds: { [id: CodeId]: typeof Contract }, options?: { parallel?: boolean }): Promise<{ [codeId in keyof typeof codeIds]:
-    Record<ContractAddress, InstanceType<typeof codeIds[codeId]>> }>
+  //fetchCodeInstances (codeIds: { [id: CodeId]: Contract }, options?: { parallel?: boolean }): Promise<{ [codeId in keyof typeof codeIds]:
+    //Record<ContractAddress, InstanceType<typeof codeIds[codeId]>> }>
 
   fetchContractInfo (address: ContractAddress):
     Promise<Contract>
@@ -104,42 +106,40 @@ export interface CosmWasmChainApi extends ChainApi {
     Promise<Record<ContractAddress, Contract>>
   fetchContractInfo <T extends Contract> (Contract: T, addresses: ContractAddress[], options?:  { parallel?: boolean }):
     Promise<Record<ContractAddress, T>>
-  fetchContractInfo (contracts: { [address: ContractAddress]: typeof Contract }, options?: { parallel?: boolean }):
-    Promise<{ [address in keyof typeof contracts]: InstanceType<typeof contracts[address]> }>
+  //fetchContractInfo (contracts: { [address: ContractAddress]: Contract }, options?: { parallel?: boolean }):
+    //Promise<{ [address in keyof typeof contracts]: InstanceType<typeof contracts[address]> }>
 
   queryContract <T> (contract: ContractAddress, message: ContractMessage):
     Promise<T>
   queryContract <T> (contract: { address: ContractAddress }, message: ContractMessage):
     Promise<T>
-}
 
-export interface CosmWasmAgentApi extends AgentApi {
   /** Chain-specific implementation of code upload. */
-  uploadImpl (parameters: {
+  upload (parameters: {
     binary:       Uint8Array,
     reupload?:    boolean,
     uploadStore?: UploadStore,
-    uploadFee?:   Token.Fee
+    uploadFee?:   Tendermint.Fee
     uploadMemo?:  string
   }): Promise<Partial<UploadedCode & {
     chainId: ChainId,
     codeId:  CodeId
   }>>
   /** Chain-specific implementation of contract instantiation. */
-  instantiateImpl (parameters: Partial<Contract> & {
+  instantiate (parameters: Partial<Contract> & {
     initMsg:   Into<Message>
-    initFee?:  Token.Fee
-    initSend?: Token.Coin[]
+    initFee?:  Tendermint.Fee
+    initSend?: Tendermint.Coin[]
     initMemo?: string
   }):
     Promise<Contract & { address: Address }>
   /** Chain-specific implementation of contract transaction. */
-  executeImpl <T> (parameters: {
+  execute <T> (parameters: {
     address:   Address
     codeHash?: string
     message:   Message
-    execFee?:  Token.Fee
-    execSend?: Token.Coin[]
+    execFee?:  Tendermint.Fee
+    execSend?: Tendermint.Coin[]
     execMemo?: string
   }): Promise<T>
 }

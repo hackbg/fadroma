@@ -1,16 +1,16 @@
 import { Address, CosmWasm, bold } from '../deps.ts'
-import type { ApiDeps, Connection } from './scrt.ts'
+import type { TxResponse } from '../deps.ts'
+import type { Deps, Connection } from './scrt.ts'
 import faucets from './scrtFaucet.ts'
 export const fetchCodeInfo = async (
-  { chainId, api }: ApiDeps,
-  args: Parameters<Connection["fetchCodeInfoImpl"]>[0]
+  { chain, api }: Deps, ...args: Parameters<CosmWasm.Api["fetchCodeInfo"]>
 ): Promise<Record<CosmWasm.CodeId, CosmWasm.UploadedCode>> => {
   const result: Record<CosmWasm.CodeId, CosmWasm.UploadedCode> = {}
   await withIntoError(api.query.compute.codes({})).then(({code_infos})=>{
     for (const { code_id, code_hash, creator } of code_infos||[]) {
       if (!args?.codeIds || args.codeIds.includes(code_id!)) {
         result[code_id!] = new UploadedCode({
-          chainId,
+          chainId:  chain().id,
           codeId:   code_id,
           codeHash: code_hash,
           uploadBy: creator
@@ -21,12 +21,9 @@ export const fetchCodeInfo = async (
   return result
 }
 export const fetchCodeInstances = async (
-  { chainId, api, log }: ApiDeps,
-  args: Parameters<Connection["fetchCodeInstancesImpl"]>[0]
+  { chain, api, log }: Deps, ...args: Parameters<CosmWasm.Api["fetchCodeInstances"]>
 ): Promise<Record<CosmWasm.CodeId, Record<Address, CosmWasm.Contract>>> => {
-  if (args.parallel) {
-    log.warn('fetchCodeInstances in parallel: not implemented')
-  }
+  if (args.parallel) log.warn('fetchCodeInstances in parallel: not implemented')
   const result: Record<CosmWasm.CodeId, Record<Address, CosmWasm.Contract>> = {}
   for (const [codeId, Contract] of Object.entries(args.codeIds)) {
     let codeHash: string
@@ -52,14 +49,11 @@ export const fetchCodeInstances = async (
   return result
 }
 export const fetchContractInfo = async (
-  { chainId, api, log }: ApiDeps,
-  args: Parameters<Connection["fetchContractInfoImpl"]>[0]
+  { chain, api, log }: Deps, ...args: Parameters<CosmWasm.Api["fetchContractInfo"]>
 ): Promise<{
   [address in keyof typeof args["contracts"]]: InstanceType<typeof args["contracts"][address]>
 }> => {
-  if (args.parallel) {
-    log.warn('fetchContractInfo in parallel: not implemented')
-  }
+  if (args.parallel) log.warn('fetchContractInfo in parallel: not implemented')
   throw new Error('unimplemented!')
   //protected override async fetchCodeHashOfAddressImpl (contract_address: Address): Promise<CodeHash> {
     //return (await withIntoError(this.api.query.compute.codeHashByContractAddress({
@@ -75,7 +69,7 @@ export const fetchContractInfo = async (
       //.ContractInfo!.label!
   //}
 }
-export const query = async (conn: ApiDeps, args: Parameters<Connection["queryImpl"]>[0]) => {
+export const query = async (conn: Deps, args: Parameters<Connection["queryImpl"]>[0]) => {
   const api = await Promise.resolve(conn.api)
   return withIntoError(api.query.compute.queryContract({
     contract_address: args.address,
@@ -83,28 +77,22 @@ export const query = async (conn: ApiDeps, args: Parameters<Connection["queryImp
     query:            args.message as Record<string, unknown>
   }))
 }
-export async function upload (
-  agent: ScrtSigningConnection,
-  args: Parameters<SigningConnection["uploadImpl"]>[0]
-) {
-  const { api, address, fees, log } = agent
-
+export const upload = async (
+  { chain, api, address, fees, log }: AgentDeps, ...args: Parameters<CosmWasm.Api["upload"]>
+) => {
+  const gasLimit = Number(fees.upload?.amount[0].amount) || undefined
   const result = await withIntoError(api.tx.compute.storeCode({
     sender:         address,
     wasm_byte_code: args.binary,
     source:         "",
     builder:        ""
-  }, {
-    gasLimit:       Number(fees.upload?.amount[0].amount) || undefined
-  }))
-
+  }, { gasLimit }))
   const {
     code,
     message,
     details = [],
     rawLog
   } = result as typeof result & { message?: any, details?: any[] }
-
   if (code !== 0) {
     log.error(
       `Upload failed with code ${bold(code)}:`,
@@ -113,7 +101,7 @@ export async function upload (
     )
     if (message === `account ${address} not found`) {
       log.info(`If this is a new account, send it some SCRT first.`)
-      const chainId = agent.chain.chainId
+      const chainId = chain().id
       if (faucets[chainId]) {
         log.info(`Available faucets\n `, [...faucets[chainId]].join('\n  '))
       }
@@ -121,9 +109,7 @@ export async function upload (
     log.error(`Upload failed`, { result })
     throw new Error('upload failed')
   }
-
   type Log = { type: string, key: string }
-
   const codeId = result.arrayLog
     ?.find((log: Log) => log.type === "message" && log.key === "code_id")
     ?.value
@@ -132,7 +118,7 @@ export async function upload (
     throw new Error('upload failed')
   }
   const { codeHash } = await agent.chain.fetchCodeInfo(codeId)
-  return new UploadedCode({
+  return new CosmWasm.UploadedCode({
     chainId:   agent.chain.chainId,
     codeId,
     codeHash,
@@ -141,20 +127,17 @@ export async function upload (
     uploadGas: result.gasUsed
   })
 }
-
-export async function instantiate (
-  conn: ScrtSigningConnection,
-  args: Parameters<SigningConnection["instantiateImpl"]>[0]
-) {
-  const { chain, api, address, log, fees } = conn
+export const instantiate = async (
+  { chain, api, address, log, fees }: AgentDeps, ...args: Parameters<CosmWasm.Api["instantiate"]>
+) => {
   const parameters = {
-    sender:     conn.address,
-    code_id:    Number(args.codeId),
-    code_hash:  args.codeHash,
-    label:      args.label!,
-    init_msg:   args.initMsg,
-    init_funds: args.initSend,
-    memo:       args.initMemo
+    sender:     address,
+    code_id:    Number(args[0].codeId),
+    code_hash:  args[0].codeHash,
+    label:      args[0].label!,
+    init_msg:   args[0].initMsg,
+    init_funds: args[0].initSend,
+    memo:       args[0].initMemo
   }
   const instantiateOptions = {
     gasLimit: Number(fees.init?.amount[0].amount) || undefined
@@ -162,49 +145,41 @@ export async function instantiate (
   const result = await withIntoError(
     api.tx.compute.instantiateContract(parameters, instantiateOptions)
   )
-
   if (result.code !== 0) {
     log.error('Init failed:', {
       parameters,
       instantiateOptions,
       result
     })
-    throw new Error(`init of code id ${args.codeId} failed`)
+    throw new Error(`init of code id ${args[0].codeId} failed`)
   }
-
   return new Contract({
     chain,
     address:  result.arrayLog!.find(
       ({ type, key }: { type: string, key: string }) =>
         type === "message" && key === "contract_address"
     )?.value!,
-    codeHash: args.codeHash,
+    codeHash: args[0].codeHash,
     initBy:   address,
     initTx:   result.transactionHash,
     initGas:  result.gasUsed,
-    label:    args.label,
+    label:    args[0].label,
   }) as Contract & { address: Address }
 }
-
-export async function execute (
-  conn: ScrtSigningConnection,
-  args: Parameters<SigningConnection["executeImpl"]>[0] & { preSimulate?: boolean }
-) {
-  const { api, log, address } = conn
-
+export const execute = async (
+  { api, log, address }: AgentDeps, ...args: Parameters<CosmWasm.Api["execute"]>
+) => {
   const tx = {
     sender:           conn.address!,
-    contract_address: args.address,
-    code_hash:        args.codeHash,
-    msg:              args.message as Record<string, unknown>,
-    sentFunds:        args?.execSend
+    contract_address: args[0].address,
+    code_hash:        args[0].codeHash,
+    msg:              args[0].message as Record<string, unknown>,
+    sentFunds:        args[0]?.execSend
   }
-
   const txOpts = {
-    gasLimit: Number(args?.execFee?.gas) || undefined
+    gasLimit: Number(args[0]?.execFee?.gas) || undefined
   }
-
-  if (args?.preSimulate) {
+  if (args[0]?.preSimulate) {
     log.info('Simulating transaction...')
     let simResult
     try {
@@ -222,18 +197,14 @@ export async function execute (
       txOpts.gasLimit = gas
     }
   }
-
   const result = await api.tx.compute.executeContract(tx, txOpts)
-
   // check error code as per https://grpc.github.io/grpc/core/md_doc_statuscodes.html
   if (result.code !== 0) {
     throw decodeError(result)
   }
-
   return result as TxResponse
 }
-
-export function decodeError (result: TxResponse) {
+export const decodeError = (result: TxResponse) => {
   const error = `scrt execute: gRPC error ${result.code}: ${result.rawLog}`
   // make the original result available on request
   const original = structuredClone(result)
@@ -244,30 +215,25 @@ export function decodeError (result: TxResponse) {
   const txBytes = tryDecode(result.tx as Uint8Array)
   Object.assign(result, { txBytes })
   for (const i in result.tx.signatures) {
-    Object.assign(result.tx.signatures, { [i]: tryDecode(result.tx.signatures[i as any]) })
+    Object.assign(result.tx.signatures, { [i]: tryDecode(result.tx.signatures[i]) })
   }
   for (const event of result.events) {
     for (const attr of event?.attributes ?? []) {
-      //@ts-ignore
-      try { attr.key   = tryDecode(attr.key)   } catch (e) {}
-      //@ts-ignore
-      try { attr.value = tryDecode(attr.value) } catch (e) {}
+      try { attr.key   = tryDecode(attr.key)   } catch (_e) { /* */ }
+      try { attr.value = tryDecode(attr.value) } catch (_e) { /* */ }
     }
   }
   return Object.assign(new Error(error), result)
 }
-
 /** Used to decode Uint8Array-represented UTF8 strings in TX responses. */
 const decoder = new TextDecoder('utf-8', { fatal: true })
-
 /** Marks a response field as non-UTF8 to prevent large binary arrays filling the console. */
 export const nonUtf8 = Symbol('(binary data, see result.original for the raw Uint8Array)')
-
 /** Decode binary response data or mark it as non-UTF8 */
-const tryDecode = (data: Uint8Array): string|Symbol => {
+const tryDecode = (data: Uint8Array): string|symbol => {
   try {
     return decoder.decode(data)
-  } catch (e) {
+  } catch (_e) {
     return nonUtf8
   }
 }

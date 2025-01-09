@@ -1,5 +1,21 @@
 import type { Uint128 } from './coreNumber.ts'
 import { Oops, Logs, bold, randomColor } from '../deps.ts'
+/** Slices first argument of implementation signature
+  * (see https://stackoverflow.com/a/67605309) */
+export type Method<F> = F extends (arg0: never, ...rest: infer R) =>
+  infer T ? ((...args: R) => T) : never
+/** Slice off the 1st arg of every function */
+export type ToApi<I> = {
+  [k in keyof I]: I[k] extends (...args: infer R) => infer T
+    ? Method<I[k]>
+    : I[k]
+};
+/** Type of chain API implementation. */
+export type Impl<A extends Api, D extends Deps> = {
+  [k in keyof A]: A[k] extends (...args: infer R) => infer T
+    ? ((deps: D, ...args: R) => T)
+    : never
+};
 /** A Fadroma error. */
 export class Error extends Oops.Error {}
 /** A Fadroma logger. */
@@ -38,10 +54,6 @@ export interface LoggingEntity<I extends Id, L extends Console> extends Entity<I
 }
 /** Block hash. */
 export type Hash = string
-/** Slices first argument of implementation signature
-  * (see https://stackoverflow.com/a/67605309) */
-export type Method<F> = F extends (arg0: never, ...rest: infer R) =>
-  infer T ? ((...args: R) => T) : never
 /** Represents the backend of a managed chain (such as a devnet). */
 export type ChainBackend = LoggingEntity<ChainId, Console> & {
   connect   ():                 Promise<Chain>
@@ -164,12 +176,6 @@ export const fetchNextBlock = (api: Api&Deps, interval: number = 1000): Promise<
       reject(e)
     } })
   })
-/** Type of chain API implementation. */
-export type Impl<A extends Api, D extends Deps> = {
-  [k in keyof A]: A[k] extends (...args: infer A) => infer T
-    ? ((deps: D, ...args: A) => T)
-    : never
-};
 export const impl: Impl<Api, Deps & Api> = {
   fetchBlock (_, __) { throw new Error('base fetchBlock is not implemented') },
   fetchNextBlock,

@@ -1,5 +1,5 @@
 test:
-  deno test --coverage --allow-read=./namada/pkg/fadroma_namada_bg.wasm test.ts
+  deno test --coverage --allow-read=./namada/pkg/fadroma_namada_bg.wasm
   deno coverage
 cov:
   deno coverage --detailed

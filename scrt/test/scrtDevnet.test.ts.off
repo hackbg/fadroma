@@ -2,7 +2,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import * as Devnet from 'npm:@fadroma/devnet'
-import * as Scrt from './scrt'
+import * as Scrt from '../lib/scrt.ts'
 import { fixture, testConnectionWithBackend } from 'npm:@fadroma/fixtures'
 import { Token } from '@hackbg/fadroma'
 import { dirname, resolve } from 'node:path'
