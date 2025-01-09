@@ -5,13 +5,13 @@ export type Snip22Api = {
   batchSend (actions: SendAction[]): Promise<unknown>
   batchSendFrom (actions: SendFromAction[]): Promise<unknown>
 }
-const batchTransfer = ({ execute }: CosmWasm.Deps, actions: TransferAction[]) =>
+const batchTransfer = ({ execute }: CosmWasm.ClientDeps, actions: TransferAction[]) =>
   execute({ batch_transfer: { actions } })
-const batchTransferFrom = ({ execute }: CosmWasm.Deps, actions: TransferFromAction[]) =>
+const batchTransferFrom = ({ execute }: CosmWasm.ClientDeps, actions: TransferFromAction[]) =>
   execute({ batch_transfer_from: { actions } })
-const batchSend = ({ execute }: CosmWasm.Deps, actions: SendAction[]) =>
+const batchSend = ({ execute }: CosmWasm.ClientDeps, actions: SendAction[]) =>
   execute({ batch_transfer: { actions } })
-const batchSendFrom = ({ execute }: CosmWasm.Deps, actions: SendFromAction[]) =>
+const batchSendFrom = ({ execute }: CosmWasm.ClientDeps, actions: SendFromAction[]) =>
   execute({ batch_send_from: { actions } })
 export const snip22Impl = {
   batchTransfer,

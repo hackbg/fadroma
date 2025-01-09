@@ -1,31 +1,32 @@
-import { Address, CosmWasm, bold } from '../deps.ts'
-import type { TxResponse } from '../deps.ts'
+import { Address, bold } from '../deps.ts'
+import type {
+  Coin, Fee, TxResponse, CodeId, CodeHash, Label, Message, UploadedCode, Contract,
+} from '../deps.ts'
 import type { Deps, AgentDeps, Connection } from './scrt.ts'
 import faucets from './scrtFaucet.ts'
 export const fetchCodeInfo = async (
-  { chain, api, withIntoError }: Deps, ...args: Parameters<CosmWasm.Api["fetchCodeInfo"]>
-): Promise<Record<CosmWasm.CodeId, CosmWasm.UploadedCode>> => {
-  const result: Record<CosmWasm.CodeId, CosmWasm.UploadedCode> = {}
+  { chain, api, withIntoError }: Deps,
+  filter?: CodeId[]
+): Promise<Record<CodeId, UploadedCode>> => {
+  const result: Record<CodeId, UploadedCode> = {}
   await withIntoError(api.query.compute.codes({})).then(({code_infos})=>{
     for (const { code_id, code_hash, creator } of code_infos||[]) {
-      if (!args[0] || args[0].includes(code_id!)) {
-        result[code_id!] = new UploadedCode({
-          chainId:  chain().id,
-          codeId:   code_id,
-          codeHash: code_hash,
-          uploadBy: creator
-        })
-      }
+      if (!filter || filter.includes(code_id!)) result[code_id!] = {
+        chain:    chain(),
+        codeId:   code_id,
+        codeHash: code_hash,
+        uploadBy: creator
+      } as UploadedCode
     }
   })
   return result
 }
 export const fetchCodeInstances = async (
-  { chain, api, log, withIntoError }: Deps, ...args: Parameters<CosmWasm.Api["fetchCodeInstances"]>
-): Promise<Record<CosmWasm.CodeId, Record<Address, CosmWasm.Contract>>> => {
-  if (args[2]?.parallel) log.warn('fetchCodeInstances in parallel: not implemented')
-  const result: Record<CosmWasm.CodeId, Record<Address, CosmWasm.Contract>> = {}
-  for (const [codeId, Contract] of Object.entries(args.codeIds)) {
+  { chain, api, log, withIntoError }: Deps, codeIds: Iterable<CodeId>, parallel?: boolean
+): Promise<Record<CodeId, Record<Address, Contract>>> => {
+  if (parallel) log.warn('fetchCodeInstances in parallel: not implemented')
+  const result: Record<CodeId, Record<Address, Contract>> = {}
+  for (const [codeId, Contract] of Object.entries(codeIds)) {
     let codeHash: string
     const instances = {}
     await withIntoError(api.query.compute.codeHashByCodeId({ code_id: codeId }))
@@ -34,14 +35,14 @@ export const fetchCodeInstances = async (
       .then(({contract_infos})=>{
         for (const { contract_address, contract_info: { label, creator } } of contract_infos!) {
           result[codeId] ??= {}
-          result[codeId][contract_address!] = new Contract({
-            chain,
+          result[codeId][contract_address!] = {
+            chain: chain(),
             codeId,
             codeHash,
             label,
             address: contract_address,
             initBy:  creator
-          })
+          } as Contract
         }
       })
     result[codeId] = instances
@@ -49,7 +50,7 @@ export const fetchCodeInstances = async (
   return result
 }
 export const fetchContractInfo = async (
-  { chain, api, log, withIntoError }: Deps, ...args: Parameters<CosmWasm.Api["fetchContractInfo"]>
+  { chain, api, log, withIntoError }: Deps, ...args: Parameters<Api["fetchContractInfo"]>
 ): Promise<{
   [address in keyof typeof args["contracts"]]: InstanceType<typeof args["contracts"][address]>
 }> => {
@@ -69,7 +70,11 @@ export const fetchContractInfo = async (
       //.ContractInfo!.label!
   //}
 }
-export const query = async (deps: Deps, args: Parameters<Connection["queryImpl"]>[0]) => {
+export const query = async (deps: Deps, args: {
+  address:  Address,
+  codeHash: CodeHash,
+  message:  Message,
+}) => {
   const { withIntoError } = deps
   const api = await Promise.resolve(deps.api)
   return withIntoError(api.query.compute.queryContract({
@@ -78,12 +83,12 @@ export const query = async (deps: Deps, args: Parameters<Connection["queryImpl"]
     query:            args.message as Record<string, unknown>
   }))
 }
-export const upload = async (deps: AgentDeps, ...args: Parameters<CosmWasm.Api["upload"]>) => {
+export const upload = async (deps: AgentDeps, args: { binary: Uint8Array }) => {
   const { chain, api, address, fees, log, withIntoError } = deps
   const gasLimit = Number(fees.upload?.amount[0].amount) || undefined
   const result = await withIntoError(api.tx.compute.storeCode({
     sender:         address,
-    wasm_byte_code: args[0].binary,
+    wasm_byte_code: args.binary,
     source:         "",
     builder:        ""
   }, { gasLimit }))
@@ -118,26 +123,31 @@ export const upload = async (deps: AgentDeps, ...args: Parameters<CosmWasm.Api["
     throw new Error('upload failed')
   }
   const { codeHash } = await fetchCodeInfo(deps, codeId)
-  return new CosmWasm.UploadedCode({
-    chainId:   chain().id,
+  return {
+    chain: chain(),
     codeId,
-    codeHash,
+    codeHash:  codeHash!,
     uploadBy:  address,
     uploadTx:  result.transactionHash,
     uploadGas: result.gasUsed
-  })
+  } as UploadedCode
 }
-export const instantiate = async (
-  { chain, api, address, log, fees, withIntoError }: AgentDeps, ...args: Parameters<CosmWasm.Api["instantiate"]>
-) => {
+export const instantiate = async ({ chain, api, address, log, fees, withIntoError }: AgentDeps, args: {
+  codeId:    CodeId, 
+  codeHash:  CodeHash,
+  label:     Label,
+  initMsg:   Message, 
+  initSend:  Coin[],
+  initMemo?: string
+}) => {
   const parameters = {
     sender:     address,
-    code_id:    Number(args[0].codeId),
-    code_hash:  args[0].codeHash,
-    label:      args[0].label!,
-    init_msg:   args[0].initMsg,
-    init_funds: args[0].initSend,
-    memo:       args[0].initMemo
+    code_id:    Number(args.codeId),
+    code_hash:  args.codeHash,
+    label:      args.label!,
+    init_msg:   args.initMsg,
+    init_funds: args.initSend,
+    memo:       args.initMemo
   }
   const instantiateOptions = {
     gasLimit: Number(fees.init?.amount[0].amount) || undefined
@@ -147,35 +157,41 @@ export const instantiate = async (
   )
   if (result.code !== 0) {
     log.error('Init failed:', { parameters, instantiateOptions, result })
-    throw new Error(`init of code id ${args[0].codeId} failed`)
+    throw new Error(`init of code id ${args.codeId} failed`)
   }
-  return new Contract({
-    chain,
+  return {
+    chain: chain(),
     address:  result.arrayLog!.find(
       ({ type, key }: { type: string, key: string }) =>
         type === "message" && key === "contract_address"
     )?.value!,
-    codeHash: args[0].codeHash,
+    codeHash: args.codeHash,
     initBy:   address,
     initTx:   result.transactionHash,
     initGas:  result.gasUsed,
-    label:    args[0].label,
-  }) as Contract & { address: Address }
+    label:    args.label,
+  } as Contract & { address: Address }
 }
-export const execute = async (
-  { api, log, address }: AgentDeps, ...args: Parameters<CosmWasm.Api["execute"]>
-) => {
+export const execute = async ({ api, log, address }: AgentDeps, args: {
+  address:      Address,
+  codeHash:     CodeHash,
+  message:      Message,
+  execSend?:    Coin[],
+  execFee?:     Fee,
+  execMemo?:    string,
+  preSimulate?: boolean
+}) => {
   const tx = {
     sender:           address!,
-    contract_address: args[0].address,
-    code_hash:        args[0].codeHash,
-    msg:              args[0].message as Record<string, unknown>,
-    sentFunds:        args[0]?.execSend
+    contract_address: args.address,
+    code_hash:        args.codeHash,
+    msg:              args.message as Record<string, unknown>,
+    sentFunds:        args.execSend
   }
   const txOpts = {
-    gasLimit: Number(args[0]?.execFee?.gas) || undefined
+    gasLimit: Number(args.execFee?.gas) || undefined
   }
-  if (args[0]?.preSimulate) {
+  if (args.preSimulate) {
     log.info('Simulating transaction...')
     let simResult
     try {
@@ -211,7 +227,7 @@ export const decodeError = (result: TxResponse) => {
   const txBytes = tryDecode(result.tx as Uint8Array)
   Object.assign(result, { txBytes })
   for (const i in result.tx.signatures) {
-    Object.assign(result.tx.signatures, { [i]: tryDecode(result.tx.signatures[i]) })
+    Object.assign(result.tx.signatures, { [i]: tryDecode(result.tx.signatures[i as any]) })
   }
   for (const event of result.events) {
     for (const attr of event?.attributes ?? []) {

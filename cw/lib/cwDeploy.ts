@@ -1,6 +1,7 @@
 import { bold, timed } from '../deps.ts'
-import type { ChainId, ChainRef, Address, Hash, Method } from '../deps.ts'
-import type { CodeHash, CodeId } from './cw.ts'
+import type { Tendermint, Into, ChainId, ChainRef, Address, Hash, Method } from '../deps.ts'
+import type { CodeHash, CodeId, Message } from './cw.ts'
+import type { Contract } from './cwClient.ts'
 export type SourceProvider = { fetchSource: Method<typeof fetchSource> }
 export type SourceCode = {
   /** URL pointing to Git upstream containing the canonical source code. */
@@ -32,13 +33,103 @@ export type UploadedCode = Partial<CompiledCode> & {
 /** A Map caching contract uploads. */
 export type UploadStore = Map<CodeHash, UploadedCode>
 export type Instantiator = { instantiate: Method<typeof instantiate> }
-export type Contract = Partial<UploadedCode> & {
-  readonly initBy?: Address
-  readonly address: Address
-  readonly label:   string
-}
+
 export type DeployDeps = { log: Console }
-export type DeployApi = Instantiator & Uploader & (Compiler|undefined) & (SourceProvider|undefined)
+export type DeployApi = Instantiator & Uploader & (Compiler|undefined) & (SourceProvider|undefined) & {
+  fetchCodeInfo (): Promise<Record<CodeId, UploadedCode>>
+  fetchCodeInfo (codeId: CodeId, options?: { parallel?: boolean }): Promise<UploadedCode>
+  fetchCodeInfo (codeIds: Iterable<CodeId>, options?: { parallel?: boolean }): Promise<Record<CodeId, UploadedCode>>
+  //[>* Fetch info about all code IDs uploaded to the chain. <]
+  //fetchCodeInfo ():
+    //Promise<Record<CodeId, UploadedCode>>
+  //[>* Fetch info about a single code ID. <]
+  //fetchCodeInfo (codeId: CodeId, options?: { parallel?: boolean }):
+    //Promise<UploadedCode>
+  //[>* Fetch info about multiple code IDs. <]
+  //fetchCodeInfo (codeIds: Iterable<CodeId>, options?: { parallel?: boolean }):
+    //Promise<Record<CodeId, UploadedCode>>
+  //fetchCodeInfo (...args: unknown[]): Promise<unknown> {
+    //return fetchCodeInfo(this, ...args as Parameters<Chain["fetchCodeInfo"]>)
+  //}
+  //[>* Chain-specific implementation of fetchCodeInfo. <]
+  //abstract fetchCodeInfoImpl (parameters?: {
+    //codeIds?:  CodeId[]
+    //parallel?: boolean
+  //}): Promise<Record<CodeId, UploadedCode>>
+  fetchCodeInstances (codeId: CodeId): Promise<Record<Address, Contract>>
+  fetchCodeInstances (codeIds: Iterable<CodeId>, options?: { parallel?: boolean }): Promise<Record<CodeId, Record<Address, Contract>>>
+  //fetchCodeInstances (codeIds: { [id: CodeId]: Contract }, options?: { parallel?: boolean }): Promise<{ [codeId in keyof typeof codeIds]:
+    //Record<Address, InstanceType<typeof codeIds[codeId]>> }>
+  //[>* Fetch all instances of a code ID. <]
+  //fetchCodeInstances (
+    //codeId: CodeId
+  //): Promise<Record<Address, Contract>>
+  //[>* Fetch all instances of a code ID, with custom client class. <]
+  //fetchCodeInstances <C extends typeof Contract> (
+    //Contract: C,
+    //codeId: CodeId
+  //): Promise<Record<Address, InstanceType<C>>>
+  //[>* Fetch all instances of multple code IDs. <]
+  //fetchCodeInstances (
+    //codeIds:  Iterable<CodeId>,
+    //options?: { parallel?: boolean }
+  //): Promise<Record<CodeId, Record<Address, Contract>>>
+  //[>* Fetch all instances of multple code IDs, with custom client class. <]
+  //fetchCodeInstances <C extends typeof Contract> (
+    //Contract: C,
+    //codeIds:  Iterable<CodeId>,
+    //options?: { parallel?: boolean }
+  //): Promise<Record<CodeId, Record<Address, InstanceType<C>>>>
+  //[>* Fetch all instances of multple code IDs, with multiple custom client classes. <]
+  //fetchCodeInstances (
+    //codeIds:  { [id: CodeId]: typeof Contract },
+    //options?: { parallel?: boolean }
+  //): Promise<{
+    //[codeId in keyof typeof codeIds]: Record<Address, InstanceType<typeof codeIds[codeId]>>
+  //}>
+  //async fetchCodeInstances (...args: unknown[]): Promise<unknown> {
+    //return fetchCodeInstances(this, ...args as Parameters<Chain["fetchCodeInstances"]>)
+  //}
+  //[>* Chain-specific implementation of fetchCodeInstances. <]
+  //abstract fetchCodeInstancesImpl (parameters: {
+    //codeIds:   { [id: CodeId]: typeof Contract },
+    //parallel?: boolean
+  //}): Promise<{
+    //[codeId in keyof typeof parameters["codeIds"]]:
+      //Record<Address, InstanceType<typeof parameters["codeIds"][codeId]>>
+  //}>
+  /** Chain-specific implementation of code upload. */
+  upload (parameters: {
+    binary:       Uint8Array,
+    reupload?:    boolean,
+    uploadStore?: UploadStore,
+    uploadFee?:   Tendermint.Fee
+    uploadMemo?:  string
+  }): Promise<Partial<UploadedCode & {
+    chainId: ChainId,
+    codeId:  CodeId
+  }>>
+  /** Chain-specific implementation of contract instantiation. */
+  instantiate (parameters: Partial<Contract> & {
+    initMsg:   Into<Message>
+    initFee?:  Tendermint.Fee
+    initSend?: Tendermint.Coin[]
+    initMemo?: string
+  }):
+    Promise<Contract & { address: Address }>
+  //[>* Instantiate a new program from a code id, label and init message. <]
+  //instantiate (
+    //contract: CodeId|Partial<UploadedCode>,
+    //options:  Partial<Contract> & {
+      //initMsg:   Into<Message>,
+      //initSend?: Token.ICoin[]
+    //}
+  //): Promise<Contract & {
+    //address: Address,
+  //}> {
+    //return instantiate(this, contract, options)
+  //}
+}
 
 export const fetchSource = () =>
   { throw new Error('todo!') }
@@ -85,23 +176,6 @@ export const upload = async (
     codeId:  CodeId
   }
 }
-  //[>* Fetch info about all code IDs uploaded to the chain. <]
-  //fetchCodeInfo ():
-    //Promise<Record<CodeId, UploadedCode>>
-  //[>* Fetch info about a single code ID. <]
-  //fetchCodeInfo (codeId: CodeId, options?: { parallel?: boolean }):
-    //Promise<UploadedCode>
-  //[>* Fetch info about multiple code IDs. <]
-  //fetchCodeInfo (codeIds: Iterable<CodeId>, options?: { parallel?: boolean }):
-    //Promise<Record<CodeId, UploadedCode>>
-  //fetchCodeInfo (...args: unknown[]): Promise<unknown> {
-    //return fetchCodeInfo(this, ...args as Parameters<Chain["fetchCodeInfo"]>)
-  //}
-  //[>* Chain-specific implementation of fetchCodeInfo. <]
-  //abstract fetchCodeInfoImpl (parameters?: {
-    //codeIds?:  CodeId[]
-    //parallel?: boolean
-  //}): Promise<Record<CodeId, UploadedCode>>
 export const fetchCodeInfo = async (
   { log }: Deps, ...args: Parameters<Api["fetchCodeInfo"]>|[]
 ) => {
@@ -138,61 +212,3 @@ export const fetchCodeInfo = async (
     throw new Error('fetchCodeInfo takes 0 or 1 arguments')
   }
 }
-
-
-
-
-
-
-  //[>* Fetch all instances of a code ID. <]
-  //fetchCodeInstances (
-    //codeId: CodeId
-  //): Promise<Record<Address, Contract>>
-  //[>* Fetch all instances of a code ID, with custom client class. <]
-  //fetchCodeInstances <C extends typeof Contract> (
-    //Contract: C,
-    //codeId: CodeId
-  //): Promise<Record<Address, InstanceType<C>>>
-  //[>* Fetch all instances of multple code IDs. <]
-  //fetchCodeInstances (
-    //codeIds:  Iterable<CodeId>,
-    //options?: { parallel?: boolean }
-  //): Promise<Record<CodeId, Record<Address, Contract>>>
-  //[>* Fetch all instances of multple code IDs, with custom client class. <]
-  //fetchCodeInstances <C extends typeof Contract> (
-    //Contract: C,
-    //codeIds:  Iterable<CodeId>,
-    //options?: { parallel?: boolean }
-  //): Promise<Record<CodeId, Record<Address, InstanceType<C>>>>
-  //[>* Fetch all instances of multple code IDs, with multiple custom client classes. <]
-  //fetchCodeInstances (
-    //codeIds:  { [id: CodeId]: typeof Contract },
-    //options?: { parallel?: boolean }
-  //): Promise<{
-    //[codeId in keyof typeof codeIds]: Record<Address, InstanceType<typeof codeIds[codeId]>>
-  //}>
-  //async fetchCodeInstances (...args: unknown[]): Promise<unknown> {
-    //return fetchCodeInstances(this, ...args as Parameters<Chain["fetchCodeInstances"]>)
-  //}
-  //[>* Chain-specific implementation of fetchCodeInstances. <]
-  //abstract fetchCodeInstancesImpl (parameters: {
-    //codeIds:   { [id: CodeId]: typeof Contract },
-    //parallel?: boolean
-  //}): Promise<{
-    //[codeId in keyof typeof parameters["codeIds"]]:
-      //Record<Address, InstanceType<typeof parameters["codeIds"][codeId]>>
-  //}>
-
-
-  //[>* Instantiate a new program from a code id, label and init message. <]
-  //instantiate (
-    //contract: CodeId|Partial<UploadedCode>,
-    //options:  Partial<Contract> & {
-      //initMsg:   Into<Message>,
-      //initSend?: Token.ICoin[]
-    //}
-  //): Promise<Contract & {
-    //address: Address,
-  //}> {
-    //return instantiate(this, contract, options)
-  //}

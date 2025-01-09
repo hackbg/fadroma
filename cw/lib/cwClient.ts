@@ -1,8 +1,42 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Address, ChainRef, bold, timed } from '../deps.ts'
-import type { CodeId, CodeHash } from './cw.ts'
+import { Tendermint, Address, ChainRef, bold, timed } from '../deps.ts'
+import type { CodeId, CodeHash, Message } from './cw.ts'
+import type { UploadedCode } from './cwDeploy.ts'
+
+export type Contract = Partial<UploadedCode> & {
+  readonly initBy?: Address
+  readonly address: Address
+  readonly label:   string
+}
+
+export type ClientApi = {
+  fetchContractInfo (address: Address): Promise<Contract>
+  fetchContractInfo (addresses: Address[], options?: { parallel?: boolean }): Promise<Record<Address, Contract>>
+  //fetchContractInfo (contracts: { [address: Address]: Contract }, options?: { parallel?: boolean }):
+    //Promise<{ [address in keyof typeof contracts]: InstanceType<typeof contracts[address]> }>
+  /** Execute a contract transaction. */
+  execute <T> (parameters: {
+    address:   Address
+    codeHash?: string
+    message:   Message
+    execFee?:  Tendermint.Fee
+    execSend?: Tendermint.Coin[]
+    execMemo?: string
+  }): Promise<T>
+  /** Query a contract. */
+  query <T> (parameters: {
+    address:   Address
+    codeHash?: string
+    message:   Message
+  }): Promise<T>
+}
+
+export type ClientDeps = {
+  query:   <T>(...args: unknown[])=>Promise<T>,
+  execute: <T>(...args: unknown[])=>Promise<T>,
+}
 
 //import {
   //Console, Logged, SHA256, assign, base16, bold, hideProperties, into, timestamp, timed
@@ -106,21 +140,6 @@ import type { CodeId, CodeHash } from './cw.ts'
   * version which can also load code from disk (`LocalCompiledCode`). Ugh. */
 //export const _$_HACK_$_ = { CompiledCode: CompiledCode }
 
-  //[>* Query a contract by address. <]
-  //query <T> (contract: Address, message: Message):
-    //Promise<T>
-  //[>* Query a contract object. <]
-  //query <T> (contract: { address: Address }, message: Message):
-    //Promise<T>
-  //query <T> (...args: unknown[]): Promise<unknown> {
-    //return query(this, ...args as Parameters<Chain["query"]>)
-  //}
-  //[>* Chain-specific implementation of query. <]
-  //abstract queryImpl <T> (parameters: {
-    //address:   Address
-    //codeHash?: string
-    //message:   Message
-  //}): Promise<T>
 //
   //[>* Fetch a contract's details wrapped in a `Contract` instance. <]
   //fetchContractInfo (

@@ -1,11 +1,11 @@
 import { optionallyParallel } from '../deps.ts'
-import type { Tendermint, Address, Token, Chain, Connection, SigningConnection } from '../deps.ts'
+import type { Tendermint, Address, Token, Chain, Connection, Coin, Fee } from '../deps.ts'
 import type { Deps } from './scrt.ts'
 
-export async function fetchBalance (
-  { api, withIntoError }: Deps,
-  { parallel = false, addresses }: Parameters<Tendermint.Api["fetchBalance"]>[0]
-) {
+export async function fetchBalance ({ api, withIntoError }: Deps, args: {
+  parallel?: boolean, addresses: Address[]
+}) {
+  const { parallel = false, addresses } = args
   const queries = []
   for (const [address, tokens] of Object.entries(addresses)) {
     for (const denom of tokens) {
@@ -23,10 +23,10 @@ export async function fetchBalance (
   return result
 }
 
-export async function send (
-  { address, api, withIntoError }: Deps,
-  { parallel = false, outputs, sendFee, sendMemo }: Parameters<Tendermint.Api["send"]>[0])
-{
+export async function send ({ address, api, withIntoError }: Deps, args: {
+  parallel?: boolean, outputs: Coin[], sendFee: Fee, sendMemo?: string
+}) {
+  const { parallel = false, outputs, sendFee, sendMemo } = args
   const sender = address
   const transactions = []
   for (const [recipient, amounts] of Object.entries(outputs)) {
@@ -46,7 +46,6 @@ export async function send (
     result[(response).recipient] = response
   }
   return result
-
   //return withIntoError(api.tx.bank.send(
     //{ from_address: this.address!, to_address: recipient, amount: amounts },
     //{ gasLimit: Number(options?.sendFee?.gas) }

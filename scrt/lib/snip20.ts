@@ -129,7 +129,7 @@ export const initSnip20 = ({
     prng_seed: prngSeed,
   }
 }
-export type Snip20Deps = CosmWasm.Deps & {
+export type Snip20Deps = CosmWasm.ClientDeps & {
   id:        string,
   address?:  Address,
   codeHash?: CosmWasm.CodeHash
