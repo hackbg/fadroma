@@ -1,4 +1,4 @@
-import type { Token, ChainId, Address } from '@hackbg/fadroma'
+import type { Tendermint, Core, Address } from '../deps.ts'
 
 /** Data used for creating a signature as per the SNIP-24 spec:
   * https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-24.md#permit-content---stdsigndoc
@@ -10,7 +10,7 @@ export interface SignDoc {
   /** Always 0. */
   readonly sequence: string;
   /** Always 0 uscrt + 1 gas */
-  readonly fee: Token.IFee;
+  readonly fee: Tendermint.Fee;
   /** Always 1 message of type query_permit */
   readonly msgs: readonly AminoMsg[];
   /** Always empty. */
@@ -42,7 +42,7 @@ export interface PermitAminoMsg<T> {
 }
 
 export abstract class PermitSigner  {
-  static createSignDoc = <T> (chain_id: ChainId, permit_msg: T): SignDoc => ({
+  static createSignDoc = <T> (chain_id: Core.ChainId, permit_msg: T): SignDoc => ({
     chain_id,
     account_number: "0", // Must be 0
     sequence: "0", // Must be 0
@@ -61,7 +61,7 @@ export abstract class PermitSigner  {
 
   constructor (
     /** The id of the chain for which permits will be signed. */
-    readonly chainId: ChainId,
+    readonly chainId: Core.ChainId,
     /** The address which will do the signing and
       * which will be the address used by the contracts. */
     readonly address: Address,
@@ -73,7 +73,7 @@ export abstract class PermitSigner  {
 export class PermitSignerKeplr extends PermitSigner {
 
   constructor (
-    chainId: ChainId,
+    chainId: Core.ChainId,
     address: Address,
     /** Must be a pre-configured instance. */
     readonly keplr: KeplrSigningHandle<any>
@@ -105,7 +105,7 @@ export class PermitSignerKeplr extends PermitSigner {
 
 export interface KeplrSigningHandle <T> {
   signAmino (
-    chain_id: ChainId,
+    chain_id: Core.ChainId,
     address:  Address,
     signDoc:  SignDoc,
     options: { preferNoSetFee: boolean, preferNoSetMemo: boolean }

@@ -2,6 +2,9 @@ export * as Core from '@hackbg/fadroma'
 export * as Tendermint from '@fadroma/tm'
 export * as CosmWasm from '@fadroma/cw'
 export * as SecretJS from '@hackbg/secretjs-esm'
+export type {
+  EncryptionUtils
+} from '@hackbg/secretjs-esm'
 export {
   SecretNetworkClient,
   Wallet,
