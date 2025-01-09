@@ -1,4 +1,5 @@
 import { Core, Case } from '../deps.ts'
+import * as Bank from './tmBank.ts'
 /** A Tendermint error .*/
 export class Error extends Core.Error {}
 /** A Tendermint logger .*/
@@ -164,6 +165,7 @@ export const broadcastTx = async (_api: Deps, _method: 'sync'|'async'|'commit', 
 /** Default implementation of Tendermint client API. */
 export const impl = {
   ...Core.impl,
+  ...Bank,
   fetchBlock,
   fetchBlockResults,
   fetchAbciInfo,

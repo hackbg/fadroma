@@ -1,5 +1,5 @@
 import { optionallyParallel } from '../deps.ts'
-import type { Address, Token, Chain, Connection, SigningConnection } from '../deps.ts'
+import type { Tendermint, Address, Token, Chain, Connection, SigningConnection } from '../deps.ts'
 
 export async function fetchBalance ({ api }: Deps, {
   parallel = false,
@@ -27,7 +27,7 @@ export async function send ({ address }: Deps, {
   outputs,
   sendFee,
   sendMemo,
-}: Parameters<SigningConnection["sendImpl"]>[0]) {
+}: Parameters<Tendermint.Api["send"]>[0]) {
   const { api } = agent
   const sender = agent.address
   const transactions = []
