@@ -79,7 +79,12 @@ export type Batch = Tendermint.Batch & {
     |InstanceType<typeof MsgExecuteContract>
   >
 }
-export type BatchDeps = Batch & { log: Console, agent: Agent, chain: Chain }
+export type BatchDeps = Batch & {
+  log:   Console,
+  agent: Agent,
+  chain: () => Core.ChainRef
+  api:   SecretNetworkClient,
+}
 export type BatchResult = {
   sender?:   Address
   tx:        Core.Hash
@@ -88,15 +93,17 @@ export type BatchResult = {
   codeId?:   CosmWasm.CodeId
   codeHash?: CosmWasm.CodeHash
   address?:  Address
-  label?:    CosmWasm.ContractLabel
+  label?:    CosmWasm.Label
 }
-export type Identity = Core.Identity & {
+export type Identity = {
   getApi ({chainId, url}: {chainId: Core.ChainId, url: string|URL}): SecretNetworkClient
+  wallet?: Wallet,
+  address?: Address,
+  encryptionUtils?: EncryptionUtils
 }
-export type SignerIdentity = Identity & { encryptionUtils?: EncryptionUtils }
-export type MnemonicIdentity = Identity & { wallet?: Wallet }
-export type Agent = Tendermint.Agent & {
-  chain:    Chain,
+export interface Agent {
+  address:  Address,
+  chain:    () => Core.ChainRef,
   identity: Identity,
   /** Set permissive fees by default. */
   fees: { upload: Tendermint.Fee, init: Tendermint.Fee, exec: Tendermint.Fee, send: Tendermint.Fee },
@@ -106,7 +113,7 @@ export type Agent = Tendermint.Agent & {
   encrypt: (codeHash: CosmWasm.CodeHash, msg: CosmWasm.Message) => any,
 }
 /** Smallest unit of native token. */
-export const gasToken = new Token.Native('uscrt')
+export const gasToken = new Tendermint.nativeToken('uscrt')
 
 const chainMethods = (api: any) => Object.assign(api, {
   withIntoError: <T>(p: Promise<T>): Promise<T> => p.catch(api.intoError),
@@ -122,7 +129,7 @@ const chainMethods = (api: any) => Object.assign(api, {
     }
     return connection
   },
-  connect: async ({ chainId, urls = [] }: { chainId: Core.ChainId, urls: (string|URL)[] }): Promise<Chain> => {
+  connect: ({ chainId, urls = [] }: { chainId: Core.ChainId, urls: (string|URL)[] }): Promise<Chain> => {
     const chain = new Chain({ chainId })
     const connections = urls.map(url=>new Connection({
       chain,
@@ -131,26 +138,24 @@ const chainMethods = (api: any) => Object.assign(api, {
     chain.connections = connections
     return chain
   },
-  authenticate: async (...args: unknown[]): Promise<Agent> => {
+  authenticate: (...args: unknown[]): Promise<Agent> => {
     if (args.length === 0) {
-      const chain = api
-      const api   = new SecretNetworkClient({ chainId: chain.id, url: chain.getConnection().url })
-      return new Agent({ chain, api })
+      return new Agent({ chain: api, api: new SecretNetworkClient({ chainId: chain.id, url: chain.getConnection().url }) })
     } else {
       throw new Error("unimplemented!")
     }
   },
-  fetchLimits: async (): Promise<{ gas: number }> => {
-    const params = { subspace: "baseapp", key: "BlockParams" }
-    const { param } = await api.api.query.params.params(params)
-    let { max_bytes, max_gas } = JSON.parse(param?.value??'{}')
-    api.log.debug(`Fetched default gas limit: ${max_gas} and code size limit: ${max_bytes}`)
-    if (max_gas < 0) {
-      max_gas = 10000000
-      api.log.warn(`Chain returned negative max gas limit. Defaulting to: ${max_gas}`)
-    }
-    return { gas: max_gas }
-  },
+  fetchLimits: (): Promise<{ gas: number }> =>
+    api.api.query.params.params({ subspace: "baseapp", key: "BlockParams" }).then(
+      ({param}: {param:{value:string}})=>{
+        let { max_bytes, max_gas } = JSON.parse(param?.value??'{}')
+        api.log.debug(`Fetched default gas limit: ${max_gas} and code size limit: ${max_bytes}`)
+        if (max_gas < 0) {
+          max_gas = 10000000
+          api.log.warn(`Chain returned negative max gas limit. Defaulting to: ${max_gas}`)
+        }
+        return { gas: max_gas }
+      }),
 })
 export const connectionMethods = (api: any) => ({
   constructor: (properties?: Partial<Connection>) => {
@@ -165,7 +170,7 @@ export const connectionMethods = (api: any) => ({
     }
     api.api = new SecretNetworkClient({ chainId, url })
   },
-  fetchBlockImpl: async (parameter?): Promise<Block> => {
+  fetchBlock: async (parameter?): Promise<Block> => {
     if (!parameter) {
       let {
         block_id: { hash, part_set_header } = {},
@@ -174,52 +179,48 @@ export const connectionMethods = (api: any) => ({
       if (hash instanceof Uint8Array) {
         hash = base16.encode(hash) as any
       }
-      return new Block({
-        hash:   hash as any,
+      return {
+        id: hash as any,
         height: Number(header?.height)
-      })
+      } as Block
     }
   },
   fetchHeight: async () => (await api.fetchBlockImpl()).height,
-  fetchBalance: (...args: Parameters<Connection["fetchBalanceImpl"]>) =>
+  fetchBalance: (...args: Parameters<Tendermint.Api["fetchBalance"]>) =>
     Bank.fetchBalance(api, ...args),
-  fetchCodeInfo: (...args: Parameters<Connection["fetchCodeInfoImpl"]>) =>
+  fetchCodeInfo: (...args: Parameters<CosmWasm.Api["fetchCodeInfo"]>) =>
     Compute.fetchCodeInfo(api, ...args),
-  fetchCodeInstances: (...args: Parameters<Connection["fetchCodeInstancesImpl"]>) =>
+  fetchCodeInstances: (...args: Parameters<CosmWasm.Api["fetchCodeInstances"]>) =>
     Compute.fetchCodeInstances(api, ...args),
-  fetchContractInfo: (...args: Parameters<Connection["fetchContractInfoImpl"]>) =>
+  fetchContractInfo: (...args: Parameters<CosmWasm.Api["fetchContractInfo"]>) =>
     Compute.fetchContractInfo(api, ...args),
-  query: <T> (parameters: Parameters<Connection["queryImpl"]>[0]): Promise<T> =>
+  query: <T> (parameters: Parameters<CosmWasm.Api["query"]>[0]): Promise<T> =>
     Compute.query(api, parameters) as Promise<T>,
 })
 export const fromKeplr = () => { throw new Error('unimplemented') }
 export const fromMnemonic = (
   mnemonic = Bip39.generateMnemonic(Bip39EN),
   wallet   = new Wallet(mnemonic),
-): MnemonicIdentity => {
-  return {
-    address: wallet.address,
-    wallet,
-    getApi: ({chainId, url}: {chainId: Core.ChainId, url: string|URL}): SecretNetworkClient =>
-      new SecretNetworkClient({
-        chainId,
-        url: url.toString(),
-        wallet,
-        walletAddress: wallet.address,
-      })
-  }
-}
-export const fromSigner = (encryptionUtils: EncryptionUtils): SignerIdentity => {
-  return {
-    encryptionUtils,
-    getApi: ({chainId, url}: {chainId: Core.ChainId, url: string|URL}): SecretNetworkClient =>
-      new SecretNetworkClient({
-        chainId,
-        url: url.toString(),
-        encryptionUtils,
-      })
-  }
-}
+): Identity => ({
+  wallet,
+  address: wallet.address,
+  getApi: ({chainId, url}: {chainId: Core.ChainId, url: string|URL}): SecretNetworkClient =>
+    new SecretNetworkClient({
+      chainId,
+      url: url.toString(),
+      wallet,
+      walletAddress: wallet.address,
+    })
+})
+export const fromSigner = (encryptionUtils: EncryptionUtils): Identity => ({
+  encryptionUtils,
+  getApi: ({chainId, url}: {chainId: Core.ChainId, url: string|URL}): SecretNetworkClient =>
+    new SecretNetworkClient({
+      chainId,
+      url: url.toString(),
+      encryptionUtils,
+    })
+})
 export const agent = (config: { log: Console, identity: Identity|EncryptionUtils|string }) => {
   if (!(config.identity instanceof Identity)) {
     if (!(typeof config.identity === 'object')) {
@@ -345,7 +346,7 @@ export const encryptUpload = async (upload: any): Promise<any> =>
 export const encryptInit = async (agent: Agent, init: {
   codeId:   CosmWasm.CodeId,
   codeHash: CosmWasm.CodeHash,
-  label:    CosmWasm.ContractLabel
+  label:    CosmWasm.Label
   msg:      CosmWasm.Message,
   funds:    Tendermint.Coin[],
 }) => ({
@@ -384,10 +385,10 @@ const encryptBatch = ({ agent, log, messages = [] }): Promise<any[]> =>
     }
   }))
 const simulateBatch = (batch: BatchDeps) =>
-  Promise.resolve(batch.chain!.api).then(api=>api.tx.simulate(batch.messages))
+  Promise.resolve(batch.api).then(api=>api.tx.simulate(batch.messages))
 const submitBatch = async (batch: BatchDeps, { memo = "" }: { memo: string }): Promise<BatchResult[]> => {
   const api = await Promise.resolve(batch.chain!.api)
-  const chainId  = batch.chain!.chainId!
+  const chainId  = batch.chain().id
   const messages = batch.messages
   const limit    = Number(batch.agent!.fees?.exec?.amount[0].amount) || undefined
   const gas      = messages.length * (limit || 0)

@@ -1,4 +1,4 @@
-import { Core, Case } from '../deps.ts'
+import { Core, camelize } from '../deps.ts'
 import * as Bank from './tmBank.ts'
 /** A Tendermint error .*/
 export class Error extends Core.Error {}
@@ -110,14 +110,7 @@ export const fetchBlockResults = async (
     },
   }
   if (response.error) throw new Error(response.error.data)
-  return camelize(response.result)
-}
-const camelize = (object: object) => {
-  const returned: Partial<BlockResults> = {}
-  for (const [key, value] of Object.entries(object)) {
-    Object.assign(returned, { [Case.camel(key) as keyof BlockResults]: value as any })
-  }
-  return returned as BlockResults
+  return camelize(response.result) as unknown as BlockResults
 }
 
 export const fetchAbciInfo  = async (_api: Deps) =>

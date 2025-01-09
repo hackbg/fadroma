@@ -1,9 +1,9 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Tendermint, bold, base64, randomBase64 } from '../deps.ts'
+import { Tendermint, bold, camelize, base64, randomBase64, fetchContractInfo } from '../deps.ts'
 import type { CosmWasm, Uint128, Address } from '../deps.ts'
-import type { Console } from './scrt.ts'
+import type { Chain, Console } from './scrt.ts'
 export type Snip20Config = {
   /** The full name of the token. */
   name: string
@@ -105,7 +105,6 @@ export interface Snip20Api {
     owner: Address, amount: Uint128, recipient: String,
     hash?: CosmWasm.CodeHash, msg?: string, memo?: string
   ): Promise<unknown>
-  amount (amount: Uint128): Tendermint.Amount
 }
 /** Create a SNIP20 init message. */
 export const initSnip20 = ({
@@ -131,25 +130,34 @@ export const initSnip20 = ({
   }
 }
 export type Snip20Deps = CosmWasm.Deps & {
-  id:       string,
-  address?: Address,
-  chain?:   Chain,
-  agent:    { address?: Address },
-  log:      Console,
+  id:        string,
+  address?:  Address,
+  codeHash?: CosmWasm.CodeHash
+  chain?:    Chain,
+  agent:     { address?: Address },
+  log:       Console,
 }
-const fetchMetadata = async (deps: Snip20Deps): Promise<deps> => {
-  if (!deps || !deps.address) {
+const fetchMetadata = async (deps: Snip20Deps) => {
+  const info: { codeHash?: CosmWasm.CodeHash } = {}
+  const { address, chain, codeHash } = deps
+  if (!address) {
     throw new Error("can't fetch metadata without contract address")
   }
-  if (!deps.chain) {
+  if (!chain) {
     throw new Error("can't fetch metadata without agent")
   }
   return Promise.all([
-    fetchContractInfo(deps, deps.address).then(({codeHash}) =>
-      deps.codeHash = codeHash),
-    fetchTokenInfo(deps).then(({ name, symbol, decimals, total_supply }: Snip20TokenInfo) =>
-      Object.assign(deps, { name, symbol, decimals, total_supply }))
-  ]).then(()=>deps)
+    fetchContractInfo(deps, deps.address)
+      .then(({codeHash}: {codeHash: CosmWasm.CodeHash}) =>info.codeHash = codeHash),
+    fetchTokenInfo(deps, deps.address)
+      .then(({ name, symbol, decimals, total_supply }: Snip20TokenInfo) => Object.assign(info, {
+        name,
+        symbol,
+        decimals, 
+        total_supply
+      }))
+  ])
+  return camelize(deps)
 }
 const fetchTokenInfo = async ({ query }: Snip20Deps) => {
   const msg = { token_info: {} }

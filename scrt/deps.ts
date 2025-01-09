@@ -1,6 +1,6 @@
 export * as Core from '@hackbg/fadroma'
 export type { Address, Uint128, Chain, Connection, SigningConnection } from '@hackbg/fadroma'
-export { optionallyParallel, } from '@hackbg/fadroma'
+export { optionallyParallel, camelize } from '@hackbg/fadroma'
 
 export * as Format from 'npm:@hackbg/4mat'
 export {
@@ -23,6 +23,7 @@ export * as Tendermint from '@fadroma/tm'
 export type { Token } from '@fadroma/tm'
 
 export * as CosmWasm from '@fadroma/cw'
+export { fetchContractInfo } from '@fadroma/cw'
 
 export * as SecretJS from '@hackbg/secretjs-esm'
 export type {

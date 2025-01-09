@@ -1,78 +1,18 @@
-import type { Core, Tendermint, Into, Address, Hash, Chain, ChainId } from '../deps.ts'
-
-/** A contract's full unique on-chain label. */
-export type ContractLabel = string
+import type { Tendermint, Into, Address, ChainId } from '../deps.ts'
+import type { UploadedCode, UploadStore, Contract } from './cwDeploy.ts'
 
 /** A code ID, identifying uploaded code on a chain. */
 export type CodeId = string|number
-
 /** The hash of a contract's code. */
 export type CodeHash = string
-
+/** A contract's full unique on-chain label. */
+export type Label = string
 /** A transaction message that can be sent to a contract. */
 export type Message = string|Record<string, unknown>
-
-export type ContractAddress = Address
-
-export type ContractCodeId = CodeId
- 
-export type ContractCodeHash = CodeHash
-
-export type UploadStore = Map<CodeHash, UploadedCode>
 
 export type Deps = {
   query:   <T>(...args: unknown[])=>Promise<T>,
   execute: <T>(...args: unknown[])=>Promise<T>,
-}
-
-export interface SourceProvider {
-  fetchSource (...args: unknown[]): Promise<SourceCode>
-}
-
-export interface SourceCode {
-  /** URL pointing to Git upstream containing the canonical source code. */
-  readonly upstream?:  string|URL
-  /** Pointer to the source commit. */
-  readonly reference?: string
-  /** Path to local checkout of the source code (with .git directory if sourceRef is set). */
-  readonly checkout?:  string
-  /** Whether the code contains uncommitted changes. */
-  readonly modified?:  boolean
-}
-
-export interface Compiler {
-  compile (source: SourceCode, ...args: unknown[]): Promise<CompiledCode>
-}
-
-export interface CompiledCode extends Partial<SourceCode> {
-  /** Location of the compiled code. */
-  readonly codePath?: string|URL
-  /** The compiled code. */
-  readonly codeData?: Uint8Array
-  /** Checksum uniquely identifying the compiled code. */
-  readonly codeHash?: ContractCodeHash
-}
-
-export interface Uploader {
-  upload (code: CompiledCode, ...args: unknown[]): Promise<UploadedCode>
-}
-
-export interface UploadedCode extends Partial<CompiledCode> {
-  readonly uploadBy?: Address
-  readonly uploadTx?: Hash
-  readonly chain:     Chain
-  /** Code ID representing the identity of the contract's code on a specific chain. */
-  readonly codeId:    ContractCodeId
-}
-
-export interface Instantiator {
-  instantiate (code: UploadedCode, ...args: unknown[]): Promise<Contract>
-}
-
-export interface Contract extends Partial<UploadedCode> {
-  readonly initBy?: Address
-  readonly address: ContractAddress
-  readonly label:   string
 }
 
 export type ContractConstructor<C extends Contract> = (...args: unknown[]) => C|Promise<C>
@@ -88,30 +28,30 @@ export type Api = Tendermint.Api & {
     Promise<Record<CodeId, UploadedCode>>
 
   fetchCodeInstances (codeId: CodeId):
-    Promise<Record<ContractAddress, Contract>>
+    Promise<Record<Address, Contract>>
   fetchCodeInstances <C extends Contract> (Contract: ContractConstructor<C>, codeId: CodeId):
-    Promise<Record<ContractAddress, C>>
+    Promise<Record<Address, C>>
   fetchCodeInstances (codeIds:  Iterable<CodeId>, options?: { parallel?: boolean }):
-    Promise<Record<CodeId, Record<ContractAddress, Contract>>>
+    Promise<Record<CodeId, Record<Address, Contract>>>
   fetchCodeInstances <C extends Contract> (Contract: C, codeIds:  Iterable<CodeId>, options?: { parallel?: boolean }):
-    Promise<Record<CodeId, Record<ContractAddress, C>>>
+    Promise<Record<CodeId, Record<Address, C>>>
   //fetchCodeInstances (codeIds: { [id: CodeId]: Contract }, options?: { parallel?: boolean }): Promise<{ [codeId in keyof typeof codeIds]:
-    //Record<ContractAddress, InstanceType<typeof codeIds[codeId]>> }>
+    //Record<Address, InstanceType<typeof codeIds[codeId]>> }>
 
-  fetchContractInfo (address: ContractAddress):
+  fetchContractInfo (address: Address):
     Promise<Contract>
-  fetchContractInfo <T extends Contract> (Contract: ContractConstructor<T>, address: ContractAddress):
+  fetchContractInfo <T extends Contract> (Contract: ContractConstructor<T>, address: Address):
     Promise<T>
-  fetchContractInfo (addresses: ContractAddress[], options?: { parallel?: boolean }):
-    Promise<Record<ContractAddress, Contract>>
-  fetchContractInfo <T extends Contract> (Contract: T, addresses: ContractAddress[], options?:  { parallel?: boolean }):
-    Promise<Record<ContractAddress, T>>
-  //fetchContractInfo (contracts: { [address: ContractAddress]: Contract }, options?: { parallel?: boolean }):
+  fetchContractInfo (addresses: Address[], options?: { parallel?: boolean }):
+    Promise<Record<Address, Contract>>
+  fetchContractInfo <T extends Contract> (Contract: T, addresses: Address[], options?:  { parallel?: boolean }):
+    Promise<Record<Address, T>>
+  //fetchContractInfo (contracts: { [address: Address]: Contract }, options?: { parallel?: boolean }):
     //Promise<{ [address in keyof typeof contracts]: InstanceType<typeof contracts[address]> }>
 
-  queryContract <T> (contract: ContractAddress, message: ContractMessage):
+  queryContract <T> (contract: Address, message: ContractMessage):
     Promise<T>
-  queryContract <T> (contract: { address: ContractAddress }, message: ContractMessage):
+  queryContract <T> (contract: { address: Address }, message: ContractMessage):
     Promise<T>
 
   /** Chain-specific implementation of code upload. */
