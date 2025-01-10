@@ -7,6 +7,7 @@
     "@hackbg/into":         "npm:@hackbg/into",
     "@hackbg/logs":         "npm:@hackbg/logs",
     "@hackbg/oops":         "npm:@hackbg/oops",
+    "@hackbg/borshest":     "npm:@hackbg/borshest",
 
     "@hackbg/fadroma":      "./core/index.ts",
     "@hackbg/fadroma/test": "./core/test/core.test.ts",

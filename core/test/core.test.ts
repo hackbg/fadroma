@@ -1,14 +1,7 @@
 import * as Core from '../index.ts'
-
-console.log(Core.chain)
-console.log()
-
-console.log(Core.chain({ id: 'test', }))
-console.log(Core.chain({ id: 'test', }).connect())
-console.log()
-
-const stubApi = {
-  test () { return "ok" }
-}
-console.log(Core.chain({ id: 'test', }, stubApi as any))
-console.log(Core.chain({ id: 'test', }, stubApi as any).connect())
+Core.chain
+Core.chain({ id: 'test', })
+Core.chain({ id: 'test', }).connect()
+const stubApi: any = { test () { return "ok" } }
+Core.chain({ id: 'test', }, stubApi)
+Core.chain({ id: 'test', }, stubApi).connect()

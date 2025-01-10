@@ -17,3 +17,4 @@
 **/
 
 export * from './lib/namada.ts'
+export * from './lib/namadaLog.ts'

@@ -19,6 +19,10 @@ export type Impl<A extends Api, D extends Deps> = {
 /** A Fadroma error. */
 export class Error extends Oops.Error {
   static TODO = (message: any) => { throw new Error(`TODO: ${message}`) }
+  constructor (message?: string, args?: object) {
+    super(message)
+    if (args) Object.assign(this, args)
+  }
 }
 /** A Fadroma logger. */
 export class Console extends Logs.Console {
@@ -142,6 +146,8 @@ export type Api = {
     hash?:    Hash,
     /** Fetch block results, too? */
     results?: boolean
+    /** Keep the raw responses? */
+    raw?: boolean
   }): Promise<Block>
   /** Fetch the block data after the height increments. */
   fetchNextBlock (interval?: number): Promise<Block>
@@ -197,4 +203,27 @@ export type Agent = Signer & AgentApi & LoggingEntity<Hash, Console> & {
 }
 export type AgentApi = {
   fetchBalance (): Promise<Record<string, Uint128>>
+}
+/** A raw response from an endpoint. */
+export type Response = {
+  /** The query that was made. */
+  url?:       string,
+  /** The data that was returned, which may be invalid (e.g. a 502) */
+  data?:      string
+  /** The moment the query was made. */
+  timestamp?: string,
+}
+/** A valid JSON-RPC v2 response, which may be a result or an error. */
+export type JsonRpcResponse<R> = {
+  jsonrpc: string, id: number, result?: R, error?: { data: string }
+}
+/** A parse that may fail but the source and error must still be preserved. */
+export type TryToParse<T, U> = [T, U, undefined] | [T, undefined, unknown]
+export const tryToParse = <T, U>(src: T): TryToParse<T, U> => {
+  try {
+    const json = JSON.parse(src as string)
+    return [src, json, undefined]
+  } catch (e) {
+    return [src, undefined, e]
+  }
 }

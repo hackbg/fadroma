@@ -1,11 +1,31 @@
 import * as Namada from '../index.ts'
 import { readFileSync } from 'node:fs'
-import { Console, initDecoder } from '../lib/namada.ts'
-const console = new Console('test')
-const decoder = await initDecoder(readFileSync('./namada/pkg/fadroma_namada_bg.wasm'))
-console.log(decoder.storage_keys())
+const console = new Namada.Console('test')
+const decoderWasm = readFileSync('./namada/pkg/fadroma_namada_bg.wasm');
+const decoder = await Namada.initDecoder(decoderWasm)
+decoder.storage_keys()
 const url = 'https://rpc.knowable.run/'
-const namada = await Namada.chain({ id: 'test', url })
+await Namada.chain({ id: 'test' })
+await Namada.chain({ id: 'test' })
+await Namada.chain({ id: 'test', decoder: decoderWasm })
+try { ;(await Namada.chain({ id: 'test', url, decoder: decoderWasm })).connect() } catch { /* */ }
+const chain = await Namada.chain({ id: 'test', url, decoder: decoderWasm })
+//console.log(chain.decoder)
+//await chain.fetchBlock()
+//await chain.fetchNextBlock()
+//await chain.fetchHeight()
+//await chain.fetchNextHeight()
+//await chain.fetchBalance()
+const connection = chain.connect(url)
+//process.exit(123)
+await connection.fetchBlock()
+await connection.fetchNextBlock()
+await connection.fetchHeight()
+await connection.fetchNextHeight()
+//await connection.fetchBalance()
+//await connection.fetchBalance()
+//await connection.fetchStorageValue('test')
+//await connection.fetchProtocolParameters('test')
 
 //console.log(await namada.getConnection().abciQuery(
   //'/shell/value/#tnam1qsqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqxdl54l/max_tx_bytes'

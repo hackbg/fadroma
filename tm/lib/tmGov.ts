@@ -1,4 +1,5 @@
 import type { Core } from '../deps.ts'
+import { Error, Console } from './tmLog.ts'
 /** A Namada governance vote. */
 export interface Vote { proposal: ProposalId, voter: Core.Address, power: bigint, value: VoteValue }
 /** The value of a Namada governance vote. */

@@ -1,9 +1,6 @@
 import { Core, camelize } from '../deps.ts'
+import { Error, Console } from './tmLog.ts'
 import * as Bank from './tmBank.ts'
-/** A Tendermint error .*/
-export class Error extends Core.Error {}
-/** A Tendermint logger .*/
-export class Console extends Core.Console {}
 /** Chain global configuration pertinent to Tendermint-based chains only. */
 export type ChainOptions = {
   bech32Prefix?:   string,
@@ -20,33 +17,65 @@ export type Transaction = Core.Transaction
 export type Batch       = Core.Batch
 /** The height of a Tendermint block. */
 export type Height      = Core.Height
-/** A Tendermint block. */
-export type Block       = Core.Block & {
-  /** The raw responses from /block and /block_results. */
-  readonly responses?: {
-    readonly block:    { url: string, response: string }
-    readonly results?: { url: string, response: string }
-  }
-  /** Block header. */
-  readonly header?: {
-    readonly version:            object
-    readonly chainId:            string
-    readonly height:             bigint
-    readonly time:               string
-    readonly lastBlockId:        string
-    readonly lastCommitHash:     string
-    readonly dataHash:           string
-    readonly validatorsHash:     string
-    readonly nextValidatorsHash: string
-    readonly consensusHash:      string
-    readonly appHash:            string
-    readonly lastResultsHash:    string
-    readonly evidenceHash:       string
-    readonly proposerAddress:    string
-  }
-  /** Transaction in block. */
-  readonly transactions: Transaction[]
+/** A Tendermint block ID. */
+export type BlockId = { hash: Core.Hash, parts?: { total: number, hash: Core.Hash } }
+/** A Tendermint block header. */
+export type BlockHeader = {
+  readonly version:            object
+  readonly chainId:            string
+  readonly height:             Height
+  readonly time:               string
+  readonly lastBlockId:        string
+  readonly lastCommitHash:     string
+  readonly dataHash:           string
+  readonly validatorsHash:     string
+  readonly nextValidatorsHash: string
+  readonly consensusHash:      string
+  readonly appHash:            string
+  readonly lastResultsHash:    string
+  readonly evidenceHash:       string
+  readonly proposerAddress:    string
 }
+/** A Tendermint block. */
+export type Block = Core.Block & {
+  /** Block header. */
+  readonly header?: BlockHeader
+  /** Transaction in block. */
+  readonly transactions?: Transaction[]
+  /** Results of block. */
+  readonly results?: BlockResults
+  /** The raw responses from /block and /block_results. */
+  readonly responses?: BlockResponses
+}
+/** The raw responses from /block and /block_results. */
+export type BlockResponses = {
+  readonly block?:   Core.Response
+  readonly results?: Core.Response
+}
+/** The parsed response from the /block endpoint. */
+export type BlockResponse = Core.JsonRpcResponse<{
+  readonly block_id: BlockId,
+  readonly block: {
+    readonly header: BlockHeader,
+    readonly data: { readonly txs: Transaction[] },
+    readonly evidence: { readonly evidence: unknown[] },
+    readonly last_commit: {
+      readonly height: string,
+      readonly round: number,
+      readonly block_id: BlockId,
+      readonly signatures: unknown[]
+    }
+  }
+}>
+/** The parsed response from the /block_results endpoint. */
+export type BlockResultsResponse = Core.JsonRpcResponse<{
+  readonly height:                  string
+  readonly txs_results:             unknown[]|null
+  readonly begin_block_events:      unknown[]|null
+  readonly end_block_events:        unknown[]|null
+  readonly validator_updated:       unknown[]|null
+  readonly consensus_param_updates: unknown[]|null
+}>
 /** The results section of a Tendermint block. */
 export type BlockResults = {
   readonly height:                string
@@ -54,16 +83,19 @@ export type BlockResults = {
   readonly endBlockEvents:        null|EndBlockEvent[]
   readonly validatorUpdates:      null|unknown[]
   readonly consensusParamUpdates: null|unknown[]
-  readonly txsResults:            null|Array<{
-    readonly code:       number
-    readonly data:       unknown|null
-    readonly log:        string
-    readonly info:       string
-    readonly gas_wanted: string
-    readonly gas_used:   string
-    readonly events:     unknown[]
-    readonly codespace:  string
-  }>
+  readonly txsResults:            null|Array<TxResult>
+  readonly raw?: BlockResultsResponse
+}
+/** A Tendermint transaction result. */
+export type TxResult = {
+  readonly code:       number
+  readonly data:       unknown|null
+  readonly log:        string
+  readonly info:       string
+  readonly gas_wanted: string
+  readonly gas_used:   string
+  readonly events:     unknown[]
+  readonly codespace:  string
 }
 /** Events that occur at ends of blocks. */
 export type EndBlockEvent = {
@@ -77,83 +109,113 @@ export const chain = (state: Partial<Core.Chain> & ChainOptions, api = impl): Ch
 export type Deps = Core.Deps
 /** Methods available for interacting with Tendermint chains. */
 export type Api = Core.Api & Core.ToApi<typeof impl>
-export const fetchBlock = async (
-  api: Deps, options?: { height?: Height, hash?: string, results?: boolean }
-): Promise<Block> => {
-  const { url } = api || {}
-  const { height, hash, results = false } = options || {}
-  if (!url) throw new Error("can't fetch block: missing connection URL")
-  if (hash) throw new Error("can't fetch block by hash yet")
-  if (height && isNaN(Number(height))) throw new Error(`invalid height: ${height}`)
-  const [block, blockResults] = await Promise.all([
-    fetch(`${url}/block?height=${height??''}`).then(r=>r.json()),
-    ...results?[fetchBlockResults(api, { height, hash })]:[]
-  ])
-  return { ...block, results: blockResults }
-}
-export const fetchBlockResults = async (
-  { url }: Deps, options?: { height?: Height, hash?: string }
-): Promise<BlockResults> => {
-  const { height, hash } = options || {}
-  if (!url) throw new Error("can't fetch block results: missing connection URL")
-  if (hash) throw new Error("can't fetch block results by hash yet")
-  if (height && isNaN(Number(height))) throw new Error(`invalid height: ${height}`)
-  const response = await (await fetch(`${url}/block_results?height=${height??''}`)).json() as {
-    error: { data: string },
-    result: {
-      height:                  string
-      txs_results:             unknown[]|null
-      begin_block_events:      unknown[]|null
-      end_block_events:        unknown[]|null
-      validator_updated:       unknown[]|null
-      consensus_param_updates: unknown[]|null
-    },
-  }
-  if (response.error) throw new Error(response.error.data)
-  return camelize(response.result) as unknown as BlockResults
-}
-
+/** Fetch a block from a Tendermint chain, optionally with block results. */
+export const fetchBlock =
+  async (api: Deps, options?: { height?: Height, hash?: string, results?: boolean, raw?: boolean }):
+    Promise<Block> => {
+      const [
+        [blockUrl,   [blockText,   block,   blockError  ]],
+        [resultsUrl, [resultsText, results, resultsError]]=[undefined, []]
+      ] = await Promise.all((options?.results)
+        ?[fetchAndTryToParseBlockResponse(api, options), fetchAndTryToParseResultsResponse(api, options)]
+        :[fetchAndTryToParseBlockResponse(api, options)])
+      if (blockError) {
+        api.log.error('failed to decode block:', blockError)
+        if (!options?.raw) throw new Error('failed to decode block', { reason: blockError })
+      }
+      if ('error' in block!) {
+        api.log.error('block error:', blockError)
+        if (!options?.raw) throw new Error('fetched block error', { reason: block.error })
+      }
+      if (options?.results) {
+        if (resultsError) {
+          api.log.error('failed to decode block results:', resultsError)
+          if (!options?.raw) throw new Error('failed to decode block results', { reason: resultsError })
+        }
+        if ('error' in results!) {
+          api.log.error('results error:', resultsError)
+          if (!options?.raw) throw new Error('fetched results error', { reason: results.error })
+        }
+      }
+      return {
+        chain:        api.chain(),
+        id:           block!.result!.block_id.hash,
+        height:       block!.result!.block.header.height,
+        header:       block!.result!.block.header,
+        transactions: block!.result!.block.data.txs,
+        results:      options?.results ? camelize(results!.result!) : undefined,
+        responses:    options?.raw     ? {
+          block:   { url: blockUrl,   data: blockText   },
+          results: { url: resultsUrl, data: resultsText },
+        } : undefined
+      } as Block
+    }
+const fetchAndTryToParseBlockResponse =
+  async (api: Deps, options?: { height?: Height, hash?: string }):
+    Promise<[string, Core.TryToParse<string, BlockResponse>]> => {
+      if (!api.url) throw new Error("missing connection URL: can't fetch block")
+      const { height, hash } = options || {}
+      if (hash) throw new Error("can't fetch block by hash yet")
+      if (height && isNaN(Number(height))) throw new Error(`invalid height requested: ${height}`)
+      const url = `${api.url}/block?height=${height??''}`
+      const response = await fetch(url).then(r=>r.text())
+      return [url, Core.tryToParse(response)]
+    }
+/** Fetch just the results of a Tendermint block. */
+export const fetchBlockResults =
+  async (api: Deps, options?: { height?: Height, raw?: boolean }):
+    Promise<BlockResults> => {
+      const [_, [resultsText, results, resultsError]] =
+        await fetchAndTryToParseResultsResponse(api, options)
+      if (resultsError) {
+        api.log.error('failed to decode block results:', resultsError)
+        if (!options?.raw) throw new Error('failed to decode block results', { reason: resultsError })
+      }
+      if ('error' in results!) {
+        api.log.error('results error:', resultsError)
+        if (!options?.raw) throw new Error('results error', { reason: results.error })
+      }
+      return Object.assign(camelize(results!.result!) as BlockResults, {
+        raw: options?.raw ? resultsText : undefined
+      })
+    }
+const fetchAndTryToParseResultsResponse =
+  async (api: Deps, options?: { height?: Height }):
+    Promise<[string, Core.TryToParse<string, BlockResultsResponse>]> => {
+      if (!api.url) throw new Error("missing connection URL: can't fetch block results")
+      const { height } = options || {}
+      const url = `${api.url}/block_results?height=${height??''}`
+      const response = await fetch(url).then(r=>r.text())
+      return [url, Core.tryToParse(response)]
+    }
 export const fetchAbciInfo  = async (_api: Deps) =>
-  { throw new Error('not implemented') }
-
+  Error.TODO('fetchAbciInfo')
 export const fetchAbciQuery = async (_api: Deps, _path: string, _data: Uint8Array, _parameters: { height?: Height, prove?: boolean }) =>
-  { throw new Error('not implemented') }
-
+  Error.TODO('fetchAbciQuery')
 export const fetchBlockSearch = async (_api: Deps, _query: string, _parameters: { page?: number, perPage?: number, orderBy?: string }) =>
-  { throw new Error('not implemented') }
-
+  Error.TODO('fetchBlockSearch')
 export const fetchBlockchain = async (_api: Deps, _parameters: { min?: Height, max?: Height }) =>
-  { throw new Error('not implemented') }
-
+  Error.TODO('fetchBlockchain')
 export const fetchCommit = async (_api: Deps, _height: Height) =>
-  { throw new Error('not implemented') }
-
+  Error.TODO('fetchCommit')
 export const fetchGenesis = async (_api: Deps) =>
-  { throw new Error('not implemented') }
-
+  Error.TODO('fetchGenesis')
 export const fetchHealth = async (_api: Deps) =>
-  { throw new Error('not implemented') }
-
+  Error.TODO('fetchHealth')
 export const fetchNumUnconfirmedTxs = async (_api: Deps) =>
-  { throw new Error('not implemented') }
-
+  Error.TODO('fetchNumUnconfirmedTxs')
 export const fetchStatus = async (_api: Deps) =>
-  { throw new Error('not implemented') }
-
+  Error.TODO('fetchStatus')
 export const fetchTx = async (_api: Deps) =>
-  { throw new Error('not implemented') }
-
+  Error.TODO('fetchTx')
 export const fetchTxSearch = async (_api: Deps) =>
-  { throw new Error('not implemented') }
-
+  Error.TODO('fetchTxSearch')
 export const fetchValidators = async (_api: Deps) =>
-  { throw new Error('not implemented') }
-
+  Error.TODO('fetchValidators')
 export const subscribe = async (_api: Deps, _subscribeTo: 'block'|'header'|{query: string}) =>
-  { throw new Error('not implemented') }
-
+  Error.TODO('subscribe')
 export const broadcastTx = async (_api: Deps, _method: 'sync'|'async'|'commit', _tx: Uint8Array) =>
-  { throw new Error('not implemented') }
+  Error.TODO('broadcastTx')
 
 /** Default implementation of Tendermint client API. */
 export const impl = {

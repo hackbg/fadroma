@@ -1,4 +1,4 @@
-import { Error } from './tm.ts'
+import { Error, Console } from './tmLog.ts'
 import type { Address, Uint128 } from '../deps.ts'
 import type { Fee } from './tmToken.ts'
 

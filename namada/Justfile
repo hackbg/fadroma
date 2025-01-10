@@ -1,5 +1,5 @@
 test:
-  deno test --coverage --allow-read=pkg 2>&1
+  deno test --coverage --allow-net --allow-read=./pkg/fadroma_namada_bg.wasm
   deno coverage
 check:
   deno check index.ts

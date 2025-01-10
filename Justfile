@@ -1,6 +1,7 @@
 test:
-  deno test --coverage --allow-read=./namada/pkg/fadroma_namada_bg.wasm
+  time deno test --coverage --allow-net --allow-read=./namada/pkg/fadroma_namada_bg.wasm
   deno coverage
+  deno coverage --html
 cov:
   deno coverage --detailed
 check:

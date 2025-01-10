@@ -1,6 +1,7 @@
 import { Core, Tendermint } from '../deps.ts'
 import init, { Decode } from '../pkg/fadroma_namada.js'
 import type { Decoder } from './namadaDecode.ts'
+import { Error, Console } from './namadaLog.ts'
 import * as Bank  from './namadaBank.ts'
 import * as Block from './namadaBlock.ts'
 import * as Pos   from './namadaPos.ts'
@@ -8,40 +9,38 @@ import * as Epoch from './namadaEpoch.ts'
 import * as Gov   from './namadaGov.ts'
 import * as Pgf   from './namadaPgf.ts'
 import * as Val   from './namadaValidator.ts'
-/** A Namada error. */
-export class Error extends Tendermint.Error {}
-/** A Namada logger. */
-export class Console extends Tendermint.Console {
-  warnNoDecoder = () =>
-    this.warn("Decoder binary not provided; trying to decode Namada objects will fail.")
-}
 /** A Namada chain. */
-export type Chain = Tendermint.Chain & Api & { readonly connections: Record<string, Connection> }
+export type Chain = Tendermint.Chain & Api & {
+  readonly connections: Record<string, Connection>
+  connect (url?: string|URL): Connection
+}
 /** A connection to a Namada chain. */
 export type Connection = Deps & Api
 /** Describe a Namada chain. */
-export async function chain (properties: Parameters<typeof Tendermint.chain>[0] & {
+export async function chain ({ ...properties }: Parameters<typeof Tendermint.chain>[0] & {
   decoder?: string|URL|Uint8Array
 }): Promise<Chain> {
   // Init the WASM translation blob.
   if (properties?.decoder) {
-    await initDecoder(properties.decoder)
+    properties.decoder = await initDecoder(properties.decoder) as any
   } else {
     new Console().warnNoDecoder()
   }
-  // Set default properties.
-  properties ??= {} as Partial<typeof properties>
-  properties.bech32Prefix ??= "tnam"
+  properties.bech32Prefix ??= 'tnam'
   // Construct chain.
   const chain = Tendermint.chain({ ...properties }) as Chain
   // Construct one connection.
-  Object.assign(chain, {connections: {}})
-  chain.connect = (url?: string|URL) => {
+  chain.connect = (url?: string|URL): Connection => {
     if (!url) throw new Error('pass rpc url')
     url = url.toString()
-    return chain.connections[url] ??= Core.connection(chain, impl as any, url) as Connection
+    chain.connections || Object.assign(chain, { connections: chain.connections || {} })
+    chain.connections[url] ??= Object.assign(
+      Core.connection(chain, impl as any, url) as Connection,
+      { decoder: properties.decoder }
+    )
+    return chain.connections[url]
   }
-  return chain
+  return chain as Chain
 }
 export const coinType = 118
 export const bech32Prefix = 'tnam'
@@ -55,7 +54,7 @@ export const initDecoder = async (decoder: string|URL|Uint8Array): Promise<Decod
   return Decode as unknown as Decoder
 }
 /** The dependencies expected by Namada API methods. */
-export type Deps = Tendermint.Connection & {
+export type Deps = Omit<Tendermint.Connection, 'log'> & {
   log:               Console
   chain:             () => Core.ChainRef
   abciQuery:         (path: string) => Promise<Uint8Array>
@@ -121,5 +120,6 @@ export const fetchProtocolParameters = async (api: Deps) => {
 /** Default implementation of Namada client API. */
 export const impl: Core.Impl<Api, Api & Deps> = {
   ...Tendermint.impl, ...Bank, ...Block, ...Pos, ...Epoch, ...Gov, ...Pgf, ...Val,
-  fetchStorageValue, fetchProtocolParameters,
+  fetchStorageValue,
+  fetchProtocolParameters,
 }

@@ -24,10 +24,11 @@ export { bold } from '@hackbg/logs'
 export * from '@hackbg/into'
 
 import { Case } from './deps.ts'
+
 export const camelize = <T extends object>(object: T) => {
   const returned = {}
   for (const [key, value] of Object.entries(object)) {
     Object.assign(returned, { [Case.camel(key) as keyof T]: value as T[keyof T] })
   }
-  return returned as T
+  return returned
 }

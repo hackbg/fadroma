@@ -318,6 +318,7 @@
   "workspace": {
     "dependencies": [
       "npm:@hackbg/4mat@*",
+      "npm:@hackbg/borshest@*",
       "npm:@hackbg/dump@*",
       "npm:@hackbg/hide@*",
       "npm:@hackbg/into@*",
