@@ -319,26 +319,30 @@ const getDecoders = (
   tendermintMetadata: TendermintMetadata,
   validator:          Validator,
 ) => ({
-  decodeMetadata (binary: Uint8Array) {
-    if (!binary[0]) return null
-    Object.assign(validator, { metadata: decoder.pos_validator_metadata(binary.slice(1)) })
+  decodeMetadata ({ value }: { value: Uint8Array|null }) {
+    if (!value || !value[0]) return null
+    Object.assign(validator, { metadata: decoder.pos_validator_metadata(value.slice(1)) })
     return validator.metadata
   },
-  decodeCommission (binary: Uint8Array) {
-    Object.assign(validator, { commission: decoder.pos_commission_pair(binary) })
+  decodeCommission ({ value }: { value: Uint8Array|null }) {
+    if (!value) return null
+    Object.assign(validator, { commission: decoder.pos_commission_pair(value) })
     return validator.commission
   },
-  decodeState (binary: Uint8Array) {
-    Object.assign(validator, { state: decoder.pos_validator_state(binary) })
+  decodeState ({ value }: { value: Uint8Array|null }) {
+    if (!value) return null
+    Object.assign(validator, { state: decoder.pos_validator_state(value) })
     return validator.state
   },
-  decodeStake (binary: Uint8Array) {
-    if (!binary[0]) return null
-    Object.assign(validator, { stake: decode(u256, binary.slice(1)) })
+  decodeStake ({ value }: { value: Uint8Array|null }) {
+    if (!value) return null
+    if (!value[0]) return null
+    Object.assign(validator, { stake: decode(u256, value.slice(1)) })
     return validator.stake
   },
-  decodePublicKey (binary: Uint8Array) {
-    Object.assign(validator, { publicKey: base16.encode(binary.slice(2)) })
+  decodePublicKey ({ value }: { value: Uint8Array|null }) {
+    if (!value) return null
+    Object.assign(validator, { publicKey: base16.encode(value.slice(2)) })
     Object.assign(validator, tendermintMetadata[validator.publicKey!] || {}) // ?!?!? MAGIC ?!?!?
     return validator.publicKey
   }

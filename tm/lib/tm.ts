@@ -1,4 +1,4 @@
-import { Core, camelize } from '../deps.ts'
+import { Core, base16, camelize } from '../deps.ts'
 import { Error, Console } from './tmLog.ts'
 import * as Bank from './tmBank.ts'
 /** Chain global configuration pertinent to Tendermint-based chains only. */
@@ -175,7 +175,7 @@ export const fetchBlockResults =
         api.log.error('results error:', resultsError)
         if (!options?.raw) throw new Error('results error', { reason: results.error })
       }
-      return Object.assign(camelize(results!.result!) as BlockResults, {
+      return Object.assign(camelize(results!.result!) as unknown as BlockResults, {
         raw: options?.raw ? resultsText : undefined
       })
     }
@@ -190,8 +190,38 @@ const fetchAndTryToParseResultsResponse =
     }
 export const fetchAbciInfo  = async (_api: Deps) =>
   Error.TODO('fetchAbciInfo')
-export const fetchAbciQuery = async (_api: Deps, _path: string, _data: Uint8Array, _parameters: { height?: Height, prove?: boolean }) =>
-  Error.TODO('fetchAbciQuery')
+export const fetchAbciQuery = async (api: Deps, path: string, options?: {
+    data?: Uint8Array, height?: Height, prove?: boolean
+}): Promise<{
+  readonly key:       Uint8Array|null
+  readonly value:     Uint8Array|null
+  readonly codespace: string
+  readonly info:      string
+  readonly proof?:    Array<{ type: string, key: Uint8Array, data: Uint8Array }>
+  readonly height?:   number
+  readonly index?:    number
+  readonly code?:     number // non-falsy for errors
+  readonly log?:      string
+}> => {
+  if (!api.url) throw new Error('fetchAbciQuery: no api url')
+  if (!path) throw new Error('fetchAbciQuery: no path')
+  const data     = options?.data || new Uint8Array()
+  const params   = {path, data: base16.encode(data), height: options?.height, prove: options?.prove}
+  const message  = {jsonrpc: '2.0', id: randomId(), method: 'abci_query', params}
+  const headers  = {'Content-Type': 'application/json'}
+  const result   = await fetch(api.url, {method: 'POST', body: JSON.stringify(message), headers})
+  const { response, error } = await result.json()
+  if (error) {
+    api.log.error('fetchAbciQuery error:', error)
+    throw new Error('fetchAbciQueryError', { error })
+  }
+  if (typeof response.key   === 'string') response.key   = base16.decode(response.key)
+  if (typeof response.value === 'string') response.value = base16.decode(response.value)
+  return response
+}
+const numbersWithoutZero = "123456789"
+const randomNumericChar = (): string => numbersWithoutZero[Math.floor(Math.random() * numbersWithoutZero.length)]
+const randomId =(): number => parseInt(Array.from({ length: 12 }) .map(() => randomNumericChar()).join(""), 10)
 export const fetchBlockSearch = async (_api: Deps, _query: string, _parameters: { page?: number, perPage?: number, orderBy?: string }) =>
   Error.TODO('fetchBlockSearch')
 export const fetchBlockchain = async (_api: Deps, _parameters: { min?: Height, max?: Height }) =>

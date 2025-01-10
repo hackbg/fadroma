@@ -64,8 +64,8 @@ export const initDecoder = async (decoder: string|URL|Uint8Array): Promise<Decod
   return Decode as unknown as Decoder
 }
 /** Fetch a value from storage. */
-export const fetchStorageValue = ({fetchAbciQuery}: Deps, key: string): Promise<Uint8Array> =>
-  fetchAbciQuery(`/shell/value/${key}`)
+export const fetchStorageValue = (api: Deps, key: string): Promise<Uint8Array> =>
+  api.fetchAbciQuery(`/shell/value/${key}`)
 /** Fetch core protocol parameters. */
 export const fetchProtocolParameters = async (api: Deps) => {
   const { decoder } = api
