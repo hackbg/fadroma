@@ -13,7 +13,7 @@ export const fetchBalance = async ({ decoder, fetchAbciQuery }: Deps, parameters
       }
       const balanceKey  = decoder.balance_key(token, address)
       const balanceAbci = `/shell/value/${balanceKey}`
-      const balance     = await fetchAbciQuery(balanceAbci)
+      const balance     = (await fetchAbciQuery(balanceAbci)).value!
       if (balance.length > 0) {
         result[address][token] = String(decode(u256, balance))
       } else {

@@ -5,4 +5,4 @@ export type PgfParameters = Partial<{
   stewardsInflationRate: bigint
 }>
 export const fetchPgfParameters = async ({ decoder, fetchAbciQuery }: Deps) =>
-  decoder.pgf_parameters(await fetchAbciQuery(`/vp/pgf/parameters`))
+  decoder.pgf_parameters((await fetchAbciQuery(`/vp/pgf/parameters`)).value!)

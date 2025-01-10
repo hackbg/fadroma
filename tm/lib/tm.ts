@@ -191,7 +191,7 @@ const fetchAndTryToParseResultsResponse =
 export const fetchAbciInfo  = async (_api: Deps) =>
   Error.TODO('fetchAbciInfo')
 export const fetchAbciQuery = async (api: Deps, path: string, options?: {
-    data?: Uint8Array, height?: Height, prove?: boolean
+  data?: Uint8Array, height?: Height, prove?: boolean
 }): Promise<{
   readonly key:       Uint8Array|null
   readonly value:     Uint8Array|null
@@ -206,11 +206,14 @@ export const fetchAbciQuery = async (api: Deps, path: string, options?: {
   if (!api.url) throw new Error('fetchAbciQuery: no api url')
   if (!path) throw new Error('fetchAbciQuery: no path')
   const data     = options?.data || new Uint8Array()
-  const params   = {path, data: base16.encode(data), height: options?.height, prove: options?.prove}
+  const params   = {path, data: base16.encode(data), prove: options?.prove ?? false, height: options?.height}
   const message  = {jsonrpc: '2.0', id: randomId(), method: 'abci_query', params}
   const headers  = {'Content-Type': 'application/json'}
-  const result   = await fetch(api.url, {method: 'POST', body: JSON.stringify(message), headers})
-  const { response, error } = await result.json()
+  const body     = JSON.stringify(message)
+  api.log.debug('fetchAbciQuery:', body)
+  const request  = await fetch(api.url, {method: 'POST', body, headers})
+  const json     = await request.json()
+  const { result: { response }, error } = json
   if (error) {
     api.log.error('fetchAbciQuery error:', error)
     throw new Error('fetchAbciQueryError', { error })

@@ -18,12 +18,17 @@ const chain = await Namada.chain({ id: 'test', url, decoder: decoderWasm })
 //await chain.fetchBalance()
 const connection = chain.connect(url) as Namada.Connection
 //process.exit(123)
+
+await connection.fetchProtocolParameters()
 await connection.fetchStakingParameters()
 await connection.fetchGovernanceParameters()
+await connection.fetchPgfParameters()
+
 await connection.fetchBlock()
 await connection.fetchNextBlock()
 await connection.fetchHeight()
 await connection.fetchNextHeight()
+
 //await connection.fetchBalance()
 //await connection.fetchBalance()
 //await connection.fetchStorageValue('test')

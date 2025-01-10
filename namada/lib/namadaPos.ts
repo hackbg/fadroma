@@ -23,14 +23,14 @@ export type StakingParameters = Partial<{
 }>
 /** Fetch staking parameters. */
 export async function fetchStakingParameters ({fetchAbciQuery, decoder}: Deps) {
-  const binary = await fetchAbciQuery("/vp/pos/pos_params")
+  const binary = (await fetchAbciQuery("/vp/pos/pos_params")).value!
   return decoder.pos_parameters(binary)
 }
 /** Fetch total staked NAMNAM. */
 export async function fetchTotalStaked ({fetchAbciQuery}: Deps, epoch?: number|bigint|string) {
   let query = "/vp/pos/total_stake"
   if (epoch!==undefined) query += `/${epoch}`
-  const binary = await fetchAbciQuery(query)
+  const binary = (await fetchAbciQuery(query)).value!
   return decode(u64, binary)
 }
 export async function fetchBondWithSlashing (
@@ -38,12 +38,12 @@ export async function fetchBondWithSlashing (
 ) {
   let query = `/vp/pos/bond_with_slashing/${delegator}/${validator}`
   if (epoch) query += `/${epoch}`
-  const totalStake = await fetchAbciQuery(query)
+  const totalStake = (await fetchAbciQuery(query)).value!
   return decode(u256, totalStake)
 }
 /** Fetch all delegations. */
 export const fetchDelegations = async ({fetchAbciQuery, decoder}: Deps, address: Address) =>
-  decoder.addresses(await fetchAbciQuery(`/vp/pos/delegations/${address}`))
+  decoder.addresses((await fetchAbciQuery(`/vp/pos/delegations/${address}`)).value!)
 /** Fetch delegations at given address. */
 export const fetchDelegationsAt = async (
   {fetchAbciQuery, decoder}: Deps, address: Address, epoch?: Epoch
@@ -51,5 +51,5 @@ export const fetchDelegationsAt = async (
   let query = `/vp/pos/delegations_at/${address}`
   epoch = Number(epoch)
   if (!isNaN(epoch)) query += `/${epoch}`
-  return decoder.address_to_amount(await fetchAbciQuery(query)) as Record<string, bigint>
+  return decoder.address_to_amount((await fetchAbciQuery(query)).value!) as Record<string, bigint>
 }

@@ -43,7 +43,7 @@ export const fetchValidatorStake = async (
 ) => {
   let query = `/vp/pos/validator/stake/${address}`
   if (epoch) query += `/${epoch}`
-  const totalStake = await fetchAbciQuery(query)
+  const totalStake = (await fetchAbciQuery(query)).value!
   if (totalStake[0] === 0) return 0
   return decode(u256, totalStake.slice(1))
 }
@@ -53,7 +53,7 @@ export const fetchValidatorAddresses = async (
 ): Promise<Address[]> => {
   let query = "/vp/pos/validator/addresses"
   if (epoch!==undefined) query += `/${epoch}`
-  return decoder.addresses(await fetchAbciQuery(query))
+  return decoder.addresses((await fetchAbciQuery(query)).value!)
 }
 /** Fetch info about the set of validators currently participating in consensus. */
 export async function fetchValidatorsConsensus (
@@ -61,7 +61,7 @@ export async function fetchValidatorsConsensus (
 ) {
   let query = "/vp/pos/validator_set/consensus"
   if (epoch!==undefined) query += `/${epoch}`
-  return decoder.pos_validator_set(await fetchAbciQuery(query)).sort(byBondedStake)
+  return decoder.pos_validator_set((await fetchAbciQuery(query)).value!).sort(byBondedStake)
 }
 /** Fetch info about the set of validators currently below capacity. */
 export async function fetchValidatorsBelowCapacity (
@@ -69,7 +69,7 @@ export async function fetchValidatorsBelowCapacity (
 ) {
   let query = "/vp/pos/validator_set/below_capacity"
   if (epoch!==undefined) query += `/${epoch}`
-  return decoder.pos_validator_set(await fetchAbciQuery(query)).sort(byBondedStake)
+  return decoder.pos_validator_set((await fetchAbciQuery(query)).value!).sort(byBondedStake)
 }
 /** Sorting function by the bondedStake parameter. */
 const byBondedStake = (a: {bondedStake: number|bigint}, b: {bondedStake: number|bigint})=>
@@ -86,7 +86,7 @@ export const fetchValidatorDetails = async (
     if (!validator.address) {
       throw new Error('missing tendermint or namada address for validator')
     }
-    const addressBinary = await fetchAbciQuery(`/vp/pos/validator_by_tm_addr/${validator.address}`)
+    const addressBinary = (await fetchAbciQuery(`/vp/pos/validator_by_tm_addr/${validator.address}`)).value!
     Object.assign(validator, { namadaAddress: decoder.address(addressBinary.slice(1)) })
     log.info(validator.address, 'is', validator.namadaAddress)
   }
@@ -97,20 +97,25 @@ export const fetchValidatorDetails = async (
   }
   const requests: Array<()=>Promise<unknown>> = [
     () => fetchAbciQuery(`/vp/pos/validator/metadata/${v}`)
-      .then((binary: Uint8Array) => binary[0] && ((validator as any).metadata = decoder.pos_validator_metadata(binary.slice(1))))
+      .then(x=>x.value!)
+      .then((value: Uint8Array) => value[0] && ((validator as any).metadata = decoder.pos_validator_metadata(value.slice(1))))
       .catch(warn(`Failed to provide validator metadata for ${v}`)),
     () => fetchAbciQuery(`/vp/pos/validator/commission/${v}`)
-      .then((binary: Uint8Array) => (validator as any).commission = decoder.pos_commission_pair(binary))
+      .then(x=>x.value!)
+      .then((value: Uint8Array) => (validator as any).commission = decoder.pos_commission_pair(value))
       .catch(warn(`Failed to provide validator commission pair for ${v}`)),
     () => fetchAbciQuery(`/vp/pos/validator/state/${v}` + (epoch?`/${epoch}`:''))
-      .then((binary: Uint8Array) => (validator as any).state = decoder.pos_validator_state(binary))
+      .then(x=>x.value!)
+      .then((value: Uint8Array) => (validator as any).state = decoder.pos_validator_state(value))
       .catch(warn(`Failed to provide validator state for ${v}`)),
     () => fetchAbciQuery(`/vp/pos/validator/stake/${v}` + (epoch?`/${epoch}`:''))
-      .then((binary: Uint8Array) => binary[0] && ((validator as any).stake = decode(u256, binary.slice(1))))
+      .then(x=>x.value!)
+      .then((value: Uint8Array) => value[0] && ((validator as any).stake = decode(u256, value.slice(1))))
       .catch(warn(`Failed to provide validator stake for ${v}`)),
     () => fetchAbciQuery(`/vp/pos/validator/consensus_key/${v}`)
-      .then((binary: Uint8Array) => {
-        const publicKey = base16.encode(binary.slice(2))
+      .then(x=>x.value!)
+      .then((value: Uint8Array) => {
+        const publicKey = base16.encode(value.slice(2))
         if (validator.publicKey && (validator.publicKey !== publicKey)) {
           throw Object.assign(new Error(`Fetched different public key for ${v}`), {
             oldPublicKey: validator.publicKey,
@@ -166,7 +171,7 @@ export const fetchValidators = async (
   let publicKeys: Record<string, string>|null = null
   const fetchAndPopulatePublicKeys = async (parallel = false) => Object.fromEntries(
     await Core.optionallyParallel(parallel, namadaAddresses.map(addr => async () => {
-      const binary = await connection.fetchAbciQuery(`/vp/pos/validator/consensus_key/${addr}`)
+      const binary = (await connection.fetchAbciQuery(`/vp/pos/validator/consensus_key/${addr}`)).value!
       const publicKey = base16.encode(binary.slice(2))
       validatorsByNamadaAddress[addr].publicKey = publicKey
       return [addr, publicKey]
