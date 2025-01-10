@@ -27,7 +27,8 @@ import {
   Bip39EN,
   base16,
   base64,
-  ChainId
+  ChainId,
+  Uint128
 } from '../deps.ts'
 import * as Bank from './scrtBank.ts'
 import * as Batch from './scrtBatch.ts'
@@ -61,7 +62,7 @@ export type AgentDeps = Deps & {
   fees: {
     upload: Tendermint.Fee,
     init:   Tendermint.Fee,
-    exec:   Tendermint.Fee, 
+    exec:   Tendermint.Fee,
     send:   Tendermint.Fee
   },
 }
@@ -85,7 +86,12 @@ export type Agent = Core.Agent & {
   encrypt: (codeHash: CosmWasm.CodeHash, msg: CosmWasm.Message) => any,
 }
 /** Smallest unit of native token. */
-export const gasToken = new Tendermint.nativeToken('uscrt')
+export const gasToken = Tendermint.makeToken({
+  id:    'uscrt',
+  denom: 'uscrt',
+  native: true,
+  fungible: true,
+})
 
 export const fromKeplr = () => { throw new Error('unimplemented') }
 export const fromMnemonic = (
@@ -148,13 +154,14 @@ const chainMethods = (api: any) => Object.assign(api, {
   },
   connect: ({ id, urls = [] }: { id: Core.ChainId, urls: (string|URL)[] }): Chain => {
     Error.TODO('scrt.connect')
-    //const chain = Tendermint.chain({ id, urls })
+    const chain = Tendermint.chain({ id }) as Chain
     //const connections = urls.map(url=>new Connection({ chain, url: url.toString() }))
     //chain.connections = connections
-    //return chain
+    return chain
   },
-  authenticate: (...args: unknown[]): Promise<Agent> => {
+  authenticate: async (...args: unknown[]): Promise<Agent> => {
     Error.TODO('scrt.authenticate')
+    return {} as unknown as Agent
     //if (args.length === 0) {
       //return new Agent({ chain: api, api: new SecretNetworkClient({ chainId: chain.id, url: chain.getConnection().url }) })
     //} else {
@@ -217,7 +224,7 @@ export const agentMethods = (chain: Chain, agent: Agent, api: SecretNetworkClien
     exec:   gasToken.fee(1000000),
     send:   gasToken.fee(1000000),
   },
-  setMaxGas: async (deps: AgentDeps, gas?: unknown) => {
+  setMaxGas: async (deps: AgentDeps, gas?: Uint128) => {
     gas ??= (await chain.fetchLimits()).gas
     const max = gasToken.fee(gas)
     deps.fees = { upload: max, init: max, exec: max, send: max }

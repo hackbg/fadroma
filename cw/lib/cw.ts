@@ -265,6 +265,8 @@ export const fetchCodeInstances = ({ log }: Api, impl: FetchCodeInstancesImpl, .
 export type FetchContractInfo =
   & ((address: Address) => Promise<Contract>)
   & ((addresses: Address[], options?: { parallel?: boolean }) => Promise<Record<Address, Contract>>)
+export const fetchContractInfo: FetchContractInfo = (...args: unknown[]) =>
+  Error.TODO('cw fetchContractInfo')
 
 function zeroOrMore <T> (args?: (T|T[])[]): T[] {
   if (!args || args.length === 0) {

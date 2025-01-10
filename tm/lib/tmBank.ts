@@ -1,22 +1,26 @@
-import type { Connection } from './tm.ts'
+import { Error } from './tm.ts'
 import type { Address, Uint128 } from '../deps.ts'
 import type { Fee } from './tmToken.ts'
+
 export type BankApi = {
-  fetchBalance (api: Connection, address: Address, token: string): Promise<Uint128>
-  fetchBalance (api: Connection, address: Address, tokens?: string[]): Promise<Record<string, Uint128>>
-  fetchBalance (api: Connection, addresses: Address[], token: string): Promise<Record<Address, Uint128>>
-  fetchBalance (api: Connection, addresses: Address[], tokens?: string): Promise<Record<Address, Record<string, Uint128>>>
-  /** Chain-specific implementation of native token transfer. */
-  send (api: Connection, parameters: SendOptions): Promise<unknown>
+  fetchBalance: FetchBalance
+  send:         Send
 }
+export type FetchBalance =
+  & ((address: Address, token: string) => Promise<Uint128>)
+  & ((address: Address, tokens?: string[]) => Promise<Record<string, Uint128>>)
+  & ((addresses: Address[], token: string) => Promise<Record<Address, Uint128>>)
+  & ((addresses: Address[], tokens?: string) => Promise<Record<Address, Record<string, Uint128>>>)
+export const fetchBalance = (...args: unknown[]) => Error.TODO('tendermint fetch native balance')
+export type Send =
+  & ((outputs: Record<Address, Record<string, Uint128>>, options?: SendOptions)=>Promise<unknown>)
 export type SendOptions = {
-  outputs: Record<Address, Record<string, Uint128>>,
-  sendFee?: Fee,
+  outputs:   Record<Address, Record<string, Uint128>>,
+  sendFee?:  Fee,
   sendMemo?: string,
   parallel?: boolean
 }
-export function fetchBalance (connection: Connection) { throw new Error("todo") }
-export function send (connection: Connection) { throw new Error("todo") }
+export const send = (...args: unknown[]) => Error.TODO('tendermint native send')
 
 //import type { Address } from '../deps.ts'
 //import { optionallyParallel } from '../deps.ts'
