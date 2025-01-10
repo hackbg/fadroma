@@ -112,18 +112,15 @@ export const fromSigner = (encryptionUtils: EncryptionUtils): Identity => ({
     })
 })
 export const agent = (config: { log: Console, identity: Identity|EncryptionUtils|string }) => {
-  if (!(config.identity instanceof Identity)) {
-    if (!(typeof config.identity === 'object')) {
-      throw new Error('identity must be Identity instance, { mnemonic }, or { encryptionUtils }')
-    } else if ((config.identity as { mnemonic?: string }).mnemonic) {
-      config.log.debug('Identifying with mnemonic')
-      config.identity = fromMnemonic(config.identity)
-    } else if ((config.identity as { encryptionUtils?: unknown }).encryptionUtils) {
-      config.log.debug('Identifying with signer (encryptionUtils)')
-      config.identity = fromSigner(config.identity.encryptionUtils)
-    } else {
-      throw new Error('identity must be Identity instance, { mnemonic }, or { encryptionUtils }')
-    }
+  if (!config.identity) throw new Error('identity must be Identity instance, { mnemonic }, or { encryptionUtils }')
+  if (typeof config.identity === 'string') {
+    config.log.debug('Identifying with mnemonic')
+    config.identity = fromMnemonic(config.identity)
+  } else if ('encryptionUtils' in config.identity) {
+    config.log.debug('Identifying with signer (encryptionUtils)')
+    config.identity = fromSigner(config.identity.encryptionUtils!)
+  } else {
+    throw new Error('identity must be Identity instance, { mnemonic }, or { encryptionUtils }')
   }
   //config.#connection = new SigningConnection({ chain: config.chain, identity: config.identity })
 }
@@ -150,17 +147,19 @@ const chainMethods = (api: any) => Object.assign(api, {
     return connection
   },
   connect: ({ id, urls = [] }: { id: Core.ChainId, urls: (string|URL)[] }): Chain => {
-    const chain = Tendermint.chain({ id, urls })
-    const connections = urls.map(url=>new Connection({ chain, url: url.toString() }))
-    chain.connections = connections
-    return chain
+    Error.TODO('scrt.connect')
+    //const chain = Tendermint.chain({ id, urls })
+    //const connections = urls.map(url=>new Connection({ chain, url: url.toString() }))
+    //chain.connections = connections
+    //return chain
   },
   authenticate: (...args: unknown[]): Promise<Agent> => {
-    if (args.length === 0) {
-      return new Agent({ chain: api, api: new SecretNetworkClient({ chainId: chain.id, url: chain.getConnection().url }) })
-    } else {
-      throw new Error("unimplemented!")
-    }
+    Error.TODO('scrt.authenticate')
+    //if (args.length === 0) {
+      //return new Agent({ chain: api, api: new SecretNetworkClient({ chainId: chain.id, url: chain.getConnection().url }) })
+    //} else {
+      //throw new Error("unimplemented!")
+    //}
   },
   fetchLimits: (): Promise<{ gas: number }> =>
     api.api.query.params.params({ subspace: "baseapp", key: "BlockParams" }).then(
@@ -180,7 +179,7 @@ export const connectionMethods = (api: SecretNetworkClient) => ({
   fetchCodeInstances: Compute.fetchCodeInstances,
   fetchContractInfo:  Compute.fetchContractInfo,
   query:              Compute.query,
-  fetchBlock: async (parameter?): Promise<Block> => {
+  fetchBlock: async (parameter?: unknown): Promise<Block> => {
     if (!parameter) {
       let {
         block_id: { hash, part_set_header } = {},
@@ -193,6 +192,8 @@ export const connectionMethods = (api: SecretNetworkClient) => ({
         id: hash as any,
         height: Number(header?.height)
       } as Block
+    } else {
+      throw new Error('todo')
     }
   },
   //constructor: (properties?: Partial<Connection>) => {

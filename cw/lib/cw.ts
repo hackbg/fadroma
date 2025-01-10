@@ -1,8 +1,10 @@
 import { Core } from '../deps.ts'
-import type { Tendermint } from '../deps.ts'
+import type { Tendermint, Uint128 } from '../deps.ts'
 import { bold, timed } from '../deps.ts'
 import type { Fee, Coin, Into, ChainId, ChainRef, Address, Hash } from '../deps.ts'
+/** A CosmWasm error. */
 export class Error extends Core.Error {}
+/** A CosmWasm logger. */
 export class Console extends Core.Console {
   timed = (name: string, cb: () => Promise<unknown>) => {
     return timed(cb, (result) => this.debug(`${bold(name)}: ${result.elapsed}`))
@@ -17,14 +19,48 @@ export type Label = string
 /** A transaction message that can be sent to a contract. */
 export type Message = string|number|boolean|Record<string, unknown>
 /** Available CosmWasm API methods. */
-export type Api = Tendermint.Api
-/** Something that can fetch SourceCode from e.g. the filesystem, or a URL. */
-export type SourceProvider = {
-  fetchSource (source: string):              Promise<SourceCode>
-  fetchSource (source: URL):                 Promise<SourceCode>
-  fetchSource (source: Partial<SourceCode>): Promise<SourceCode>
+export type Api = Tendermint.Api & {
+  log:                Console
+  fetchSource?:       FetchSource
+  compile?:           Compile,
+  upload:             Upload,
+  fetchCodeInfo:      FetchCodeInfo,
+  fetchCodeInstances: FetchCodeInstances,
+  instantiate:        Instantiate,
+  fetchContractInfo:  FetchContractInfo
+  /** Query a contract. */
+  query   <T> (parameters: { address: Address, codeHash?: string, message: Message }): Promise<T>
+  /** Execute a contract transaction. */
+  execute <T> (parameters: {
+    address:   Address
+    codeHash?: string
+    message:   Message
+    execFee?:  Tendermint.Fee
+    execSend?: Tendermint.Coin[]
+    execMemo?: string
+  }): Promise<T>
 }
-export const fetchSource = () =>
+export type ClientApi = Api & {
+  /** The selected contract's address. */
+  address: Address,
+  /** The selected contract's code hash. */
+  codeHash?: CodeHash,
+  /** Query the selected contract. */
+  querySelf <T> (message: Message): Promise<T>
+  /** Execute a contract transaction on the selected contract. */
+  execSelf <T> (message: Message, options?: {
+    fee?:  Tendermint.Fee,
+    send?: Tendermint.Coin[], 
+    memo?: string
+  }): Promise<T>
+}
+
+/** Something that can fetch SourceCode from e.g. the filesystem, or a URL. */
+export type FetchSource =
+  &((source: string)=> Promise<SourceCode>)
+  &((source: URL)=> Promise<SourceCode>)
+  &((source: Partial<SourceCode>)=> Promise<SourceCode>)
+export const fetchSource: FetchSource = (...args: unknown[]) =>
   { throw new Error('todo!') }
 /** The source code of a contract. */
 export type SourceCode = {
@@ -37,14 +73,13 @@ export type SourceCode = {
   /** Whether the code contains uncommitted changes. */
   readonly modified?:  boolean
 }
-/** Something that can compile SourceCode into CompiledCode,
-  * e.g. our containerized Rust toolchain. */
-export type Compiler = {
-  compile (source: string):                Promise<CompiledCode>
-  compile (source: URL):                   Promise<CompiledCode>
-  compile (source: Partial<CompiledCode>): Promise<CompiledCode>
-}
-export const compile = (code: SourceCode, ...args: unknown[]): Promise<CompiledCode> =>
+
+/** Compile method signatures. */
+export type Compile =
+  & ((source: string)=> Promise<CompiledCode>)
+  & ((source: URL)=> Promise<CompiledCode>)
+  & ((source: Partial<CompiledCode>)=> Promise<CompiledCode>)
+export const compile: Compile = (...args: unknown[]): Promise<CompiledCode> =>
   { throw new Error('todo!') }
 /** A binary file somewhere. */
 export type CompiledCode = Partial<SourceCode> & {
@@ -55,54 +90,106 @@ export type CompiledCode = Partial<SourceCode> & {
   /** Checksum uniquely identifying the compiled code. */
   readonly codeHash?: CodeHash
 }
-/** Something that can upload CompiledCode to a Chain,
-  * e.g. that Chain's respective Agent. */
-export type Uploader = {
-  upload (source: string):                Promise<UploadedCode>
-  upload (source: URL):                   Promise<UploadedCode>
-  upload (source: Uint8Array):            Promise<UploadedCode>
-  upload (source: Partial<UploadedCode>): Promise<UploadedCode>
 
-  /** Chain-specific implementation of code upload. */
-  upload (parameters: {
-    binary:       Uint8Array,
-    reupload?:    boolean,
-    uploadStore?: UploadStore,
-    uploadFee?:   Fee
-    uploadMemo?:  string
-  }): Promise<Partial<UploadedCode & {
-    chainId: ChainId,
-    codeId:  CodeId
-  }>>
-}
+/** Upload method signatures. */
+export type Upload =
+  & ((source: string)=>Promise<UploadedCode>)
+  & ((source: URL)=>Promise<UploadedCode>)
+  & ((source: Uint8Array)=>Promise<UploadedCode>)
+  & ((source: Partial<UploadedCode>)=>Promise<UploadedCode>)
+  & (((parameters: {
+      binary:       Uint8Array,
+      reupload?:    boolean,
+      uploadStore?: UploadStore,
+      uploadFee?:   Fee
+      uploadMemo?:  string
+    }) => Promise<Partial<UploadedCode & {
+      chainId: ChainId,
+      codeId:  CodeId
+    }>>))
+export const upload = (...args: unknown[]): Promise<UploadedCode> =>
+  { throw new Error('todo!') }
+//export const upload = async ({ log, agent }: Deps,
+  //code: string|URL|Uint8Array|Partial<CompiledCode>,
+  //options?: Omit<Parameters<Api["upload"]>[0], 'binary'>,
+//) => {
+  //let template: Uint8Array
+  //if (code instanceof Uint8Array) {
+    //template = code
+  //} else {
+    //const { CompiledCode } = _$_HACK_$_
+    //if (typeof code === 'string' || code instanceof URL) {
+      //code = new CompiledCode({ codePath: code })
+    //} else {
+      //code = new CompiledCode(code)
+    //}
+    //const t0 = performance.now()
+    //code = code as CompiledCode
+    //template = await (code as any).fetch()
+    //const t1 = performance.now() - t0
+    //log.log(
+      //`Fetched in`, `${bold((t1/1000).toFixed(6))}s: code hash`,
+      //bold(code.codeHash), `(${bold(String(code.codeData?.length))} bytes`
+    //)
+  //}
+  //log.debug(`Uploading ${bold((code as any).codeHash)}`)
+  //const result = await timed(
+    //() => agent.getConnection().uploadImpl({
+      //...options,
+      //binary: template
+    //}),
+    //({elapsed, result}: any) => log.debug(
+      //`Uploaded in ${bold(elapsed)}:`,
+      //`code with hash ${bold(result.codeHash)} as code id ${bold(String(result.codeId))}`,
+    //))
+  //return ({ ...template, ...result as any }) as UploadedCode & {
+    //chainId: ChainId
+    //codeId:  CodeId
+  //}
+//}
 /** A code upload to a given chain, represented by a code ID. */
 export type UploadedCode = Partial<CompiledCode> & {
-  readonly chain:     ChainRef
+  readonly chain:      ChainRef
   /** Code ID representing the identity of the contract's code on a specific chain. */
-  readonly codeId:    CodeId
+  readonly codeId:     CodeId
   /** Signer of the upload transaction. */
-  readonly uploadBy?: Address
+  readonly uploadBy?:  Address
   /** Hash to the upload transaction. */
-  readonly uploadTx?: Hash
+  readonly uploadTx?:  Hash
+  /** Gas used during the upload. */
+  readonly uploadGas?: Uint128
 }
 /** A Map that caches contract uploads, so that the same contract isn't uploaded multiple times. */
 export type UploadStore = Map<CodeHash, UploadedCode>
+
 /** Something that can instantiate UploadedCode to get a Contract instance,
   * e.g. that Chain's respective Agent. */
-export type Instantiator = {
-  instantiate (codeId: CodeId, label: Label, init: Message, send?: Coin[], fee?: Fee):
-    Promise<Contract>
-  instantiate (args: { codeId: CodeId, label: Label, init: Message, send?: Coin[], fee?: Fee }):
-    Promise<Contract>
-  instantiate (parameters: Partial<Contract> & {
-    initMsg:   Into<Message>
-    initFee?:  Fee
-    initSend?: Coin[]
-    initMemo?: string
-  }):
-    Promise<Contract & { address: Address }>
-}
-export const instantiate = (code: UploadedCode, ...args: unknown[]): Promise<Contract> =>
+export type FetchCodeInfo =
+  & (() => Promise<Record<CodeId, UploadedCode>> )
+  & ((codeId: CodeId, options?: { parallel?: boolean }) => Promise<UploadedCode>)
+  & ((codeIds: [CodeId], options?: { parallel?: boolean }) => Promise<Record<CodeId, UploadedCode>>)
+export type FetchCodeInfoImpl =
+  (args?: {codeIds?: CodeId[], parallel?: boolean}) =>
+    Promise<Record<CodeId, UploadedCode>>
+export const fetchCodeInfo = (
+  { log }: Api, impl: FetchCodeInfoImpl, ...args: Parameters<FetchCodeInfo>|[]
+) => log.timed('fetchCodeInfo', () => impl({
+  codeIds: zeroOrMore(args[0]),
+  parallel: args[1]?.parallel
+}))
+
+export type Instantiate =
+  & ((codeId: CodeId, label: Label, init: Message, send?: Coin[], fee?: Fee) =>
+    Promise<Contract>)
+  & ((args: { codeId: CodeId, label: Label, init: Message, send?: Coin[], fee?: Fee }) =>
+    Promise<Contract>)
+  & ((parameters: Partial<Contract> & {
+      initMsg:   Into<Message>
+      initFee?:  Fee
+      initSend?: Coin[]
+      initMemo?: string
+    }) => Promise<Contract & { address: Address }>)
+export const instantiate = (...args: unknown[]): Promise<Contract> =>
   { throw new Error('todo!') }
 /** A contract instance on a given chain. */
 export type Contract = Partial<UploadedCode> & {
@@ -110,92 +197,19 @@ export type Contract = Partial<UploadedCode> & {
   readonly address: Address
   readonly label:   string
 }
-/** Context for every deployment method. */
-export type Deps = { log: Console }
-export type ClientDeps = Deps & {
-  query:   <T>(...args: unknown[])=>Promise<T>,
-  execute: <T>(...args: unknown[])=>Promise<T>,
-}
-export type DeployApi =
-  & (SourceProvider|undefined)
-  & (Compiler|undefined)
-  & Instantiator
-  & Uploader
-  & FetchCodeInfo
-  & FetchCodeInstances
-export type ClientApi = {
-  fetchContractInfo (address: Address): Promise<Contract>
-  fetchContractInfo (addresses: Address[], options?: { parallel?: boolean }): Promise<Record<Address, Contract>>
-  //fetchContractInfo (contracts: { [address: Address]: Contract }, options?: { parallel?: boolean }):
-    //Promise<{ [address in keyof typeof contracts]: InstanceType<typeof contracts[address]> }>
-  /** Execute a contract transaction. */
-  execute <T> (parameters: {
-    address:   Address
-    codeHash?: string
-    message:   Message
-    execFee?:  Tendermint.Fee
-    execSend?: Tendermint.Coin[]
-    execMemo?: string
-  }): Promise<T>
-  /** Query a contract. */
-  query <T> (parameters: {
-    address:   Address
-    codeHash?: string
-    message:   Message
-  }): Promise<T>
-}
-
-export type FetchCodeInfo = {
-  fetchCodeInfo ():
-    Promise<Record<CodeId, UploadedCode>>
-  fetchCodeInfo (codeId: CodeId, options?: { parallel?: boolean }):
-    Promise<UploadedCode>
-  fetchCodeInfo (codeIds: [CodeId], options?: { parallel?: boolean }):
-    Promise<Record<CodeId, UploadedCode>>
-}
-function zeroOrMore <T> (args?: (T|T[])[]): T[] {
-  if (!args || args.length === 0) {
-    return []
-  } else if (args.length === 1) {
-    if (args[0] instanceof Array) {
-      return args[0]
-    } else {
-      return [args[0]]
-    }
-  } else {
-    return args as T[]
-  }
-}
-export type FetchCodeInfoImpl =
-  (args?: {codeIds?: CodeId[], parallel?: boolean}) =>
-    Promise<Record<CodeId, UploadedCode>>
-export const fetchCodeInfo = (
-  { log }: Deps, impl: FetchCodeInfoImpl, ...args: Parameters<FetchCodeInfo["fetchCodeInfo"]>|[]
-) => log.timed('fetchCodeInfo', () => impl({
-  codeIds: zeroOrMore(args[0]),
-  parallel: args[1]?.parallel
-}))
-
-export type FetchCodeInstances = {
-  fetchCodeInstances ():
-    Promise<Record<Address, Contract>>
-  fetchCodeInstances (codeId: CodeId):
-    Promise<Record<Address, Contract>>
-  fetchCodeInstances (codeIds: Iterable<CodeId>, options?: { parallel?: boolean }):
-    Promise<Record<CodeId, Record<Address, Contract>>>
-}
+export type FetchCodeInstances =
+  & (() => Promise<Record<Address, Contract>>)
+  & ((codeId: CodeId) => Promise<Record<Address, Contract>>)
+  & ((codeIds: Iterable<CodeId>, options?: { parallel?: boolean }) =>
+    Promise<Record<CodeId, Record<Address, Contract>>>)
 export type FetchCodeInstancesImpl =
   (args?: {codeIds?: CodeId[], parallel?: boolean}) =>
     Promise<Record<CodeId, Record<Address, Contract>>>
-export const fetchCodeInstances = (
-  { log }: Deps, impl: FetchCodeInstancesImpl,
-  ...args: Parameters<FetchCodeInstances["fetchCodeInstances"]>[]
-) => {
-}
-
-//export function fetchCodeInstances (
+export const fetchCodeInstances = ({ log }: Api, impl: FetchCodeInstancesImpl, ...args: Parameters<FetchCodeInstances>[]) =>
+  { throw new Error('todo!') }
+//export const fetchCodeInstances = (
   //chain: Chain, ...args: Parameters<Chain["fetchCodeInstances"]>
-//) {
+//) =>  {
     //let $C = Contract
     //let custom = false
     //if (typeof args[0] === 'function') {
@@ -248,6 +262,26 @@ export const fetchCodeInstances = (
     //throw new Error('Invalid arguments')
 //}
 
+export type FetchContractInfo =
+  & ((address: Address) => Promise<Contract>)
+  & ((addresses: Address[], options?: { parallel?: boolean }) => Promise<Record<Address, Contract>>)
+
+function zeroOrMore <T> (args?: (T|T[])[]): T[] {
+  if (!args || args.length === 0) {
+    return []
+  } else if (args.length === 1) {
+    if (args[0] instanceof Array) {
+      return args[0]
+    } else {
+      return [args[0]]
+    }
+  } else {
+    return args as T[]
+  }
+}
+
+
+
   //fetchCodeInstances (codeIds: { [id: CodeId]: Contract }, options?: { parallel?: boolean }): Promise<{ [codeId in keyof typeof codeIds]:
     //Record<Address, InstanceType<typeof codeIds[codeId]>> }>
   //[>* Fetch all instances of a code ID. <]
@@ -289,44 +323,7 @@ export const fetchCodeInstances = (
       //Record<Address, InstanceType<typeof parameters["codeIds"][codeId]>>
   //}>
 //}
-//export const upload = async ({ log, agent }: Deps,
-  //code: string|URL|Uint8Array|Partial<CompiledCode>,
-  //options?: Omit<Parameters<Api["upload"]>[0], 'binary'>,
-//) => {
-  //let template: Uint8Array
-  //if (code instanceof Uint8Array) {
-    //template = code
-  //} else {
-    //const { CompiledCode } = _$_HACK_$_
-    //if (typeof code === 'string' || code instanceof URL) {
-      //code = new CompiledCode({ codePath: code })
-    //} else {
-      //code = new CompiledCode(code)
-    //}
-    //const t0 = performance.now()
-    //code = code as CompiledCode
-    //template = await (code as any).fetch()
-    //const t1 = performance.now() - t0
-    //log.log(
-      //`Fetched in`, `${bold((t1/1000).toFixed(6))}s: code hash`,
-      //bold(code.codeHash), `(${bold(String(code.codeData?.length))} bytes`
-    //)
-  //}
-  //log.debug(`Uploading ${bold((code as any).codeHash)}`)
-  //const result = await timed(
-    //() => agent.getConnection().uploadImpl({
-      //...options,
-      //binary: template
-    //}),
-    //({elapsed, result}: any) => log.debug(
-      //`Uploaded in ${bold(elapsed)}:`,
-      //`code with hash ${bold(result.codeHash)} as code id ${bold(String(result.codeId))}`,
-    //))
-  //return ({ ...template, ...result as any }) as UploadedCode & {
-    //chainId: ChainId
-    //codeId:  CodeId
-  //}
-//}
+
 
 
 //import {
@@ -363,63 +360,6 @@ export const fetchCodeInstances = (
 //}
 
 //[>* Represents a contract's code, in binary form, uploaded to a given chain. <]
-//export class UploadedCode {
-  //[>* Code hash uniquely identifying the compiled code. <]
-  //codeHash?:  CodeHash
-  //[>* ID of chain on which this contract is uploaded. <]
-  //chainId?:   ChainId
-  //[>* Code ID representing the identity of the contract's code on a specific chain. <]
-  //codeId?:    CodeId
-  //[>* TXID of transaction that performed the upload. <]
-  //uploadTx?:  TxHash
-  //[>* address of agent that performed the upload. <]
-  //uploadBy?:  Address
-  //[>* address of agent that performed the upload. <]
-  //uploadGas?: string|number
-
-  //constructor (properties: Partial<UploadedCode> = {}) {
-    //assign(this, properties, [
-      //'codeHash', 'chainId', 'codeId', 'uploadTx', 'uploadBy', 'uploadGas',
-    //])
-  //}
-
-  //get [Symbol.toStringTag] () {
-    //return [
-      //this.codeId   || 'no code id',
-      //this.chainId  || 'no chain id',
-      //this.codeHash || '(no code hash)'
-    //].join('; ')
-  //}
-
-  //serialize (): {
-    //codeHash?:     CodeHash
-    //chainId?:      ChainId
-    //codeId?:       CodeId
-    //uploadTx?:     TxHash
-    //uploadBy?:     Address
-    //uploadGas?:    string|number
-    //uploadInfo?:   string
-    //[key: string]: unknown
-  //} {
-    //let { codeHash, chainId, codeId, uploadTx, uploadBy, uploadGas } = this
-    //if ((typeof this.uploadBy === 'object')) {
-      //uploadBy = (uploadBy as any).identity?.address
-    //}
-    //return { codeHash, chainId, codeId, uploadTx, uploadBy: uploadBy as string, uploadGas }
-  //}
-
-  //get canInstantiate (): boolean {
-    //return !!(this.chainId && this.codeId)
-  //}
-
-  //get canInstantiateInfo (): string|undefined {
-    //return (
-      //(!this.chainId) ? "can't instantiate: no chain id" :
-      //(!this.codeId)  ? "can't instantiate: no code id"  :
-      //undefined
-    //)
-  //}
-//}
 
 
 /** The `CompiledCode` class has an alternate implementation for non-browser environments.
@@ -467,12 +407,3 @@ export const fetchCodeInstances = (
     //contracts: { [address: Address]: typeof Contract },
     //parallel?: boolean
   //}): Promise<Record<Address, Contract>>
-  //[>* Call a given program's transaction method. <]
-  //async execute <T> (
-    //contract: Address|Partial<Contract>,
-    //message:  Message,
-    //options?: Omit<Parameters<SigningConnection["executeImpl"]>[0],
-      //'address'|'codeHash'|'message'>
-  //): Promise<T> {
-    //return await execute(this, contract, message, options) as T
-  //}

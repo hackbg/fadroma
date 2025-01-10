@@ -17,7 +17,9 @@ export type Impl<A extends Api, D extends Deps> = {
     : never
 };
 /** A Fadroma error. */
-export class Error extends Oops.Error {}
+export class Error extends Oops.Error {
+  static TODO = (message: any) => { throw new Error(`TODO: ${message}`) }
+}
 /** A Fadroma logger. */
 export class Console extends Logs.Console {
   static unknownChains = 0
