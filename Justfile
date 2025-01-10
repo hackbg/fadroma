@@ -15,4 +15,4 @@ fpush:
 ftpush:
   git push --tags --force
 cloc:
-  for mod in {core/lib,tm/lib,namada/lib}; do echo $mod; cloc $mod; done
+  cloc --not-match-d=node_modules --not-match-d=.deno --not-match-d=coverage .
