@@ -33,7 +33,7 @@ export const fetchCodeInstances = async (
       .then(({code_hash})=>codeHash = code_hash!)
     await withIntoError(api.query.compute.contractsByCodeId({ code_id: codeId }))
       .then(({contract_infos})=>{
-        for (const { contract_address, contract_info: { label, creator } } of contract_infos!) {
+        for (const { contract_address, ContractInfo: { label, creator } = {}} of contract_infos!) {
           result[codeId] ??= {}
           result[codeId][contract_address!] = {
             chain: chain(),
@@ -50,9 +50,10 @@ export const fetchCodeInstances = async (
   return result
 }
 export const fetchContractInfo = async (
-  { chain, api, log, withIntoError }: Deps, ...args: Parameters<Api["fetchContractInfo"]>
+  { chain, api, log, withIntoError }: Deps,
+  args: { parallel?: boolean, contracts: Record<Address, unknown> },
 ): Promise<{
-  [address in keyof typeof args["contracts"]]: InstanceType<typeof args["contracts"][address]>
+  [address in keyof typeof args["contracts"]]: Contract
 }> => {
   if (args.parallel) log.warn('fetchContractInfo in parallel: not implemented')
   throw new Error('unimplemented!')
@@ -122,7 +123,7 @@ export const upload = async (deps: AgentDeps, args: { binary: Uint8Array }) => {
     log.error(`Code ID not found in result`, { result })
     throw new Error('upload failed')
   }
-  const { codeHash } = await fetchCodeInfo(deps, codeId)
+  const { codeHash } = (await fetchCodeInfo(deps, [codeId]))[codeId]
   return {
     chain: chain(),
     codeId,
@@ -146,7 +147,7 @@ export const instantiate = async ({ chain, api, address, log, fees, withIntoErro
     code_hash:  args.codeHash,
     label:      args.label!,
     init_msg:   args.initMsg,
-    init_funds: args.initSend,
+    init_funds: args.initSend.map(({ amount, denom })=>({ amount: String(amount), denom })),
     memo:       args.initMemo
   }
   const instantiateOptions = {

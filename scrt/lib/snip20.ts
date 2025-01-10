@@ -173,8 +173,10 @@ const deposit = ({ execute }: Snip20Deps, nativeToken: Tendermint.Coin[]) =>
   execute({ deposit: {} }, { execSend: nativeToken })
 const redeem = ({ execute }: Snip20Deps, amount: Uint128, denom?: string) =>
   execute({ redeem: { amount: String(amount), denom } })
-const fetchAllowance = async ({ query }: Snip20Deps, owner: Address, spender: Address, key: string): Promise<Snip20Allowance> => {
-  const response: { allowance: Snip20Allowance } = await query({ allowance: { owner, spender, key } })
+const fetchAllowance = async (
+  { query }: Snip20Deps, owner: Address, spender: Address, key: string
+): Promise<Snip20Allowance> => {
+  const response: { allowance: Snip20Allowance } = await query({allowance: {owner, spender, key}})
   return response.allowance
 }
 const checkAllowance = ({ query }: Snip20Deps, spender: string, owner: string, key: string) =>
@@ -193,10 +195,11 @@ const transfer = ({ execute }: Snip20Deps, amount: Uint128, recipient: Address) 
   execute({ transfer: { amount, recipient } })
 const transferFrom = ({ execute }: Snip20Deps, owner: Address, recipient: Address, amount: Uint128, memo?: string) =>
   execute({ transfer_from: { owner, recipient, amount, memo } })
-const send = ({ execute }: Snip20Deps, amount: Uint128, recipient: Address, callback?: string|object) =>
-  execute({
-    send: { amount, recipient, msg: callback ? base64.encode(JSON.stringify(callback)) : undefined }
-  })
+const send = (
+  { execute }: Snip20Deps, amount: Uint128, recipient: Address, callback?: string|object
+) => execute({ send: {
+  amount, recipient, msg: callback ? base64.encode(new TextEncoder().encode(JSON.stringify(callback))) : undefined
+} })
 const sendFrom = (
   { execute }: Snip20Deps,
   owner: Address, amount: Uint128, recipient: String,
