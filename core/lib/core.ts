@@ -116,7 +116,7 @@ export const chain = (state: Partial<Chain> = {}, api = impl): Chain => {
   return chain
 }
 /** Describe a connection to a given `chain` by a given `url` */
-export const connection = (chain: Chain, api = impl, url?: string|URL): Connection => {
+export const connection = <C extends Connection>(chain: Chain, api = impl, url?: string|URL): C => {
   const log = new Console(chain.log.label + ' @ ' + url?.toString())
   const connection = { ...chain, url, log }
   const bind = (name: string, method: (...args: any[])=>any) => [
@@ -125,7 +125,7 @@ export const connection = (chain: Chain, api = impl, url?: string|URL): Connecti
   // The bound API:
   const bound = Object.fromEntries(Object.entries(api).map(([name, method])=>bind(name, method)))
   Object.assign(connection, bound)
-  return connection
+  return connection as unknown as C
 }
 /** Dependencies of chain API methods. */
 export type Deps = LoggingEntity<ChainId, Console> & {

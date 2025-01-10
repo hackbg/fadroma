@@ -16,6 +16,16 @@ export type Chain = Tendermint.Chain & Api & {
 }
 /** A connection to a Namada chain. */
 export type Connection = Deps & Api
+/** The dependencies expected by Namada API methods. */
+export type Deps = Omit<Tendermint.Connection, 'log'> & {
+  log:               Console
+  chain:             () => Core.ChainRef
+  abciQuery:         (path: string) => Promise<Uint8Array>
+  fetchStorageValue: (key:  string) => Promise<Uint8Array>
+  decoder:           Decoder
+}
+/** Methods available for interacting with Namada chains. */
+export type Api = Tendermint.Api & Core.ToApi<typeof impl>
 /** Describe a Namada chain. */
 export async function chain ({ ...properties }: Parameters<typeof Tendermint.chain>[0] & {
   decoder?: string|URL|Uint8Array
@@ -53,44 +63,10 @@ export const initDecoder = async (decoder: string|URL|Uint8Array): Promise<Decod
   }
   return Decode as unknown as Decoder
 }
-/** The dependencies expected by Namada API methods. */
-export type Deps = Omit<Tendermint.Connection, 'log'> & {
-  log:               Console
-  chain:             () => Core.ChainRef
-  abciQuery:         (path: string) => Promise<Uint8Array>
-  fetchStorageValue: (key:  string) => Promise<Uint8Array>
-  decoder:           Decoder
-}
-/** Methods available for interacting with Namada chains. */
-export type Api = Tendermint.Api & {
-  fetchStorageValue:            Core.Method<typeof fetchStorageValue>
-  fetchProtocolParameters:      Core.Method<typeof fetchProtocolParameters>
-  fetchBalance:                 Core.Method<typeof Bank.fetchBalance>
-  fetchBondWithSlashing:        Core.Method<typeof Pos.fetchBondWithSlashing>
-  fetchDelegations:             Core.Method<typeof Pos.fetchDelegations>
-  fetchDelegationsAt:           Core.Method<typeof Pos.fetchDelegationsAt>
-  fetchStakingParameters:       Core.Method<typeof Pos.fetchStakingParameters>
-  fetchTotalStaked:             Core.Method<typeof Pos.fetchTotalStaked>
-  fetchEpoch:                   Core.Method<typeof Epoch.fetchEpoch>
-  fetchEpochDuration:           Core.Method<typeof Epoch.fetchEpochDuration>
-  fetchEpochFirstBlock:         Core.Method<typeof Epoch.fetchEpochFirstBlock>
-  fetchGovernanceParameters:    Core.Method<typeof Gov.fetchGovernanceParameters>
-  fetchProposalCount:           Core.Method<typeof Gov.fetchProposalCount>
-  fetchProposalInfo:            Core.Method<typeof Gov.fetchProposalInfo>
-  fetchProposalResult:          Core.Method<typeof Gov.fetchProposalResult>
-  fetchProposalVotes:           Core.Method<typeof Gov.fetchProposalVotes>
-  fetchProposalWasm:            Core.Method<typeof Gov.fetchProposalWasm>
-  fetchPgfParameters:           Core.Method<typeof Pgf.fetchPgfParameters>
-  fetchValidator:               Core.Method<typeof Val.fetchValidator>
-  fetchValidatorAddresses:      Core.Method<typeof Val.fetchValidatorAddresses>
-  fetchValidatorStake:          Core.Method<typeof Val.fetchValidatorStake>
-  fetchValidators:              Core.Method<typeof Val.fetchValidators>
-  fetchValidatorsBelowCapacity: Core.Method<typeof Val.fetchValidatorsBelowCapacity>
-  fetchValidatorsConsensus:     Core.Method<typeof Val.fetchValidatorsConsensus>
-  fetchValidatorsIter:          Core.Method<typeof Val.fetchValidatorsIter>
-}
+/** Fetch a value from storage. */
 export const fetchStorageValue = ({abciQuery}: Deps, key: string): Promise<Uint8Array> =>
   abciQuery(`/shell/value/${key}`)
+/** Fetch core protocol parameters. */
 export const fetchProtocolParameters = async (api: Deps) => {
   const { decoder } = api
   const parameters: Record<string, unknown> = {}
@@ -118,8 +94,15 @@ export const fetchProtocolParameters = async (api: Deps) => {
   return parameters
 }
 /** Default implementation of Namada client API. */
-export const impl: Core.Impl<Api, Api & Deps> = {
-  ...Tendermint.impl, ...Bank, ...Block, ...Pos, ...Epoch, ...Gov, ...Pgf, ...Val,
+export const impl = {
+  ...Tendermint.impl,
+  ...Bank,
+  ...Block,
+  ...Pos,
+  ...Epoch,
+  ...Gov,
+  ...Pgf,
+  ...Val,
   fetchStorageValue,
   fetchProtocolParameters,
 }
