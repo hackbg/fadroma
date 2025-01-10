@@ -1,7 +1,7 @@
 import type { Deps } from './namada.ts'
 import { decode, u256 } from '../deps.ts'
 
-export const fetchBalance = async ({ decoder, abciQuery }: Deps, parameters: {
+export const fetchBalance = async ({ decoder, fetchAbciQuery }: Deps, parameters: {
   addresses: Record<string, string[]>,
 }): Promise<Record<string, Record<string, string>>> => {
   const result: Record<string, Record<string, string>> = {}
@@ -13,7 +13,7 @@ export const fetchBalance = async ({ decoder, abciQuery }: Deps, parameters: {
       }
       const balanceKey  = decoder.balance_key(token, address)
       const balanceAbci = `/shell/value/${balanceKey}`
-      const balance     = await abciQuery(balanceAbci)
+      const balance     = await fetchAbciQuery(balanceAbci)
       if (balance.length > 0) {
         result[address][token] = String(decode(u256, balance))
       } else {

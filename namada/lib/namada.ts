@@ -20,7 +20,7 @@ export type Connection = Deps & Api
 export type Deps = Omit<Tendermint.Connection, 'log'> & {
   log:               Console
   chain:             () => Core.ChainRef
-  abciQuery:         (path: string) => Promise<Uint8Array>
+  fetchAbciQuery:    (path: string) => Promise<Uint8Array>
   fetchStorageValue: (key:  string) => Promise<Uint8Array>
   decoder:           Decoder
 }
@@ -64,8 +64,8 @@ export const initDecoder = async (decoder: string|URL|Uint8Array): Promise<Decod
   return Decode as unknown as Decoder
 }
 /** Fetch a value from storage. */
-export const fetchStorageValue = ({abciQuery}: Deps, key: string): Promise<Uint8Array> =>
-  abciQuery(`/shell/value/${key}`)
+export const fetchStorageValue = ({fetchAbciQuery}: Deps, key: string): Promise<Uint8Array> =>
+  fetchAbciQuery(`/shell/value/${key}`)
 /** Fetch core protocol parameters. */
 export const fetchProtocolParameters = async (api: Deps) => {
   const { decoder } = api

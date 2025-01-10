@@ -39,37 +39,37 @@ export const fetchValidator = async (
 }
 /** Fetch the stake of a given validator. */
 export const fetchValidatorStake = async (
-  { abciQuery }: Deps, address: Address, epoch?: Epoch,
+  { fetchAbciQuery }: Deps, address: Address, epoch?: Epoch,
 ) => {
   let query = `/vp/pos/validator/stake/${address}`
   if (epoch) query += `/${epoch}`
-  const totalStake = await abciQuery(query)
+  const totalStake = await fetchAbciQuery(query)
   if (totalStake[0] === 0) return 0
   return decode(u256, totalStake.slice(1))
 }
 /** Fetch addresses of all known validators. */
 export const fetchValidatorAddresses = async (
-  { abciQuery, decoder }: Deps, epoch?: Epoch
+  { fetchAbciQuery, decoder }: Deps, epoch?: Epoch
 ): Promise<Address[]> => {
   let query = "/vp/pos/validator/addresses"
   if (epoch!==undefined) query += `/${epoch}`
-  return decoder.addresses(await abciQuery(query))
+  return decoder.addresses(await fetchAbciQuery(query))
 }
 /** Fetch info about the set of validators currently participating in consensus. */
 export async function fetchValidatorsConsensus (
-  { abciQuery, decoder }: Deps, epoch?: Epoch
+  { fetchAbciQuery, decoder }: Deps, epoch?: Epoch
 ) {
   let query = "/vp/pos/validator_set/consensus"
   if (epoch!==undefined) query += `/${epoch}`
-  return decoder.pos_validator_set(await abciQuery(query)).sort(byBondedStake)
+  return decoder.pos_validator_set(await fetchAbciQuery(query)).sort(byBondedStake)
 }
 /** Fetch info about the set of validators currently below capacity. */
 export async function fetchValidatorsBelowCapacity (
-  { abciQuery, decoder }: Deps, epoch?: Epoch
+  { fetchAbciQuery, decoder }: Deps, epoch?: Epoch
 ) {
   let query = "/vp/pos/validator_set/below_capacity"
   if (epoch!==undefined) query += `/${epoch}`
-  return decoder.pos_validator_set(await abciQuery(query)).sort(byBondedStake)
+  return decoder.pos_validator_set(await fetchAbciQuery(query)).sort(byBondedStake)
 }
 /** Sorting function by the bondedStake parameter. */
 const byBondedStake = (a: {bondedStake: number|bigint}, b: {bondedStake: number|bigint})=>
@@ -78,7 +78,7 @@ const byBondedStake = (a: {bondedStake: number|bigint}, b: {bondedStake: number|
     : 0
 /** Fetch details for a Namada validator. */
 export const fetchValidatorDetails = async (
-  { abciQuery, decoder, log }: Deps,
+  { fetchAbciQuery, decoder, log }: Deps,
   options?: { epoch?: Epoch, parallel?: boolean, validator?: Partial<Validator> }
 ) => {
   const { epoch, validator = {}, parallel = false } = options || {}
@@ -86,7 +86,7 @@ export const fetchValidatorDetails = async (
     if (!validator.address) {
       throw new Error('missing tendermint or namada address for validator')
     }
-    const addressBinary = await abciQuery(`/vp/pos/validator_by_tm_addr/${validator.address}`)
+    const addressBinary = await fetchAbciQuery(`/vp/pos/validator_by_tm_addr/${validator.address}`)
     Object.assign(validator, { namadaAddress: decoder.address(addressBinary.slice(1)) })
     log.info(validator.address, 'is', validator.namadaAddress)
   }
@@ -96,19 +96,19 @@ export const fetchValidatorDetails = async (
     return null
   }
   const requests: Array<()=>Promise<unknown>> = [
-    () => abciQuery(`/vp/pos/validator/metadata/${v}`)
+    () => fetchAbciQuery(`/vp/pos/validator/metadata/${v}`)
       .then((binary: Uint8Array) => binary[0] && ((validator as any).metadata = decoder.pos_validator_metadata(binary.slice(1))))
       .catch(warn(`Failed to provide validator metadata for ${v}`)),
-    () => abciQuery(`/vp/pos/validator/commission/${v}`)
+    () => fetchAbciQuery(`/vp/pos/validator/commission/${v}`)
       .then((binary: Uint8Array) => (validator as any).commission = decoder.pos_commission_pair(binary))
       .catch(warn(`Failed to provide validator commission pair for ${v}`)),
-    () => abciQuery(`/vp/pos/validator/state/${v}` + (epoch?`/${epoch}`:''))
+    () => fetchAbciQuery(`/vp/pos/validator/state/${v}` + (epoch?`/${epoch}`:''))
       .then((binary: Uint8Array) => (validator as any).state = decoder.pos_validator_state(binary))
       .catch(warn(`Failed to provide validator state for ${v}`)),
-    () => abciQuery(`/vp/pos/validator/stake/${v}` + (epoch?`/${epoch}`:''))
+    () => fetchAbciQuery(`/vp/pos/validator/stake/${v}` + (epoch?`/${epoch}`:''))
       .then((binary: Uint8Array) => binary[0] && ((validator as any).stake = decode(u256, binary.slice(1))))
       .catch(warn(`Failed to provide validator stake for ${v}`)),
-    () => abciQuery(`/vp/pos/validator/consensus_key/${v}`)
+    () => fetchAbciQuery(`/vp/pos/validator/consensus_key/${v}`)
       .then((binary: Uint8Array) => {
         const publicKey = base16.encode(binary.slice(2))
         if (validator.publicKey && (validator.publicKey !== publicKey)) {
@@ -166,7 +166,7 @@ export const fetchValidators = async (
   let publicKeys: Record<string, string>|null = null
   const fetchAndPopulatePublicKeys = async (parallel = false) => Object.fromEntries(
     await Core.optionallyParallel(parallel, namadaAddresses.map(addr => async () => {
-      const binary = await connection.abciQuery(`/vp/pos/validator/consensus_key/${addr}`)
+      const binary = await connection.fetchAbciQuery(`/vp/pos/validator/consensus_key/${addr}`)
       const publicKey = base16.encode(binary.slice(2))
       validatorsByNamadaAddress[addr].publicKey = publicKey
       return [addr, publicKey]
@@ -277,11 +277,11 @@ const getRequests = (
   const { decodeMetadata, decodeCommission, decodeState, decodeStake, decodePublicKey } =
     getDecoders(connection, meta, validator)
   const requests: Array<()=>Promise<unknown>> = [
-    () => connection.abciQuery(metadataPath).then(decodeMetadata).catch(warnMetadata),
-    () => connection.abciQuery(commissionPath).then(decodeCommission).catch(warnCommission),
-    () => connection.abciQuery(statePath).then(decodeState).catch(warnState),
-    () => connection.abciQuery(stakePath).then(decodeStake).catch(warnStake),
-    () => connection.abciQuery(consensusKeyPath).then(decodePublicKey).catch(warnConsensusKey),
+    () => connection.fetchAbciQuery(metadataPath).then(decodeMetadata).catch(warnMetadata),
+    () => connection.fetchAbciQuery(commissionPath).then(decodeCommission).catch(warnCommission),
+    () => connection.fetchAbciQuery(statePath).then(decodeState).catch(warnState),
+    () => connection.fetchAbciQuery(stakePath).then(decodeStake).catch(warnStake),
+    () => connection.fetchAbciQuery(consensusKeyPath).then(decodePublicKey).catch(warnConsensusKey),
   ]
   return requests
 }

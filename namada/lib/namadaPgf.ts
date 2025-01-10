@@ -4,5 +4,5 @@ export type PgfParameters = Partial<{
   pgfInflationRate:      bigint
   stewardsInflationRate: bigint
 }>
-export const fetchPgfParameters = async ({ decoder, abciQuery }: Deps) =>
-  decoder.pgf_parameters(await abciQuery(`/vp/pgf/parameters`))
+export const fetchPgfParameters = async ({ decoder, fetchAbciQuery }: Deps) =>
+  decoder.pgf_parameters(await fetchAbciQuery(`/vp/pgf/parameters`))

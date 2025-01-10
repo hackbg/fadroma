@@ -22,34 +22,34 @@ export type StakingParameters = Partial<{
   rewardsGainD:                  bigint
 }>
 /** Fetch staking parameters. */
-export async function fetchStakingParameters ({abciQuery, decoder}: Deps) {
-  const binary = await abciQuery("/vp/pos/pos_params")
+export async function fetchStakingParameters ({fetchAbciQuery, decoder}: Deps) {
+  const binary = await fetchAbciQuery("/vp/pos/pos_params")
   return decoder.pos_parameters(binary)
 }
 /** Fetch total staked NAMNAM. */
-export async function fetchTotalStaked ({abciQuery}: Deps, epoch?: number|bigint|string) {
+export async function fetchTotalStaked ({fetchAbciQuery}: Deps, epoch?: number|bigint|string) {
   let query = "/vp/pos/total_stake"
   if (epoch!==undefined) query += `/${epoch}`
-  const binary = await abciQuery(query)
+  const binary = await fetchAbciQuery(query)
   return decode(u64, binary)
 }
 export async function fetchBondWithSlashing (
-  {abciQuery}: Deps, delegator: Address, validator: Address, epoch?: Epoch,
+  {fetchAbciQuery}: Deps, delegator: Address, validator: Address, epoch?: Epoch,
 ) {
   let query = `/vp/pos/bond_with_slashing/${delegator}/${validator}`
   if (epoch) query += `/${epoch}`
-  const totalStake = await abciQuery(query)
+  const totalStake = await fetchAbciQuery(query)
   return decode(u256, totalStake)
 }
 /** Fetch all delegations. */
-export const fetchDelegations = async ({abciQuery, decoder}: Deps, address: Address) =>
-  decoder.addresses(await abciQuery(`/vp/pos/delegations/${address}`))
+export const fetchDelegations = async ({fetchAbciQuery, decoder}: Deps, address: Address) =>
+  decoder.addresses(await fetchAbciQuery(`/vp/pos/delegations/${address}`))
 /** Fetch delegations at given address. */
 export const fetchDelegationsAt = async (
-  {abciQuery, decoder}: Deps, address: Address, epoch?: Epoch
+  {fetchAbciQuery, decoder}: Deps, address: Address, epoch?: Epoch
 ): Promise<Record<string, bigint>> => {
   let query = `/vp/pos/delegations_at/${address}`
   epoch = Number(epoch)
   if (!isNaN(epoch)) query += `/${epoch}`
-  return decoder.address_to_amount(await abciQuery(query)) as Record<string, bigint>
+  return decoder.address_to_amount(await fetchAbciQuery(query)) as Record<string, bigint>
 }
