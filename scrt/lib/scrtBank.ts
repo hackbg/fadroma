@@ -40,14 +40,12 @@ export async function send ({ address, api, withIntoError }: AgentDeps, args: {
   type Response = {
     sender: Address,
     recipient: Address,
-    amounts: Record<string, string>,
+    amounts: Coin[],
     transaction: unknown
   }
   const result: Record<Address, Response> = {}
   const responses: Array<Response> = await optionallyParallel(parallel, transactions)
-  for (const response of responses) {
-    result[(response).recipient] = response
-  }
+  for (const response of responses) result[(response).recipient] = response
   return result
   //return withIntoError(api.tx.bank.send(
     //{ from_address: this.address!, to_address: recipient, amount: amounts },

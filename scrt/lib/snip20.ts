@@ -1,7 +1,7 @@
 /** Fadroma. Copyright (C) 2023 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import { Tendermint, bold, camelize, base64, randomBase64, fetchContractInfo } from '../deps.ts'
+import { Tendermint, bold, camelize, base64, randomBase64 } from '../deps.ts'
 import type { CosmWasm, Uint128, Address } from '../deps.ts'
 import type { Chain, Console } from './scrt.ts'
 export type Snip20Config = {
@@ -134,11 +134,12 @@ const fetchMetadata = async (deps: Snip20Deps) => {
   const { address, chain, codeHash } = deps
   if (!address) throw new Error("can't fetch metadata without contract address")
   if (!chain) throw new Error("can't fetch metadata without agent")
+  const setCodeHash = ({codeHash}: {codeHash?: CosmWasm.CodeHash}) => info.codeHash = codeHash
+  const setMetadata = ({name, symbol, decimals, total_supply}: Snip20TokenInfo) =>
+      Object.assign(info, camelize({ name, symbol, decimals, total_supply }))
   return Promise.all([
-    fetchContractInfo(deps, deps.address).then(({codeHash}: {codeHash: CosmWasm.CodeHash}) =>
-      info.codeHash = codeHash),
-    fetchTokenInfo(deps).then(({ name, symbol, decimals, total_supply }: Snip20TokenInfo) =>
-      Object.assign(info, camelize({ name, symbol, decimals,  total_supply })))
+    deps.fetchContractInfo(deps.address).then(setCodeHash),
+    fetchTokenInfo(deps).then(setMetadata)
   ])
 }
 const fetchTokenInfo = async ({ querySelf }: Snip20Deps) => {
