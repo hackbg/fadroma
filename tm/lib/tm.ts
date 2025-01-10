@@ -1,4 +1,4 @@
-import { Core, base16, camelize } from '../deps.ts'
+import { Core, base16, base64, camelize } from '../deps.ts'
 import { Error, Console } from './tmLog.ts'
 import * as Bank from './tmBank.ts'
 /** Chain global configuration pertinent to Tendermint-based chains only. */
@@ -218,8 +218,8 @@ export const fetchAbciQuery = async (api: Deps, path: string, options?: {
     api.log.error('fetchAbciQuery error:', error)
     throw new Error('fetchAbciQueryError', { error })
   }
-  if (typeof response.key   === 'string') response.key   = base16.decode(response.key)
-  if (typeof response.value === 'string') response.value = base16.decode(response.value)
+  if (typeof response.key   === 'string') response.key   = base64.decode(response.key)
+  if (typeof response.value === 'string') response.value = base64.decode(response.value)
   return response
 }
 const numbersWithoutZero = "123456789"
