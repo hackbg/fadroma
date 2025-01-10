@@ -29,6 +29,7 @@ export type BatchDeps = Batch & {
   agent: Agent,
   chain: () => ChainRef
   api?:  SecretNetworkClient,
+  fees?: Tendermint.FeeMap<'upload'|'init'|'exec'|'send'>
 }
 export type BatchResult = {
   sender?:   Address
@@ -59,14 +60,14 @@ export const uploadInBatch = (_deps: BatchDeps, _code: never, _options: never) =
 }
 export const instantiateInBatch = (
   { agent, messages }: BatchDeps,
-  code: CodeId|{id: CodeId}|{codeId: CodeId},
+  code: CodeId,
   options: { label: Label, initMsg: Message, initSend: Coin[] },
 ) => {
   messages.push(new MsgInstantiateContract({
     //callback_code_hash: '',
     //callback_sig:       null,
     sender:     agent!.address!,
-    code_id:    ((typeof code === 'object') ? code.codeId : code) as CodeId,
+    code_id:    code,
     label:      options.label!,
     init_msg:   options.initMsg,
     init_funds: options.initSend,
@@ -133,8 +134,8 @@ export const encryptExec = async (agent: Agent, exec: {
   callback_sig: null,
   callback_code_hash: '',
 })
-const simulateBatch = ({ api, messages }: Batch) =>
-  Promise.resolve(api).then(api=>api.tx.simulate(messages))
+const simulateBatch = ({ api, messages }: BatchDeps) =>
+  Promise.resolve(api).then(api=>api!.tx.simulate(messages))
 const submitBatch = async ({ chain, api, fees, messages, agent, log }: BatchDeps, { memo = "" }: { memo: string }): Promise<BatchResult[]> => {
   //const api = await Promise.resolve(batch.chain!.api)
   const chainId  = chain().id
@@ -226,7 +227,8 @@ const saveBatch = async ({ log, agent, chain, messages: encryptedMessages }: Bat
   }
 }
 const composeUnsignedTx = (encryptedMessages: any[], memo?: string): any => {
-  const fee = Connection.gas(10000000).asFee()
+  const gas = 10000000
+  const fee = { amount: [Tendermint.makeCoin(gas, 'uscrt')], gas: 10000000 }
   const auth_info = { signer_infos: [], fee: { ...fee, gas: fee.gas, payer: "", granter: "" }, }
   const body = { memo, messages: encryptedMessages, timeout_height: "0", extension_options: [], non_critical_extension_options: [] }
   return { auth_info, signatures: [], body }

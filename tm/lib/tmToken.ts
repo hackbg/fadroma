@@ -4,12 +4,14 @@
 import type { Address, Uint128 } from '../deps.ts'
 
 /** Represents some amount of native token. */
-export interface Coin { readonly amount: Uint128, readonly denom: string }
-export function makeCoin (amount: Uint128, denom: string): Coin { return { amount, denom } }
+export interface Coin { readonly amount: string, readonly denom: string }
+export const makeCoin = (amount: Uint128, denom: string): Coin =>
+  ({ amount: String(amount), denom })
 
 /** A gas fee, payable in native tokens. */
-export interface Fee { readonly gas: Uint128, amount: readonly Coin[] }
-export function makeFee (gas: Uint128, coins: Coin[]) { return { gas, coins } }
+export interface Fee { readonly gas: Uint128, readonly amount: Coin[] }
+export const makeFee = (gas: Uint128, amount: Coin[]): Fee =>
+  ({ gas: String(gas), amount })
 
 /** A mapping of transaction type to default fee in one or more tokens. */
 export type FeeMap<T extends string> = { [key in T]: Fee }
@@ -70,8 +72,8 @@ export type SwapSide = TokenAmount|NonFungible|Array<(TokenAmount|NonFungible)>
 
 /** An amount of a fungible token. */
 class TokenAmount {
-  public amount: Uint128
-  constructor (amount: string|number|bigint, public token: FungibleToken) {
+  public amount: string
+  constructor (amount: Uint128, public token: FungibleToken) {
     this.amount = String(amount)
   }
   /** Pass this to send, initSend, execSend */
@@ -92,7 +94,7 @@ class TokenAmount {
     if (!this.token.isNative()) {
       throw new Error(`not a native token: ${this.toString()}`)
     }
-    return { amount: this.amount, denom: this.denom }
+    return { amount: String(this.amount), denom: this.denom }
   }
   asFee (gas: Uint128 = this.amount): Fee {
     if (!this.token.isNative()) {

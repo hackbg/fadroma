@@ -24,7 +24,7 @@ export async function fetchBalance ({ api, withIntoError }: Deps, args: {
 }
 
 export async function send ({ address, api, withIntoError }: Deps, args: {
-  parallel?: boolean, outputs: Coin[], sendFee: Fee, sendMemo?: string
+  parallel?: boolean, outputs: Record<Address, Coin[]>, sendFee: Fee, sendMemo?: string
 }) {
   const { parallel = false, outputs, sendFee, sendMemo } = args
   const sender = address
