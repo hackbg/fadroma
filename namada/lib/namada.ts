@@ -15,9 +15,9 @@ export type Chain = Tendermint.Chain & Api & {
   connect (url?: string|URL): Connection
 }
 /** A connection to a Namada chain. */
-export type Connection = Deps & Api
+export type Connection = Context & Api
 /** The dependencies expected by Namada API methods. */
-export type Deps = Omit<Tendermint.Connection, 'log'> & {
+export type Context = Omit<Tendermint.Connection, 'log'> & {
   log:               Console
   chain:             () => Core.ChainRef
   fetchAbciQuery:    (path: string) => Promise<Uint8Array>
@@ -64,10 +64,10 @@ export const initDecoder = async (decoder: string|URL|Uint8Array): Promise<Decod
   return Decode as unknown as Decoder
 }
 /** Fetch a value from storage. */
-export const fetchStorageValue = async (api: Deps, key: string): Promise<Uint8Array> =>
+export const fetchStorageValue = async (api: Context, key: string): Promise<Uint8Array> =>
   (await api.fetchAbciQuery(`/shell/value/${key}`)).value!
 /** Fetch core protocol parameters. */
-export const fetchProtocolParameters = async (api: Deps) => {
+export const fetchProtocolParameters = async (api: Context) => {
   const { decoder } = api
   const parameters: Record<string, unknown> = {}
   await Promise.all(Object.entries(decoder.storage_keys())

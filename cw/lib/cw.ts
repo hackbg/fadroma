@@ -1,15 +1,10 @@
 import { Core } from '../deps.ts'
 import type { Tendermint, Uint128 } from '../deps.ts'
-import { bold, timed } from '../deps.ts'
 import type { Fee, Coin, Into, ChainId, ChainRef, Address, Hash } from '../deps.ts'
 /** A CosmWasm error. */
 export class Error extends Core.Error {}
 /** A CosmWasm logger. */
-export class Console extends Core.Console {
-  timed = (name: string, cb: () => Promise<unknown>) => {
-    return timed(cb, (result) => this.debug(`${bold(name)}: ${result.elapsed}`))
-  }
-}
+export class Console extends Core.Console {}
 /** A code ID, identifying uploaded code on a chain. */
 export type CodeId = string|number
 /** The hash of a contract's code. */
@@ -109,7 +104,7 @@ export type Upload =
     }>>))
 export const upload = (...args: unknown[]): Promise<UploadedCode> =>
   { throw new Error('todo!') }
-//export const upload = async ({ log, agent }: Deps,
+//export const upload = async ({ log, agent }: Context,
   //code: string|URL|Uint8Array|Partial<CompiledCode>,
   //options?: Omit<Parameters<Api["upload"]>[0], 'binary'>,
 //) => {

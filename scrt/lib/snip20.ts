@@ -20,7 +20,7 @@ export type Snip20 = Snip20Config & {
   /** The total supply of the token. */
   totalSupply: Uint128
 }
-export type Snip20Deps = CosmWasm.ClientApi & {
+export type Snip20Context = CosmWasm.ClientApi & {
   id:     string,
   chain?: Chain,
   agent?: { address?: Address },
@@ -58,8 +58,8 @@ export type Snip20TokenInfo = {
 export type ViewingKey = string
 /** A contract's viewing key methods. */
 export type ViewingKeyClient = {
-  create (_: Snip20Deps, entropy?: unknown): Promise<Uint8Array>
-  set (_: Snip20Deps, key: ViewingKey): Promise<void>
+  create (_: Snip20Context, entropy?: unknown): Promise<Uint8Array>
+  set (_: Snip20Context, key: ViewingKey): Promise<void>
 }
 export interface Snip20Api {
   /** Get a comparable token ID. */
@@ -129,7 +129,7 @@ export const initSnip20 = ({
     prng_seed: prngSeed,
   }
 }
-const fetchMetadata = async (deps: Snip20Deps) => {
+const fetchMetadata = async (deps: Snip20Context) => {
   const info: { codeHash?: CosmWasm.CodeHash } = {}
   const { address, chain, codeHash } = deps
   if (!address) throw new Error("can't fetch metadata without contract address")
@@ -142,12 +142,12 @@ const fetchMetadata = async (deps: Snip20Deps) => {
     fetchTokenInfo(deps).then(setMetadata)
   ])
 }
-const fetchTokenInfo = async ({ querySelf }: Snip20Deps) => {
+const fetchTokenInfo = async ({ querySelf }: Snip20Context) => {
   const msg = { token_info: {} }
   const { token_info }: { token_info: Snip20TokenInfo } = await querySelf(msg)
   return token_info
 }
-const fetchBalance = async ({ querySelf }: Snip20Deps, address: Address, key: string) => {
+const fetchBalance = async ({ querySelf }: Snip20Context, address: Address, key: string) => {
   const msg = { balance: { address, key } }
   const response: { balance: { amount: Uint128 } } = await querySelf(msg)
   if (response.balance && response.balance.amount) {
@@ -156,31 +156,31 @@ const fetchBalance = async ({ querySelf }: Snip20Deps, address: Address, key: st
     throw new Error(JSON.stringify(response))
   }
 }
-const changeAdmin = ({ execSelf }: Snip20Deps, address: string) =>
+const changeAdmin = ({ execSelf }: Snip20Context, address: string) =>
   execSelf({ change_admin: { address } })
-const setMinters = ({ execSelf }: Snip20Deps, minters: Array<string>) =>
+const setMinters = ({ execSelf }: Snip20Context, minters: Array<string>) =>
   execSelf({ set_minters: { minters } })
-const addMinters = ({ execSelf }: Snip20Deps, minters: Array<string>) =>
+const addMinters = ({ execSelf }: Snip20Context, minters: Array<string>) =>
   execSelf({ add_minters: { minters } })
-const mint = ({ execSelf, agent }: Snip20Deps, amount: Uint128, recipient: string|undefined = agent?.address) => {
+const mint = ({ execSelf, agent }: Snip20Context, amount: Uint128, recipient: string|undefined = agent?.address) => {
   if (!recipient) throw new Error('Snip20#mint: specify recipient')
   return execSelf({ mint: { amount: String(amount), recipient } })
 }
-const burn = ({ execSelf }: Snip20Deps, amount: Uint128, memo?: string) =>
+const burn = ({ execSelf }: Snip20Context, amount: Uint128, memo?: string) =>
   execSelf({ burn: { amount: String(amount), memo } })
-const deposit = ({ execSelf }: Snip20Deps, nativeToken: Tendermint.Coin[]) =>
+const deposit = ({ execSelf }: Snip20Context, nativeToken: Tendermint.Coin[]) =>
   execSelf({ deposit: {} }, { send: nativeToken })
-const redeem = ({ execSelf }: Snip20Deps, amount: Uint128, denom?: string) =>
+const redeem = ({ execSelf }: Snip20Context, amount: Uint128, denom?: string) =>
   execSelf({ redeem: { amount: String(amount), denom } })
 const fetchAllowance = async (
-  { querySelf }: Snip20Deps, owner: Address, spender: Address, key: string
+  { querySelf }: Snip20Context, owner: Address, spender: Address, key: string
 ): Promise<Snip20Allowance> => {
   const response: { allowance: Snip20Allowance } = await querySelf({allowance: {owner, spender, key}})
   return response.allowance
 }
-const checkAllowance = ({ querySelf }: Snip20Deps, spender: string, owner: string, key: string) =>
+const checkAllowance = ({ querySelf }: Snip20Context, spender: string, owner: string, key: string) =>
   querySelf({ check_allowance: { owner, spender, key } })
-const increaseAllowance = ({ execSelf, log, agent, id }: Snip20Deps, spender: Address, amount: Uint128) => {
+const increaseAllowance = ({ execSelf, log, agent, id }: Snip20Context, spender: Address, amount: Uint128) => {
   const address = bold(agent?.address||'(missing address)')
   log.debug(
     `${address}: increasing allowance of`, bold(spender),
@@ -188,28 +188,28 @@ const increaseAllowance = ({ execSelf, log, agent, id }: Snip20Deps, spender: Ad
   )
   return execSelf({ increase_allowance: { amount: String(amount), spender } })
 }
-const decreaseAllowance = ({ execSelf }: Snip20Deps, amount: Uint128, spender: Address) =>
+const decreaseAllowance = ({ execSelf }: Snip20Context, amount: Uint128, spender: Address) =>
   execSelf({ decrease_allowance: { amount: String(amount), spender } })
-const transfer = ({ execSelf }: Snip20Deps, amount: Uint128, recipient: Address) =>
+const transfer = ({ execSelf }: Snip20Context, amount: Uint128, recipient: Address) =>
   execSelf({ transfer: { amount, recipient } })
-const transferFrom = ({ execSelf }: Snip20Deps, owner: Address, recipient: Address, amount: Uint128, memo?: string) =>
+const transferFrom = ({ execSelf }: Snip20Context, owner: Address, recipient: Address, amount: Uint128, memo?: string) =>
   execSelf({ transfer_from: { owner, recipient, amount, memo } })
 const send = (
-  { execSelf }: Snip20Deps, amount: Uint128, recipient: Address, callback?: string|object
+  { execSelf }: Snip20Context, amount: Uint128, recipient: Address, callback?: string|object
 ) => execSelf({ send: {
   amount, recipient, msg: callback ? base64.encode(new TextEncoder().encode(JSON.stringify(callback))) : undefined
 } })
 const sendFrom = (
-  { execSelf }: Snip20Deps,
+  { execSelf }: Snip20Context,
   owner: Address, amount: Uint128, recipient: String,
   hash?: CosmWasm.CodeHash, msg?: string, memo?: string
 ) => execSelf({ send_from: { owner, recipient, recipient_code_hash: hash, amount, msg, memo } })
 const vk = (): ViewingKeyClient => ({
   /** Assign a user-specified viewing key. */
-  set: ({ execSelf }: Snip20Deps, key: ViewingKey) =>
+  set: ({ execSelf }: Snip20Context, key: ViewingKey) =>
     execSelf({ set_viewing_key: { key } }),
   /** Assign a random viewing key and return it to the user. */
-  create: async ({ execSelf }: Snip20Deps, entropy = randomBase64()) => {
+  create: async ({ execSelf }: Snip20Context, entropy = randomBase64()) => {
     const msg = { create_viewing_key: { entropy, padding: null } }
     let { data } = await execSelf(msg) as { data: Uint8Array|Uint8Array[] }
     if (data instanceof Uint8Array) {

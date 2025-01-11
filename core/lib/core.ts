@@ -1,4 +1,5 @@
 import type { Uint128 } from './coreNumber.ts'
+import { timed } from './coreTiming.ts'
 import { Oops, Logs, bold, randomColor } from '../deps.ts'
 /** Slices first argument of implementation signature
   * (see https://stackoverflow.com/a/67605309) */
@@ -11,7 +12,7 @@ export type ToApi<I> = {
     : I[k]
 };
 /** Type of chain API implementation. */
-export type Impl<A extends Api, D extends Deps> = {
+export type Impl<A extends Api, D extends Context> = {
   [k in keyof A]: A[k] extends (...args: infer R) => infer T
     ? ((deps: D, ...args: R) => T)
     : never
@@ -26,6 +27,9 @@ export class Error extends Oops.Error {
 }
 /** A Fadroma logger. */
 export class Console extends Logs.Console {
+  timed = (name: string, cb: () => Promise<unknown>) => {
+    return timed(cb, (result) => this.debug(`${bold(name)}: ${result.elapsed}`))
+  }
   static unknownChains = 0
   static unknownChain  = () => `Unknown chain #${++this.unknownChains}`
   static noConnections = () => new Error('no connections')
@@ -76,9 +80,9 @@ export type ChainId = string
 /** Reference to chain by id. */
 export type ChainRef = Entity<ChainId>
 /** A chain's full representation. */
-export type Chain = ChainRef & Deps & Api & { connect: (url?: string|URL)=>Connection };
+export type Chain = ChainRef & Context & Api & { connect: (url?: string|URL)=>Connection };
 /** Represents an individual remote API endpoint. */
-export type Connection = ChainRef & Deps & Api & { url?: string|URL }
+export type Connection = ChainRef & Context & Api & { url?: string|URL }
 /** Block height. */
 export type Height = number|bigint
 /** Global unit of event time. Contains zero or more transactions. */
@@ -128,7 +132,7 @@ export const connection = <C extends Connection>(chain: Chain, api = impl, url?:
   return connection as unknown as C
 }
 /** Dependencies of chain API methods. */
-export type Deps = LoggingEntity<ChainId, Console> & {
+export type Context = LoggingEntity<ChainId, Console> & {
   /** The connection URL. */
   url?: URL|string
   /** Whether the connection is active. */
@@ -160,7 +164,7 @@ export const fetchHeight = (api: Api): Promise<Height> =>
   api.fetchBlock().then(({height})=>BigInt(height))
 export const fetchNextHeight = (api: Api, interval: number = 1000): Promise<bigint> =>
   api.fetchNextBlock(interval).then(({height})=>BigInt(height))
-export const fetchNextBlock = (api: Api&Deps, interval: number = 1000): Promise<Block> =>
+export const fetchNextBlock = (api: Api&Context, interval: number = 1000): Promise<Block> =>
   api.fetchHeight().then(startingHeight => {
     api.log.waitingForNextBlock(startingHeight, interval)
     const t0 = performance.now()
@@ -184,7 +188,7 @@ export const fetchNextBlock = (api: Api&Deps, interval: number = 1000): Promise<
       reject(e)
     } })
   })
-export const impl: Impl<Api, Deps & Api> = {
+export const impl: Impl<Api, Context & Api> = {
   fetchBlock (_, __) { throw new Error('base fetchBlock is not implemented') },
   fetchNextBlock,
   fetchHeight,

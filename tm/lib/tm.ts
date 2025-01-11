@@ -106,12 +106,12 @@ export type EndBlockEvent = {
 export const chain = (state: Partial<Core.Chain> & ChainOptions, api = impl): Chain =>
   Core.chain(state, api as any) as Chain
 /** Dependencies of Tendermint API methods. */
-export type Deps = Core.Deps
+export type Context = Core.Context
 /** Methods available for interacting with Tendermint chains. */
 export type Api = Core.Api & Core.ToApi<typeof impl>
 /** Fetch a block from a Tendermint chain, optionally with block results. */
 export const fetchBlock =
-  async (api: Deps, options?: { height?: Height, hash?: string, results?: boolean, raw?: boolean }):
+  async (api: Context, options?: { height?: Height, hash?: string, results?: boolean, raw?: boolean }):
     Promise<Block> => {
       const [
         [blockUrl,   [blockText,   block,   blockError  ]],
@@ -151,7 +151,7 @@ export const fetchBlock =
       } as Block
     }
 const fetchAndTryToParseBlockResponse =
-  async (api: Deps, options?: { height?: Height, hash?: string }):
+  async (api: Context, options?: { height?: Height, hash?: string }):
     Promise<[string, Core.TryToParse<string, BlockResponse>]> => {
       if (!api.url) throw new Error("missing connection URL: can't fetch block")
       const { height, hash } = options || {}
@@ -163,7 +163,7 @@ const fetchAndTryToParseBlockResponse =
     }
 /** Fetch just the results of a Tendermint block. */
 export const fetchBlockResults =
-  async (api: Deps, options?: { height?: Height, raw?: boolean }):
+  async (api: Context, options?: { height?: Height, raw?: boolean }):
     Promise<BlockResults> => {
       const [_, [resultsText, results, resultsError]] =
         await fetchAndTryToParseResultsResponse(api, options)
@@ -180,7 +180,7 @@ export const fetchBlockResults =
       })
     }
 const fetchAndTryToParseResultsResponse =
-  async (api: Deps, options?: { height?: Height }):
+  async (api: Context, options?: { height?: Height }):
     Promise<[string, Core.TryToParse<string, BlockResultsResponse>]> => {
       if (!api.url) throw new Error("missing connection URL: can't fetch block results")
       const { height } = options || {}
@@ -188,9 +188,9 @@ const fetchAndTryToParseResultsResponse =
       const response = await fetch(url).then(r=>r.text())
       return [url, Core.tryToParse(response)]
     }
-export const fetchAbciInfo  = async (_api: Deps) =>
+export const fetchAbciInfo  = async (_api: Context) =>
   Error.TODO('fetchAbciInfo')
-export const fetchAbciQuery = async (api: Deps, path: string, options?: {
+export const fetchAbciQuery = async (api: Context, path: string, options?: {
   data?: Uint8Array, height?: Height, prove?: boolean
 }): Promise<{
   readonly key:       Uint8Array|null
@@ -225,29 +225,29 @@ export const fetchAbciQuery = async (api: Deps, path: string, options?: {
 const numbersWithoutZero = "123456789"
 const randomNumericChar = (): string => numbersWithoutZero[Math.floor(Math.random() * numbersWithoutZero.length)]
 const randomId =(): number => parseInt(Array.from({ length: 12 }) .map(() => randomNumericChar()).join(""), 10)
-export const fetchBlockSearch = async (_api: Deps, _query: string, _parameters: { page?: number, perPage?: number, orderBy?: string }) =>
+export const fetchBlockSearch = async (_api: Context, _query: string, _parameters: { page?: number, perPage?: number, orderBy?: string }) =>
   Error.TODO('fetchBlockSearch')
-export const fetchBlockchain = async (_api: Deps, _parameters: { min?: Height, max?: Height }) =>
+export const fetchBlockchain = async (_api: Context, _parameters: { min?: Height, max?: Height }) =>
   Error.TODO('fetchBlockchain')
-export const fetchCommit = async (_api: Deps, _height: Height) =>
+export const fetchCommit = async (_api: Context, _height: Height) =>
   Error.TODO('fetchCommit')
-export const fetchGenesis = async (_api: Deps) =>
+export const fetchGenesis = async (_api: Context) =>
   Error.TODO('fetchGenesis')
-export const fetchHealth = async (_api: Deps) =>
+export const fetchHealth = async (_api: Context) =>
   Error.TODO('fetchHealth')
-export const fetchNumUnconfirmedTxs = async (_api: Deps) =>
+export const fetchNumUnconfirmedTxs = async (_api: Context) =>
   Error.TODO('fetchNumUnconfirmedTxs')
-export const fetchStatus = async (_api: Deps) =>
+export const fetchStatus = async (_api: Context) =>
   Error.TODO('fetchStatus')
-export const fetchTx = async (_api: Deps) =>
+export const fetchTx = async (_api: Context) =>
   Error.TODO('fetchTx')
-export const fetchTxSearch = async (_api: Deps) =>
+export const fetchTxSearch = async (_api: Context) =>
   Error.TODO('fetchTxSearch')
-export const fetchValidators = async (_api: Deps) =>
+export const fetchValidators = async (_api: Context) =>
   Error.TODO('fetchValidators')
-export const subscribe = async (_api: Deps, _subscribeTo: 'block'|'header'|{query: string}) =>
+export const subscribe = async (_api: Context, _subscribeTo: 'block'|'header'|{query: string}) =>
   Error.TODO('subscribe')
-export const broadcastTx = async (_api: Deps, _method: 'sync'|'async'|'commit', _tx: Uint8Array) =>
+export const broadcastTx = async (_api: Context, _method: 'sync'|'async'|'commit', _tx: Uint8Array) =>
   Error.TODO('broadcastTx')
 
 /** Default implementation of Tendermint client API. */

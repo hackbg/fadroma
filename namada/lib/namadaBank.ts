@@ -1,7 +1,7 @@
-import type { Deps } from './namada.ts'
+import type { Context } from './namada.ts'
 import { decode, u256 } from '../deps.ts'
 
-export const fetchBalance = async ({ decoder, fetchAbciQuery }: Deps, parameters: {
+export const fetchBalance = async ({ decoder, fetchAbciQuery }: Context, parameters: {
   addresses: Record<string, string[]>,
 }): Promise<Record<string, Record<string, string>>> => {
   const result: Record<string, Record<string, string>> = {}

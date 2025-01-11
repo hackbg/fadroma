@@ -4,6 +4,10 @@ test:
   deno coverage --html
 cov:
   deno coverage --detailed
+doc:
+  deno doc --html --private --name=@hackbg/fadroma index.ts
+doc-lint:
+  deno doc --html --private --lint --name=@hackbg/fadroma index.ts
 check:
   deno check test.ts
 push:

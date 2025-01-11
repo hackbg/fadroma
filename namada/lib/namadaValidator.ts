@@ -1,7 +1,7 @@
-import type { Tendermint, Address } from '../deps.ts'
-import type { Deps } from './namada.ts'
+import type { Address } from '../deps.ts'
+import type { Context } from './namada.ts'
 import type { Epoch } from './namadaEpoch.ts'
-import { Core, base16, decode, u256, getValidators } from '../deps.ts'
+import { Core, Tendermint, base16, decode, u256 } from '../deps.ts'
 /** Describes a Namada validator. */
 export type Validator = Tendermint.Validator & {
   readonly namadaAddress?: Address
@@ -32,14 +32,14 @@ export type ValidatorState = {
 }
 /** Fetch details about one validator. */
 export const fetchValidator = async (
-  api: Deps, namadaAddress: Address, options?: { epoch?: Epoch }
+  api: Context, namadaAddress: Address, options?: { epoch?: Epoch }
 ) => {
   const validator = { chain: api.chain, address: null as any, namadaAddress }
   return await fetchValidatorDetails(api, {...options, validator})
 }
 /** Fetch the stake of a given validator. */
 export const fetchValidatorStake = async (
-  { fetchAbciQuery }: Deps, address: Address, epoch?: Epoch,
+  { fetchAbciQuery }: Context, address: Address, epoch?: Epoch,
 ) => {
   let query = `/vp/pos/validator/stake/${address}`
   if (epoch) query += `/${epoch}`
@@ -49,7 +49,7 @@ export const fetchValidatorStake = async (
 }
 /** Fetch addresses of all known validators. */
 export const fetchValidatorAddresses = async (
-  { fetchAbciQuery, decoder }: Deps, epoch?: Epoch
+  { fetchAbciQuery, decoder }: Context, epoch?: Epoch
 ): Promise<Address[]> => {
   let query = "/vp/pos/validator/addresses"
   if (epoch!==undefined) query += `/${epoch}`
@@ -57,7 +57,7 @@ export const fetchValidatorAddresses = async (
 }
 /** Fetch info about the set of validators currently participating in consensus. */
 export async function fetchValidatorsConsensus (
-  { fetchAbciQuery, decoder }: Deps, epoch?: Epoch
+  { fetchAbciQuery, decoder }: Context, epoch?: Epoch
 ) {
   let query = "/vp/pos/validator_set/consensus"
   if (epoch!==undefined) query += `/${epoch}`
@@ -65,7 +65,7 @@ export async function fetchValidatorsConsensus (
 }
 /** Fetch info about the set of validators currently below capacity. */
 export async function fetchValidatorsBelowCapacity (
-  { fetchAbciQuery, decoder }: Deps, epoch?: Epoch
+  { fetchAbciQuery, decoder }: Context, epoch?: Epoch
 ) {
   let query = "/vp/pos/validator_set/below_capacity"
   if (epoch!==undefined) query += `/${epoch}`
@@ -78,7 +78,7 @@ const byBondedStake = (a: {bondedStake: number|bigint}, b: {bondedStake: number|
     : 0
 /** Fetch details for a Namada validator. */
 export const fetchValidatorDetails = async (
-  { fetchAbciQuery, decoder, log }: Deps,
+  { fetchAbciQuery, decoder, log }: Context,
   options?: { epoch?: Epoch, parallel?: boolean, validator?: Partial<Validator> }
 ) => {
   const { epoch, validator = {}, parallel = false } = options || {}
@@ -132,8 +132,8 @@ export const fetchValidatorDetails = async (
 }
 type TendermintMetadata = Record<string, Tendermint.Validator>
 export const fetchValidators = async (
-  connection: Deps,
-  options: Partial<Parameters<typeof getValidators>[1]> & {
+  connection: Context,
+  options: Partial<Parameters<typeof Tendermint.getValidators>[1]> & {
     epoch?:              Epoch
     //details?:         boolean,
     //pagination?:      [number, number]
@@ -186,7 +186,7 @@ export const fetchValidators = async (
   let tendermintMetadata: TendermintMetadata = {}
   if (options?.tendermintMetadata ?? true) {
     publicKeys ??= await fetchAndPopulatePublicKeys(options.tendermintMetadata === 'parallel')
-    tendermintMetadata = (await getValidators(connection, { ...options||{} }))
+    tendermintMetadata = (await Tendermint.getValidators(connection, { ...options||{} }))
       // `getValidators` returns an array, so we rekey it by public key.
       // (Identifier rebinding would have been really nice here.)
       .reduce((vs: any, v: any)=>Object.assign(vs, {[v.publicKey]: v}), {}) as Record<string, {
@@ -239,7 +239,7 @@ export const fetchValidators = async (
   return Object.values(validatorsByNamadaAddress)
 }
 /** Generator implementation of fetchValidators. */
-export async function * fetchValidatorsIter (connection: Deps, options?: {
+export async function * fetchValidatorsIter (connection: Context, options?: {
   epoch?:     Epoch,
   parallel?:  boolean,
   addresses?: string[]
@@ -248,7 +248,7 @@ export async function * fetchValidatorsIter (connection: Deps, options?: {
   const namadaAddresses = addresses?.length
     ? addresses
     : await fetchValidatorAddresses(connection, epoch)
-  const meta: TendermintMetadata = (await getValidators(connection)).reduce(
+  const meta: TendermintMetadata = (await Tendermint.getValidators(connection)).reduce(
     (vs: any, v: any)=>Object.assign(vs, {[v.publicKey]: v}), {}
   )
   for (const namadaAddress of namadaAddresses) {
@@ -269,7 +269,7 @@ export async function * fetchValidatorsIter (connection: Deps, options?: {
   * of data about a validator (metadata, state, stake, commmission, consensus key) but
   * do not launch the requests yet. */
 const getRequests = (
-  connection: Deps,
+  connection: Context,
   meta:       TendermintMetadata,
   validator:  Validator,
   address:    Address,
@@ -291,7 +291,7 @@ const getRequests = (
   return requests
 }
 /** Generates a warning handler for each request. */
-const getWarnings = (connection: Deps, address: Address, epoch?: Epoch) => {
+const getWarnings = (connection: Context, address: Address, epoch?: Epoch) => {
   const warn = (msg: string) => (_: Error) => {
     if (!isNaN(epoch as number)) msg += ` for epoch ${epoch}`
     connection.log.warn(`${address}:`, msg)
@@ -320,7 +320,7 @@ const getAbciQueryPaths = (address: Address, epoch?: Epoch) => {
 }
 /** Define the callbacks that assign the decoded values to a given validator. */
 const getDecoders = (
-  { decoder }:        Deps,
+  { decoder }:        Context,
   tendermintMetadata: TendermintMetadata,
   validator:          Validator,
 ) => ({
@@ -354,7 +354,7 @@ const getDecoders = (
 })
 
 //export async function fetchValidatorsBelowCapacity2 (
-  //connection: Deps
+  //connection: Context
 //) {
     //let validators = await fetchValidatorsBelowCapacity(connection)
     //if (options?.max) {

@@ -24,7 +24,7 @@ export type BatchMessage =
   |InstanceType<typeof MsgStoreCode>
   |InstanceType<typeof MsgInstantiateContract>
   |InstanceType<typeof MsgExecuteContract>
-export type BatchDeps = Batch & {
+export type BatchContext = Batch & {
   log:   Console,
   agent: Agent,
   chain: () => ChainRef
@@ -41,25 +41,25 @@ export type BatchResult = {
   address?:  Address
   label?:    Label
 }
-export const batch = (agent: Agent, api?: SecretNetworkClient): BatchDeps => {
-  const batch: BatchDeps = {
+export const batch = (agent: Agent, api?: SecretNetworkClient): BatchContext => {
+  const batch: BatchContext = {
     log:   agent.log,
     chain: agent.chain,
     agent,
     api,
     messages: [],
-    add: (): Batch & BatchDeps => batch,
+    add: (): Batch & BatchContext => batch,
     submit: (_agent: Agent) => { throw new Error('todo') },
   }
   return batch
 }
 /** TODO: Upload in batch. */
-export const uploadInBatch = (_deps: BatchDeps, _code: never, _options: never) => {
+export const uploadInBatch = (_deps: BatchContext, _code: never, _options: never) => {
   throw new Error('Batch#upload: not implemented')
   return this
 }
 export const instantiateInBatch = (
-  { agent, messages }: BatchDeps,
+  { agent, messages }: BatchContext,
   code: CodeId,
   options: { label: Label, initMsg: Message, initSend: Coin[] },
 ) => {
@@ -75,7 +75,7 @@ export const instantiateInBatch = (
   return this
 }
 export const executeInBatch = (
-  { agent, messages }: BatchDeps,
+  { agent, messages }: BatchContext,
   contract: Address|{ address: Address },
   message:  Message,
   options:  { execSend: Coin[] },
@@ -92,7 +92,7 @@ export const executeInBatch = (
   return this
 }
 /** Format the messages for API v1 like secretjs and encrypt them. */
-export const encryptBatch = ({ agent, messages = [] }: BatchDeps): Promise<any[]> =>
+export const encryptBatch = ({ agent, messages = [] }: BatchContext): Promise<any[]> =>
   Promise.all(messages.map((message: object) => {
     switch (true) {
       case (message instanceof MsgStoreCode):           return encryptUpload(message)
@@ -134,9 +134,9 @@ export const encryptExec = async (agent: Agent, exec: {
   callback_sig: null,
   callback_code_hash: '',
 })
-const simulateBatch = ({ api, messages }: BatchDeps) =>
+const simulateBatch = ({ api, messages }: BatchContext) =>
   Promise.resolve(api).then(api=>api!.tx.simulate(messages))
-const submitBatch = async ({ chain, api, fees, messages, agent, log }: BatchDeps, { memo = "" }: { memo: string }): Promise<BatchResult[]> => {
+const submitBatch = async ({ chain, api, fees, messages, agent, log }: BatchContext, { memo = "" }: { memo: string }): Promise<BatchResult[]> => {
   //const api = await Promise.resolve(batch.chain!.api)
   const chainId  = chain().id
   const limit    = Number(fees?.exec?.amount[0].amount) || undefined
@@ -183,7 +183,7 @@ const submitBatch = async ({ chain, api, fees, messages, agent, log }: BatchDeps
 /** Format the messages for API v1beta1 like secretcli and generate a multisig-ready
   * unsigned transaction batch; don't execute it, but save it in
   * `state/$CHAIN_ID/transactions` and output a signing command for it to the console. */
-const saveBatch = async ({ log, agent, chain, messages: encryptedMessages }: BatchDeps, name?: string) => {
+const saveBatch = async ({ log, agent, chain, messages: encryptedMessages }: BatchContext, name?: string) => {
   // Number of batch, just for identification in console
   name ??= name || `TX.${+new Date()}`
   // Get signer's account number and sequence via the canonical API

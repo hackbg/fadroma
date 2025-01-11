@@ -51,11 +51,11 @@ export type Chain = Tendermint.Chain & {
   connections:   Connection[],
 }
 /** Represents the dependencies of the API methods. */
-export type Deps = Tendermint.Deps & {
+export type Context = Tendermint.Context & {
   withIntoError <T>(p: Promise<T>): Promise<T>
   api: SecretNetworkClient,
 }
-export type AgentDeps = Deps & {
+export type AgentContext = Context & {
   agent:   Agent,
   address: Address,
   wallet:  Wallet,
@@ -224,7 +224,7 @@ export const agentMethods = (chain: Chain, agent: Agent, api: SecretNetworkClien
     exec:   gasToken.fee(1000000),
     send:   gasToken.fee(1000000),
   },
-  setMaxGas: async (deps: AgentDeps, gas?: Uint128) => {
+  setMaxGas: async (deps: AgentContext, gas?: Uint128) => {
     gas ??= (await chain.fetchLimits()).gas
     const max = gasToken.fee(gas)
     deps.fees = { upload: max, init: max, exec: max, send: max }

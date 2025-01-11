@@ -1,8 +1,8 @@
 import { optionallyParallel } from '../deps.ts'
 import type { Address, Coin, Fee } from '../deps.ts'
-import type { Deps, AgentDeps } from './scrt.ts'
+import type { Context, AgentContext } from './scrt.ts'
 
-export async function fetchBalance ({ api, withIntoError }: Deps, args: {
+export async function fetchBalance ({ api, withIntoError }: Context, args: {
   parallel?: boolean, addresses: Address[]
 }) {
   const { parallel = false, addresses } = args
@@ -23,7 +23,7 @@ export async function fetchBalance ({ api, withIntoError }: Deps, args: {
   return result
 }
 
-export async function send ({ address, api, withIntoError }: AgentDeps, args: {
+export async function send ({ address, api, withIntoError }: AgentContext, args: {
   parallel?: boolean, outputs: Record<Address, Coin[]>, sendFee: Fee, sendMemo?: string
 }) {
   const { parallel = false, outputs, sendFee, sendMemo } = args

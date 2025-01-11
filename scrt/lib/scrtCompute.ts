@@ -2,10 +2,10 @@ import { Address, bold } from '../deps.ts'
 import type {
   Coin, Fee, TxResponse, CodeId, CodeHash, Label, Message, UploadedCode, Contract,
 } from '../deps.ts'
-import type { Deps, AgentDeps, Connection } from './scrt.ts'
+import type { Context, AgentContext, Connection } from './scrt.ts'
 import faucets from './scrtFaucet.ts'
 export const fetchCodeInfo = async (
-  { chain, api, withIntoError }: Deps,
+  { chain, api, withIntoError }: Context,
   filter?: CodeId[]
 ): Promise<Record<CodeId, UploadedCode>> => {
   const result: Record<CodeId, UploadedCode> = {}
@@ -22,7 +22,7 @@ export const fetchCodeInfo = async (
   return result
 }
 export const fetchCodeInstances = async (
-  { chain, api, log, withIntoError }: Deps, codeIds: Iterable<CodeId>, parallel?: boolean
+  { chain, api, log, withIntoError }: Context, codeIds: Iterable<CodeId>, parallel?: boolean
 ): Promise<Record<CodeId, Record<Address, Contract>>> => {
   if (parallel) log.warn('fetchCodeInstances in parallel: not implemented')
   const result: Record<CodeId, Record<Address, Contract>> = {}
@@ -50,7 +50,7 @@ export const fetchCodeInstances = async (
   return result
 }
 export const fetchContractInfo = async (
-  { chain, api, log, withIntoError }: Deps,
+  { chain, api, log, withIntoError }: Context,
   args: { parallel?: boolean, contracts: Record<Address, unknown> },
 ): Promise<{
   [address in keyof typeof args["contracts"]]: Contract
@@ -71,7 +71,7 @@ export const fetchContractInfo = async (
       //.ContractInfo!.label!
   //}
 }
-export const query = async (deps: Deps, args: {
+export const query = async (deps: Context, args: {
   address:  Address,
   codeHash: CodeHash,
   message:  Message,
@@ -84,7 +84,7 @@ export const query = async (deps: Deps, args: {
     query:            args.message as Record<string, unknown>
   }))
 }
-export const upload = async (deps: AgentDeps, args: { binary: Uint8Array }) => {
+export const upload = async (deps: AgentContext, args: { binary: Uint8Array }) => {
   const { chain, api, address, fees, log, withIntoError } = deps
   const gasLimit = Number(fees.upload?.amount[0].amount) || undefined
   const result = await withIntoError(api.tx.compute.storeCode({
@@ -133,7 +133,7 @@ export const upload = async (deps: AgentDeps, args: { binary: Uint8Array }) => {
     uploadGas: result.gasUsed
   } as UploadedCode
 }
-export const instantiate = async ({ chain, api, address, log, fees, withIntoError }: AgentDeps, args: {
+export const instantiate = async ({ chain, api, address, log, fees, withIntoError }: AgentContext, args: {
   codeId:    CodeId, 
   codeHash:  CodeHash,
   label:     Label,
@@ -173,7 +173,7 @@ export const instantiate = async ({ chain, api, address, log, fees, withIntoErro
     label:    args.label,
   } as Contract & { address: Address }
 }
-export const execute = async ({ api, log, address }: AgentDeps, args: {
+export const execute = async ({ api, log, address }: AgentContext, args: {
   address:      Address,
   codeHash:     CodeHash,
   message:      Message,

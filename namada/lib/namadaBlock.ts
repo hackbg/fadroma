@@ -1,13 +1,13 @@
 import { Tendermint } from '../deps.ts'
 import { Error } from './namadaLog.ts'
-import type { Deps } from './namada.ts'
+import type { Context } from './namada.ts'
 import type { Transaction } from './namadaTx.ts'
 /** The height of a Namada block. */
 export type Height = Tendermint.Height
 /** A Namada block. */
 export type Block = Tendermint.Block & { readonly transactions: Transaction[] }
 export const fetchBlock = async (
-  api: Deps, options?: { height?: Height, hash?: string, results?: boolean, raw?: boolean }
+  api: Context, options?: { height?: Height, hash?: string, results?: boolean, raw?: boolean }
 ): Promise<Block> => {
   const result      = await Tendermint.fetchBlock(api, { ...options, raw: true })
   const blockData   = result.responses!.block!.data!
@@ -17,7 +17,7 @@ export const fetchBlock = async (
   return decoded as Block
 }
 export const decodeBlock = (
-  { log, decoder, chain }: Deps,
+  { log, decoder, chain }: Context,
   raw:     boolean,
   h:       Height,
   block:   string,

@@ -20,8 +20,21 @@ const connection = chain.connect(url) as Namada.Connection
 //process.exit(123)
 
 await connection.fetchProtocolParameters()
+
 await connection.fetchStakingParameters()
+await connection.fetchTotalStaked()
+await connection.fetchValidatorAddresses()
+await connection.fetchValidatorsConsensus()
+await connection.fetchValidatorsBelowCapacity()
+await connection.fetchValidators()
+
 await connection.fetchGovernanceParameters()
+await connection.fetchProposalCount()
+await connection.fetchProposalInfo(0)
+await connection.fetchProposalVotes(0)
+await connection.fetchProposalWasm(0)
+await connection.fetchProposalResult(0)
+
 await connection.fetchPgfParameters()
 
 await connection.fetchBlock()
