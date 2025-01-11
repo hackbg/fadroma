@@ -1,7 +1,10 @@
 {
   "nodeModulesDir": "auto",
   "imports": {
-    "@hackbg/fadroma": "../core/index.ts"
+    "@hackbg/fadroma": "../core/index.ts",
+    "@hackbg/4mat":    "npm:@hackbg/4mat",
+    "@hackbg/into":    "npm:@hackbg/into",
+    "protobuf-varint": "npm:^1.0.0"
   },
   "lint": {
     "rules": {

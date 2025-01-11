@@ -23,7 +23,9 @@
 
     "@fadroma/scrt":        "./scrt/index.ts",
     "@fadroma/scrt/test":   "./scrt/test/scrt.test.ts",
-    "@hackbg/secretjs-esm": "npm:@hackbg/secretjs-esm"
+    "@hackbg/secretjs-esm": "npm:@hackbg/secretjs-esm",
+
+    "protobuf-varint": "npm:protobuf-varint@^1.0.0"
   },
   "lint": {
     "rules": {

@@ -1,4 +1,5 @@
 export * as Core from '@hackbg/fadroma'
 export type { Address, ChainId, Hash, Uint128 } from '@hackbg/fadroma'
 export { timed, optionallyParallel, camelize, } from '@hackbg/fadroma'
-export { Case, base16, base64 } from 'npm:@hackbg/4mat'
+export { Case, base16, base64 } from '@hackbg/4mat'
+export { uint32 } from 'protobuf-varint'

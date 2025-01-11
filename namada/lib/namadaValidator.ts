@@ -133,7 +133,7 @@ export const fetchValidatorDetails = async (
 type TendermintMetadata = Record<string, Tendermint.Validator>
 export const fetchValidators = async (
   connection: Context,
-  options: Partial<Parameters<typeof Tendermint.getValidators>[1]> & {
+  options: Partial<Parameters<typeof Tendermint.fetchValidators>[1]> & {
     epoch?:              Epoch
     //details?:         boolean,
     //pagination?:      [number, number]
@@ -186,8 +186,8 @@ export const fetchValidators = async (
   let tendermintMetadata: TendermintMetadata = {}
   if (options?.tendermintMetadata ?? true) {
     publicKeys ??= await fetchAndPopulatePublicKeys(options.tendermintMetadata === 'parallel')
-    tendermintMetadata = (await Tendermint.getValidators(connection, { ...options||{} }))
-      // `getValidators` returns an array, so we rekey it by public key.
+    tendermintMetadata = (await Tendermint.fetchValidators(connection, { ...options||{} }))
+      // `fetchValidators` returns an array, so we rekey it by public key.
       // (Identifier rebinding would have been really nice here.)
       .reduce((vs: any, v: any)=>Object.assign(vs, {[v.publicKey]: v}), {}) as Record<string, {
         address:          string,
@@ -248,7 +248,7 @@ export async function * fetchValidatorsIter (connection: Context, options?: {
   const namadaAddresses = addresses?.length
     ? addresses
     : await fetchValidatorAddresses(connection, epoch)
-  const meta: TendermintMetadata = (await Tendermint.getValidators(connection)).reduce(
+  const meta: TendermintMetadata = (await Tendermint.fetchValidators(connection)).reduce(
     (vs: any, v: any)=>Object.assign(vs, {[v.publicKey]: v}), {}
   )
   for (const namadaAddress of namadaAddresses) {

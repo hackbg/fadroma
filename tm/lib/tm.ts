@@ -207,7 +207,7 @@ export const fetchAbciQuery = async (api: Context, path: string, options?: {
   if (!path) throw new Error('fetchAbciQuery: no path')
   const data     = options?.data || new Uint8Array()
   const params   = {path, data: base16.encode(data), prove: options?.prove ?? false, height: options?.height}
-  const message  = {jsonrpc: '2.0', id: randomId(), method: 'abci_query', params}
+  const message  = {jsonrpc: '2.0', id: Console.randomId(), method: 'abci_query', params}
   const headers  = {'Content-Type': 'application/json'}
   const body     = JSON.stringify(message)
   api.log.debug('fetchAbciQuery:', body)
@@ -222,9 +222,6 @@ export const fetchAbciQuery = async (api: Context, path: string, options?: {
   if (typeof response.value === 'string') response.value = base64.decode(response.value)
   return response
 }
-const numbersWithoutZero = "123456789"
-const randomNumericChar = (): string => numbersWithoutZero[Math.floor(Math.random() * numbersWithoutZero.length)]
-const randomId =(): number => parseInt(Array.from({ length: 12 }) .map(() => randomNumericChar()).join(""), 10)
 export const fetchBlockSearch = async (_api: Context, _query: string, _parameters: { page?: number, perPage?: number, orderBy?: string }) =>
   Error.TODO('fetchBlockSearch')
 export const fetchBlockchain = async (_api: Context, _parameters: { min?: Height, max?: Height }) =>
