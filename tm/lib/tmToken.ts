@@ -2,7 +2,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import type { Address, Uint128 } from '../deps.ts'
-import { Error, Console } from './tmLog.ts'
+import { Error } from './tmLog.ts'
 /** Represents some amount of native token. */
 export interface Coin { readonly amount: string, readonly denom: string }
 /** Convert to coin. */

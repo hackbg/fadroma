@@ -1,6 +1,7 @@
 import { Core, base16, base64, camelize } from '../deps.ts'
 import { Error, Console } from './tmLog.ts'
 import * as Bank from './tmBank.ts'
+import { fetchValidators } from './tmPos.ts'
 /** Chain global configuration pertinent to Tendermint-based chains only. */
 export type ChainOptions = {
   bech32Prefix?:   string,
@@ -240,8 +241,6 @@ export const fetchTx = async (_api: Context) =>
   Error.TODO('fetchTx')
 export const fetchTxSearch = async (_api: Context) =>
   Error.TODO('fetchTxSearch')
-export const fetchValidators = async (_api: Context) =>
-  Error.TODO('fetchValidators')
 export const subscribe = async (_api: Context, _subscribeTo: 'block'|'header'|{query: string}) =>
   Error.TODO('subscribe')
 export const broadcastTx = async (_api: Context, _method: 'sync'|'async'|'commit', _tx: Uint8Array) =>

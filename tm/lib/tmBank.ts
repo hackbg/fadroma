@@ -1,4 +1,4 @@
-import { Error, Console } from './tmLog.ts'
+import { Error } from './tmLog.ts'
 import type { Address, Uint128 } from '../deps.ts'
 import type { Fee } from './tmToken.ts'
 
@@ -11,7 +11,8 @@ export type FetchBalance =
   & ((address: Address, tokens?: string[]) => Promise<Record<string, Uint128>>)
   & ((addresses: Address[], token: string) => Promise<Record<Address, Uint128>>)
   & ((addresses: Address[], tokens?: string) => Promise<Record<Address, Record<string, Uint128>>>)
-export const fetchBalance = (...args: unknown[]) => Error.TODO('tendermint fetch native balance')
+export const fetchBalance = (...args: unknown[]) =>
+  Error.TODO('tendermint fetch native balance')
 export type Send =
   & ((outputs: Record<Address, Record<string, Uint128>>, options?: SendOptions)=>Promise<unknown>)
 export type SendOptions = {
@@ -20,7 +21,8 @@ export type SendOptions = {
   sendMemo?: string,
   parallel?: boolean
 }
-export const send = (...args: unknown[]) => Error.TODO('tendermint native send')
+export const send = (...args: unknown[]) =>
+  Error.TODO('tendermint native send')
 
 //import type { Address } from '../deps.ts'
 //import { optionallyParallel } from '../deps.ts'
