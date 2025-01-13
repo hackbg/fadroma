@@ -4,7 +4,7 @@
     "@hackbg/fadroma": "../core/index.ts",
     "@hackbg/4mat":    "npm:@hackbg/4mat",
     "@hackbg/into":    "npm:@hackbg/into",
-    "protobuf-varint": "npm:^1.0.0"
+    "protobuf-varint": "npm:protobuf-varint@^1.0.0"
   },
   "lint": {
     "rules": {
