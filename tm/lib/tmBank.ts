@@ -1,11 +1,7 @@
 import { Error } from './tmLog.ts'
 import type { Address, Uint128 } from '../deps.ts'
 import type { Fee } from './tmToken.ts'
-
-export type BankApi = {
-  fetchBalance: FetchBalance
-  send:         Send
-}
+export type BankApi = { fetchBalance: FetchBalance, send: Send }
 export type FetchBalance =
   & ((address: Address, token: string) => Promise<Uint128>)
   & ((address: Address, tokens?: string[]) => Promise<Record<string, Uint128>>)
@@ -23,7 +19,6 @@ export type SendOptions = {
 }
 export const send = (...args: unknown[]) =>
   Error.TODO('tendermint native send')
-
 //import type { Address } from '../deps.ts'
 //import { optionallyParallel } from '../deps.ts'
 

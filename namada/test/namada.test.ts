@@ -1,5 +1,6 @@
 import * as Namada from '../index.ts'
 import { readFileSync } from 'node:fs'
+
 const console = new Namada.Console('test')
 const decoderWasm = readFileSync('./namada/pkg/fadroma_namada_bg.wasm');
 const decoder = await Namada.initDecoder(decoderWasm)
@@ -10,37 +11,34 @@ await Namada.chain({ id: 'test' })
 await Namada.chain({ id: 'test', decoder: decoderWasm })
 try { ;(await Namada.chain({ id: 'test', url, decoder: decoderWasm })).connect() } catch { /* */ }
 const chain = await Namada.chain({ id: 'test', url, decoder: decoderWasm })
-//console.log(chain.decoder)
-//await chain.fetchBlock()
-//await chain.fetchNextBlock()
-//await chain.fetchHeight()
-//await chain.fetchNextHeight()
-//await chain.fetchBalance()
 const connection = chain.connect(url) as Namada.Connection
-//process.exit(123)
+await Promise.all([
+  (async()=>{
+    await connection.fetchProtocolParameters()
 
-await connection.fetchProtocolParameters()
+    await connection.fetchStakingParameters()
+    await connection.fetchTotalStaked()
+    await connection.fetchValidatorAddresses()
+    await connection.fetchValidatorsConsensus()
+    await connection.fetchValidatorsBelowCapacity()
+    await connection.fetchValidators()
 
-await connection.fetchStakingParameters()
-await connection.fetchTotalStaked()
-await connection.fetchValidatorAddresses()
-await connection.fetchValidatorsConsensus()
-await connection.fetchValidatorsBelowCapacity()
-await connection.fetchValidators()
+    await connection.fetchGovernanceParameters()
+    await connection.fetchProposalCount()
+    await connection.fetchProposalInfo(0)
+    await connection.fetchProposalVotes(0)
+    await connection.fetchProposalWasm(0)
+    await connection.fetchProposalResult(0)
 
-await connection.fetchGovernanceParameters()
-await connection.fetchProposalCount()
-await connection.fetchProposalInfo(0)
-await connection.fetchProposalVotes(0)
-await connection.fetchProposalWasm(0)
-await connection.fetchProposalResult(0)
-
-await connection.fetchPgfParameters()
-
-await connection.fetchBlock()
-await connection.fetchNextBlock()
-await connection.fetchHeight()
-await connection.fetchNextHeight()
+    await connection.fetchPgfParameters()
+  })(),
+  (async()=>{
+    await connection.fetchBlock()
+    await connection.fetchNextBlock()
+    await connection.fetchHeight()
+    await connection.fetchNextHeight()
+  })(),
+])
 
 //await connection.fetchBalance()
 //await connection.fetchBalance()
