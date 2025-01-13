@@ -10,15 +10,15 @@ export interface Validator {
   proposerPriority: bigint
 }
 export type FetchValidatorOptions = {
-  height?:     Core.Height,
+  height?: Core.Height,
+  details?: boolean,
   pagination?: [number, number],
-  details?:    boolean,
 }
 export async function fetchValidators <V extends Validator> (
   api: Api & Context, options?: FetchValidatorOptions
 ): Promise<[V[], number, number]> {
   if (!api.url) throw new Error('fetchValidators: no api url')
-  const { height, pagination: [page, per_page] = [], details = true } = options || {}
+  const { height, pagination: [page, per_page] = [], details } = options || {}
   const params  = {height, page: String(page||1), per_page: String(per_page||10)}
   const message = {jsonrpc: '2.0', id: Console.randomId(), method: 'validators', params}
   const headers = {'Content-Type': 'application/json'}
@@ -33,15 +33,16 @@ export async function fetchValidators <V extends Validator> (
   }
   // Sort validators by voting power in descending order.
   const validators = [...result.validators].sort(byVotingPowerDesc)
-  throw validators
+  // Fetch more validator details if requested. TODO parallel.
   if (details) {
+    // FIXME: Which chains respond to this ABCI query? It's from Stargate
     for (const validator of validators) {
       const details = await api.fetchAbciQuery('/cosmos.staking.v1beta1.Query/Validator', { data: new Uint8Array([
         ...new Uint8Array(uint32.fixedEncoder(10).bytes),
         ...new Uint8Array(uint32.fixedEncoder(validator.address.length).bytes),
         ...new TextEncoder().encode(validator.address)
       ]) })
-      console.log({validator, details})
+      throw {validator, details}
     }
   }
   return [validators, result.count, result.total]
