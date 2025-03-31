@@ -427,13 +427,13 @@ importers:
   toolbox/ensuite:
     dependencies:
       '@ganesha/esbuild':
-        specifier: workspace:^
+        specifier: workspace:^1
         version: link:../ganesha/esbuild
       '@hackbg/file':
         specifier: ^2.0.2
         version: 2.0.3
       '@hackbg/logs':
-        specifier: ^2.1.0
+        specifier: ^3
         version: link:../logs
       '@types/js-yaml':
         specifier: ^4.0.9
@@ -682,7 +682,7 @@ importers:
         specifier: ^7.22.10
         version: 7.25.4
       '@hackbg/logs':
-        specifier: ^2.1.0
+        specifier: ^3
         version: link:../logs
       acorn:
         specifier: ^8.11.2
@@ -1595,6 +1595,9 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+
+  '@hackbg/logs@2.3.2':
+    resolution: {integrity: sha512-yAb2blXJ1Ag2UfW8fxPRj7XkVffDkw3ebzXIvg0BE/K/xwbyrkcmlBBomSzgoqfqpA3TOpBbVz5H8GH4tS5xxw==}
 
   '@hackbg/ubik@2.0.8':
     resolution: {integrity: sha512-n08ZLscEXeuMUdZDqu3+lUTAzh0sZ7HH1uey10A8zA77ekVFfXCPYzU9Ir1zf7jqAdFSZbJ0QGrclJIepzdLZA==}
@@ -7703,7 +7706,7 @@ snapshots:
     dependencies:
       '@hackbg/file': 2.0.3
       '@hackbg/ganesha': 4.2.0(typescript@5.3.3)
-      '@hackbg/logs': link:toolbox/logs
+      '@hackbg/logs': 2.3.2
       '@types/js-yaml': 4.0.9
       '@types/markdown-it': 13.0.9
       c8: 7.14.0
@@ -7726,7 +7729,7 @@ snapshots:
     dependencies:
       '@hackbg/4mat': 2.0.4
       '@hackbg/hide': link:toolbox/hide
-      '@hackbg/logs': link:toolbox/logs
+      '@hackbg/logs': 2.3.2
       js-yaml: 4.1.0
       mkdirp: 1.0.4
       recursive-copy: 2.0.14
@@ -7757,10 +7760,16 @@ snapshots:
     optionalDependencies:
       typescript: 5.7.2
 
+  '@hackbg/logs@2.3.2':
+    dependencies:
+      '@hackbg/allo': link:toolbox/allo
+      '@hackbg/hide': link:toolbox/hide
+      chalk: 4.1.2
+
   '@hackbg/ubik@2.0.8':
     dependencies:
       '@babel/parser': 7.25.4
-      '@hackbg/logs': link:toolbox/logs
+      '@hackbg/logs': 2.3.2
       acorn: 8.12.1
       acorn-walk: 8.3.3
       astring: 1.8.6
@@ -7773,7 +7782,7 @@ snapshots:
   '@hackbg/ubik@3.0.1':
     dependencies:
       '@babel/parser': 7.25.4
-      '@hackbg/logs': link:toolbox/logs
+      '@hackbg/logs': 2.3.2
       acorn: 8.12.1
       acorn-walk: 8.3.3
       astring: 1.8.6
