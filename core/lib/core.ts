@@ -109,7 +109,7 @@ export const chain = (state: Partial<Chain> = {}, api = impl): Chain => {
   chain.live  = true
   chain.chain = () => ({ id: chain.id })
   chain.log ??= new Console(chain.name || chain.id || Console.unknownChain())
-  chain.connect ??= (url?: string|URL) => connection(chain, api, url)
+  chain.connect ??= (url: string|URL = state.url) => connection(chain, api, url)
   const bind = (name: string, method: (...args: any[])=>any) => [
     name as keyof Api, (...args: any[]) => method(chain.connect(), ...args)
   ]

@@ -2,6 +2,13 @@ import { Core, base16, base64, camelize } from '../deps.ts'
 import { Error, Console } from './tmLog.ts'
 import * as Bank from './tmBank.ts'
 import { fetchValidators } from './tmPos.ts'
+/** Describe a Tendermint chain. */
+export const chain = (properties: Partial<Core.Chain> & ChainOptions, api = impl): Chain =>
+  Core.chain(properties, api as any) as Chain
+/** Dependencies of Tendermint API methods. */
+export type Context = Core.Context
+/** Methods available for interacting with Tendermint chains. */
+export type Api = Core.Api & Core.ToApi<typeof impl>
 /** Chain global configuration pertinent to Tendermint-based chains only. */
 export type ChainOptions = {
   bech32Prefix?:   string,
@@ -103,13 +110,6 @@ export type EndBlockEvent = {
   readonly type:       string
   readonly attributes: Array<{ key: string, value: string, index: boolean, }>
 }
-/** Describe a Tendermint chain. */
-export const chain = (state: Partial<Core.Chain> & ChainOptions, api = impl): Chain =>
-  Core.chain(state, api as any) as Chain
-/** Dependencies of Tendermint API methods. */
-export type Context = Core.Context
-/** Methods available for interacting with Tendermint chains. */
-export type Api = Core.Api & Core.ToApi<typeof impl>
 /** Fetch a block from a Tendermint chain, optionally with block results. */
 export const fetchBlock =
   async (api: Context, options?: { height?: Height, hash?: string, results?: boolean, raw?: boolean }):

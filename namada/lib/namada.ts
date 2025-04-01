@@ -38,9 +38,9 @@ export async function chain ({ ...properties }: Parameters<typeof Tendermint.cha
   }
   properties.bech32Prefix ??= 'tnam'
   // Construct chain.
-  const chain = Tendermint.chain({ ...properties }) as Chain
+  const chain = Tendermint.chain({ ...properties }, impl) as Chain
   // Construct one connection.
-  chain.connect = (url?: string|URL): Connection => {
+  chain.connect = (url: string|URL = properties.url): Connection => {
     if (!url) throw new Error('pass rpc url')
     url = url.toString()
     chain.connections || Object.assign(chain, { connections: chain.connections || {} })
