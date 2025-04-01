@@ -60,6 +60,8 @@ export const initDecoder = async (decoder: string|URL|Uint8Array): Promise<Decod
     await init(decoder)
   } else if (decoder) {
     await init(await fetch(decoder))
+  } else {
+    throw new Error('Provide decoder as path, URL or Uint8Array')
   }
   return Decode as unknown as Decoder
 }
