@@ -84,7 +84,10 @@ export const decodeResultResponse = (
     totalNayPower:     bigint
     totalAbstainPower: bigint
   },
-  turnout = decoded.totalYayPower! + decoded.totalNayPower! + decoded.totalAbstainPower!
+  turnout =
+    BigInt(decoded.totalYayPower!) +
+    BigInt(decoded.totalNayPower!) +
+    BigInt(decoded.totalAbstainPower!)
 ): GovernanceProposalResult => ({
   ...decoded,
   turnout:        String(turnout),
