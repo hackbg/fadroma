@@ -27,26 +27,26 @@ export type Context = Omit<Tendermint.Connection, 'log'> & {
 /** Methods available for interacting with Namada chains. */
 export type Api = Tendermint.Api & Core.ToApi<typeof impl>
 /** Describe a Namada chain. */
-export async function chain ({ ...properties }: Parameters<typeof Tendermint.chain>[0] & {
-  decoder?: string|URL|Uint8Array
-}): Promise<Chain> {
+export async function chain (
+  { ...options }: Parameters<typeof Tendermint.chain>[0] & { decoder?: string|URL|Uint8Array }
+): Promise<Chain> {
   // Init the WASM translation blob.
-  if (properties?.decoder) {
-    properties.decoder = await initDecoder(properties.decoder) as any
+  if (options?.decoder) {
+    options.decoder = await initDecoder(options.decoder) as any
   } else {
     new Console().warnNoDecoder()
   }
-  properties.bech32Prefix ??= 'tnam'
+  options.bech32Prefix ??= 'tnam'
   // Construct chain.
-  const chain = Tendermint.chain({ ...properties }, impl) as Chain
+  const chain = Tendermint.chain({ ...options }, impl as any /*FIXME*/) as Chain
   // Construct one connection.
-  chain.connect = (url: string|URL = properties?.url!): Connection => {
+  chain.connect = (url: string|URL = options?.url!): Connection => {
     if (!url) throw new Error('pass rpc url')
     url = url.toString()
     chain.connections || Object.assign(chain, { connections: chain.connections || {} })
     chain.connections[url] ??= Object.assign(
       Core.connection(chain, impl as any, url) as Connection,
-      { decoder: properties.decoder }
+      { decoder: options.decoder }
     )
     return chain.connections[url]
   }

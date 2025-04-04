@@ -3,8 +3,8 @@ import { Error, Console } from './tmLog.ts'
 import * as Bank from './tmBank.ts'
 import { fetchValidators } from './tmPos.ts'
 /** Describe a Tendermint chain. */
-export const chain = (properties: Partial<Core.Chain> & ChainOptions, api = impl): Chain =>
-  Core.chain(properties, api as any) as Chain
+export const chain = ({ ...options }: Partial<Core.Chain> & ChainOptions, api = impl): Chain =>
+  Core.chain(options, api as any) as Chain
 /** Dependencies of Tendermint API methods. */
 export type Context = Core.Context
 /** Methods available for interacting with Tendermint chains. */
