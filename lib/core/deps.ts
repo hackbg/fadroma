@@ -8,3 +8,5 @@ export { Case } from '@hackbg/4mat'
 
 export * as Logs from '@hackbg/logs'
 export { Console, bold, randomColor } from '@hackbg/logs'
+
+export { env, cwd } from 'node:process'

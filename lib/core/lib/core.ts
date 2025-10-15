@@ -1,71 +1,32 @@
-import type { Uint128 } from './coreNumber.ts'
-import { timed } from './coreTiming.ts'
-import { Oops, Logs, bold, randomColor } from '../deps.ts'
-/** Slices first argument of implementation signature
-  * (see https://stackoverflow.com/a/67605309) */
-export type Method<F> = F extends (arg0: never, ...rest: infer R) =>
-  infer T ? ((...args: R) => T) : never
-/** Slice off the 1st arg of every function */
-export type ToApi<I> = {
-  [k in keyof I]: I[k] extends (...args: infer R) => infer T
-    ? Method<I[k]>
-    : I[k]
-};
-/** Type of chain API implementation. */
-export type Impl<A extends Api, D extends Context> = {
-  [k in keyof A]: A[k] extends (...args: infer R) => infer T
-    ? ((deps: D, ...args: R) => T)
-    : never
-};
+import { Oops, bold } from '../deps.ts'
+import type { Uint128 } from './number.ts'
+import type { Impl } from './method.ts';
+import { Logger } from './format.ts';
+import { Colorful } from './color.ts';
 /** A Fadroma error. */
 export class Error extends Oops.Error {
-  static TODO = (message: any) => { throw new Error(`TODO: ${message}`) }
+  static TODO = (message: unknown) => {
+    throw new Error(`TODO: ${message}`)
+  }
   constructor (message?: string, args?: object) {
     super(message)
     if (args) Object.assign(this, args)
   }
 }
-/** A Fadroma logger. */
-export class Console extends Logs.Console {
-  timed = (name: string, cb: () => Promise<unknown>) => {
-    return timed(cb, (result) => this.debug(`${bold(name)}: ${result.elapsed}`))
-  }
-  static unknownChains = 0
-  static unknownChain  = () => `Unknown chain #${++this.unknownChains}`
-  static noConnections = () => new Error('no connections')
-  fetchingBlockByHeight = (h: unknown, ...args: unknown[]) =>
-    this.debug(`fetching block by height ${h}`, ...args)
-  fetchingBlockByHash = (h: unknown, ...args: unknown[]) =>
-    this.debug(`fetching block by hash ${h}`, ...args)
-  waitingForNextBlock = (h: unknown, t: unknown, ...args: unknown[]) =>
-    this.debug(`checking for block >${h} every ${t}ms`, ...args)
-}
 /** An unique string-based identifier. */
 export type Id = string|number|bigint
-/** A color. */
-export type Color = unknown;
+/** Represents a uniquely identifiable entity. */
+export type Identified<I extends Id> = { id: I };
 /** The name of a deployment unit. Used to generate contract label. */
 export type Name = string
-/** Represents a uniquely identifiable entity. */
-export interface Entity<I extends Id> {
-  /** Unique identifier. */
-  id:     I
-  /** Human-friendly name. */
-  name?:  Name
-  /** Identifying color. */
-  color?: Color
-}
-export function assignColor <I extends Id> (identity: Entity<I>): Entity<I> & { color: unknown } {
-  identity.color = randomColor({ luminosity: 'dark', seed: String(identity.id) })
-  return identity as Entity<I> & { color: unknown }
-}
-export interface LoggingEntity<I extends Id, L extends Console> extends Entity<I> {
-  log: L
-}
+/** Human-friendly name. */
+export type Named = { name: Name };
+
+export type Entity<I extends Id> = Identified<I> & Partial<Named & Colorful>;
 /** Block hash. */
 export type Hash = string
 /** Represents the backend of a managed chain (such as a devnet). */
-export type ChainBackend = LoggingEntity<ChainId, Console> & {
+export type ChainBackend = Logger<ChainId, Console> & {
   connect   ():                 Promise<Chain>
   connect   (name: string):     Promise<Agent>
   connect   (identity: Signer): Promise<Agent>
@@ -132,7 +93,7 @@ export const connection = <C extends Connection>(chain: Chain, api = impl, url?:
   return connection as unknown as C
 }
 /** Dependencies of chain API methods. */
-export type Context = LoggingEntity<ChainId, Console> & {
+export type Context = Logger<ChainId, Console> & {
   /** The connection URL. */
   url?: URL|string
   /** Whether the connection is active. */
@@ -195,39 +156,9 @@ export const impl: Impl<Api, Context & Api> = {
   fetchNextHeight,
 }
 /** A cryptographic identity. */
-export type Signer = {
-  publicKey?: Hash,
-  sign (_: unknown): unknown
-}
+export type Signer = { publicKey?: Hash, sign (_: unknown): unknown };
 /** Binds an `Signer` to a `Chain`, enabling broadcasting of transactions. */
-export type Agent = Signer & AgentApi & LoggingEntity<Hash, Console> & {
-  chain:   () => ChainRef,
-  batch:   () => Batch,
-  address: Address,
-}
-export type AgentApi = {
-  fetchBalance (): Promise<Record<string, Uint128>>
-}
-/** A raw response from an endpoint. */
-export type Response = {
-  /** The query that was made. */
-  url?:       string,
-  /** The data that was returned, which may be invalid (e.g. a 502) */
-  data?:      string
-  /** The moment the query was made. */
-  timestamp?: string,
-}
-/** A valid JSON-RPC v2 response, which may be a result or an error. */
-export type JsonRpcResponse<R> = {
-  jsonrpc: string, id: number, result?: R, error?: { data: string }
-}
-/** A parse that may fail but the source and error must still be preserved. */
-export type TryToParse<T, U> = [T, U, undefined] | [T, undefined, unknown]
-export const tryToParse = <T, U>(src: T): TryToParse<T, U> => {
-  try {
-    const json = JSON.parse(src as string)
-    return [src, json, undefined]
-  } catch (e) {
-    return [src, undefined, e]
-  }
-}
+export type Agent = Signer & AgentApi & Logger<Hash, Console> &
+  { chain: () => ChainRef, batch: () => Batch, address: Address, };
+export type AgentApi =
+  { fetchBalance (): Promise<Record<string, Uint128>> };

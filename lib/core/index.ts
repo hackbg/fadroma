@@ -17,18 +17,8 @@
 **/
 
 export * from './lib/core.ts'
-export * from './lib/coreNumber.ts'
-export * from './lib/coreTiming.ts'
-
-export { bold } from '@hackbg/logs'
-export * from '@hackbg/into'
-
-import { Case } from './deps.ts'
-
-export const camelize = <T extends object>(object: T) => {
-  const returned = {}
-  for (const [key, value] of Object.entries(object)) {
-    Object.assign(returned, { [Case.camel(key) as keyof T]: value as T[keyof T] })
-  }
-  return returned
-}
+export * from './lib/format.ts'
+export * from './lib/number.ts'
+export * from './lib/method.ts'
+export * from './lib/rpc.ts'
+export * from './lib/timing.ts'

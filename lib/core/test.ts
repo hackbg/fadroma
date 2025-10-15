@@ -1,4 +1,4 @@
-import * as Core from '../index.ts'
+import * as Core from './index.ts'
 import * as assert from 'node:assert'
 Deno.test('core chain', () => {
   Core.chain
