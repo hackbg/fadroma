@@ -1,2 +1,4 @@
 export { stdout, argv } from 'node:process';
-export { entrypoint, formatMsec, red, green, orange, yellow } from '@hackbg/fadroma';
+export type { Write } from '@hackbg/fadroma';
+export { pipe, write, entrypoint, formatMsec, red, green, orange, yellow
+  } from '@hackbg/fadroma';

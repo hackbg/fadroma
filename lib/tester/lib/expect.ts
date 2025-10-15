@@ -1,33 +1,15 @@
-import type { Context } from './runner.ts'
-
-/** Use this to prepare a function with arguments for testing.
-  *
-  * See:
-  *   - https://en.wikipedia.org/wiki/Currying
-  *   - https://en.wikipedia.org/wiki/Partial_application
-  * 
-  * Example:
-  *
-  *     // A function with 2 arguments:
-  *     const result = await fn(arg1, arg2)
-  *     ok(result > 0)
-  *
-  *     // Is tested like this:
-  *     expect("description", call(fn, arg1, arg2), result => {
-  *       ok(result > 0)
-  *     })
-  */
-export const call = (fn, ...args) => Object.assign(fn.bind(null, ...args), {
-  fn, args, stack: new Error().stack?.split('\n').slice(3)
-})
+import type { Context } from '../types.ts'
+import { pipe } from '../deps.ts';
 
 /** Use this to stub a test. */
-export const todo = (...info) => Object.assign(function todo (context: Context) {
-  context.report.todo++;
+export const todo = (...info: string[]) => Object.assign(function todo (context: Context) {
+  context.todo(0, info[0], info[1], ...info.slice(2));
   return context;
 }, { info })
 
-export const matrix = (name, variants, ...tests) => () =>
+export const matrix = <T>(
+  name: string, variants: T[], ...tests: ((T)=>unknown)[]
+) => () =>
   Promise.all(variants.map(variant=>pipe(tests)(variant)))
 
 /** A **test suite** consists of a name and one or more **test case**s.
@@ -38,8 +20,14 @@ export const matrix = (name, variants, ...tests) => () =>
   *   Using `test`, `testAx`, `testTx` can help you prepare them.
   * - The return value of each test case is NOT passed to the next one.
   * - The return value of each test case is preserved,
-  *   and an array of return values is returned at the end. */
-export const expect2 = (name, ...tests) =>
+  *   and an array of return values is returned at the end.
+  * A **test case** consists of a name and one or more **test step**s.
+  * 
+  * - Test steps are functions. Using `call` can help you prepare them.
+  * - Each function receives the awaited return value of the previous one.
+  * - If no test step throws an uncaught exception, the test case is a pass.
+  **/
+export const expect = (name: string, ...tests) =>
   renamed(name, async function suiteRun (context: Context = {}) {
     const label = [context.prefix, name].filter(Boolean).join(': ');
     return context.track(context.count, label, suiteRunTracked);
@@ -54,33 +42,21 @@ export const expect2 = (name, ...tests) =>
         const result  = await tests[index](context);
         results.push(result);
 
+        /* Without step counting:
+        // FIXME: unify `suite` and `expect`
+        let step, state
+        try {
+          for (step of steps) state = await step(state) ?? state
+          return state
+        } catch (e) {
+          e.stack ||= ''
+          if (step.stack) e.stack += '\n  Test defined at:\n' + step.stack.join('\n')
+          throw e
+        }
+        */
+
       }
       return results
-    }
-  })
-
-/** A **test case** consists of a name and one or more **test step**s.
-  * 
-  * - Test steps are functions. Using `call` can help you prepare them.
-  * - Each function receives the awaited return value of the previous one.
-  * - If no test step throws an uncaught exception, the test case is a pass. */
-export const expect = (name, ...steps) =>
-  renamed(name, async function expectRun (context: Context = {}) {
-    const label = [context.prefix, name].filter(Boolean).join(': ');
-    return context.track(context.count, label, expectRunTracked);
-    async function expectRunTracked () {
-
-      // FIXME: unify `suite` and `expect`
-      let step, state
-      try {
-        for (step of steps) state = await step(state) ?? state
-        return state
-      } catch (e) {
-        e.stack ||= ''
-        if (step.stack) e.stack += '\n  Test defined at:\n' + step.stack.join('\n')
-        throw e
-      }
-
     }
   })
 

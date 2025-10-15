@@ -1,15 +1,9 @@
+import type { Stringy, Write } from '../types.ts'
 import { Case, env, cwd } from '../deps.ts'
-import type { Id, Identified } from './core.ts'
 import { yellow } from './color.ts'
-
-export type Write  = { write (...data: unknown[]) };
 
 export const write = (output: Write, ...prefix: unknown[]) =>
   (...data: unknown[]) => output.write(...prefix, ...data)
-
-export type Logger<I extends Id, L extends Console> = Identified<I> & { log: L };
-
-export type Stringy = string|{toString():string}
 
 export const stringify = (
   obj: unknown, indent?: number, shift?: number, shiftFirst = true

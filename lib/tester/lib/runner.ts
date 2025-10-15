@@ -1,23 +1,41 @@
-import { stdout, argv, write, Write, formatMsec, red, green, orange, yellow, entrypoint } from '../deps.ts';
+import type * as Test from '../types.ts';
+import { pipe, stdout, argv, write, formatMsec, red, green, orange, yellow, entrypoint } from '../deps.ts';
 import { byStep } from './steps.ts';
-import type * as Test from './types.ts';
-export const suite = (main = null, {
-  args = argv.slice(1), output = stdout, failFast = true,
-}: Partial<Test.Options>) => ({
-  file, args, failFast, output,
-  run: entrypoint(main, async function runTests (suite) {
-    const results = defTestResults();
+
+/** Define a test suite.
+  *
+  * Example:
+  *
+  *     import { suite, expect, todo } from '@fadroma/tester';
+  *     export default(import.meta,
+  *       expect('Test A', todo()),
+  *       expect('Test B'
+  *         expect('Test C', todo())
+  *         expect('Test D', todo())))
+  **/
+export const suite = (params: Partial<ImportMeta & Test.Options>, ...steps) => {
+  const { url, main, filename, dirname, resolve, args = argv.slice(1)
+        , output = stdout, failFast = true, } = params
+  const meta = { url, main, filename, dirname, resolve, args, };
+  const opts = { args, failFast, output, };
+  return { ...meta, ...opts, run: entrypoint(meta, runTests) }
+  async function runTests (suite) {
     Error.stackTraceLimit = Infinity;
-    const context = this.results.context();
+    const report  = defTestReport();
+    const context = report.context();
     let error, result;
-    try { result = await suite(context) } catch (e) { error = e }
-    const { pass, fail, todo, warn } = results;
-    write(output, join('\n', results.details, results.summary));
+    const run = pipe(...steps);
+    const t0 = performance.now();
+    try { result = await run(context) } catch (e) { error = e }
+    const tD = performance.now() - t0;
+    if (result !== report) report.warn.add(tD, 'Test did not return original context');
+    console.log(join('\n', report.details(), report.summary()));
     if (error) throw error;
     return result;
-  })
-})
-const defTestResults = (): Test.Report => ({
+  }
+};
+
+export const defTestReport = (): Test.Report => ({
   pass: defResultCategory(`🟢`, 'passed',   'Passed',  green('ok')),
   fail: defResultCategory(`🔴`, 'failed',   'Failed',  red('incorrect')),
   todo: defResultCategory(`🟠`, 'tasks',    'TODO',    orange('todo')),
@@ -32,7 +50,7 @@ const defTestResults = (): Test.Report => ({
       todo: this.todo.add,
       warn: this.warn.add,
       async track (count, label, callback) {
-        const prefix = `${count} ${label}`
+        const prefix = `${count?(count+' '):''}${label?(label+' '):''}`
         const t0 = performance.now()
         console.log(`👉️ T=${formatMsec(t0)} ${prefix}`)
         try {
@@ -49,34 +67,46 @@ const defTestResults = (): Test.Report => ({
   },
   summary () {
     return join(' ',
-      when(this.pass.length > 0, this.pass.summary),
-      when(this.fail.length > 0, this.fail.summary),
-      when(this.todo.length > 0, this.todo.summary),
-      when(this.warn.length > 0, this.warn.summary))
+      (this.pass.length > 0) && this.pass.summary(),
+      (this.fail.length > 0) && this.fail.summary(),
+      (this.todo.length > 0) && this.todo.summary(),
+      (this.warn.length > 0) && this.warn.summary())
   },
   details () {
     return join(' ',
-      when(this.pass.length > 0, this.pass.details),
-      when(this.fail.length > 0, this.fail.details),
-      when(this.todo.length > 0, this.todo.details),
-      when(this.warn.length > 0, this.warn.details))
+      (this.pass.length > 0) && this.pass.details(),
+      (this.fail.length > 0) && this.fail.details(),
+      (this.todo.length > 0) && this.todo.details(),
+      (this.warn.length > 0) && this.warn.details())
   }
-})
-const when = (condition, data) => condition ? data : null;
-const join = (joiner, ...data) => data.flat().filter(Boolean).join(joiner);
-const defResultCategory = (icon, summary, details, tag): Test.Results =>
-  Object.assign([], {
+});
+
+export const join = (joiner: String, ...data: (String|false|null)[]) =>
+  data.flat().filter(Boolean).join(joiner);
+
+export const defResultCategory = (
+  icon: string, summary: string, details: string, tag: string
+): Test.Results => {
+  const results = []
+  return Object.assign(results, {
     icon,
     add (t0, summary, result, ...extra) {
       const tD = performance.now() - t0
       const text = `${icon} T+${formatMsec(tD)} ${tag} ${summary}`
-      this.push([summary, result, ...extra])
+      console.log(text);
+      results.push([summary, result, ...extra])
       return result
     },
     summary () {
       return join(' ', icon, this.length, summary)
     },
     details () {
-      return join('', '\n', details, ': \n', join('\n', this.sort(byStep)))
+      return join('',
+        '\n',
+        details,
+        ': \n',
+        join('\n', this.sort(byStep).map(x=>`${icon} ${x[0]}`)),
+        '\n')
     },
   })
+}

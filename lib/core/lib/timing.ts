@@ -1,3 +1,4 @@
+import type { TaskStep, Stringy } from '../types.ts';
 import { stringify, formatMsec, formatError } from './format.ts'
 
 export { task }
@@ -28,7 +29,6 @@ export async function optionallyParallel <T> (parallel: boolean|undefined, thunk
 
 task.count = 0;
 task.parallel = () => { throw new Error('TODO') }
-export type TaskStep<T> = (()=>T)|(()=>Promise<T>);
 
 function task (name: Stringy, ...steps: TaskStep<unknown>[]) {
   const t0 = performance.now()

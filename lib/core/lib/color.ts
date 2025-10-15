@@ -1,13 +1,5 @@
+import type { Identified, Id, Colorful, Stringy } from '../types.ts';
 import { env, randomColor } from '../deps.ts';
-import type { Identified, Id } from './core.ts';
-import type { Stringy } from './format.ts';
-/** A color. TODO specify representation */
-export type Color = unknown;
-/** A thing identifiable by color. */
-export type Colorful = {
-  /** The identifying color. */
-  color: Color
-};
 /** Generate predictable color from ID. */
 export const assignColor = <
   C extends Colorful & Identified<I>,
@@ -31,3 +23,4 @@ export const green  = (x: Stringy) => `${ANSI_GREEN}${x}${ANSI_RESET}`
 export const yellow = (x: Stringy) => `${ANSI_YELLOW}${x}${ANSI_RESET}`
 export const blue   = (x: Stringy) => `${ANSI_BLUE}${x}${ANSI_RESET}`
 export const purple = (x: Stringy) => `${ANSI_PURPLE}${x}${ANSI_RESET}`
+export const orange = (x: Stringy) => `${ANSI_PURPLE}${x}${ANSI_RESET}` // FIXME

@@ -1,5 +1,16 @@
+#!/usr/bin/env -S deno run
 import { suite, expect, matrix } from './lib/tester/index.ts';
+import testTester from './lib/tester/test.ts';
 import * as Solana from './lib/solana/test.ts';
+export default suite(import.meta,
+  testTester)
+  //matrix('Chain', [
+    //Solana,
+    //// Tendermint,
+    //// CosmWasm,
+    //// Namada,
+    //// Scrt
+  //], testChain))
 export const testChain = ({
   name,
   testLocalnet, testSubscribe, testConnect,
@@ -27,13 +38,6 @@ export const testChain = ({
       expect('Transfer',  testNFTTransfer))),
   expect('Program', testProgram),  // TODO: IPC! Test with program that
   expect('Project', testProject)); // can recursively call itself.
-export default suite(import.meta.main || import.meta.url, matrix('Chain', [
-  Solana,
-  // Tendermint,
-  // CosmWasm,
-  // Namada,
-  // Scrt
-], testChain))
 //import * as Tendermint  from './lib/tm/test.ts';
 //import * as CosmWasm    from './lib/cw/test.ts';
 //import * as Namada      from './lib/namada/test.ts';

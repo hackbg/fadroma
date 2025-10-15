@@ -16,12 +16,12 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
+export * from './types.ts'
 export * from './lib/chain.ts'
 export * from './lib/color.ts'
 export * from './lib/core.ts'
 export * from './lib/error.ts'
 export * from './lib/format.ts'
-export * from './lib/method.ts'
 export * from './lib/number.ts'
 export * from './lib/rpc.ts'
 export * from './lib/timing.ts'
