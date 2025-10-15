@@ -1,4 +1,4 @@
-import type { Stringy, Write } from '../types.ts'
+import type { Stringy, Write, Named } from '../types.ts'
 import { Case, env, cwd } from '../deps.ts'
 import { yellow } from './color.ts'
 
@@ -30,6 +30,11 @@ export const getStringifier = () => {
     return value
   }
 }
+
+/** Rename a function. */
+export const renamed = <N extends Named> (name: string, fn: N): N =>
+  name ? Object.defineProperty(fn, 'name', { configurable: true, value: name })
+       : fn
 
 export const joiner = (x?: Stringy, y = ' ') => x ? (x.toString() + y) : '',
   col1 = 8,  pad1 = (x?: Stringy, c = '·') => joiner(x).padEnd(col1, c),

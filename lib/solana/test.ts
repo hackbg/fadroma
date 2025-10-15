@@ -1,25 +1,26 @@
+import type { Step, Context } from '../../lib/tester/index.ts';
 import { suite, expect, matrix, todo } from '../../lib/tester/index.ts';
 import * as Solana from './index.ts';
 
 export const name = 'Solana';
 
-export const testLocalnet  = expect('Localnet',  todo)
-export const testConnect   = expect('Connect',   todo)
-export const testSubscribe = expect('Subscribe', todo)
+export const testLocalnet  = expect('Localnet',  todo())
+export const testConnect   = expect('Connect',   todo())
+export const testSubscribe = expect('Subscribe', todo())
 
-export const testGetBlock       = expect('Get block',   todo)
-export const testGetAccount     = expect('Get account', todo)
-export const testGetTransaction = expect('Get tx',      todo)
+export const testGetBlock       = expect('Get block',   todo())
+export const testGetAccount     = expect('Get account', todo())
+export const testGetTransaction = expect('Get tx',      todo())
 
-export const testFTCreate    = expect('Create',    todo)
-export const testFTMint      = expect('Mint',      todo)
-export const testFTBurn      = expect('Burn',      todo)
-export const testFTTransfer  = expect('Transfer',  todo)
-export const testFTAllowance = expect('Allowance', todo)
-export const testFTDecimals  = expect('Decimals',  todo)
+export const testFTCreate    = expect('Create',    todo())
+export const testFTMint      = expect('Mint',      todo())
+export const testFTBurn      = expect('Burn',      todo())
+export const testFTTransfer  = expect('Transfer',  todo())
+export const testFTAllowance = expect('Allowance', todo())
+export const testFTDecimals  = expect('Decimals',  todo())
 
-export const testNFTCreate   = expect('Create',   todo)
-export const testNFTTransfer = expect('Transfer', todo)
+export const testNFTCreate   = expect('Create',   todo())
+export const testNFTTransfer = expect('Transfer', todo())
 
 export const testProgram = expect('Program',
   expect('Deploy', todo),
@@ -39,21 +40,17 @@ export const testProjectStack = (stack: SolanaStack) =>
         expect('React', stack.react),
         expect('Vue',   stack.vue))))
 
-export type TestCase = (context: TestContext) => (TestContext|Promise<TestContext>)
-export type TestContext = {
-  report?: Tester
-}
 export type SolanaStack = {
   name:   string,
-  init:   TestCase,
-  build:  TestCase,
-  deploy: TestCase,
-  test:   TestCase,
-  sdk:    TestCase,
-  cli:    TestCase,
-  dom:    TestCase,
-  react:  TestCase,
-  vue:    TestCase,
+  init:   Step,
+  build:  Step,
+  deploy: Step,
+  test:   Step,
+  sdk:    Step,
+  cli:    Step,
+  dom:    Step,
+  react:  Step,
+  vue:    Step,
 }
 export const Anchor: SolanaStack = {
   name:  'Anchor/Web3.js',
@@ -92,10 +89,13 @@ export const Solitude: SolanaStack = {
   vue:    todo(),
 }
 
-export default suite(import.meta.main || import.meta.url, matrix('Solana', [
-  Anchor,
-  // Codama,
-  // Solitude,
-]), testSolanaStack)
+export default entrypoint(import.meta, suite(
+  matrix('Solana', [
+    Anchor,
+    // Codama,
+    // Solitude,
+  ]),
+  testSolanaStack
+));
 
 export function testSolanaStack () {}
