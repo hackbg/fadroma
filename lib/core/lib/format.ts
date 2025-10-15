@@ -1,7 +1,16 @@
 import { Case, env, cwd } from '../deps.ts'
 import type { Id, Identified } from './core.ts'
+import { yellow } from './color.ts'
+
+export type Write  = { write (...data: unknown[]) };
+
+export const write = (output: Write, ...prefix: unknown[]) =>
+  (...data: unknown[]) => output.write(...prefix, ...data)
+
 export type Logger<I extends Id, L extends Console> = Identified<I> & { log: L };
+
 export type Stringy = string|{toString():string}
+
 export const stringify = (
   obj: unknown, indent?: number, shift?: number, shiftFirst = true
 ) => {
@@ -14,10 +23,11 @@ export const stringify = (
   }
   return json
 }
+
 export const getStringifier = () => {
   const visited = new Set()
   return function stringifier (_key: unknown, value: unknown) {
-    // TODO: Stringification registry!
+    // TODO: Stringification registry:
     //if (value instanceof BN) return value.toString()
     //if (value instanceof PK) return value.toString()
     //if (value instanceof Keypair) return value.publicKey.toString()
@@ -26,11 +36,14 @@ export const getStringifier = () => {
     return value
   }
 }
+
 export const joiner = (x?: Stringy, y = ' ') => x ? (x.toString() + y) : '',
   col1 = 8,  pad1 = (x?: Stringy, c = '·') => joiner(x).padEnd(col1, c),
   col2 = 48, pad2 = (x?: Stringy, c = ' ') => joiner(x).padEnd(col2, c);
+
 export const formatMsec = (t: number) =>
   yellow((t.toFixed(0)+'ms').padEnd(col1));
+
 export const formatError = (e: Error, name?: Stringy) => {
   const [head, ...tail] = (e?.stack||'').split('\n')
   const stack = tail.map(x=>x
@@ -41,6 +54,7 @@ export const formatError = (e: Error, name?: Stringy) => {
   e.stack = [head, name?`    ${name}`:null, ...stack].filter(Boolean).join('\n')
   return e
 };
+
 export const see = (arg: unknown) => {
   const color = !('NO_COLOR' in env)
   const dim   = color ? '\x1b[38;5;245m' : ''
@@ -48,6 +62,7 @@ export const see = (arg: unknown) => {
   console.debug(`${dim}${stringify(arg)}${reset}`)
   return arg
 }
+
 export const camelize = <T extends object>(object: T) => {
   const returned = {}
   for (const [key, value] of Object.entries(object)) {

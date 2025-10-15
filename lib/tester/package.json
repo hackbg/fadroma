@@ -1,0 +1,8 @@
+{
+  "name": "@fadroma/tester",
+  "type": "module",
+  "main": "index.ts",
+  "dependencies": {
+    "@fadroma/core": "workspace:*"
+  }
+}

@@ -1,6 +1,6 @@
 /**
   Fadroma
-  Copyright (C) 2023 Hack.bg
+  Copyright (C) 2023-2025 Hack.bg
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU Affero General Public License as published by
@@ -16,9 +16,12 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
+export * from './lib/chain.ts'
+export * from './lib/color.ts'
 export * from './lib/core.ts'
+export * from './lib/error.ts'
 export * from './lib/format.ts'
-export * from './lib/number.ts'
 export * from './lib/method.ts'
+export * from './lib/number.ts'
 export * from './lib/rpc.ts'
 export * from './lib/timing.ts'

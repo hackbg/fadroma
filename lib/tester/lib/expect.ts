@@ -1,3 +1,5 @@
+import type { Context } from './runner.ts'
+
 /** Use this to prepare a function with arguments for testing.
   *
   * See:
@@ -20,9 +22,13 @@ export const call = (fn, ...args) => Object.assign(fn.bind(null, ...args), {
 })
 
 /** Use this to stub a test. */
-export const todo = (...info) => Object.assign(function todo ({ report = TestReport() }) {
-  report.todo++
+export const todo = (...info) => Object.assign(function todo (context: Context) {
+  context.report.todo++;
+  return context;
 }, { info })
+
+export const matrix = (name, variants, ...tests) => () =>
+  Promise.all(variants.map(variant=>pipe(tests)(variant)))
 
 /** A **test suite** consists of a name and one or more **test case**s.
   * 
@@ -33,22 +39,24 @@ export const todo = (...info) => Object.assign(function todo ({ report = TestRep
   * - The return value of each test case is NOT passed to the next one.
   * - The return value of each test case is preserved,
   *   and an array of return values is returned at the end. */
-export const suite = (name, ...tests) =>
-  renamed(name, async function suiteRun ({
-    report = new TestReport(), prefix = null, count = ''
-  } = {}) {
-    const label = [prefix, name].filter(Boolean).join(': ')
-    return report.track(count, label, async function suiteRunTracked () {
-      const results = tests.map(()=>{})
+export const expect2 = (name, ...tests) =>
+  renamed(name, async function suiteRun (context: Context = {}) {
+    const label = [context.prefix, name].filter(Boolean).join(': ');
+    return context.track(context.count, label, suiteRunTracked);
+    async function suiteRunTracked () {
+      const results = tests.map(()=>{});
       for (const index in tests) {
-        const order   = String(Number(index)+1)
-        const counter = [count, order].filter(Boolean).join('.')
-        const context = { report, count: counter, prefix: name }
-        const result  = await tests[index](context)
-        results.push(result)
+
+        // FIXME: unify `suite` and `expect`
+        const order   = String(Number(index)+1);
+        const counter = [context.count, order].filter(Boolean).join('.');
+        const context = { report, count: counter, prefix: name };
+        const result  = await tests[index](context);
+        results.push(result);
+
       }
       return results
-    })
+    }
   })
 
 /** A **test case** consists of a name and one or more **test step**s.
@@ -57,11 +65,12 @@ export const suite = (name, ...tests) =>
   * - Each function receives the awaited return value of the previous one.
   * - If no test step throws an uncaught exception, the test case is a pass. */
 export const expect = (name, ...steps) =>
-  renamed(name, async function expectRun ({
-    report = new TestReport(), count = '', prefix = null,
-  } = {}) {
-    const label = [prefix, name].filter(Boolean).join(': ')
-    return report.track(count, label, async function expectRunTracked () {
+  renamed(name, async function expectRun (context: Context = {}) {
+    const label = [context.prefix, name].filter(Boolean).join(': ');
+    return context.track(context.count, label, expectRunTracked);
+    async function expectRunTracked () {
+
+      // FIXME: unify `suite` and `expect`
       let step, state
       try {
         for (step of steps) state = await step(state) ?? state
@@ -71,17 +80,16 @@ export const expect = (name, ...steps) =>
         if (step.stack) e.stack += '\n  Test defined at:\n' + step.stack.join('\n')
         throw e
       }
-    })
+
+    }
   })
 
 /** A **test case** for expecting an exception to be thrown. */
 export const forbid = (name, fn, callback?) => {
   name = [`Forbid`, name].filter(Boolean).join(': ')
-  return renamed(name, async function forbidRun ({
-    report = new TestReport(), count = '', prefix = null,
-  } = {}) {
-    const label = [prefix, name].filter(Boolean).join(': ')
-    return report.track(count, label, async function forbidRunTracked() {
+  return renamed(name, async function forbidRun (context: Context = {}) {
+    const label = [context.prefix, name].filter(Boolean).join(': ')
+    return context.track(context.count, label, async function forbidRunTracked() {
       let result
       let error
       try {

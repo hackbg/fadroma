@@ -1,4 +1,6 @@
 {
-  "name":    "@hackbg/fadroma",
+  "name": "@hackbg/fadroma",
+  "type": "module",
+  "main": "index.ts",
   "version": "2.0.0"
 }

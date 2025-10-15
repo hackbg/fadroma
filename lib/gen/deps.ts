@@ -1,2 +1,2 @@
-export * as Path from 'node:path';
-export * as FS from 'node:fs/promise';
+export { join as joinPath } from 'node:path';
+export { writeFile } 'node:fs/promise';

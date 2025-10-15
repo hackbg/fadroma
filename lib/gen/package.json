@@ -1,0 +1,5 @@
+{
+  "name": "@fadroma/gen",
+  "type": "module",
+  "main": "index.ts"
+}

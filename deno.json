@@ -8,24 +8,13 @@
     "@hackbg/logs":         "npm:@hackbg/logs",
     "@hackbg/oops":         "npm:@hackbg/oops",
     "@hackbg/borshest":     "npm:@hackbg/borshest",
-
-    "@hackbg/fadroma":      "./core/index.ts",
-    "@hackbg/fadroma/test": "./core/test/core.test.ts",
-
-    "@fadroma/tm":          "./tm/index.ts",
-    "@fadroma/tm/test":     "./tm/test/tm.test.ts",
-
-    "@fadroma/namada":      "./namada/index.ts",
-    "@fadroma/namada/test": "./namada/test/namada.test.ts",
-
-    "@fadroma/cw":          "./cw/index.ts",
-    "@fadroma/cw/test":     "./cw/test/cw.test.ts",
-
-    "@fadroma/scrt":        "./scrt/index.ts",
-    "@fadroma/scrt/test":   "./scrt/test/scrt.test.ts",
+    "@hackbg/fadroma":      "./lib/core/index.ts",
+    "@fadroma/tm":          "./lib/tm/index.ts",
+    "@fadroma/namada":      "./lib/namada/index.ts",
+    "@fadroma/cw":          "./lib/cw/index.ts",
+    "@fadroma/scrt":        "./lib/scrt/index.ts",
     "@hackbg/secretjs-esm": "npm:@hackbg/secretjs-esm",
-
-    "protobuf-varint": "npm:protobuf-varint@^1.0.0"
+    "protobuf-varint":      "npm:protobuf-varint@^1.0.0"
   },
   "lint": {
     "rules": {
