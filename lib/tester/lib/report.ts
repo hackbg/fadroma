@@ -1,6 +1,5 @@
 import type * as Test from '../types.ts';
-import { pipe, stdout, argv, write, formatMsec, red, green, orange, yellow, entrypoint } from '../deps.ts';
-import { GRAY, ANSI_RESET } from '../../core/lib/color.ts';
+import { formatMsec, red, green, orange, yellow, GRAY, ANSI_RESET } from '../deps.ts';
 
 export const defTestReport = ({
   failFast = true,
@@ -33,7 +32,7 @@ export const defTestReport = ({
         return pass.add(t0, crumb, await callback(context({ t0, crumb, count })))
       } catch (e) {
         if (e.todo) {
-          todo.add(t0, crumb, '\n'+e.stack.split('\n').slice(1).join('\n'));
+          todo.add(t0, crumb, '');
           throw e;
         } else {
           const failure = fail.add(t0, crumb, e.message, e.stack.split('\n').slice(1).join('\n'));
@@ -50,7 +49,7 @@ export const join = (joiner: String, ...data: (String|false|null)[]) =>
 export const defResultCategory = (
   icon: string, summary: string, details: string, tag: string
 ): Test.Results => {
-  const results: string[] = []
+  const results: unknown[] = []
   return Object.assign(results, {
     icon,
     add (t0: number, summary: string, result: string, ...extra: unknown[]) {
@@ -69,13 +68,14 @@ export const defResultCategory = (
       return join(' ', icon, String(results.length), summary)
     },
     details () {
-      const step = x =>
-        `${icon} ${x[0]}\n   ${x.slice(1).filter(Boolean).join('\n   ')}`
+      const formatStep = (x: unknown[]) => [
+        `${icon} ${x[0]}`, ...x.slice(1).filter(Boolean)
+      ].join('\n')
       return join('',
         '\n',
         details,
         ': \n',
-        join('\n', results.sort(byStep).map(step)),
+        join('\n', results.sort(byStep).map(formatStep)),
         '\n')
     },
   })

@@ -1,3 +1,4 @@
+import { entrypoint } from '../../lib/core/index.ts';
 import type { Step, Context } from '../../lib/tester/index.ts';
 import { suite, expect, matrix, todo } from '../../lib/tester/index.ts';
 import * as Solana from './index.ts';
@@ -98,4 +99,4 @@ export default entrypoint(import.meta, suite(
   testSolanaStack
 ));
 
-export function testSolanaStack () {}
+export function testSolanaStack (_: Context) {}

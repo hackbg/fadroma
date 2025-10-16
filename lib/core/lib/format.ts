@@ -2,8 +2,10 @@ import type { Stringy, Write, Named } from '../types.ts'
 import { Case, env, cwd } from '../deps.ts'
 import { yellow } from './color.ts'
 
+export const _FULL_WIDTH = "TODO";
+
 export const write = (output: Write, ...prefix: unknown[]) =>
-  (...data: unknown[]) => output.write(...prefix, ...data)
+  (...data: unknown[]) => output.write(...prefix, ...data);
 
 export const stringify = (
   obj: unknown, indent?: number, shift?: number, shiftFirst = true
@@ -16,7 +18,7 @@ export const stringify = (
       .join('\n')
   }
   return json
-}
+};
 
 export const getStringifier = () => {
   const visited = new Set()
@@ -29,12 +31,12 @@ export const getStringifier = () => {
     if (typeof value === 'object') visited.add(value)
     return value
   }
-}
+};
 
 /** Rename a function. */
 export const renamed = <N extends Named> (name: string, fn: N): N =>
   name ? Object.defineProperty(fn, 'name', { configurable: true, value: name })
-       : fn
+       : fn;
 
 export const joiner = (x?: Stringy, y = ' ') => x ? (x.toString() + y) : '',
   col1 = 8,  pad1 = (x?: Stringy, c = '·') => joiner(x).padEnd(col1, c),
@@ -60,7 +62,7 @@ export const see = (arg: unknown) => {
   const reset = color ? '\x1b[0m'        : ''
   console.debug(`${dim}${stringify(arg)}${reset}`)
   return arg
-}
+};
 
 export const camelize = <T extends object>(object: T) => {
   const returned = {}
@@ -68,4 +70,4 @@ export const camelize = <T extends object>(object: T) => {
     Object.assign(returned, { [Case.camel(key) as keyof T]: value as T[keyof T] })
   }
   return returned
-}
+};

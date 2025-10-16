@@ -1,5 +1,6 @@
 #!/usr/bin/env -S deno run
-import { suite, expect, matrix, entrypoint } from './lib/tester/index.ts';
+import { entrypoint } from './lib/core/index.ts';
+import { suite, expect, matrix } from './lib/tester/index.ts';
 import testTester from './lib/tester/test.ts';
 import * as Solana from './lib/solana/test.ts';
 export default entrypoint(import.meta, suite(

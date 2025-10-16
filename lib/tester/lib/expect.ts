@@ -13,8 +13,8 @@ import { renamed, pipe } from '../deps.ts';
   *         expect('Test C', todo())
   *         expect('Test D', todo()))))
   **/
-export const suite = (...steps: Test.Step[]) =>
-  Object.assign(async function runTests (suite) {
+export const suite = (...steps: Step[]) => Object.assign(
+  async function testSuite (args: string[]) {
     Error.stackTraceLimit = Infinity;
     const run     = pipe(...steps);
     const report  = defTestReport();
@@ -26,63 +26,66 @@ export const suite = (...steps: Test.Step[]) =>
     return result;
   }, { steps });
 
-/** A **test suite** consists of a name and one or more **test case**s.
-  * 
-  * - The test suite acts as a checklist, and logs the
-  *   outcome of each test case. 
-  * - Test cases are functions.
-  *   Using `test`, `testAx`, `testTx` can help you prepare them.
-  * - The return value of each test case is NOT passed to the next one.
-  * - The return value of each test case is preserved,
-  *   and an array of return values is returned at the end.
-  * A **test case** consists of a name and one or more **test step**s.
-  * 
-  * - Test steps are functions. Using `call` can help you prepare them.
-  * - Each function receives the awaited return value of the previous one.
-  * - If no test step throws an uncaught exception, the test case is a pass.
+/** A test case, consisting of a name and one or more test steps.
+ *
+  * The test steps run in sequence, and are isolated from each other.
+  * If no step throws an uncaught exception, the test case is passed.
+  *
+  * Return values are collected in an array and returned at the end.
+  * This way you can show detailed test results in the final test report.
+  *
+  * Example:
+  *
+  *     import { expect } from '@fadrma/tester';
+  *
+  *     const testThing = expect('Thing', _ => ok(1 == 1));
+  *
+  *     const testSomeThings = expect('Some things',
+  *       _ => ok(1 === 1),
+  *       _ => equal(1, 1),
+  *       testThing);
+  *
+  * * [ ] TODO: Add generic to [Context] for typed domain-specific test state.
   **/
-export const expect = (label: string, ...tests: Step[]) =>
-  Object.assign(renamed(label, function expect (
+export const expect = (label: string, ...steps: Step[]) =>
+  Object.assign(renamed(label, async function expect (
     context: Context = defTestReport().context()
   ) {
-    return context.track(
-      context.count,
-      [context.crumb, label].filter(Boolean).map(x=>x.trim()).join(': '),
-      async function expectation (context: Context) {
-        for (const index in tests) {
+    //return context.track(
+      //context.count,
+      //[context.crumb, label].filter(Boolean).map(x=>x.trim()).join(': '),
+      //async function expectation (context: Context) {
+        const results = steps.map(_=>undefined);
+        for (const index in steps) {
           try {
-            const step = tests[index];
+            const step = steps[index];
             const count = [context.count, String(Number(index)+1)].filter(Boolean).join('.');
-            const result = await context.track(count, label, step) ?? context;
-            //if (result !== context) warnReturn(context, count, result);
+            results[index] = await context.track(count, label, step);
           } catch (error) {
-            throw addStepStack(tests[index], error as Error);
+            throw addStepStack(steps[index], error as Error);
           }
         }
-        return context;
-      });
-  }), { label, tests });
+        return results;
+      //});
+  }), { label, steps });
 
 /** A **test case** for expecting an exception to be thrown. */
 export const forbid = (
-  name: string,
-  failure: (_: Context)=>unknown,
-  ...tests: Array<(_: Error)=>unknown>
+  name: string, failure: Step,
+  // TODO: ...steps: Array<(_: Error)=>unknown>
 ) => {
-  name = [`Forbid`, name].filter(Boolean).join(': ')
+  name = [`Forbid`, name].filter(Boolean).join(': ');
   return renamed(name, function forbidRun (context: Context) {
-    const label = [context.crumb, name].filter(Boolean).join(': ')
+    const label = [context.crumb, name].filter(Boolean).join(': ');
     return context.track(context.count, label, async function forbidRunTracked() {
-      let result
-      let error
+      let result, error;
       try {
-        result = await fn()
-        error = new Error(`${name}: missing expected rejection, got: ${result}`)
+        result = await failure(context);
+        error = new Error(`${name}: missing expected failure, got: ${result}`);
       } catch (e) {
-        if (callback) e = await callback(e)
-        return e
+        return e;
       }
-      throw Object.assign(error, { name, result })
+      throw Object.assign(error, { name, result });
     })
   })
 }
