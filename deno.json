@@ -1,8 +1,10 @@
 {
+  "strict": false,
   "nodeModulesDir": "auto",
   "imports": {
     "@coral-xyz/anchor":    "npm:@coral-xyz/anchor",
 
+    "@hackbg/fadroma":      "./lib/core/index.ts",
     "@fadroma/core":        "./lib/core/index.ts",
     "@fadroma/cw":          "./lib/cw/index.ts",
     "@fadroma/gen":         "./lib/gen/index.ts",
@@ -14,7 +16,6 @@
     "@hackbg/4mat":         "npm:@hackbg/4mat",
     "@hackbg/borshest":     "npm:@hackbg/borshest",
     "@hackbg/dump":         "npm:@hackbg/dump",
-    "@hackbg/fadroma":      "./lib/core/index.ts",
     "@hackbg/hide":         "npm:@hackbg/hide",
     "@hackbg/into":         "npm:@hackbg/into",
     "@hackbg/logs":         "npm:@hackbg/logs",
@@ -28,5 +29,5 @@
     "rules": {
       "exclude": ["no-async-promise-executor", "require-await"]
     }
-  }
+  },
 }

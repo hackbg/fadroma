@@ -1,17 +1,19 @@
-import { NO_COLOR, yellow } from './color.ts'
+import type { Write, Named, Stringy, Falsy, Logger } from '../types.ts';
+import { Case } from '../deps.ts';
+import { NO_COLOR, yellow } from './color.ts';
 
-export const logger = ({ to = console, name }) => Object.assign(to, { name });
+export const logger = ({ to = console, name }): Logger =>
+  Object.assign(to, { name });
 
 export const _FULL_WIDTH = "TODO";
 export const formatMsec = (t: number) =>
   yellow((t.toFixed(0)+'ms').padEnd(col1));
 
-import type { Stringy } from '../types.ts';
-export const chunks = (...strs: Array<Stringy|Array<Stringy>>) =>
-  strs.flat().filter(Boolean).map(x=>x.toString())
-export const str = (...strs: Array<Stringy|Array<Stringy>>) =>
+export const chunks = (...strs: Array<Falsy|Stringy|Array<Falsy|Stringy>>) =>
+  strs.flat().filter(Boolean).map(x=>x!.toString())
+export const str = (...strs: Array<Falsy|Stringy|Array<Falsy|Stringy>>) =>
   chunks(...strs).join('')
-export const joined = (joiner: string, ...strs: Array<Stringy|Array<Stringy>>) =>
+export const joined = (joiner: string, ...strs: Array<Falsy|Stringy|Array<Falsy|Stringy>>) =>
   chunks(...strs).join(joiner)
 
 export const joiner = (x?: Stringy, y = ' ') => x ? (x.toString() + y) : ''
@@ -20,16 +22,29 @@ export const joiner = (x?: Stringy, y = ' ') => x ? (x.toString() + y) : ''
            , col2 = 48
            , pad2 = (x?: Stringy, c = ' ') => joiner(x).padEnd(col2, c);
 
-import type { Write } from '../types.ts';
 export const write = (output: Write, ...prefix: unknown[]) =>
   (...data: unknown[]) => output.write(...prefix, ...data);
 
-import type { Named } from '../types.ts';
 /** Rename a function. */
-export const renamed = <N extends Named> (name: string, fn: N): N =>
-  name ? Object.defineProperty(fn, 'name', { configurable: true, value: name })
-       : fn;
+export const renamed = <N extends Named> (name: string|Falsy, fn: N): N => {
+  if (!name)
+    return fn
+  if (typeof name === 'string')
+    return Object.defineProperty(fn, 'name', { configurable: true, value: name })
+  throw new Error(`not a name: ${typeof name} ${name}`)
+}
 
+/** Show a stringified object. */
+export const see = (arg: unknown) => {
+  const color = !NO_COLOR // FIXME move these to color.ts:
+  const dim   = color ? '\x1b[38;5;245m' : ''
+  const reset = color ? '\x1b[0m'        : ''
+  console.debug(`${dim}${stringify(arg)}${reset}`)
+  return arg
+};
+
+/** Stringify an object with optional custom indentation,
+  * and also without failing on bigint and circular refs. */
 export const stringify = (
   obj: unknown, indent?: number, shift?: number, shiftFirst = true
 ) => {
@@ -43,6 +58,7 @@ export const stringify = (
   return json
 };
 
+/** A stringifier that doesn't fail on bigint and circular refs. */
 export const getStringifier = () => {
   const visited = new Set()
   return function stringifier (_key: unknown, value: unknown) {
@@ -56,15 +72,6 @@ export const getStringifier = () => {
   }
 };
 
-export const see = (arg: unknown) => {
-  const color = !NO_COLOR // FIXME move these to color.ts:
-  const dim   = color ? '\x1b[38;5;245m' : ''
-  const reset = color ? '\x1b[0m'        : ''
-  console.debug(`${dim}${stringify(arg)}${reset}`)
-  return arg
-};
-
-import { Case } from '../deps.ts';
 export const camelize = <T extends object>(object: T) => {
   const returned = {}
   for (const [key, value] of Object.entries(object)) {

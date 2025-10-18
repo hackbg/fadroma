@@ -1,7 +1,6 @@
-/** A thing, or a promise of a thing. */
-export type MaybeAsync<T> = T|Promise<T>;
-export type TaskStep<T> = (()=>T)|(()=>Promise<T>);
-/** A string, or something with a `toString` method. */
+/** False, zero, empty string, null, undefined, zip, nada, zilch. */
+export type Falsy = 0 | '' | false | null | undefined;
+/** String, or something with a `toString` method. */
 export type Stringy = string|{ toString(): string };
 /** 128-bit integer. */
 export type Uint128 = number|string|bigint;
@@ -11,35 +10,45 @@ export type Uint256 = number|string|bigint;
 export type Decimal128 = number|string;
 /** 256-bit decimal fraction. */
 export type Decimal256 = number|string;
-/** An output target, such as `process.stdout`. */
+/** Thing, or promise of thing. */
+export type MaybeAsync<T> = T|Promise<T>;
+/** Function that may or may not be async. */
+export type MaybeAsyncFn<T> = (..._: unknown[])=>MaybeAsync<T>;
+
+export type Step = <T, U = T> (_: T) => MaybeAsync<U>;
+
+/** Output target, e.g. `process.stdout`. */
 export type Write  = { write (...data: unknown[]): unknown };
 /** Logging interface. */
 export type Logger<I extends Id, L extends Console> = Identified<I> & { log: L };
-
+/** Internal identifier. */
 export type Id = string|number|bigint
+/** Uniquely identified item. */
 export type Identified<I extends Id> = { id: I };
-
+/** Human-readable name. */
 export type Name   = string
+/** Named item. */
 export type Named  = { name: Name };
-
-export type Hash   = string;
+/** Human-readable info interface. */
+export type Info = { summary (): string, details (): string };
+/** Hash. */
+export type Hash   = string|Uint8Array;
+/** Hashed item. */
 export type Hashed = { hash: Hash };
-
-/** A color. TODO specify representation */
+/** Color. TODO specify representation */
 export type Color = unknown;
-
-/** A thing identifiable by color. */
+/** Thing identifiable by color. */
 export type Colorful = {
   /** The identifying color. */
   color: Color
 };
-
+/** Semantic version. */
 export type Semver = string; // TODO
+/** Versioned component. */
 export type Versioned = { version: Semver };
 
-export type Info = { summary (): string, details (): string };
+export type Bytes = Uint8Array;
 
-export type Entity<I extends Id> = Identified<I> & Partial<Named & Colorful>;
 /** A raw response from an endpoint. */
 export type Response = {
   /** The query that was made. */

@@ -1,6 +1,6 @@
 import type * as Test from './types.ts';
 import { ok, deepStrictEqual as equal } from 'node:assert';
-import { renamed, pipe, joined, formatMsec, red, green, orange, yellow, gray } from './deps.ts';
+import { renamed, joined, formatMsec, red, green, orange, yellow, gray } from './deps.ts';
 export * from './types.ts';
 /** Define a test suite. Running it will output a test report.
   *
@@ -13,24 +13,26 @@ export * from './types.ts';
   *         expect('Test C', todo())
   *         expect('Test D', todo()))))
   **/
-export const suite = (...steps: Test.Step<unknown>[]) => Object.assign(
-  async function testSuite (_args: string[]) {
+export const suite = (name: string, ...steps: Test.Step<unknown>[]) => Object.assign(
+  renamed(name, async function testSuite (_args: string[]) {
     Error.stackTraceLimit = Infinity;
-    const run = expect('', ...steps);
+    const run = expect(name, ...steps);
     const { getContext, details, summary } = report();
     let error, result;
-    try { result = await run(getContext()) } catch (e) { error = e }
+    try { result = await run(getContext()); } catch (e) { error = e; }
     console.log([details(), summary()].filter(Boolean).join('\n'));
     if (error) throw error;
     return result;
-  }, { steps });
+  }), { steps });
 /** A test case, consisting of a name and one or more test steps.
- *
+  *
   * The test steps run in sequence, and are isolated from each other.
   * If no step throws an uncaught exception, the test case is passed.
   *
   * Return values are collected in an array and returned at the end.
   * This way you can show detailed test results in the final test report.
+  *
+  * An empty `expect('something')` with no steps becomes a TODO.
   *
   * Example:
   *
@@ -45,15 +47,15 @@ export const suite = (...steps: Test.Step<unknown>[]) => Object.assign(
   *
   * * [ ] TODO: Add generic to [Test.Context] for typed domain-specific test state.
   **/
-export const expect = (label: string, ...steps: Test.Step<unknown>[]) =>
+export const expect = (label?: string, ...steps: Test.Step<unknown>[]) =>
   Object.assign(renamed(label, async function expectation (
     context = report().getContext()
   ) { 
+    if (steps.length === 0) steps = [todo()];
     const results = steps.map(_=>undefined as unknown);
     for (const index in steps) {
       try {
         const step = steps[index];
-        const id = [context.id, String(Number(index)+1)].filter(Boolean).join('.');
         results[index] = await context.track(Number(index), label, step);
       } catch (error) {
         throw addStepStack(steps[index], error as Error);
@@ -109,12 +111,12 @@ export const todo = (...info: string[]) =>
  * */
 export const matrix = <T>(
   name: string, variants: Record<string, T>, steps: (_: T)=>(Test.Step<unknown>[])
-) => expect(name, ...Object.entries(variants)
-  .map(([k, v])=>expect(k, ...steps(v))));
+) => Object.assign(expect(name, ...Object.entries(variants)
+  .map(([k, v])=>expect(k, ...steps(v)))), variants, steps);
 
 export const parallel = (name: string, variants: ((_: Test.Context)=>unknown)[]) =>
   expect(name, (context = report().getContext()) =>
-    Promise.all(variants.map(variant=>variant(context))));
+    Promise.all(variants.map(variant=>variant(context.getContext()))));
 
 export const includes = <T>(x: T) =>
   (line: { includes (x: T): boolean }) => line.includes(x);
@@ -126,10 +128,15 @@ export const assertLength = (length: number, x: { length: number }, name?: strin
 
 /** Assertions that fail the test. */
 export const MUST = {
+
   equal: <T> (expected: T, info?: string|Error) =>
-    (actual: T|unknown) => equal(expected, actual, info),
+    (actual: T|unknown) => equal(
+      expected, actual, info),
+
   have: <T extends object> (key: keyof T|unknown) =>
-    (actual: T|unknown) => ok((key as keyof T) in (actual as T), `missing key ${key}`),
+    (actual: T|unknown) => ok(
+      (key as keyof T) in (actual as T), `missing key ${key}`),
+
 };
 
 /** Assertions that only emit a warning. */
@@ -143,25 +150,21 @@ export const report = ({
   fail = category(`🔴`, 'failed',   'Failed',  red(   'wrong  ')),
   todo = category(`🟠`, 'tasks',    'TODO',    orange('todo   ')),
   warn = category(`🟡`, 'warnings', 'Warning', yellow('warning')),
-  getContext = ({ ids = [], labels = [], ...rest } = {}): Test.Context => ({
-    t0: performance.now(), ids, labels,
-    ...[pass, fail, todo, warn].map(x=>x.add),
-    ...rest,
-    async track <T> (id: number|null, label: string|null, callback: Test.Step<T>): Promise<T> {
-      //const label = `${id?(id+' '):''}${label?(label+' '):''}`
-      const t0 = performance.now()
-      console.log(`👉️ @${formatMsec(t0)} ${label}`)
+  getContext = ({
+    t0 = performance.now(), ids = [], names = [],
+    track = async function track <T> (id: number|null, name: string|null, step: Test.Step<T>): Promise<T> {
+      const summary = joined(' -- ', joined('.', ...ids, id), joined(': ', ...names, name));
+      console.log(`⏳️ @${formatMsec(t0)} ${summary}`);
       try {
-        const context = getContext({ t0, ids: [...ids, id], labels: [...labels, label] });
-        const summary = joined(' -- ', joined('.', ...ids, id), joined(': ', ...labels, label));
-        const result  = await callback(context);
+        const context = getContext({ ids: [...ids, id], names: [...names, name] });
+        const result  = await step(context);
         return pass.add(t0, summary, result) as T;
       } catch (e: unknown) {
         const error = e as { todo?: unknown, message: string, stack?: string };
         if (error.todo) {
-          return todo.add(t0, label, error.message) as T;
+          return todo.add(t0, name, error.message) as T;
         } else {
-          const failure = fail.add(t0, label, error.message, error.stack?.split('\n').slice(1).join('\n'));
+          const failure = fail.add(t0, name, error.message, error.stack?.split('\n').slice(1).join('\n'));
           if (failFast) {
             throw failure;
           } else {
@@ -169,17 +172,20 @@ export const report = ({
           }
         }
       }
-    }
+    },
+    ...rest
+  } = {}): Test.Context => ({
+    t0: performance.now(), ids, names, track,
+    ...[pass, fail, todo, warn].map(x=>x.add),
+    ...rest,
   })
 } = {}): Test.Report => ({
   getContext, pass, fail, todo, warn,
   summary: () => joined(' ', ...[pass, fail, todo, warn].map(x=>x.length > 0 && x.summary())),
   details: () => joined(' ', ...[pass, fail, todo, warn].map(x=>x.length > 0 && x.details())),
 })
-
-export const reStep = / (\d+)(.(\d+))? /
-
-export const category = (
+/** Define a test result category. */
+const category = (
   icon: string, summary: string, details: string, _tag: string,
   sorter = (a: Test.Result, b: Test.Result) => {
     const [_a0, a1 = NaN, _a2, a3 = NaN] = (a.summary?.match(reStep)||[]).map(Number)
@@ -210,6 +216,9 @@ export const category = (
     },
   })
 }
+
+export const reStep = / (\d+)(.(\d+))? /;
+
 const warnReturn = (context: Test.Context, id: string, result: unknown) =>
   context.warn(0, `Test step ${id} returned an unexpected value.`,
     `This may indicate a faulty test function.`,

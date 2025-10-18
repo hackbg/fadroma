@@ -1,11 +1,17 @@
-import { env } from './deps.ts';
+import { default as Anchor, web3 } from '@coral-xyz/anchor';
+export const BN = Anchor.BN;
+export const KP = web3.Keypair;
+export const PK = web3.PublicKey;
+export const TX = web3.Transaction;
+export type BN = InstanceType<typeof Anchor.BN>;
+export type KP = InstanceType<typeof web3.Keypair>;
+export type PK = InstanceType<typeof web3.PublicKey>;
+export type TX = InstanceType<typeof web3.Transaction>;
+import { env } from '../deps.ts';
 env.ANCHOR_PROVIDER_URL ??= 'http://localhost:8899';
 env.ANCHOR_WALLET ??= resolve(homedir(), '.config/solana/id.json'); // FIXME use XDG
-import {
-  ok, equal, expect, forbid, call, renamed,
-  Case, resolve, homedir, pick, when, dir, toml, gitignore, readme,
-  ts, packageJson, tsConfig, eslintConfig,
-  rs, cargoToml, baconConfig, moldConfig,
+import { ok, equal, expect, forbid, call, renamed,
+  Case, resolve, homedir,
   Anchor, Program, workspace,
   ACCOUNT_SIZE, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID,
   ExtensionType, getMintLen,
@@ -17,92 +23,8 @@ import {
   createMintToInstruction,
   createApproveInstruction,
   getMinimumBalanceForRentExemptAccount,
-} from './deps.ts';
-import type {
-  Name, Named, Semver, CargoDep, CargoFeature, MaybeAsync, IDL, NotIDL
-} from './deps.ts';
-
-export type ProjectOptions = Named & {
-  name:      Name,
-  legacy:    boolean,
-  anchor:    boolean|Semver,
-  solana:    boolean|Semver,
-  node:      boolean|Semver,
-  deno:      boolean|Semver,
-  ts:        boolean|Semver,
-  pnpm:      boolean,
-  bacon:     boolean,
-  eslint:    boolean,
-  web3:      boolean|Semver,
-  kit:       boolean|Semver,
-  codama:    boolean|Semver,
-  mold:      boolean,
-  idl:       IDL|null,
-  notIdl:    NotIDL|null,
-  dotenv:    boolean,
-  direnv:    boolean,
-  programs?: ProgramOptions[],
-};
-
-export type ProgramOptions = Named & {
-  name:      Name,
-  idl:       IDL|null,
-  notIdl:    IDL|null,
-  solana:    Semver,
-  anchor:    Semver|null,
-  deps?:     CargoDep[],
-  devDeps?:  CargoDep[],
-  features?: CargoFeature[]
-};
-
-export const initProject = (opts: ProjectOptions) => (path: string) => dir(path,
-  gitignore(),
-  readme({ name }),
-  when(opts.node,   packageJson({ name, legacy: opts.legacy })),
-  when(opts.ts,     tsConfig),
-  when(opts.bacon,  baconConfig),
-  when(opts.eslint, eslintConfig),
-  when(opts.mold,   moldConfig),
-  dir('test', ts("test.ts"), dir("accounts")),
-  toml('Cargo.toml', {
-    "workspace": {
-      resolver: "2", members: [ "programs/*" ]
-    },
-    "profile.release": {
-      "codegen-units": 1, "overflow-checks": true, "lto": "fat",
-    },
-    "profile.release.build-override": {
-      "codegen-units": 1, "incremental": "false", "opt-level": 3,
-    }
-  }),
-  when(opts.anchor,
-    toml('Anchor.toml', {
-      "toolchain": {
-        "solana_version": opts.solana, "package_manager": opts.pnpm ? "pnpm" : "npm",
-      },
-      "features": { "resolution": true, "skip-lint": false, },
-      "programs.localnet": { [name]: "", },
-      "registry": { "url": "https://api.apr.dev" },
-      "provider": { "cluster": "localnet", "wallet": "~/.config/solana/id.json" },
-      "scripts": { "test": "./test/test.ts" },
-      "test": {
-        "startup_wait":  5000,
-        "shutdown_wait": 2000,
-        "upgradeable":   true
-      },
-      "test.validator": {
-        "bind_address": "127.0.0.1",
-        "url": "https://api.devnet.solana.com",
-        "ledger": ".anchor/test-ledger",
-        "rpc_port": "8899"
-      }
-    }),
-    dir('programs', initProgram({ name, idl: opts.idl, notIdl: opts.notIdl }))));
-
-export const initProgram = (path: string, opts: ProgramOptions) => dir(path,
-  cargoToml(pick('name', 'deps', 'devDeps', 'features')(opts)),
-  dir('src', rs('lib.rs')));
-
+} from '../deps.ts';
+import type { Name, MaybeAsync } from '../deps.ts';
 export { Anchor, Program, workspace }
 export const wallet = Anchor.AnchorProvider.env().wallet
 export const { payer, publicKey } = wallet;
@@ -111,9 +33,9 @@ export const connection  = new Anchor.web3.Connection(process.env.ANCHOR_PROVIDE
 export const accountRent = await getMinimumBalanceForRentExemptAccount(connection);
 export const provider    = new Anchor.AnchorProvider(connection, wallet);
 Anchor.setProvider(provider);
-export const get = (pubkey) => connection.getAccountInfo(pubkey)
-export const pda = (program, seeds) => PK.findProgramAddressSync(seeds.map(toSeed), program)[0]
-export const toSeed = seed => {
+export const get = (pubkey: PK) => connection.getAccountInfo(pubkey)
+export const pda = (program: Program, seeds: Seeds) => PK.findProgramAddressSync(seeds.map(toSeed), program)[0]
+export const toSeed = (seed: Seed) => {
   if (seed instanceof PK) seed = seed.toBuffer()
   if (seed instanceof BN || typeof seed === 'bigint' || typeof seed === 'number') seed = numToBuf(seed)
   return seed

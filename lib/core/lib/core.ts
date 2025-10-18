@@ -21,12 +21,15 @@ export const entrypoint = <F extends ((...args: string[])=>unknown)> (
 ): F => {
   const [_, argv1, ...args] = argv
   const shouldRun = meta.main || (meta.url && fileURLToPath(meta.url) == argv1);
-  if (shouldRun) setImmediate(()=>Promise
-    .resolve(main(...args))
-    .catch((e: Error & { exitCode?: number })=>{
-      console.error(e);
-      exit(e.exitCode ?? 1);
-    }))
+  if (shouldRun) {
+    console.log({main})
+    setImmediate(()=>Promise
+      .resolve(main(...args))
+      .catch((e: Error & { exitCode?: number })=>{
+        console.error(e);
+        exit(e.exitCode ?? 1);
+      }));
+  }
   return main
 }
 

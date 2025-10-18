@@ -17,7 +17,6 @@
 **/
 
 export * from './types.ts'
-export * from './lib/chain.ts'
 export * from './lib/color.ts'
 export * from './lib/core.ts'
 export * from './lib/error.ts'

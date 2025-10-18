@@ -1,42 +1,37 @@
 import { dir, file, text, markdown, json, js, ts, toml } from './formats.ts';
-
 export const gitignore =
-  (...lines) => text(gitignore, lines);
-
+  (...lines: string[]) => text('.gitignore', ...lines);
 export const readme =
-  ({ name }) => markdown('README.md', { [name]: {} });
-
+  ({ title }: Readme) => markdown('README.md', { [title]: {} });
+export type Readme = { title?: string, sections?: [string, string] };
 export const packageJson = ({
   name,
+  path             = 'package.json',
   version          = '0.0.0',
-  private          = true,
+  isPrivate        = true,
   legacy           = false,
   scripts          = [],
   dependencies     = [],
   devDependencies  = [],
   peerDependencies = [],
-  exports          = null,
-  path             = 'package.json',
-} = {}) => json({ path }, {
+  main             = undefined,
+  exports          = undefined,
+}) => json(path, {
   name,
+  type: legacy ? "script" : "module",
+  main,
   version,
-  private,
-  type:             legacy ? "script" : "module",
+  "private": isPrivate,
+  exports,
   scripts:          Object.fromEntries(scripts.filter(Boolean)),
   dependencies:     Object.fromEntries(dependencies.filter(Boolean)),
   devDependencies:  Object.fromEntries(devDependencies.filter(Boolean)),
   peerDependencies: Object.fromEntries(peerDependencies.filter(Boolean)),
 })
 
-export const tsConfig =
-  json('tsconfig.json'))
-
-export const eslintConfig =
-  js('eslint.config.js'))
-
-export const moldConfig =
-  dir('.cargo', toml('config.toml'));
-
+export const tsConfig = json('tsconfig.json');
+export const eslintConfig = js('eslint.config.js');
+export const moldConfig = dir('.cargo', toml('config.toml'));
 export const baconConfig = ({
   watch = [ "programs/*" ], jobs = []
 }) => toml('bacon.toml', {

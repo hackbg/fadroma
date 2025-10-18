@@ -6,6 +6,9 @@
     "*"
   ],
   "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "deno",
     "allowImportingTsExtensions": true
   }
 }
