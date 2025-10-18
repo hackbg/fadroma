@@ -15,7 +15,7 @@ export const packageJson = ({
   dependencies     = [],
   devDependencies  = [],
   peerDependencies = [],
-  exports          = null
+  exports          = null,
   path             = 'package.json',
 } = {}) => json({ path }, {
   name,

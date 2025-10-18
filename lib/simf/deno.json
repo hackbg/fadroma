@@ -1,6 +1,6 @@
 {
   "imports": {
-    "@fadroma/core": "../core",
+    "@hackbg/fadroma": "../core",
     "@fadroma/gen":  "../gen"
   },
   "nodeModulesDir": "auto",

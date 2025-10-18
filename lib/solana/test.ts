@@ -1,7 +1,7 @@
 import { entrypoint } from '../../lib/core/index.ts';
 import type { Step, Context } from '../../lib/tester/index.ts';
 import { suite, expect, matrix, todo } from '../../lib/tester/index.ts';
-import * as Solana from './index.ts';
+import { Anchor, Codama, Kit, Web3 } from './index.ts';
 
 export const name = 'Solana';
 
@@ -43,15 +43,15 @@ export const testProjectStack = (stack: SolanaStack) =>
 
 export type SolanaStack = {
   name:   string,
-  init:   Step,
-  build:  Step,
-  deploy: Step,
-  test:   Step,
-  sdk:    Step,
-  cli:    Step,
-  dom:    Step,
-  react:  Step,
-  vue:    Step,
+  init:   Step<unknown>,
+  build:  Step<unknown>,
+  deploy: Step<unknown>,
+  test:   Step<unknown>,
+  sdk:    Step<unknown>,
+  cli:    Step<unknown>,
+  dom:    Step<unknown>,
+  react:  Step<unknown>,
+  vue:    Step<unknown>,
 }
 export const Anchor: SolanaStack = {
   name:  'Anchor/Web3.js',

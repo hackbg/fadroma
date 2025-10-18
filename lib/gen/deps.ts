@@ -1,6 +1,6 @@
 export {
   pipe
-} from '@fadroma/core';
+} from '@hackbg/fadroma';
 
 export {
   join as joinPath
@@ -9,4 +9,4 @@ export {
 export {
   writeFile,
   mkdir,
-} from 'node:fs/promise';
+} from 'node:fs/promises';

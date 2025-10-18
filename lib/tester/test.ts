@@ -4,9 +4,9 @@ import { entrypoint } from './deps.ts';
 export default entrypoint(import.meta, suite(
   expect('Tester',
     expect('Reporting',
-      expect('Result category', todo()),
-      expect('Result set',      todo(),
-        expect('Step counter',  todo()))),
+      expect('Categories', todo()),
+      expect('Result set', todo(),
+        expect('Step counter', todo()))),
     expect('Execution',
       expect('Suite',  todo()),
       expect('Expect', todo()),

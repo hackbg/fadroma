@@ -51,9 +51,9 @@ function task (name: Stringy, ...steps: TaskStep<unknown>[]) {
       return result
     } catch (e) {
       const tD = performance.now() - t0
-      e = formatError(e)
-      console.log(`🔴 Step #${id}: ${name} - fail in ${formatMsec(tD)}: ${e.message}`)
-      throw e
+      const error = formatError(e as Error)
+      console.log(`🔴 Step #${id}: ${name} - fail in ${formatMsec(tD)}: ${error.message}`)
+      throw error
     }
   }
   async function taskMany () {
@@ -71,17 +71,17 @@ function task (name: Stringy, ...steps: TaskStep<unknown>[]) {
           results.push(result)
         } catch (e) {
           const tD = performance.now() - t0
-          e = formatError(e)
-          console.log(`🔴 Step #${id}.${index}: ${name} - fail in ${formatMsec(tD)}: ${e.message}`)
-          throw e
+          const error = formatError(e as Error)
+          console.log(`🔴 Step #${id}.${index}: ${name} - fail in ${formatMsec(tD)}: ${error.message}`)
+          throw error
         }
       }
       return results
     } catch (e) {
       const tD = performance.now() - t0
-      e = formatError(e)
-      console.log(`🔴 Step #${id}: ${name} - fail in ${formatMsec(tD)}: ${e.message}`)
-      throw e
+      const error = formatError(e as Error)
+      console.log(`🔴 Step #${id}: ${name} - fail in ${formatMsec(tD)}: ${error.message}`)
+      throw error
     }
   }
 }

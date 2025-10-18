@@ -1,14 +1,22 @@
-import type { Info, Write } from '@hackbg/fadroma';
-export type MaybeAsync<T> = T|Promise<T>;
-export type Categorized<T> = Record<Category, T>;
+import type { Info, MaybeAsync } from '@hackbg/fadroma';
 export type Category = 'pass'|'fail'|'todo'|'warn';
-export type Tracker  = (t0: number, summary: string, ...extra: unknown[])=>void;
-export type Results  = Result[] & Info & { icon: string, add: Tracker };
-export type Result   = { t0?: number, tD?: number, summary: string, details: unknown[] };
-export type Options  = { file: string|URL, argv: string[], failFast?: boolean, output: Write, report?: Report };
-export type Item     = { t0?: number, id: [], label: [] };
-export type Report   = Categorized<Results> & Info & { context (_?: Partial<Context>): Context };
-export type Step<T>  = { stack?: string[] } & ((context: Context) => MaybeAsync<T>);
-export type Context  = Categorized<Tracker> & Item & {
-  track <T> (count: number|null, label: string|null, callback: Step<T>): MaybeAsync<T>;
+export type Categorized<T> = Record<Category, T>;
+export type Add = (t0: number, summary: string|null, ...extra: unknown[])=>void;
+export type Timed = { t0?: number, tD?: number };
+export type Results = Result[] & Info & { icon: string, add: Add };
+/** The test report. */
+export type Report = Categorized<Results> & Info & { context (_?: Partial<Context>): Context };
+/** The test context for a step. */
+export type Context = Categorized<Add> & {
+  t0?: number,
+  /** Breadcrumb of parent step indexes. */
+  ids: [],
+  /** Breadcrumb of parent step labels. */
+  labels: [],
+  /** Execute a test step and categorize the result. */
+  track <T> (id: number|null, label: string|null, callback: Step<T>): MaybeAsync<T>;
 };
+/** A test step. */
+export type Step<T> = { stack?: string[] } & ((context: Context) => MaybeAsync<T>);
+/** The result of a test step. */
+export type Result = Timed & { summary: string|null, details: unknown[] };

@@ -1,20 +1,4 @@
-const command = (name, ...steps) => { throw new Error('TODO') }
-const flag = (name, ...steps) => { throw new Error('TODO') }
-
-export const CLI = command(null,
-  command('build',
-    command('debug'),
-    command('mocks'),
-    command('release')),
-  command('clone'),
-  command('deploy'),
-  command('keys',
-    command('check'),
-    command('regen')),
-  command('localnet',
-    command('deployed'),
-    command('wait')),
-  command('repl'),
-  command('test',
-    flag('full'),
-    flag('debug')))
+export * as Anchor from './anchor.ts';
+export * as Codama from './codama.ts';
+export * as Kit    from './kit.ts';
+export * as Web3   from './web3.ts';

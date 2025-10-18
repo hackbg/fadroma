@@ -1,0 +1,14 @@
+{
+  "imports": {
+    "@hackbg/fadroma":   "../core/index.ts",
+    "@fadroma/gen":      "../gen/index.ts",
+    "@fadroma/tester":   "../tester/index.ts",
+    "@solana/spl-token": "npm:@solana/spl-token"
+  },
+  "nodeModulesDir": "auto",
+  "lint": {
+    "rules": {
+      "exclude": ["no-async-promise-executor"]
+    }
+  }
+}

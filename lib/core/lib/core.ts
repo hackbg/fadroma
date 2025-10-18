@@ -104,8 +104,27 @@ export const isType = (type: string) => Object.assign(function isType (value: an
 /** Check if the `typeof` a JS value is a function. */
 export const isFn = isType('function')
 
-export const pick = <T, K extends keyof T>(...keys: Array<K>) => (data: T): Pick<T, K> => {
+/** Pick named keys from an object. */
+export const pick = <T, K extends keyof T>(
+  ...keys: Array<K>
+) => Object.assign(function pickKeys (data: T): Pick<T, K> {
   const result: Partial<Pick<T, K>> = {};
   for (const key of keys) result[key] = data[key];
   return result as Pick<T, K>;
-};
+}, { keys });
+
+export const bindMethods = <T extends object> (
+  ...apis: Array<Record<string, Method<T>>>
+) => Object.assign(function bindMethodsTo (state: T) {
+  return Object.assign(state, ...apis.map(api=>mapApi(state)(api)))
+}, { apis });
+
+export const mapEntries = <T extends object> (
+  fn: (k: keyof T, v: T[typeof k], i: number) => unknown
+) => (obj: T) => Object.fromEntries(Object.entries(obj)
+  .map(([k, v], i)=>[k, fn(k, v, i)]))
+
+export const mapApi = <T> (state: T) =>
+  mapEntries((name, method: Method<T>)=>[name, (...args: unknown[]) => method(state, ...args)]);
+
+type Method<T> = (_: T, ...__: unknown[]) => unknown[]

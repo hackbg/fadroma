@@ -4,5 +4,8 @@
     "lib/*",
     "test/*",
     "*"
-  ]
+  ],
+  "compilerOptions": {
+    "allowImportingTsExtensions": true
+  }
 }

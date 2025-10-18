@@ -1,5 +1,7 @@
 import { NO_COLOR, yellow } from './color.ts'
 
+export const logger = ({ to = console, name }) => Object.assign(to, { name });
+
 export const _FULL_WIDTH = "TODO";
 export const formatMsec = (t: number) =>
   yellow((t.toFixed(0)+'ms').padEnd(col1));
