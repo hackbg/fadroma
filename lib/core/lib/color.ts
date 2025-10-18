@@ -9,7 +9,7 @@ export const assignColor = <
   seed: String(thing.id)
 }) })
 // TODO color registry
-const NO_COLOR    = env.NO_COLOR === '1'                                                                                                                                                                                   
+export const NO_COLOR = env.NO_COLOR === '1'                                                                                                                                                                                   
 export const ANSI_RESET  = NO_COLOR ? '' : `\x1b[0m`
 const ANSI_RED    = NO_COLOR ? '' : `\x1b[0;31m`
 const ANSI_GREEN  = NO_COLOR ? '' : `\x1b[0;32m`

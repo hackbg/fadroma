@@ -95,10 +95,8 @@ export const forbid = (
   * as neither passed nor failed. */
 export const todo = (...info: string[]) =>
   Object.assign(renamed(info.join(' '), function trackTodo (context: Context) {
-    throw Object.assign(new Error(`${context.count} ${context.crumb}`), {
-      todo: info
-    })
-  }, { info }))
+    throw Object.assign(new Error(info.join(' ')), { todo: true })
+  }), { info })
 
 export const matrix = <T>(name: string, variants: ((T)=>unknown)[]) =>
   expect(name, (context: Context = {}) =>

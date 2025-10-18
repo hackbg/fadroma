@@ -1,11 +1,32 @@
-import type { Stringy, Write, Named } from '../types.ts'
-import { Case, env, cwd } from '../deps.ts'
-import { yellow } from './color.ts'
+import { NO_COLOR, yellow } from './color.ts'
 
 export const _FULL_WIDTH = "TODO";
+export const formatMsec = (t: number) =>
+  yellow((t.toFixed(0)+'ms').padEnd(col1));
 
+import type { Stringy } from '../types.ts';
+export const chunks = (...strs: Array<Stringy|Array<Stringy>>) =>
+  strs.flat().filter(Boolean).map(x=>x.toString())
+export const str = (...strs: Array<Stringy|Array<Stringy>>) =>
+  chunks(...strs).join('')
+export const joined = (joiner: string, ...strs: Array<Stringy|Array<Stringy>>) =>
+  chunks(...strs).join(joiner)
+
+export const joiner = (x?: Stringy, y = ' ') => x ? (x.toString() + y) : ''
+           , col1 = 8
+           , pad1 = (x?: Stringy, c = '·') => joiner(x).padEnd(col1, c)
+           , col2 = 48
+           , pad2 = (x?: Stringy, c = ' ') => joiner(x).padEnd(col2, c);
+
+import type { Write } from '../types.ts';
 export const write = (output: Write, ...prefix: unknown[]) =>
   (...data: unknown[]) => output.write(...prefix, ...data);
+
+import type { Named } from '../types.ts';
+/** Rename a function. */
+export const renamed = <N extends Named> (name: string, fn: N): N =>
+  name ? Object.defineProperty(fn, 'name', { configurable: true, value: name })
+       : fn;
 
 export const stringify = (
   obj: unknown, indent?: number, shift?: number, shiftFirst = true
@@ -33,37 +54,15 @@ export const getStringifier = () => {
   }
 };
 
-/** Rename a function. */
-export const renamed = <N extends Named> (name: string, fn: N): N =>
-  name ? Object.defineProperty(fn, 'name', { configurable: true, value: name })
-       : fn;
-
-export const joiner = (x?: Stringy, y = ' ') => x ? (x.toString() + y) : '',
-  col1 = 8,  pad1 = (x?: Stringy, c = '·') => joiner(x).padEnd(col1, c),
-  col2 = 48, pad2 = (x?: Stringy, c = ' ') => joiner(x).padEnd(col2, c);
-
-export const formatMsec = (t: number) =>
-  yellow((t.toFixed(0)+'ms').padEnd(col1));
-
-export const formatError = (e: Error, name?: Stringy) => {
-  const [head, ...tail] = (e?.stack||'').split('\n')
-  const stack = tail.map(x=>x
-    .replace('('+cwd()+'/', '(')
-    .replace('./node_modules/.pnpm/', ''))
-  e.message = e.message.split('Logs:')[0].trim()
-  if (name) e.message = name + ': ' + e.message
-  e.stack = [head, name?`    ${name}`:null, ...stack].filter(Boolean).join('\n')
-  return e
-};
-
 export const see = (arg: unknown) => {
-  const color = !('NO_COLOR' in env)
+  const color = !NO_COLOR // FIXME move these to color.ts:
   const dim   = color ? '\x1b[38;5;245m' : ''
   const reset = color ? '\x1b[0m'        : ''
   console.debug(`${dim}${stringify(arg)}${reset}`)
   return arg
 };
 
+import { Case } from '../deps.ts';
 export const camelize = <T extends object>(object: T) => {
   const returned = {}
   for (const [key, value] of Object.entries(object)) {
