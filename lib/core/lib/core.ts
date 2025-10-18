@@ -16,18 +16,18 @@ import { exit, argv, fileURLToPath } from '../deps.ts'
   *
   * */
 export const entrypoint = <F extends ((...args: string[])=>unknown)> (
-  meta: ImportMeta = {},
-  callback: F
+  meta: Partial<ImportMeta> = {},
+  main: F
 ): F => {
-  const [_, main, ...args] = argv
-  const shouldRun = meta.main || (meta.url && fileURLToPath(meta.url) == main);
+  const [_, argv1, ...args] = argv
+  const shouldRun = meta.main || (meta.url && fileURLToPath(meta.url) == argv1);
   if (shouldRun) setImmediate(()=>Promise
-    .resolve(callback(...args))
+    .resolve(main(...args))
     .catch((e: Error & { exitCode?: number })=>{
       console.error(e);
       exit(e.exitCode ?? 1);
     }))
-  return callback
+  return main
 }
 
 /** Partial application of a function.
@@ -46,16 +46,16 @@ export const entrypoint = <F extends ((...args: string[])=>unknown)> (
   *
   *     // Is tested like this:
   *     expect("description",
-  *       call(fn, arg1, arg2),
+  *       curry(fn, arg1, arg2),
   *       check)
   */
-export const call = <F extends ((..._:unknown[])=>unknown)>(
+export const curry = <F extends ((..._:unknown[])=>unknown)>(
   fn: F, ...args: Partial<Parameters<F>>
 ) => Object.assign(fn.bind(null, ...args), {
   fn, args, stack: new Error().stack?.split('\n').slice(3)
 })
 
-/** Universal color-blind combinator.
+/** Point-free combinator: construct a callable pipeline of functions.
   *
   * When there's an async step in the pipeline,
   * the whole pipeline "becomes asynchronous"
@@ -73,20 +73,23 @@ export const call = <F extends ((..._:unknown[])=>unknown)>(
   **/
 export const pipe = <X, Y, F extends (_: unknown)=>unknown> (
   ...steps: F[]
-) =>
+): Pipe<X, Y, F> =>
   Object.assign(function pipe (value: X): Y {
     let state: unknown = value;
     for (const step of steps) state = resolveSync(state as unknown as X, step);
     return state as Y
   }, { steps });
 
-/** Used to make the pipe colorblind.
+export type Pipe<X, Y, F> = ((_: X) => Y) & { steps: F[] };
+
+/** Universal color-blind combinator.
   *
   * Works by checking if the return value
   * of the previous step is `then`able. */
 export const resolveSync = <X, F extends (_: unknown)=>unknown> (
   x: X | { then?: (f: F)=>Promise<unknown> }, f: F
-) => isThenable(x) ? (x as any).then(f) : f(x);
+) => isThenable(x) ? (x as unknown as { then: (_:F)=>Promise<unknown> }).then(f)
+                   : f(x);
 
 export const isThenable = (x: unknown) => !!x
   && (typeof x === 'object')
@@ -100,3 +103,9 @@ export const isType = (type: string) => Object.assign(function isType (value: an
 
 /** Check if the `typeof` a JS value is a function. */
 export const isFn = isType('function')
+
+export const pick = <T, K extends keyof T>(...keys: Array<K>) => (data: T): Pick<T, K> => {
+  const result: Partial<Pick<T, K>> = {};
+  for (const key of keys) result[key] = data[key];
+  return result as Pick<T, K>;
+};

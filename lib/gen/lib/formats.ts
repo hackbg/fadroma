@@ -1,46 +1,52 @@
-import { writeFile, joinPath } from './deps.ts';
-
-export const when = (condition, ...fns) => Object.assign(function when (data) {
-  return condition ? pipe(...fns)(data) : data
-}, { condition, fns });
-
-export type FSContext = {
-  cwd: string
-};
-
-export const dir = ({ path }) =>
-  (context: FSContext) => {
-    context.cwd = pathJoin(context.cwd, path);
-    return context;
+import { pipe, writeFile, joinPath, mkdir } from '../deps.ts';
+/** Point-free NOP. */
+export const identity = <T>(x: T): T => x;
+/** Specify a condition. */
+export const when = (condition: boolean, ...fns: unknown[]) =>
+  Object.assign(function when <T> (context: T) {
+    return (condition ? pipe(...fns) : identity)(context)
+  }, { condition, fns });
+/** Context for executing FS operations: path of current working directory. */
+export type FSContext = string;
+export type FSOp = (_: FSContext) => FSContext;
+/** Specify a temporary directory. */
+export const tmpdir = () => { throw new Error("TODO") }
+/** Specify a directory. */
+export const dir = (path: string, ...contents: FSOp[]) =>
+  (cwd: FSContext) => {
+    const location = joinPath(cwd, path);
+    return mkdir(location, { recursive: true })
+      .then(()=>Promise.all(contents.map((x: FSOp)=>x(location))))
+      .then(()=>cwd);
   }
-
-export const tmpdir => { throw new Error("TODO") }
-
-export const file = ({ path, encoding = 'utf8' }, ...steps) =>
-  (context: FSContext) => {
-    const location = pathJoin(context.cwd, path);
-    const content  = pipe(...steps)(context);
-    return writeFile(location, content, encoding).then(context);
-  }
-
-export const json = ({ path }, ...steps) =>
-  file({ path }, ...steps);
-
-export const markdown = ({ path }, ...steps) =>
-  file({ path }, ...steps);
-
-export const yaml = ({ path }, ...steps) =>
-  file({ path }, ...steps);
-
-export const toml = ({ path }, ...steps) =>
-  file({ path }, ...steps);
-
-export const rust = ({ path }, ...steps) =>
-  file({ path }, ...steps);
-
-export const js = ({ path }, ...steps) =>
-  file({ path }, ...steps);
-
-export const ts = ({ path }, ...steps) =>
-  file({ path }, ...steps);
-
+/** Specify a binary data file. */
+export const data = (path: string, ...steps: unknown[]) =>
+  (cwd: FSContext) => Promise.resolve(pipe(...steps)(cwd))
+    .then(data=>writeFile(joinPath(cwd, path), data))
+    .then(()=>cwd);
+/** Specify a text file. */
+export const text = (path: string, ...steps: unknown[]) =>
+  (cwd: FSContext) => Promise.resolve(pipe(...steps)(cwd))
+    .then(data=>writeFile(joinPath(cwd, path), data, 'utf8'))
+    .then(()=>cwd);
+/** Specify a JSON file. */
+export const json = (path: string, ...steps: unknown[]) =>
+  text(path, ...steps, (x: unknown) => JSON.stringify(x));
+/** Specify a Markdown file. */
+export const markdown = (path: string, ...steps: unknown[]) =>
+  text(path, ...steps, (_: unknown) => { throw new Error('unimplemented') });
+/** Specify a YAML file. */
+export const yaml = (path: string, ...steps: unknown[]) =>
+  text(path, ...steps, (_: unknown) => { throw new Error('unimplemented') });
+/** Specify a TOML file. */
+export const toml = (path: string, ...steps: unknown[]) =>
+  text(path, ...steps, (_: unknown) => { throw new Error('unimplemented') });
+/** Specify a Rust file. */
+export const rust = (path: string, ...steps: unknown[]) =>
+  text(path, ...steps, (_: unknown) => { throw new Error('unimplemented') });
+/** Specify a JS file. */
+export const js = (path: string, ...steps: unknown[]) =>
+  text(path, ...steps, (_: unknown) => { throw new Error('unimplemented') });
+/** Specify a TS file. */
+export const ts = (path: string, ...steps: unknown[]) =>
+  text(path, ...steps, (_: unknown) => { throw new Error('unimplemented') });

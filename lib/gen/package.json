@@ -1,5 +1,8 @@
 {
   "name": "@fadroma/gen",
   "type": "module",
-  "main": "index.ts"
+  "main": "index.ts",
+  "dependencies": {
+    "@fadroma/core": "../core"
+  }
 }
