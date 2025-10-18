@@ -1,0 +1,12 @@
+{
+  "imports": {
+    "@fadroma/core": "../core",
+    "@fadroma/gen":  "../gen"
+  },
+  "nodeModulesDir": "auto",
+  "lint": {
+    "rules": {
+      "exclude": ["no-async-promise-executor"]
+    }
+  }
+}
