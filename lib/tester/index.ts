@@ -1,2 +1,179 @@
+import type * as Test from './types.ts';
+import { renamed, pipe, joined, formatMsec, red, green, orange, yellow, gray } from './deps.ts';
+
 export * from './types.ts';
-export * from './lib/expect.ts';
+
+/** Define a test suite. Running it will output a test report.
+  *
+  * Example:
+  *
+  *     import { entrypoint, suite, expect, todo } from '@fadroma/tester';
+  *     export default entrypoint(import.meta, suite(,
+  *       expect('Test A', todo()),
+  *       expect('Test B'
+  *         expect('Test C', todo())
+  *         expect('Test D', todo()))))
+  **/
+export const suite = (...steps: Test.Step<unknown>[]) => Object.assign(
+  async function testSuite (args: string[]) {
+    Error.stackTraceLimit = Infinity;
+    const run = pipe(...steps);
+    const { context, details, summary } = report();
+    let error, result;
+    try { result = await run(context()) } catch (e) { error = e }
+    console.log([details(), summary()].filter(Boolean).join('\n'));
+    if (error) throw error;
+    return result;
+  }, { steps });
+
+export const report = ({
+  failFast = true,
+  pass = category(`🟢`, 'passed',   'Passed',  green( 'ok     ')),
+  fail = category(`🔴`, 'failed',   'Failed',  red(   'wrong  ')),
+  todo = category(`🟠`, 'tasks',    'TODO',    orange('todo   ')),
+  warn = category(`🟡`, 'warnings', 'Warning', yellow('warning')),
+  context = ({ t0 = performance.now, ...rest } = {}) => ({
+    t0, id: [], label: [],
+    ...[pass, fail, todo, warn].map(x=>x.add),
+    ...rest,
+    async track <T> (id: number|null, label: string|null, callback: Test.Step<T>): T {
+      //const label = `${id?(id+' '):''}${label?(label+' '):''}`
+      const t0 = performance.now()
+      console.log(`👉️ @${formatMsec(t0)} ${label}`)
+      try {
+        return pass.add(t0, label, await callback(context({ t0, id, label })))
+      } catch (e: unknown) {
+        const error = e as { todo?: unknown, message: string, stack?: string };
+        if (error.todo) {
+          return todo.add(t0, label||'(untitled)', error.message)
+        } else {
+          const failure = fail.add(t0, label||'(untitled)', error.message, error.stack?.split('\n').slice(1).join('\n'));
+          if (failFast) { throw failure; } else { return failure; }
+        }
+      }
+    }
+  })
+} = {}): Test.Report => ({
+  context, pass, fail, todo, warn,
+  summary: () => joined(' ', ...[pass, fail, todo, warn].map(x=>x.length > 0 && x.summary())),
+  details: () => joined(' ', ...[pass, fail, todo, warn].map(x=>x.length > 0 && x.details())),
+})
+
+export const reStep = / (\d+)(.(\d+))? /
+
+export const category = (
+  icon: string, summary: string, details: string, _tag: string,
+  detail = ({ summary, details }: Test.Result) => joined('\n',
+    `${icon} ${summary}`, ...details.filter(Boolean).map((x, i)=>`   ${gray((i+1)*3, JSON.stringify(x))}`)),
+  sorter = (a: Test.Result, b: Test.Result) => {
+    const [_a0, a1 = NaN, _a2, a3 = NaN] = (a.summary.match(reStep)||[]).map(Number)
+    const [_b0, b1 = NaN, _b2, b3 = NaN] = (b.summary.match(reStep)||[]).map(Number)
+    const result = (a1 > b1) ? 1 : (a1 < b1) ? -1 : (a3 > b3) ? 1 : (a3 < b3) ? -1 : -1
+    return -result
+  }
+): Test.Results => {
+  const results: Test.Result[] = []
+  return Object.assign(results, {
+    icon,
+    summary: () => joined(' ', icon, String(results.length), summary),
+    details: () => {
+      const sorted = joined('\n', results.sort(sorter).map(detail));
+      return joined('', '\n', details, ': \n', sorted, '\n');
+    },
+    add: (t0: number, summary: string, ...details: unknown[]) => {
+      const tD = performance.now() - t0;
+      const result = { t0, tD, summary, details };
+      results.push(result);
+      return result;
+    },
+  })
+}
+
+/** A test case, consisting of a name and one or more test steps.
+ *
+  * The test steps run in sequence, and are isolated from each other.
+  * If no step throws an uncaught exception, the test case is passed.
+  *
+  * Return values are collected in an array and returned at the end.
+  * This way you can show detailed test results in the final test report.
+  *
+  * Example:
+  *
+  *     import { expect } from '@fadrma/tester';
+  *
+  *     const testThing = expect('Thing', _ => ok(1 == 1));
+  *
+  *     const testSomeThings = expect('Some things',
+  *       _ => ok(1 === 1),
+  *       _ => equal(1, 1),
+  *       testThing);
+  *
+  * * [ ] TODO: Add generic to [Test.Context] for typed domain-specific test state.
+  **/
+export const expect = (label: string, ...steps: Test.Step<unknown>[]) =>
+  Object.assign(renamed(label, async function expectation (
+    context = report().context()
+  ) { 
+    const results = steps.map(_=>undefined as unknown);
+    for (const index in steps) {
+      try {
+        const step = steps[index];
+        const id = [context.id, String(Number(index)+1)].filter(Boolean).join('.');
+        results[index] = await context.track(id, label, step);
+      } catch (error) {
+        throw addStepStack(steps[index], error as Error);
+      }
+    }
+    return results;
+  }), { label, steps });
+
+/** A **test case** for expecting an exception to be thrown. */
+export const forbid = (
+  name: string, failure: Test.Step,
+  // TODO: ...steps: Array<(_: Error)=>unknown>
+) => {
+  name = [`Forbid`, name].filter(Boolean).join(': ');
+  return renamed(name, function forbidRun (context: Test.Context) {
+    const label = [context.label, name].filter(Boolean).join(': ');
+    return context.track(context.id, label, async function forbidRunTracked() {
+      let result, error;
+      try {
+        result = await failure(context);
+        error = new Error(`${name}: missing expected failure, got: ${result}`);
+      } catch (e) {
+        return e;
+      }
+      throw Object.assign(error, { name, result });
+    })
+  })
+}
+
+/** This step terminates a test when reached.
+  * Tests terminated by this step are counted
+  * as neither passed nor failed. */
+export const todo = (...info: string[]) =>
+  Object.assign(renamed(info.join(' '), function trackTodo (context: Test.Context) {
+    throw Object.assign(new Error(info.join(' ')), { todo: true })
+  }), { info })
+
+export const matrix = <T>(name: string, variants: ((T)=>unknown)[]) =>
+  expect(name, (context: Test.Context = {}) =>
+    Promise.all(variants.map(variant=>variant(context))));
+
+export const includes = (x) => line => line.includes(x)
+
+export function assertLength (length, x, name) {
+  equal(x?.length, length, name)
+  return x
+}
+
+const warnReturn = (context: Test.Context, id: string, result: unknown) =>
+  context.warn(0, `Test step ${id} returned an unexpected value.`,
+    `This may indicate a faulty test function.`,
+    result);
+
+const addStepStack = (step: Test.Step, error: Error) => {
+  error.stack ||= ''
+  if (step.stack) error.stack += '\n  Test defined at:\n' + step.stack.join('\n')
+  return error
+}

@@ -24,6 +24,11 @@ export const GRAY = (depth: number) => [
   '\x1b[38;5;252m',
   '\x1b[38;5;251m',
   '\x1b[38;5;250m',
+  '\x1b[38;5;249m',
+  '\x1b[38;5;248m',
+  '\x1b[38;5;247m',
+  '\x1b[38;5;246m',
+  '\x1b[38;5;245m',
 ][depth]
 
 export const red    = (x: Stringy) => `${ANSI_RED}${x}${ANSI_RESET}`
