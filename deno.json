@@ -1,5 +1,6 @@
 {
   "strict": false,
+  "allowImportingTsExtensions": true,
   "nodeModulesDir": "auto",
   "imports": {
     "@coral-xyz/anchor":    "npm:@coral-xyz/anchor",
@@ -29,5 +30,5 @@
     "rules": {
       "exclude": ["no-async-promise-executor", "require-await"]
     }
-  },
+  }
 }

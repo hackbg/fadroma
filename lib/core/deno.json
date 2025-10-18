@@ -1,4 +1,6 @@
 {
+  "strict": false,
+  "allowImportingTsExtensions": true,
   "nodeModulesDir": "auto",
   "imports": {
     "@hackbg/dump": "npm:@hackbg/dump",

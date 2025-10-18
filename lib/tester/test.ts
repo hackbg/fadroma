@@ -1,13 +1,12 @@
 #!/usr/bin/env -S deno run --allow-env
-import { suite, expect, todo } from './index.ts';
-import { entrypoint } from './deps.ts';
-export default entrypoint(import.meta, suite('Tester',
+import { suite, expect } from './index.ts';
+export default suite(import.meta, 'Tester',
   expect('Reporting',
-    expect('Categories', todo()),
-    expect('Result set', todo(),
-      expect('Step counter', todo()))),
+    expect('Categories'),
+    expect('Result set',
+      expect('Step counter'))),
   expect('Execution',
-    expect('Suite',  todo()),
-    expect('Expect', todo()),
-    expect('Forbid', todo()),
-    expect('Matrix', todo()))));
+    expect('Suite'),
+    expect('Expect'),
+    expect('Forbid'),
+    expect('Matrix')));

@@ -1,4 +1,4 @@
-import { exit, argv, fileURLToPath } from '../deps.ts'
+import { exit, argv, fileURLToPath } from '../deps.ts';
 
 /** If the current module is the program entrypoint,
   * runs the given main function as a separate task.
@@ -15,14 +15,24 @@ import { exit, argv, fileURLToPath } from '../deps.ts'
   *   }
   *
   * */
-export const entrypoint = <F extends ((...args: string[])=>unknown)> (
+export function entrypoint (
+  meta: Partial<ImportMeta>,
+  main: ((...args: string[])=>unknown),
+): typeof main;
+export function entrypoint (
+  meta: Partial<ImportMeta>,
+  main: ((...args: string[])=>unknown),
+  alt: unknown
+): typeof alt;
+export function entrypoint (
   meta: Partial<ImportMeta> = {},
-  main: F
-): F => {
+  main: ((...args: string[])=>unknown),
+  alt?: unknown
+) {
   const [_, argv1, ...args] = argv
   const shouldRun = meta.main || (meta.url && fileURLToPath(meta.url) == argv1);
   if (shouldRun) {
-    console.log({main})
+    console.log('Running main:', main);
     setImmediate(()=>Promise
       .resolve(main(...args))
       .catch((e: Error & { exitCode?: number })=>{
@@ -30,6 +40,7 @@ export const entrypoint = <F extends ((...args: string[])=>unknown)> (
         exit(e.exitCode ?? 1);
       }));
   }
+  if (alt) return alt
   return main
 }
 
@@ -76,12 +87,11 @@ export const curry = <F extends ((..._:unknown[])=>unknown)>(
   **/
 export const pipe = <X, Y, F extends (_: unknown)=>unknown> (
   ...steps: F[]
-): Pipe<X, Y, F> =>
-  Object.assign(function pipe (value: X): Y {
-    let state: unknown = value;
-    for (const step of steps) state = resolveSync(state as unknown as X, step);
-    return state as Y
-  }, { steps });
+): Pipe<X, Y, F> => Object.assign(function pipe (value: X): Y {
+  let state: unknown = value;
+  for (const step of steps) state = resolveSync(state as unknown as X, step);
+  return state as Y
+}, { steps });
 
 export type Pipe<X, Y, F> = ((_: X) => Y) & { steps: F[] };
 
@@ -91,8 +101,9 @@ export type Pipe<X, Y, F> = ((_: X) => Y) & { steps: F[] };
   * of the previous step is `then`able. */
 export const resolveSync = <X, F extends (_: unknown)=>unknown> (
   x: X | { then?: (f: F)=>Promise<unknown> }, f: F
-) => isThenable(x) ? (x as unknown as { then: (_:F)=>Promise<unknown> }).then(f)
-                   : f(x);
+) => isThenable(x)
+  ? (x as unknown as { then: (_:F)=>Promise<unknown> }).then(f)
+  : f(x);
 
 export const isThenable = (x: unknown) => !!x
   && (typeof x === 'object')
@@ -116,18 +127,22 @@ export const pick = <T, K extends keyof T>(
   return result as Pick<T, K>;
 }, { keys });
 
+/** Construct a new "static object" (i.e. without prototypes)
+  * out of method collections and base object. */
 export const bindMethods = <T extends object> (
   ...apis: Array<Record<string, Method<T>>>
 ) => Object.assign(function bindMethodsTo (state: T) {
   return Object.assign(state, ...apis.map(api=>mapApi(state)(api)))
 }, { apis });
 
+/** Bind methods from an API object to a state. */
+export const mapApi = <T> (state: T) =>
+  mapEntries((name, method: Method<T>)=>[
+    name, (...args: unknown[]) => method(state, ...args)]);
+
 export const mapEntries = <T extends object> (
   fn: (k: keyof T, v: T[typeof k], i: number) => unknown
 ) => (obj: T) => Object.fromEntries(Object.entries(obj)
   .map(([k, v], i)=>[k, fn(k, v, i)]))
-
-export const mapApi = <T> (state: T) =>
-  mapEntries((name, method: Method<T>)=>[name, (...args: unknown[]) => method(state, ...args)]);
 
 type Method<T> = (_: T, ...__: unknown[]) => unknown[]

@@ -1,5 +1,7 @@
 /** False, zero, empty string, null, undefined, zip, nada, zilch. */
 export type Falsy = 0 | '' | false | null | undefined;
+/** Soft optional. */
+export type Maybe<T> = T|Falsy;
 /** String, or something with a `toString` method. */
 export type Stringy = string|{ toString(): string };
 /** 128-bit integer. */
@@ -26,38 +28,25 @@ export type Id = string|number|bigint
 /** Uniquely identified item. */
 export type Identified<I extends Id> = { id: I };
 /** Human-readable name. */
-export type Name   = string
+export type Name = string
 /** Named item. */
-export type Named  = { name: Name };
+export type Named = { /* The name. */ name: Name };
 /** Human-readable info interface. */
 export type Info = { summary (): string, details (): string };
 /** Hash. */
-export type Hash   = string|Uint8Array;
+export type Hash = string|Uint8Array;
 /** Hashed item. */
-export type Hashed = { hash: Hash };
+export type Hashed = { /** The hash. */ hash: Hash };
 /** Color. TODO specify representation */
 export type Color = unknown;
 /** Thing identifiable by color. */
-export type Colorful = {
-  /** The identifying color. */
-  color: Color
-};
+export type Colorful = { /** The identifying color. */ color: Color };
 /** Semantic version. */
 export type Semver = string; // TODO
 /** Versioned component. */
-export type Versioned = { version: Semver };
-
+export type Versioned = { /* The version. */ version: Semver };
+/** TODO: Alias for various buffer types. */
 export type Bytes = Uint8Array;
-
-/** A raw response from an endpoint. */
-export type Response = {
-  /** The query that was made. */
-  url?:       string,
-  /** The data that was returned, which may be invalid (e.g. a 502) */
-  data?:      string
-  /** The moment the query was made. */
-  timestamp?: string,
-};
 /** A valid JSON-RPC v2 response, which may be a result or an error. */
 export type JsonRpcResponse<R> = {
   jsonrpc: string, id: number, result?: R, error?: { data: string }
