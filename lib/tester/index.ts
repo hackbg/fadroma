@@ -17,9 +17,9 @@ export const suite = (...steps: Test.Step<unknown>[]) => Object.assign(
   async function testSuite (_args: string[]) {
     Error.stackTraceLimit = Infinity;
     const run = expect('', ...steps);
-    const { context, details, summary } = report();
+    const { getContext, details, summary } = report();
     let error, result;
-    try { result = await run(context()) } catch (e) { error = e }
+    try { result = await run(getContext()) } catch (e) { error = e }
     console.log([details(), summary()].filter(Boolean).join('\n'));
     if (error) throw error;
     return result;
@@ -47,7 +47,7 @@ export const suite = (...steps: Test.Step<unknown>[]) => Object.assign(
   **/
 export const expect = (label: string, ...steps: Test.Step<unknown>[]) =>
   Object.assign(renamed(label, async function expectation (
-    context = report().context()
+    context = report().getContext()
   ) { 
     const results = steps.map(_=>undefined as unknown);
     for (const index in steps) {
@@ -113,7 +113,7 @@ export const matrix = <T>(
   .map(([k, v])=>expect(k, ...steps(v))));
 
 export const parallel = (name: string, variants: ((_: Test.Context)=>unknown)[]) =>
-  expect(name, (context = report().context()) =>
+  expect(name, (context = report().getContext()) =>
     Promise.all(variants.map(variant=>variant(context))));
 
 export const includes = <T>(x: T) =>
@@ -143,7 +143,7 @@ export const report = ({
   fail = category(`🔴`, 'failed',   'Failed',  red(   'wrong  ')),
   todo = category(`🟠`, 'tasks',    'TODO',    orange('todo   ')),
   warn = category(`🟡`, 'warnings', 'Warning', yellow('warning')),
-  context = ({ ids = [], labels = [], ...rest } = {}): Test.Context => ({
+  getContext = ({ ids = [], labels = [], ...rest } = {}): Test.Context => ({
     t0: performance.now(), ids, labels,
     ...[pass, fail, todo, warn].map(x=>x.add),
     ...rest,
@@ -152,8 +152,10 @@ export const report = ({
       const t0 = performance.now()
       console.log(`👉️ @${formatMsec(t0)} ${label}`)
       try {
-        const stepContext = context({ t0, ids: [...ids, id], labels: [...labels, label] });
-        return pass.add(t0, label, await callback(stepContext)) as T;
+        const context = getContext({ t0, ids: [...ids, id], labels: [...labels, label] });
+        const summary = joined(' -- ', joined('.', ...ids, id), joined(': ', ...labels, label));
+        const result  = await callback(context);
+        return pass.add(t0, summary, result) as T;
       } catch (e: unknown) {
         const error = e as { todo?: unknown, message: string, stack?: string };
         if (error.todo) {
@@ -170,7 +172,7 @@ export const report = ({
     }
   })
 } = {}): Test.Report => ({
-  context, pass, fail, todo, warn,
+  getContext, pass, fail, todo, warn,
   summary: () => joined(' ', ...[pass, fail, todo, warn].map(x=>x.length > 0 && x.summary())),
   details: () => joined(' ', ...[pass, fail, todo, warn].map(x=>x.length > 0 && x.details())),
 })

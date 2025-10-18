@@ -5,7 +5,7 @@ export type Add = (t0: number, summary: string|null, ...extra: unknown[])=>void;
 export type Timed = { t0?: number, tD?: number };
 export type Results = Result[] & Info & { icon: string, add: Add };
 /** The test report. */
-export type Report = Categorized<Results> & Info & { context (_?: Partial<Context>): Context };
+export type Report = Categorized<Results> & Info & { getContext (_?: Partial<Context>): Context };
 /** The test context for a step. */
 export type Context = Categorized<Add> & {
   t0?: number,
