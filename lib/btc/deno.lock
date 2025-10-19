@@ -8,6 +8,7 @@
     "npm:@hackbg/logs@*": "3.1.1",
     "npm:@hackbg/oops@*": "1.1.0",
     "npm:bitcoinjs-lib@7": "7.0.0",
+    "npm:browser-level@3": "3.0.0",
     "npm:indexd@~0.9.1": "0.9.1",
     "npm:level@10": "10.0.0",
     "npm:typeforce@^1.18.0": "1.18.0",
@@ -319,6 +320,7 @@
     "packageJson": {
       "dependencies": [
         "npm:bitcoinjs-lib@7",
+        "npm:browser-level@3",
         "npm:indexd@~0.9.1",
         "npm:level@10",
         "npm:typeforce@^1.18.0",

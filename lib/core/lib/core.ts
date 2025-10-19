@@ -95,10 +95,12 @@ export const mapApi = <T> (state: T) =>
   mapEntries((name, method: Method<T>)=>[
     name, (...args: unknown[]) => method(state, ...args)]);
 
+/** Transform an object using a function
+  * `(key, value, index) => newValue`. */
 export const mapEntries = <T extends object> (
   fn: (k: keyof T, v: T[typeof k], i: number) => unknown
 ) => (obj: T) => Object.fromEntries(Object.entries(obj)
-  .map(([k, v], i)=>[k, fn(k, v, i)]))
+  .map(([k, v], i)=>[k, fn(k as keyof T, v, i)]))
 
 type Method<T> = (_: T, ...__: unknown[]) => unknown[]
 

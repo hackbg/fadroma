@@ -1,9 +1,10 @@
-#!/usr/bin/env -S deno run --allow-env
-import { entrypoint, gray } from '@fadroma/core';
-import { run } from '@fadroma/tester';
+#!/usr/bin/env -S deno run --allow-env --allow-run
 import { stdin, stdout } from 'node:process';
 import testSuite from './test.ts';
 import * as Test from './lib/tester/index.ts';
+import { entrypoint, gray } from './lib/core/index.ts';
+import { run } from './lib/tester/index.ts';
+import { exec } from './lib/spawn/index.ts';
 
 const RESET = `\x1b[0m`;
 const FG255 = x => `\x1b[38;5;${x}m`;
@@ -16,11 +17,20 @@ export default entrypoint(import.meta, async function main (..._args) {
   let height = stdout.rows    || 25;
   let exited = false;
   const state = {
-    exited: false,
-    size:   { width, height },
-    list:   collectList(collectTree(testSuite.steps)),
-    filter: '',
-    run:    () => run(testSuite),
+    exited:   false,
+    size:     { width, height },
+
+    list:     collectList(collectTree(testSuite.steps)),
+    filter:   '',
+    suite:    testSuite,
+    runTests: () => run(state.suite),
+
+    checks:   [],
+    check:    exec('deno', 'check', 'lib/btc/index.ts'),
+    runCheck: async () => {
+      const result = await state.check();
+      console.log({result});
+    },
   };
   if (stdin.isTTY && !stdin.isRaw) stdin.setRawMode(true);
   try {
@@ -99,7 +109,10 @@ export function input (state) {
             break;
           }
           if (chunk.includes('t')) {
-            state.run();
+            state.runTests();
+          }
+          if (chunk.includes('c')) {
+            state.runCheck();
           }
         }
         if (state.exited) {

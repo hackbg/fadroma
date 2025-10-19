@@ -1,12 +1,11 @@
 export {
-  compose, shell, spawn, every, setEnv, arg, run,
-  serve, rest, ware, get, post,
+  compose, exec, spawn, every, setEnv, arg,
+  serveTcp, serveHttp, rest, ware, get, post,
 } from '@fadroma/spawn';
 
 //export * as ZMQ    from 'npm:zeromq';
 export * as Indexd from 'npm:indexd';
-export const DB = {};
-//export * as DB     from 'npm:level';
+export * as DB     from 'npm:browser-level';
 export * as RPC    from 'npm:yajrpc';
 
 import Typeforce from 'npm:typeforce';

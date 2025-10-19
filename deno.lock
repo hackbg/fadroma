@@ -13,6 +13,7 @@
     "npm:@solana/spl-token@*": "0.4.14_@solana+web3.js@1.98.4",
     "npm:@types/node@*": "24.2.0",
     "npm:bitcoinjs-lib@*": "7.0.0",
+    "npm:browser-level@*": "3.0.0",
     "npm:case@^1.6.3": "1.6.3",
     "npm:indexd@*": "0.9.1",
     "npm:level@*": "10.0.0",

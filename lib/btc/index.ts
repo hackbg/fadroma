@@ -1,6 +1,6 @@
 import {
-  compose, shell, spawn, every, arg, run,
-  serve, rest, ware, get, post,
+  compose, exec, spawn, every, arg,
+  serveTcp, serveHttp, rest, ware, get, post,
 
   Indexd, DB, RPC, isHex64, ECPair, TransactionBuilder,
   sha256, p2pkh, toOutputScript,
@@ -17,30 +17,33 @@ export const localnet = ({
   concurrent = 16,
   rpcwq      = 32,
   auth       = [],
+  httpPort   = 48484,
+  zmqPort    = 48485,
 
-  _rpc2       = 'http://localhost:18443',
-  _keyDb      = 'regtest.keys',
+  _rpc2      = 'http://localhost:18443',
+  _keyDb     = 'regtest.keys',
 
   index      = DB(indexDb),
   rpc        = RPC.default({ url, auth, batch, concurrent }),
   indexd     = new Indexd(index, rpc),
   //zmq        = zeromqIndexd(zmqUrl, indexd),
-  address    = run(client, arg('-regtest'), arg('getnewaddress'), arg('""'), arg('bech32')),
-}) => compose('Bitcoin Localnet API',
+  address    = exec(client, arg('-regtest'), arg('getnewaddress'), arg('""'), arg('bech32')),
+} = {}) => compose('Bitcoin Localnet API',
   spawn(daemon, arg('-server'), arg('-regtest'), arg('-txindex'),
     arg(`-zmqpubhashtx=${zmqUrl}`), arg(`-zmqpubhashblock=${zmqUrl}`),
     arg(`-rpcworkqueue=${rpcwq}`)),
-  shell(client, arg('-regtest'), arg('createwallet'), arg('default')),
-  shell(client, arg('-regtest'), arg('generatetoaddress'), arg('432'), arg(address)),
+  exec(client, arg('-regtest'), arg('createwallet'), arg('default')),
+  exec(client, arg('-regtest'), arg('generatetoaddress'), arg('432'), arg(address)),
   every(60000, () => indexd.tryResync()),
-  serve(rest('1',
+  serveTcp(zmqPort, _socket => {}),
+  serveHttp(httpPort,
     txApi({ rpc, indexd }),
     bxApi({ rpc, indexd }),
     rxApi({ rpc }),
-    axApi({ indexd }))));
+    axApi({ indexd })));
 
 /** Transactions API. */
-export const txApi = ({ rpc, indexd }) => rest('t',
+export const txApi = ({ rpc, indexd }) => rest('1/t',
   get('mempool', req => rpc('getrawmempool', [false])),
   post('push', ware(bodyParser.text()), req => rpc('sendrawtransaction', [req.body]),
   post('alt/pushtx', ware(bodyParser.json()), req => rpc('sendrawtransaction', [req.body.hex])),
@@ -59,7 +62,7 @@ export const txApi = ({ rpc, indexd }) => rest('t',
     get('block', req => indexd().blockIdByTransactionId(req.params.id))));
 
 /** Blocks API. */
-export const bxApi = ({ indexd, rpc }) => rest('b',
+export const bxApi = ({ indexd, rpc }) => rest('1/b',
   get('best', req => rpc('getbestblockhash', [])),
   get('fees', req => indexd().latestFeesForNBlocks(req.query.count || 64),
   rest(':id',
@@ -68,7 +71,7 @@ export const bxApi = ({ indexd, rpc }) => rest('b',
     get('header', req => rpc('getblockheader', [req.params.id, false])),
     get('height', req => rpc('getblockheader', [req.params.id, true])))));
 
-export const rxApi = ({ rpc, auth = [] }) => rest('r',
+export const rxApi = ({ rpc, auth = [] }) => rest('1/r',
   must(401, req => !!req.query.key),
   must(403, req => (!(sha256(req.query.key).toString('hex') in auth))),
   post('generate', (req, res) => {
@@ -117,7 +120,7 @@ export const rxApi = ({ rpc, auth = [] }) => rest('r',
 
 /** Address API. */
 export const axApi = ({ indexd = null, dblimit = null, heightRange = [0, 0xffffffff] }) =>
-  rest('a/:address',
+  rest('1/a/:address',
     param('scId', toScId),
     get('firstseen', req => indexd().firstSeenScriptId(req.params.scId)),
     get('txs',       req => indexd().transactionIdsByScriptRange({
