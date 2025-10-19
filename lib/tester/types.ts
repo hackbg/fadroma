@@ -1,30 +1,44 @@
-import type { Info, MaybeAsync } from '@hackbg/fadroma';
-/** Valid test result categories. */
+import type { Info, MaybeAsync } from './deps.ts';
+
+/** Names of test result categories. */
 export type Category = 'pass'|'fail'|'todo'|'warn';
-/** Things keyed by category name. */
-export type Categorized<T> = Record<Category, T>;
+
+/** Something grouped by category name. */
+export type ByCategory<T> = Record<Category, T>;
+
+/** Can obtain updated context. */
+export type GetContext = { getContext (_?: Partial<Context>): Context };
+
+/** The test report. */
+export type Report = ByCategory<Results>& GetContext & Info;
+
 /** Start time and duration. */
 export type Timed = { t0?: number, tD?: number };
-/** The test report. */
-export type Report = Categorized<Results> & Info & CanGetContext;
-/** Can obtain updated context. */
-export type CanGetContext = { getContext (_?: Partial<Context>): Context };
-/** The test context for a step. */
-export type Context = Categorized<Add> & Timed & CanGetContext & {
-  /** Breadcrumb of parent step indexes. */
-  ids: number[],
-  /** Breadcrumb of parent step names. */
-  names: string[],
-  /** Execute a test step and categorize the result. */
-  track: Track
-};
-/** Function that tracks a leaf of the test tree. */
-export type Track = <T>(id: number|null, name: string|null, callback: Step<T>) => MaybeAsync<T>;
+
 /** A test step. */
-export type Step<T> = { stack?: string[] } & ((context: Context) => MaybeAsync<T>);
+export type Step<T> = { stack?: string[]
+                      , steps?: unknown[] } & ((context: Context) => MaybeAsync<T>);
+
 /** The result of a test step. */
-export type Result = Timed & { summary: string|null, details: unknown[] };
+export type Result = { summary: string|null, details: unknown[] } & Timed;
+
 /** Collection of results for a given category. */
-export type Results = Result[] & Info & { icon: string, add: Add };
+export type Results = { icon: string, add: Add } & Result[] & Info;
+
+/** The test context for a step. */
+export type Context = { failFast?:   boolean
+                      , failOnTodo?: boolean
+                      , /** Breadcrumb of parent step indexes. */
+                        ids:         number[]
+                      , /** Breadcrumb of parent step names. */
+                       names:       string[]
+                     , /** Execute a test step and categorize the result. */
+                       track:       Track } & ByCategory<Add> & GetContext & Timed;
+
+/** Track the status of a leaf of the test tree. */
+export type Track = <T>(id: number|null, name: string|null, callback: Step<T>)
+  => MaybeAsync<T>;
+
 /** Add a result to a category. */
-export type Add = (t0: number, summary: string|null, ...extra: unknown[])=>void;
+export type Add = (t0: number, summary: string|null, ...extra: unknown[])
+  => void;

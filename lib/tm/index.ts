@@ -3,30 +3,50 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
 import type {
   Context, Block, Height, Coin, Fee,
-  BlockResponse, BlockResults, BlockResultsResponse,
-  Fungible, TokenApi, Token,
+  Fungible, TokenApi, Token, Address, Hash, Uint128, Chain, ChainOptions,
+  Api, TryToParse, BlockResponse, BlockResults, BlockResultsResponse,
+  TokenAmount,
 } from './types.ts';
-import { Core, base16, base64, uint32, camelize } from './deps.ts';
-import type { Address, Hash, Uint128 } from './deps.ts';
-
+import {
+  randomId, base16, base64, uint32, camelize, baseChain, tryToParse
+} from './deps.ts';
 const BaseError = globalThis.Error;
-
 /** A Tendermint error .*/
 export class Error extends BaseError {
-  constructor (message, ...args: object[]) {
-    super(message); Object.assign(this, ...args);
-  }
   static TODO = (...args: string[]) => {
-    throw Object.assign(new Error(['TODO', ...args].join(' ')), { todo: true })
+    throw new this(['TODO', ...args].join(' '), { todo: true })
+  }
+  constructor (message: string, ...args: object[]) {
+    super(message);
+    Object.assign(this, ...args);
   }
 }
 
 /** Describe a Tendermint chain. */
-export const chain = ({ ...options }: Partial<Core.Chain> & ChainOptions, api = impl): Chain =>
-  Core.chain(options, api as any) as Chain
+export const chain = ({ ...options }: Partial<Chain> & ChainOptions, api = impl): Chain =>
+  baseChain(options, api) as Chain;
 
 /** Fetch a block from a Tendermint chain, optionally with block results. */
-export const fetch = (api: Context) => ({
+export const read = (api: Context, {
+  fetchAndTryToParseBlockResponse =
+    async (api: Context, options?: { height?: Height, hash?: string }):
+      Promise<[string, TryToParse<string, BlockResponse>]> => {
+        if (!api.url) throw new Error("missing connection URL: can't fetch block")
+        const { height, hash } = options || {}
+        if (hash) throw new Error("can't fetch block by hash yet")
+        if (height && isNaN(Number(height))) throw new Error(`invalid height requested: ${height}`)
+        const url = `${api.url}/block?height=${height??''}`
+        const response = await fetch(url).then(r=>r.text())
+        return [url, tryToParse(response)] },
+  fetchAndTryToParseResultsResponse =
+    async (api: Context, options?: { height?: Height }):
+      Promise<[string, TryToParse<string, BlockResultsResponse>]> => {
+        if (!api.url) throw new Error("missing connection URL: can't fetch block results")
+        const { height } = options || {}
+        const url = `${api.url}/block_results?height=${height??''}`
+        const response = await fetch(url).then(r=>r.text())
+        return [url, tryToParse(response)] }
+} = {}) => ({
 
   async block (options?: {
     height?: Height, hash?: string, results?: boolean, raw?: boolean
@@ -108,7 +128,7 @@ export const fetch = (api: Context) => ({
     if (!path) throw new Error('fetchAbciQuery: no path')
     const data     = options?.data || new Uint8Array()
     const params   = {path, data: base16.encode(data), prove: options?.prove ?? false, height: options?.height}
-    const message  = {jsonrpc: '2.0', id: Console.randomId(), method: 'abci_query', params}
+    const message  = {jsonrpc: '2.0', id: randomId(), method: 'abci_query', params}
     const headers  = {'Content-Type': 'application/json'}
     const body     = JSON.stringify(message)
     api.log.debug('fetchAbciQuery:', body)
@@ -135,33 +155,18 @@ export const fetch = (api: Context) => ({
   async txSearch () { return Error.TODO('fetchTxSearch') }
 });
 
-const fetchAndTryToParseBlockResponse =
-  async (api: Context, options?: { height?: Height, hash?: string }):
-    Promise<[string, Core.TryToParse<string, BlockResponse>]> => {
-      if (!api.url) throw new Error("missing connection URL: can't fetch block")
-      const { height, hash } = options || {}
-      if (hash) throw new Error("can't fetch block by hash yet")
-      if (height && isNaN(Number(height))) throw new Error(`invalid height requested: ${height}`)
-      const url = `${api.url}/block?height=${height??''}`
-      const response = await fetch(url).then(r=>r.text())
-      return [url, Core.tryToParse(response)] }
-const fetchAndTryToParseResultsResponse =
-  async (api: Context, options?: { height?: Height }):
-    Promise<[string, Core.TryToParse<string, BlockResultsResponse>]> => {
-      if (!api.url) throw new Error("missing connection URL: can't fetch block results")
-      const { height } = options || {}
-      const url = `${api.url}/block_results?height=${height??''}`
-      const response = await fetch(url).then(r=>r.text())
-      return [url, Core.tryToParse(response)] }
-
 export const subscribe = async (_api: Context, _subscribeTo: 'block'|'header'|{query: string}) =>
   Error.TODO('subscribe')
+
 export const broadcastTx = async (_api: Context, _method: 'sync'|'async'|'commit', _tx: Uint8Array) =>
   Error.TODO('broadcastTx')
+
 export const fetchBalance = (...args: unknown[]) =>
   Error.TODO('tendermint fetch native balance')
+
 export const send = (...args: unknown[]) =>
   Error.TODO('tendermint native send')
+
 //import type { Address } from '../deps.ts'
 //import { optionallyParallel } from '../deps.ts'
 
@@ -345,12 +350,6 @@ export const send = (...args: unknown[]) =>
   //}
   //return result
 //}
-/** A Tendermint logger .*/
-export class Console extends Core.Console {
-  static randomId = (): number => parseInt(Array.from({ length: 12 }) .map(() => randomNumericChar()).join(""), 10)
-}
-const numbersWithoutZero = "123456789"
-const randomNumericChar = (): string => numbersWithoutZero[Math.floor(Math.random() * numbersWithoutZero.length)]
 /** A Namada validator. */
 export interface Validator {
   address?: Address,
@@ -359,17 +358,67 @@ export interface Validator {
   proposerPriority: bigint
 }
 export type FetchValidatorOptions = {
-  height?: Core.Height,
+  height?: Height,
   details?: boolean,
   pagination?: [number, number],
 }
+
+export const byVotingPowerDesc = (a: Validator, b: Validator)=>(
+  (a.votingPower < b.votingPower) ?  1 :
+  (a.votingPower > b.votingPower) ? -1 : 0
+)
+
+/** Convert to coin. */
+export const makeCoin = (amount: Uint128, denom: string): Coin => ({ amount: String(amount), denom })
+
+/** Convert to fee. */
+export const makeFee = (gas: Uint128, amount: Coin[]): Fee => ({ gas: String(gas), amount })
+
+export const makeToken = <T extends Token> (t: T): T & TokenApi => {
+  const token: any = { ...t }
+  if ('fungible' in token && token.fungible) {
+    const amount = (x: Uint128) => makeTokenAmount(x, token as unknown as Fungible)
+    const fee    = (x: Uint128) => makeTokenAmount(x, token as unknown as Fungible).asFee(x)
+    Object.assign(token, { amount, fee })
+  }
+  return token as T & TokenApi
+}
+
+export const makeTokenAmount = (a: Uint128, t: Fungible): TokenAmount => {
+  a = String(a)
+  t = makeToken(t)
+  return {
+    get amount () { return a },
+    get token  () { return t },
+    get denom  (): string|undefined { return ('denom' in t) ? t.denom as string : undefined },
+    get asNativeBalance (): Coin[] { return [this.asCoin] },
+    get asCoin (): Coin {
+      if ('denom' in t) return makeCoin(a, t.denom as string)
+      throw new Error('not a native token')
+    },
+    asFee (gas: Uint128): Fee {
+      if ('denom' in t) return makeFee(gas, this.asNativeBalance)
+      throw new Error('not a native token')
+    },
+    toString () { return `${a} ${t.id}` },
+  }
+}
+
+//const writeVarint32 = (val: number, buf: Uint8Array, pos: number) => {
+    //while (val > 127) {
+        //buf[pos++] = val & 127 | 128;
+        //val >>>= 7;
+    //}
+    //buf[pos] = val;
+//}
+
 export async function fetchValidators <V extends Validator> (
   api: Api & Context, options?: FetchValidatorOptions
 ): Promise<[V[], number, number]> {
   if (!api.url) throw new Error('fetchValidators: no api url')
   const { height, pagination: [page, per_page] = [], details } = options || {}
   const params  = {height, page: String(page||1), per_page: String(per_page||10)}
-  const message = {jsonrpc: '2.0', id: Console.randomId(), method: 'validators', params}
+  const message = {jsonrpc: '2.0', id: randomId(), method: 'validators', params}
   const headers = {'Content-Type': 'application/json'}
   const body    = JSON.stringify(message)
   api.log.debug('fetchValidators:', body)
@@ -409,50 +458,4 @@ export async function fetchValidators <V extends Validator> (
   //}
 }
 
-export const byVotingPowerDesc = (a: Validator, b: Validator)=>(
-  (a.votingPower < b.votingPower) ?  1 :
-  (a.votingPower > b.votingPower) ? -1 : 0
-)
-
-//const writeVarint32 = (val: number, buf: Uint8Array, pos: number) => {
-    //while (val > 127) {
-        //buf[pos++] = val & 127 | 128;
-        //val >>>= 7;
-    //}
-    //buf[pos] = val;
-//}
-/** Convert to coin. */
-export const makeCoin = (amount: Uint128, denom: string): Coin => ({ amount: String(amount), denom })
-/** Convert to fee. */
-export const makeFee = (gas: Uint128, amount: Coin[]): Fee => ({ gas: String(gas), amount })
-export const makeToken = <T extends Token> (t: T): T & TokenApi => {
-  const token: any = { ...t }
-  if ('fungible' in token && token.fungible) {
-    const amount = (x: Uint128) => makeTokenAmount(x, token as unknown as Fungible)
-    const fee    = (x: Uint128) => makeTokenAmount(x, token as unknown as Fungible).asFee(x)
-    Object.assign(token, { amount, fee })
-  }
-  return token as T & TokenApi
-}
-export const makeTokenAmount = (a: Uint128, t: Fungible): TokenAmount => {
-  a = String(a)
-  t = makeToken(t)
-  return {
-    get amount () { return a },
-    get token  () { return t },
-    get denom  (): string|undefined { return ('denom' in t) ? t.denom as string : undefined },
-    get asNativeBalance (): Coin[] { return [this.asCoin] },
-    get asCoin (): Coin {
-      if ('denom' in t) return makeCoin(a, t.denom as string)
-      throw new Error('not a native token')
-    },
-    asFee (gas: Uint128): Fee {
-      if ('denom' in t) return makeFee(gas, this.asNativeBalance)
-      throw new Error('not a native token')
-    },
-    toString () { return `${a} ${t.id}` },
-  }
-}
-
-export const addZeros = (n: number|Uint128, z: number): Uint128 =>
-  `${n}${[...Array(z)].map(() => '0').join('')}`
+export * from './types.ts';

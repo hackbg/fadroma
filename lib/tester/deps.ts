@@ -1,5 +1,7 @@
 export type {
-  Write
+  Info,
+  Write,
+  MaybeAsync,
 } from '@hackbg/fadroma';
 
 export {
@@ -19,5 +21,6 @@ export {
 
 export {
   stdout,
-  argv
+  argv,
+  env
 } from 'node:process';

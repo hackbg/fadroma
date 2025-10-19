@@ -7,13 +7,13 @@ import {
 export const initProject = (opts: ProjectOptions) => (path: string) => dir(path,
   gitignore(),
   readme({ title: name }),
-  when(opts.node,   packageJson({ name, legacy: opts.legacy })),
-  when(opts.ts,     tsConfig),
+  when(!!opts.node,   packageJson({ name, legacy: opts.legacy })),
+  when(!!opts.ts,     tsConfig),
   when(opts.bacon,  baconConfig),
   when(opts.eslint, eslintConfig),
   when(opts.mold,   moldConfig),
   dir('test', ts("test.ts"), dir("accounts")),
-  toml('Cargo.toml', {
+  when(opts.workspace, toml('Cargo.toml', {
     "workspace": {
       resolver: "2", members: [ "programs/*" ]
     },
@@ -23,11 +23,12 @@ export const initProject = (opts: ProjectOptions) => (path: string) => dir(path,
     "profile.release.build-override": {
       "codegen-units": 1, "incremental": "false", "opt-level": 3,
     }
-  }),
-  when(opts.anchor,
+  })),
+  when(!!opts.anchor,
     toml('Anchor.toml', {
       "toolchain": {
-        "solana_version": opts.solana, "package_manager": opts.pnpm ? "pnpm" : "npm",
+        "solana_version":  opts.solana,
+        "package_manager": opts.pnpm ? "pnpm" : "npm",
       },
       "features": { "resolution": true, "skip-lint": false, },
       "programs.localnet": { [name]: "", },

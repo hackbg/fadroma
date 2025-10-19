@@ -101,3 +101,9 @@ export const mapEntries = <T extends object> (
   .map(([k, v], i)=>[k, fn(k, v, i)]))
 
 type Method<T> = (_: T, ...__: unknown[]) => unknown[]
+
+const numbersWithoutZero = "123456789";
+
+const randomNumeric = (): string => numbersWithoutZero[Math.floor(Math.random() * numbersWithoutZero.length)];
+
+export const randomId = (length = 12): number => parseInt(Array.from({ length }) .map(() => randomNumeric()).join(""), 10);

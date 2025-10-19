@@ -54,3 +54,5 @@ const fetch = (api: Api, options?: ChainApiOptions) => ({
     } })
   }),
 });
+
+export * from './types.ts';

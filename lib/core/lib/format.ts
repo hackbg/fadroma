@@ -1,4 +1,4 @@
-import type { Write, Named, Stringy, Falsy, Logger } from '../types.ts';
+import type { Write, Named, Stringy, Falsy, Logger, Uint128 } from '../types.ts';
 import { Case } from '../deps.ts';
 import { NO_COLOR, yellow } from './color.ts';
 
@@ -79,3 +79,6 @@ export const camelize = <T extends object>(object: T) => {
   }
   return returned
 };
+
+export const addZeros = (n: number|Uint128, z: number): Uint128 =>
+  `${n}${[...Array(z)].map(() => '0').join('')}`;

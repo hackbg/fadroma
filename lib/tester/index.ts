@@ -1,6 +1,6 @@
 import type * as Test from './types.ts';
 import {
-  argv, ok, equal, isEntrypoint, setImmediate, renamed, joined,
+  stdout, argv, ok, equal, isEntrypoint, setImmediate, renamed, joined,
   formatMsec, red, green, orange, yellow, blue, gray
 } from './deps.ts';
 
@@ -24,7 +24,9 @@ export const suite = (meta: ImportMeta, name: string, ...steps: Test.Step<unknow
     const { getContext, details, summary } = report();
     let error:  unknown;
     let result: unknown;
-    console.log({run})
+    const list = collectList(collectTree(steps));
+    for (const line of list) console.log('🟠', line);
+    process.exit(123);
     try { result = await run(getContext()); } catch (e) { error = e; }
     console.log([details(), summary()].filter(Boolean).join('\n'));
     if (error) throw error;
@@ -32,40 +34,103 @@ export const suite = (meta: ImportMeta, name: string, ...steps: Test.Step<unknow
   });
   return run
 };
+export const collectTree = (steps: Test.Step<unknown>[]) => {
+  const output = []
+  for (const step of steps) {
+    if (step.name) output.push({
+      name:  step.name,
+      steps: step.steps ? collectTree(step.steps) : null
+    });
+  }
+  return output
+}
+export const collectList = (steps: Test.Step<unknown>[], {
+  maxWidth  = stdout.columns || 80,
+  maxHeight = (stdout.rows - 2) || 25,
+} = {}) => {
+  let output = [];
+  displaySteps([], steps);
+  return output
+  function displaySteps (ids, steps: Test.Step<unknown> = []) {
+    for (const index in steps) {
+      const step = steps[index];
+      if (!step) continue;
+      const subids = [...ids, Number(index)+1];
+      output.push([subids.join('.'), step.name].join(' '));
+      if (step.steps) displaySteps(subids, step.steps);
+    }
+  }
+  //let maxLength = 3;
+  //const baseHeight = max(1, floor(maxHeight / steps.length));
+  //const names = steps.map(({ name, steps }, index)=>{
+    //maxLength = max(name.length + 6, maxLength);
+    //const lines = max(1, min(baseHeight, steps.length));
+    //return { index: Number(index)+1, name, steps, lines } as const;
+  //});
+  //for (const { index, name, steps, lines } of names) {
+    //for (let line = 0; line < lines; line++) {
+      //if (line === 0) stdout.write([index, name, ''].join(' ').padEnd(maxLength, '┄'));
+      //else stdout.write(''.padEnd(maxLength));
+      //if (steps[line]) {
+        //const step = steps[line];
+        //stdout.write(' ');
+        //stdout.write([[index, line+1].join('.'), step.name, ''].join(' ').padEnd(maxLength, '┄'));
+        //if (step.steps[0]) {
+          //const step2 = step.steps[0];
+          //stdout.write(' ');
+          //stdout.write([[index, line+1, 1].join('.'), step2.name, ''].join(' ').padEnd(maxLength, '┄'));
+          //if (step2.steps[0]) {
+            //const step3 = step2.steps[0]
+            //stdout.write(' ');
+            //stdout.write([[index, line+1, 1, 1].join('.'), step3.name, ''].join(' ').padEnd(maxLength, '┄'));
+          //}
+        //}
+      //}
+      //stdout.write('\n');
+    //}
+  //}
+}
 
 /** The test report tracks each step of the test suite,
   * and sorts test outcomes into categories. */
 export const report = ({
   failFast = false,
 
-  pass = category(`🟢`, 'passed',   'Passed',  green( 'ok     ')),
-  fail = category(`🔴`, 'failed',   'Failed',  red(   'wrong  ')),
-  todo = category(`🟠`, 'tasks',    'TODO',    orange('todo   ')),
-  warn = category(`🟡`, 'warnings', 'Warning', yellow('warning')),
+  passed   = category(`🟢`, 'passed',   'Passed',  green( 'ok     ')),
+  failed   = category(`🔴`, 'failed',   'Failed',  red(   'wrong  ')),
+  tasks    = category(`🟠`, 'tasks',    'TODO',    orange('todo   ')),
+  warnings = category(`🟡`, 'warnings', 'Warning', yellow('warning')),
+  skipped  = category(`  `, 'skipped',  'skip',    orange('skip   ')),
 
   getContext = ({
-    t0 = performance.now(), ids = [], names = [], ...rest
+    t0 = performance.now(), ids = [], names = [],
+    pass = (...args) => passed.add(performance.now()   - t0, ...args),
+    fail = (...args) => failed.add(performance.now()   - t0, ...args),
+    todo = (...args) => tasks.add(performance.now()    - t0, ...args),
+    warn = (...args) => warnings.add(performance.now() - t0, ...args),
+    skip = (...args) => skipped.add(performance.now()  - t0, ...args),
   } = {}): Test.Context => ({
-    t0, ids, names,
-    ...[pass, fail, todo, warn].map(x=>x.add), ...rest,
+    t0, ids, names, pass, fail, todo, warn, getContext,
     async track <T> (id: number|null, name: string|null, step: Test.Step<T>) {
       const newIds   = [...ids, id].filter(Boolean);
       const newNames = [...names, name].filter(Boolean);
       const summary  = joined('',
         blue((joined('.', ...newIds)+' ').padEnd(10)),
         joined('│', newNames.map((x, i)=>gray(i*2, x))));
-      if (typeof step !== 'function') return warn.add(t0, `not a function: ${summary}`, step);
+      if (typeof step !== 'function') {
+        return warn(`not a function: ${summary}`, step) as T
+      };
       //console.trace(`⏳️ @${formatMsec(t0)} ${summary}`);
       try {
         const context = getContext({ ids: newIds, names: newNames });
         const result  = await step(context);
-        return pass.add(t0, summary, null, result) as T;
+        return pass(summary, null, result) as T;
       } catch (e: unknown) {
         const error = e as { todo?: unknown, message: string, stack?: string };
         if (error.todo) {
-          return todo.add(t0, summary, error.message) as T;
+          return todo(t0, summary, error.message) as T;
         } else {
-          const failure = fail.add(t0, summary, error.message, error.stack?.split('\n').slice(1).join('\n'));
+          const failure = fail(t0, summary, error.message, error.stack?.split('\n').slice(1).join('\n'));
           if (failFast) {
             throw failure;
           } else {
@@ -77,9 +142,9 @@ export const report = ({
   }),
 
 } = {}): Test.Report => ({
-  getContext, pass, fail, todo, warn,
-  summary: () => joined(' ', ...[pass, todo, warn, fail].map(x=>x.length > 0 && x.summary())),
-  details: () => joined(' ', ...[pass, todo, warn, fail].map(x=>x.length > 0 && x.details())),
+  getContext, passed, failed, tasks, warnings,
+  summary: () => joined(' ', ...[passed, tasks, warnings, failed].map(x=>x.length > 0 && x.summary())),
+  details: () => joined(' ', ...[passed, tasks, warnings, failed].map(x=>x.length > 0 && x.details())),
 });
 
 /** Define a test result category. */
@@ -92,6 +157,7 @@ const category = (
     joined(' ', icon, summary, details[0]&&format(0, details[0])),
       ...details.slice(1).filter(Boolean).map((x, i)=>`   ${format(i, x)}`)),
   sorter = (a: Test.Result, b: Test.Result) => { // FIXME sort by id field
+    console.log({a,b});
     const [_a0, a1 = NaN, _a2, a3 = NaN] = (a.summary?.match(reStep)||[]).map(Number)
     const [_b0, b1 = NaN, _b2, b3 = NaN] = (b.summary?.match(reStep)||[]).map(Number)
     const result = (a1 > b1) ? 1 : (a1 < b1) ? -1 : (a3 > b3) ? 1 : (a3 < b3) ? -1 : -1
@@ -147,15 +213,25 @@ export const expect = (name?: string, ...steps: Test.Step<unknown>[]) =>
     context = report().getContext()
   ) { 
     if (steps.length === 0) steps = [todo()];
-    const results = steps.map(_=>undefined as unknown);
+    const results: Array<undefined|{pass:unknown}|{fail: Error}|{todo: unknown}> =
+      steps.map(_=>undefined);
     for (const index in steps) {
       try {
         const step = steps[index];
         const id = (steps.length > 1) ? Number(index)+1 : null;
-        results[index] = await context.track(id, name, step);
-      } catch (error) {
-        throw addStepStack(steps[index], error as Error);
+        results[index] = { pass: await context.track(id, name, step) };
+      } catch (e) {
+        const error = addStepStack(steps[index], e as Error);
+        results[index] = { [e.todo ? 'todo' : 'fail']: error };
+        if (e.todo && context.failOnTodo) throw error;
+        if (context.failFast) throw error;
       }
+    }
+    if (results.every(x=>!!x.todo)) {
+      throw new Error(`TODO: ${name}`, { todo: true, errors })
+    }
+    if (results.some(x=>!!x.fail)) {
+      throw Object.assign(results.find(x=>!!x.fail), { more: results.filter(x=>!!x.fail) })
     }
     return results;
   }), { steps });
@@ -198,7 +274,7 @@ export const forbid = (name: string, failure: Test.Step<unknown>,
 /** Add the originating test step to an [Error]'s stack trace. */
 const addStepStack = <T>(step: Test.Step<T>, error: Error) => {
   error.stack ||= ''
-  if (step.stack) error.stack += '\n  Test defined at:\n' + step.stack.join('\n')
+  if (step.stack) error.stack += '\n  From:\n' + step.stack.join('\n')
   return error
 }
 

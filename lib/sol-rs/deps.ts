@@ -12,6 +12,7 @@ export {
 } from '@fadroma/gen';
 
 export type {
-  CargoDep, CargoFeature,
+  ProjectOptions as BaseProjectOptions,
+  ESOptions as BaseESOptions,
+  CrateOptions,
 } from '@fadroma/gen';
-
