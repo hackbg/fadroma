@@ -1,7 +1,9 @@
 import {
-  BTCJS, Indexd, DB, RPC, ZMQ
-  shell, spawn, serve, compose, every, env, arg, run, api, rest, ware, get, post
-  isHex64,
+  compose, shell, spawn, every, env, arg, run,
+  serve, rest, ware, get, post,
+
+  Indexd, DB, RPC, ZMQ, isHex64, ECPair, TransactionBuilder,
+  sha256, p2pkh, toOutputScript,
 } from './deps.ts';
 
 /** Spawn BTC localnet in regression test mode with indexer and API. */
@@ -14,6 +16,7 @@ export const localnet = ({
   batch      = 500,
   concurrent = 16,
   rpcwq      = 32,
+  auth       = [],
 
   _rpc2       = 'http://localhost:18443',
   _keyDb      = 'regtest.keys',
@@ -29,57 +32,112 @@ export const localnet = ({
     arg(`-rpcworkqueue=${rpcwq}`)),
   shell(client, arg('-regtest'), arg('createwallet'), arg('default')),
   shell(client, arg('-regtest'), arg('generatetoaddress'), arg('432'), arg(address)),
-  every(60000, () => indexd.tryResync),
-  serve(rest('1', txApi, bxApi(rpc), rxApi([]), axApi(indexd))));
+  every(60000, () => indexd.tryResync()),
+  serve(rest('1',
+    txApi({ rpc, indexd }),
+    bxApi({ rpc, indexd }),
+    rxApi({ rpc }),
+    axApi({ indexd }))));
 
 /** Transactions API. */
-export const txApi =
-  rest('t',
-    get('mempool'),
-    post('push',       ware(bodyParser.text())),
-    post('alt/pushtx', ware(bodyParser.json())),
-    rest(':id',
-      ware(req => { if (!isHex64(req.params.id)) return 400; }),
-      get(),
-      get('json'),
-      get('block')));
+export const txApi = ({ rpc, indexd }) => rest('t',
+  get('mempool', req => rpc('getrawmempool', [false])),
+  post('push', ware(bodyParser.text()), req => rpc('sendrawtransaction', [req.body]),
+  post('alt/pushtx', ware(bodyParser.json()), req => rpc('sendrawtransaction', [req.body.hex])),
+  rest(':id', must(400, req => isHex64(req.params.id)),
+    get(req => rpc('getrawtransaction', [req.params.id, false])),
+    get('json', req => rpc('getrawtransaction', [req.params.id, false]).then(tx=>({
+      txId: tx.txid, txHex: tx.hex, vsize: tx.vsize, version: tx.version, locktime: tx.locktime,
+      ins: tx.vin.map(x => ({
+        txId: x.txid, vout: x.vout, script: x.scriptSig.hex, sequence: x.sequence
+      })),
+      outs: tx.vout.map(x => ({
+        address: x.scriptPubKey.addresses ? x.scriptPubKey.addresses[0] : x.scriptPubKey.address ? x.scriptPubKey.address : undefined,
+        script: x.scriptPubKey.hex, value: Math.round(x.value * 1e8) // satoshis
+      })),
+    })))),
+    get('block', req => indexd().blockIdByTransactionId(req.params.id))));
 
 /** Blocks API. */
-export const bxApi = rpc =>
-  rest('b',
-    get('best'),
-    get('fees'),
-    rest(':id',
-      ware(req => {if (req.params.id === 'best') req.params.id = await rpc('getbestblockhash', []);}),
-      ware(req => {if (!isHex64(req.params.id)) return res.easy(400); next()}),
-      get('header'),
-      get('height')));
+export const bxApi = ({ indexd, rpc }) => rest('b',
+  get('best', req => rpc('getbestblockhash', [])),
+  get('fees', req => indexd().latestFeesForNBlocks(req.query.count || 64),
+  rest(':id',
+    param('id', r => (r.params.id === 'best') ? rpc('getbestblockhash', []) : r.params.id),
+    must(400, req => isHex64(req.params.id)),
+    get('header', req => rpc('getblockheader', [req.params.id, false])),
+    get('height', req => rpc('getblockheader', [req.params.id, true])))));
 
-export const rxApi = auth =>
-  rest('r',
-    ware(req => {
-      if (!req.query.key) return 401
-      let hash = bitcoin.crypto.sha256(req.query.key).toString('hex')
-      if (!(hash in auth)) return 403
-    }),
-    post('generate'),
-    post('faucet'),
-    post('faucetScript'));
+export const rxApi = ({ rpc, auth = [] }) => rest('r',
+  must(401, req => !!req.query.key),
+  must(403, req => (!(sha256(req.query.key).toString('hex') in auth))),
+  post('generate', (req, res) => {
+    if (req.query.address) {
+      rpc('generatetoaddress', [parseInt(req.query.count) || 1, req.query.address], res.easy)
+    } else {
+      rpc('getnewaddress', [], (err, address) => {
+        if (err) return res.easy(err)
+        rpc('generatetoaddress', [parseInt(req.query.count) || 1, address], res.easy)
+      })
+    }
+  }),
+  post('faucet', req => rpc('sendtoaddress', [
+    req.query.address, parseInt(req.query.value) / 1e8, '', '', false, false, null, 'unset', false, 1
+  ])),
+  post('faucetScript', async (req, res) => {
+    try {
+      const key = ECPair.makeRandom({ network: NETWORK })
+      const payment = p2pkh({ pubkey: key.publicKey, network: NETWORK })
+      const address = payment.address
+      const scId = sha256(payment.output).toString('hex')
+
+      const txId = await pRpc('sendtoaddress', [address, parseInt(req.query.value) * 2 / 1e8, '', '', false, false, null, 'unset', false, 1])
+      let unspent
+      let counter = 10
+      while (!unspent) {
+        const unspents = await pUtxosByScriptRange(scId)
+        unspent = unspents.filter(x => x.txId === txId)[0]
+        if (!unspent) {
+          counter--
+          if (counter <= 0) throw new Error('No outputs')
+          await sleep(10)
+        }
+      }
+      const txvb = new TransactionBuilder(NETWORK);
+      txvb.addInput(unspent.txId, unspent.vout, undefined, payment.output);
+      txvb.addOutput(Buffer.from(req.query.script, 'hex'), parseInt(req.query.value));
+      txvb.sign(0, key);
+      const txv = txvb.build();
+      await pRpc('sendrawtransaction', [txv.toHex()])
+      res.easy(undefined, txv.getId())
+    } catch (err) {
+      res.easy(err)
+    }
+  }));
 
 /** Accounts API. */
-export const axApi = (indexd, heightRange = [0, 0xffffffff]) =>
+export const axApi = ({ indexd = null, dblimit = null, heightRange = [0, 0xffffffff] }) =>
   rest('a/:address',
-    ware(req => {
-      const { address } = req.params;
-      script = (!address.match(/^[0-9a-f]+$/i)) ? bitcoin.address.toOutputScript(address, NETWORK) : Buffer.from(address, 'hex')
-      req.params.scId = bitcoin.crypto.sha256(script).toString('hex')
-    }),
+    param('scId', toScId),
     get('firstseen', req => indexd().firstSeenScriptId(req.params.scId)),
-    get('txs',       req => indexd().transactionIdsByScriptRange({ scId: req.params.scId, heightRange, mempool: true, }, DBLIMIT, txIds => Promise.all(txIds.map(txId=>rpc('getrawtransaction', [txId]))))),
-    get('txids',     req => indexd().transactionIdsByScriptRange({ scId: req.params.scId, heightRange, mempool: true, }, DBLIMIT)),
-    get('txos',      req => indexd().txosByScriptRange({ scId: req.params.scId, heightRange, mempool: true, }, DBLIMIT)),
-    get('unspents',  req => indexd().utxosByScriptRange({ scId: req.params.scId, heightRange, mempool: true, }, DBLIMIT)),
+    get('txs',       req => indexd().transactionIdsByScriptRange({
+      scId: req.params.scId, heightRange, mempool: true, }, dblimit),
+      txIds => Promise.all(txIds.map(txId=>rpc('getrawtransaction', [txId])))),
+    get('txids',     req => indexd().transactionIdsByScriptRange({
+      scId: req.params.scId, heightRange, mempool: true, }, dblimit)),
+    get('txos',      req => indexd().txosByScriptRange({
+      scId: req.params.scId, heightRange, mempool: true, }, dblimit)),
+    get('unspents',  req => indexd().utxosByScriptRange({
+      scId: req.params.scId, heightRange, mempool: true, }, dblimit)),
     get('alt/:address/unspents'));
+
+const param = (name, fn) => ware(async req => req.params[name] = await fn(req));
+
+const must  = (code, fn) => ware(async req => if (!await fn(req)) return code);
+
+const toScId = req => sha256((!req.params.address.match(/^[0-9a-f]+$/i))
+  ? toOutputScript(req.params.address, NETWORK)
+  : Buffer.from(req.params.address, 'hex')).toString('hex')
 
 export const zeromqIndexd = (url, indexd, seq = {}) =>
   zeromq({ url }, (topic, message, sequence) => {

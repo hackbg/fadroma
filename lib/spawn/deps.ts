@@ -1,5 +1,6 @@
 export {
-  pipe
+  pipe,
+  renamed,
 } from '@hackbg/fadroma';
 
 export {
