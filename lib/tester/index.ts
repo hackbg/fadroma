@@ -50,6 +50,7 @@ export const report = ({
   tasks    = category(`🟠`, 'tasks',    'TODO',    orange('todo   ')),
   warnings = category(`🟡`, 'warnings', 'Warning', yellow('warning')),
   skipped  = category(`  `, 'skipped',  'skip',    orange('skip   ')),
+  ideas    = category(`  `, 'ideas',    'idea',    blue(  'idea   ')),
 
   context = ({
     t0 = performance.now(), ids = [], names = [],
@@ -57,6 +58,7 @@ export const report = ({
     fail = (...args) => failed.add(performance.now()   - t0, ...args),
     todo = (...args) => tasks.add(performance.now()    - t0, ...args),
     warn = (...args) => warnings.add(performance.now() - t0, ...args),
+    idea = (...args) => ideas.add(performance.now()    - t0, ...args),
     skip = (...args) => skipped.add(performance.now()  - t0, ...args),
   } = {}): Test.Context => ({
     t0, ids, names, pass, fail, todo, warn, context,

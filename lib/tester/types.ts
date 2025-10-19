@@ -16,7 +16,7 @@ export type Result  = { summary: string|null
                       } & Timed;
 
 /** Category noun. */
-export type Category = 'passed'|'failed'|'tasks'|'warnings'|'skipped';
+export type Category = 'passed'|'failed'|'warnings'|'skipped'|'tasks'|'ideas';
 
 /** Tracks each step, sorting outcomes into categories. */
 export type Report = Record<Category, Results> & Contextual & Info;
@@ -25,7 +25,7 @@ export type Report = Record<Category, Results> & Contextual & Info;
 export type Contextual = { context (_?: Partial<Context>): Context };
 
 /** Category verb. */
-export type Categorize = 'pass'|'fail'|'todo'|'warn'|'skip';
+export type Categorize = 'pass'|'fail'|'warn'|'skip'|'todo'|'idea';
 
 /** The test context for a step. */
 export type Context    = { /** Whether the whole test run should terminate
