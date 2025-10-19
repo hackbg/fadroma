@@ -1,5 +1,6 @@
 #!/usr/bin/env -S deno run --allow-env
 import { expect, suite } from '@fadroma/tester';
+import * as SolRs from './index.ts';
 export default suite(import.meta, 'Solana (Rust)',
   expect('Init'), expect('Build'), expect('Deploy'), expect('Test'),
   expect('SDK', expect('Test'), expect('CLI'), expect('GUI')));

@@ -13,11 +13,12 @@ export type Decimal128 = number|string;
 /** 256-bit decimal fraction. */
 export type Decimal256 = number|string;
 /** Thing, or promise of thing. */
-export type MaybeAsync<T> = T|Promise<T>;
+export type MaybeAsync<T = unknown> = T|Promise<T>;
 /** Function that may or may not be async. */
-export type MaybeAsyncFn<T> = (..._: unknown[])=>MaybeAsync<T>;
-
-export type Step = <T, U = T> (_: T) => MaybeAsync<U>;
+export type MaybeAsyncFn<T = unknown, A extends unknown[] = unknown[]> =
+  (..._: A)=>MaybeAsync<T>;
+/** An expected isomorphism. */
+export type Step = <T = unknown, U = T> (_: T) => MaybeAsync<U>;
 
 /** Output target, e.g. `process.stdout`. */
 export type Write  = { write (...data: unknown[]): unknown };
@@ -67,3 +68,9 @@ export type Impl<A extends Api, D extends Context> = {
     ? ((deps: D, ...args: R) => T)
     : never
 };
+
+/** Start time and duration. */
+export type Timed   = { /** Starting time in milliseconds. */
+                        t0?: number
+                      , /** Duration in milliseconds. */
+                        tD?: number };

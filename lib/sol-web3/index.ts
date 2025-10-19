@@ -7,7 +7,7 @@ export type BN = InstanceType<typeof Anchor.BN>;
 export type KP = InstanceType<typeof web3.Keypair>;
 export type PK = InstanceType<typeof web3.PublicKey>;
 export type TX = InstanceType<typeof web3.Transaction>;
-import { env } from '../deps.ts';
+import { env } from './deps.ts';
 env.ANCHOR_PROVIDER_URL ??= 'http://localhost:8899';
 env.ANCHOR_WALLET ??= resolve(homedir(), '.config/solana/id.json'); // FIXME use XDG
 import { ok, equal, expect, forbid, call, renamed,
@@ -23,8 +23,8 @@ import { ok, equal, expect, forbid, call, renamed,
   createMintToInstruction,
   createApproveInstruction,
   getMinimumBalanceForRentExemptAccount,
-} from '../deps.ts';
-import type { Name, MaybeAsync } from '../deps.ts';
+} from './deps.ts';
+import type { Name, MaybeAsync } from './deps.ts';
 export { Anchor, Program, workspace }
 export const wallet = Anchor.AnchorProvider.env().wallet
 export const { payer, publicKey } = wallet;

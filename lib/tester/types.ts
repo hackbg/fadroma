@@ -1,44 +1,50 @@
-import type { Info, MaybeAsync } from './deps.ts';
-
-/** Names of test result categories. */
-export type Category = 'pass'|'fail'|'todo'|'warn';
-
-/** Something grouped by category name. */
-export type ByCategory<T> = Record<Category, T>;
-
-/** Can obtain updated context. */
-export type GetContext = { getContext (_?: Partial<Context>): Context };
-
-/** The test report. */
-export type Report = ByCategory<Results>& GetContext & Info;
-
-/** Start time and duration. */
-export type Timed = { t0?: number, tD?: number };
+import type { Info, Timed, MaybeAsync, MaybeAsyncFn } from './deps.ts';
 
 /** A test step. */
 export type Step<T> = { stack?: string[]
-                      , steps?: unknown[] } & ((context: Context) => MaybeAsync<T>);
-
-/** The result of a test step. */
-export type Result = { summary: string|null, details: unknown[] } & Timed;
+                      , steps?: unknown[]
+                      } & MaybeAsyncFn<T, [Context]>;
 
 /** Collection of results for a given category. */
-export type Results = { icon: string, add: Add } & Result[] & Info;
+export type Results = { icon: string
+                      , add:  Add
+                      } & Result[] & Info;
+
+/** The result of a test step. */
+export type Result  = { summary: string|null
+                      , details: unknown[]
+                      } & Timed;
+
+/** Category noun. */
+export type Category = 'passed'|'failed'|'tasks'|'warnings'|'skipped';
+
+/** Tracks each step, sorting outcomes into categories. */
+export type Report = Record<Category, Results> & Contextual & Info;
+
+/** Can obtain updated context. */
+export type Contextual = { context (_?: Partial<Context>): Context };
+
+/** Category verb. */
+export type Categorize = 'pass'|'fail'|'todo'|'warn'|'skip';
 
 /** The test context for a step. */
-export type Context = { failFast?:   boolean
-                      , failOnTodo?: boolean
-                      , /** Breadcrumb of parent step indexes. */
-                        ids:         number[]
-                      , /** Breadcrumb of parent step names. */
-                       names:       string[]
-                     , /** Execute a test step and categorize the result. */
-                       track:       Track } & ByCategory<Add> & GetContext & Timed;
+export type Context    = { /** Whether the whole test run should terminate
+                             * on the first failing step. */
+                           failFast?:   boolean
+                         , /** Whether TODOs count toward test failures. */  
+                           failOnTodo?: boolean
+                         , /** Breadcrumb of parent step indexes. */
+                           ids:         number[]
+                         , /** Breadcrumb of parent step names. */
+                           names:       string[]
+                         , /** Execute and categorize a test step. */
+                           track:       Track
+                         } & Record<Categorize, Add> & Contextual & Timed;
 
 /** Track the status of a leaf of the test tree. */
 export type Track = <T>(id: number|null, name: string|null, callback: Step<T>)
   => MaybeAsync<T>;
 
-/** Add a result to a category. */
+/** Add result to category. */
 export type Add = (t0: number, summary: string|null, ...extra: unknown[])
-  => void;
+  => unknown;

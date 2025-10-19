@@ -4,13 +4,13 @@
   "main": "index.ts",
   "dependencies": {
     "@hackbg/fadroma": "workspace:*",
-    "@fadroma/chain": "workspace:*",
-    "@fadroma/spawn": "workspace:*",
-    "bitcoinjs-lib": "^7.0.0",
-    "indexd": "^0.9.1",
-    "leveldown": "^6.1.1",
-    "typeforce": "^1.18.0",
-    "yajrpc": "^1.4.4",
-    "zeromq": "^6.5.0"
+    "@fadroma/chain":  "workspace:*",
+    "@fadroma/spawn":  "workspace:*",
+    "@fadroma/tester": "workspace:*",
+    "bitcoinjs-lib":   "^7.0.0",
+    "indexd":          "^0.9.1",
+    "level":           "^10.0.0",
+    "typeforce":       "^1.18.0",
+    "yajrpc":          "^1.4.4"
   }
 }

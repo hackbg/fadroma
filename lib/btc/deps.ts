@@ -1,18 +1,19 @@
 export {
-  compose, shell, spawn, every, env, arg, run,
+  compose, shell, spawn, every, setEnv, arg, run,
   serve, rest, ware, get, post,
 } from '@fadroma/spawn';
 
-export * as ZMQ    from 'npm:zeromq';
+//export * as ZMQ    from 'npm:zeromq';
 export * as Indexd from 'npm:indexd';
-export * as DB     from 'npm:leveldown';
+export const DB = {};
+//export * as DB     from 'npm:level';
 export * as RPC    from 'npm:yajrpc';
 
-import { HexN } from 'npm:typeforce';
-export const isHex64 = HexN(64);
+import Typeforce from 'npm:typeforce';
+export const isHex64 = Typeforce.HexN(64);
 
-export { ECPair, TransactionBuilder } from 'npm:bitcoinjs-lib';
-import { crypto, payments, address } from 'npm:bitcoinjs-lib';
-export const { sha256 } = crypto;
-export const { p2pkh } = payments;
-export const { toOutputScript } = address;
+import * as BTCJS from 'npm:bitcoinjs-lib';
+export const { ECPair, TransactionBuilder } = BTCJS;
+export const { sha256 } = BTCJS.crypto;
+export const { p2pkh } = BTCJS.payments;
+export const { toOutputScript } = BTCJS.address;

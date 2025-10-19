@@ -27,6 +27,10 @@ export type {
 } from '@fadroma/chain';
 
 export {
+  chain as baseChain,
+} from '@fadroma/chain';
+
+export {
   Case,
   base16,
   base64,

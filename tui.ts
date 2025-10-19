@@ -3,6 +3,7 @@ import { entrypoint, gray } from '@fadroma/core';
 import { run } from '@fadroma/tester';
 import { stdin, stdout } from 'node:process';
 import testSuite from './test.ts';
+import * as Test from './lib/tester/index.ts';
 
 const RESET = `\x1b[0m`;
 const FG255 = x => `\x1b[38;5;${x}m`;
@@ -10,11 +11,9 @@ const BG255 = x => `\x1b[48;5;${x}m`;
 const fg255 = (x) => (text) => `\x1b[38;5;${x}m${text}${RESET}`;
 const bg255 = (x) => (text) => `\x1b[48;5;${x}m${text}${RESET}`;
 
-export default entrypoint(import.meta, async function main ({
-  width  = stdout.columns || 80,
-  height = stdout.rows    || 25,
-  prompt = '',
-} = {}) {
+export default entrypoint(import.meta, async function main (..._args) {
+  let width  = stdout.columns || 80;
+  let height = stdout.rows    || 25;
   let exited = false;
   const state = {
     exited: false,

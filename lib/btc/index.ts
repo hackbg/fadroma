@@ -1,8 +1,8 @@
 import {
-  compose, shell, spawn, every, env, arg, run,
+  compose, shell, spawn, every, arg, run,
   serve, rest, ware, get, post,
 
-  Indexd, DB, RPC, ZMQ, isHex64, ECPair, TransactionBuilder,
+  Indexd, DB, RPC, isHex64, ECPair, TransactionBuilder,
   sha256, p2pkh, toOutputScript,
 } from './deps.ts';
 
@@ -24,7 +24,7 @@ export const localnet = ({
   index      = DB(indexDb),
   rpc        = RPC.default({ url, auth, batch, concurrent }),
   indexd     = new Indexd(index, rpc),
-  zmq        = zeromqIndexd(zmqUrl, indexd),
+  //zmq        = zeromqIndexd(zmqUrl, indexd),
   address    = run(client, arg('-regtest'), arg('getnewaddress'), arg('""'), arg('bech32')),
 }) => compose('Bitcoin Localnet API',
   spawn(daemon, arg('-server'), arg('-regtest'), arg('-txindex'),
@@ -133,36 +133,36 @@ export const axApi = ({ indexd = null, dblimit = null, heightRange = [0, 0xfffff
 
 const param = (name, fn) => ware(async req => req.params[name] = await fn(req));
 
-const must  = (code, fn) => ware(async req => if (!await fn(req)) return code);
+const must  = (code, fn) => ware(async req => { if (!await fn(req)) return code });
 
 const toScId = req => sha256((!req.params.address.match(/^[0-9a-f]+$/i))
   ? toOutputScript(req.params.address, NETWORK)
   : Buffer.from(req.params.address, 'hex')).toString('hex')
 
-export const zeromqIndexd = (url, indexd, seq = {}) =>
-  zeromq({ url }, (topic, message, sequence) => {
-    topic    = topic.toString('utf8');
-    message  = message.toString('hex');
-    sequence = sequence.readUInt32LE();
-    if (seq[topic] === undefined) seq[topic] = sequence;
-    else seq[topic] += 1;
-    if (sequence !== seq[topic]) {
-      if (sequence < seq[topic]) console.debug(`daemon may have restarted`);
-      else console.debug(`${sequence - seq[topic]} messages lost`);
-      seq[topic] = sequence;
-      indexd.tryResync();
-    }
-    switch (topic) {
-      case 'hashblock': return indexd.tryResync();
-      case 'hashtx':    return indexd.notify(message);
-    }
-  });
+//export const zeromqIndexd = (url, indexd, seq = {}) =>
+  //zeromq({ url }, (topic, message, sequence) => {
+    //topic    = topic.toString('utf8');
+    //message  = message.toString('hex');
+    //sequence = sequence.readUInt32LE();
+    //if (seq[topic] === undefined) seq[topic] = sequence;
+    //else seq[topic] += 1;
+    //if (sequence !== seq[topic]) {
+      //if (sequence < seq[topic]) console.debug(`daemon may have restarted`);
+      //else console.debug(`${sequence - seq[topic]} messages lost`);
+      //seq[topic] = sequence;
+      //indexd.tryResync();
+    //}
+    //switch (topic) {
+      //case 'hashblock': return indexd.tryResync();
+      //case 'hashtx':    return indexd.notify(message);
+    //}
+  //});
 
-export const zeromq = ({
-  url = null, zmq = ZMQ.default.socket('sub'), sub = ['hashblock', 'hashtx'],
-}, msg) => {
-  if (url) zmq.connect(url);
-  if (sub) for (const s of sub) zmq.subscribe(s as string);
-  if (msg) zmq.on('message', msg);
-  return zmq
-}
+//export const zeromq = ({
+  //url = null, zmq = ZMQ.default.socket('sub'), sub = ['hashblock', 'hashtx'],
+//}, msg) => {
+  //if (url) zmq.connect(url);
+  //if (sub) for (const s of sub) zmq.subscribe(s as string);
+  //if (msg) zmq.on('message', msg);
+  //return zmq
+//}

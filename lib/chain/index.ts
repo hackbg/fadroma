@@ -19,12 +19,12 @@ export const connection = <C extends Connection> (
   ...chain, url, log: logger({ name: `${chain.name}[${url?.toString()||'(disconnected)'}]` })
 });
 
-export const impl: Impl<Api, Context & Api> = {
-  fetchBlock (_, __) { throw new Error('base fetchBlock is not implemented') },
-  fetchNextBlock,
-  fetchHeight,
-  fetchNextHeight,
-};
+//export const impl: Impl<Api, Context & Api> = {
+  //fetchBlock (_, __) { throw new Error('base fetchBlock is not implemented') },
+  //fetchNextBlock,
+  //fetchHeight,
+  //fetchNextHeight,
+//};
 
 type ChainApiOptions = { interval?: number, log?: Console }// = 1000, log = api.log ?? logger() }
 const fetch = (api: Api, options?: ChainApiOptions) => ({

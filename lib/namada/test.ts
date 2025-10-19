@@ -1,83 +1,45 @@
-import * as Namada from '../lib/namada/namada.ts';
+import * as Namada from './lib/namada.ts';
+import { suite, expect, curry } from '../tester/index.ts';
 import { readFileSync } from 'node:fs'
-
-export const name = 'Namada';
-
-export const testLocalnet  = expect('Localnet',  TODO)
-export const testConnect   = expect('Connect',   TODO)
-export const testSubscribe = expect('Subscribe', TODO)
-
-export const testGetBlock       = expect('Get block',   TODO)
-export const testGetAccount     = expect('Get account', TODO)
-export const testGetTransaction = expect('Get tx',      TODO)
-
-export const testFTCreate    = expect('Create',    TODO)
-export const testFTMint      = expect('Mint',      TODO)
-export const testFTBurn      = expect('Burn',      TODO)
-export const testFTTransfer  = expect('Transfer',  TODO)
-export const testFTAllowance = expect('Allowance', TODO)
-export const testFTDecimals  = expect('Decimals',  TODO)
-
-export const testNFTCreate   = expect('Create',   TODO)
-export const testNFTTransfer = expect('Transfer', TODO)
-
-export const testProgram = expect('Program',
-  expect('Deploy', TODO),
-  expect('Invoke', TODO))
-
-export const testProject = testStack
-
-export const testStack = (stack: SolanaStack) => expect(stack.name,
-  expect('Init',   TODO),
-  expect('Build',  TODO),
-  expect('Deploy', TODO),
-  expect('Test',   TODO),
-  expect('SDK',    TODO,
-    expect('CLI',  TODO),
-    expect('GUI',
-      expect('DOM',   TODO),
-      expect('React', TODO),
-      expect('Vue',   TODO))))
-
-const url = 'https://rpc.knowable.run/'
-const console = new Namada.Console('test')
-const decoderWasm = readFileSync('./namada/pkg/fadroma_namada_bg.wasm');
-const decoder = await Namada.initDecoder(decoderWasm)
-Deno.test('namada decoder storage keys', () => {
-  decoder.storage_keys()
-})
-Deno.test('namada chain', async () => {
-  await Namada.chain({ id: 'test' })
-  await Namada.chain({ id: 'test' })
-  await Namada.chain({ id: 'test', decoder: decoderWasm })
-  try { ;(await Namada.chain({ id: 'test', url, decoder: decoderWasm })).connect() } catch { /* */ }
-})
-Deno.test('namada abci queries', async () => {
-  const chain = await Namada.chain({ id: 'test', url, decoder: decoderWasm })
-  const connection = chain.connect(url) as Namada.Connection
-  await connection.fetchProtocolParameters()
-  await connection.fetchStakingParameters()
-  await connection.fetchTotalStaked()
-  await connection.fetchValidatorAddresses()
-  await connection.fetchValidatorsConsensus()
-  await connection.fetchValidatorsBelowCapacity()
-  await connection.fetchValidators()
-  await connection.fetchGovernanceParameters()
-  await connection.fetchProposalCount()
-  await connection.fetchProposalInfo(0)
-  await connection.fetchProposalVotes(0)
-  await connection.fetchProposalWasm(0)
-  await connection.fetchProposalResult(0)
-  await connection.fetchPgfParameters()
-})
-Deno.test('namada block info', async () => {
-  const chain = await Namada.chain({ id: 'test', url, decoder: decoderWasm })
-  const connection = chain.connect(url) as Namada.Connection
-  await connection.fetchBlock()
-  await connection.fetchNextBlock()
-  await connection.fetchHeight()
-  await connection.fetchNextHeight()
-})
+export default suite(import.meta, 'Namada',
+  expect('Localnet',
+    expect('Subscribe'),
+    expect('Fetch',
+      expect('Connect'),
+      expect('Block'),
+      expect('Account'),
+      expect('TX'),
+      expect('ABCI', async () => {
+        const url = 'https://rpc.knowable.run/'
+        const console = new Namada.Console('test')
+        const decoderWasm = readFileSync('./namada/pkg/fadroma_namada_bg.wasm');
+        const decoder = await Namada.initDecoder(decoderWasm)
+        decoder.storage_keys()
+        await Namada.chain({ id: 'test' })
+        await Namada.chain({ id: 'test' })
+        await Namada.chain({ id: 'test', decoder: decoderWasm })
+        try { ;(await Namada.chain({ id: 'test', url, decoder: decoderWasm })).connect() } catch { /* */ }
+        const chain = await Namada.chain({ id: 'test', url, decoder: decoderWasm })
+        const connection = chain.connect(url) as Namada.Connection
+        await connection.fetchProtocolParameters()
+        await connection.fetchStakingParameters()
+        await connection.fetchTotalStaked()
+        await connection.fetchValidatorAddresses()
+        await connection.fetchValidatorsConsensus()
+        await connection.fetchValidatorsBelowCapacity()
+        await connection.fetchValidators()
+        await connection.fetchGovernanceParameters()
+        await connection.fetchProposalCount()
+        await connection.fetchProposalInfo(0)
+        await connection.fetchProposalVotes(0)
+        await connection.fetchProposalWasm(0)
+        await connection.fetchProposalResult(0)
+        await connection.fetchPgfParameters()
+        await connection.fetchBlock()
+        await connection.fetchNextBlock()
+        await connection.fetchHeight()
+        await connection.fetchNextHeight()
+      }))));
 
 //await connection.fetchBalance()
 //await connection.fetchBalance()

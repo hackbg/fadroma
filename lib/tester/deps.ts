@@ -1,11 +1,13 @@
 export type {
   Info,
   Write,
+  Timed,
   MaybeAsync,
+  MaybeAsyncFn,
 } from '@hackbg/fadroma';
 
 export {
-  isEntrypoint,
+  isEntrypoint, curry,
   renamed, pipe, write, entrypoint, formatMsec, joined,
   red, green, blue, orange, yellow, gray, ANSI_RESET
 } from '@hackbg/fadroma';

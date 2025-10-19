@@ -12,6 +12,10 @@ export const compose = (name: string, ...spawns: Spawn[]) => Object.assign(
 
 export const run = (name: string, ...options: Option[]) => (context: Context) => {}
 
+export const arg = (...value: string[]) => (context: Context) => {}
+
+export const setEnv = (name: string, value: string|null) => (context: Context) => {}
+
 export const container = (name, ...options) => { throw new Error('TODO') };
 
 export const image = (name, ...options) => { throw new Error('TODO') };
@@ -33,7 +37,5 @@ export const get = (path, ...options: Option[]) => pipe(...options);
 export const post = (path, ...options: Option[]) => pipe(...options);
 
 export const ware = (path, ...options: Option[]) => pipe(...options);
-
-export const compose = (path, ...options: Option[]) => pipe(...options);
 
 export const every = (path, ...options: Option[]) => pipe(...options);

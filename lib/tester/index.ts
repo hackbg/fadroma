@@ -1,9 +1,8 @@
 import type * as Test from './types.ts';
-import {
-  stdout, argv, ok, equal, isEntrypoint, setImmediate, renamed, joined,
-  formatMsec, red, green, orange, yellow, blue, gray
-} from './deps.ts';
+import { argv, ok, equal, isEntrypoint, setImmediate, renamed, joined,
+  red, green, orange, yellow, blue, gray } from './deps.ts';
 
+export { curry } from './deps.ts';
 export * from './types.ts';
 
 /** Test entrypoint. Runs the contained tests and reports.
@@ -23,19 +22,26 @@ export const suite = (meta: ImportMeta, name: string, ...steps: Test.Step<unknow
   return testSuite
 };
 
-export const run = async testSuite => {
-  Error.stackTraceLimit = Infinity;
-  const { getContext, details, summary } = report();
+/** Run a test suite, collecting the results into a test report.
+  * 
+  * Automatically invoked when using [suite] as module entrypoint. */
+export const run = async (testSuite: Test.Step<unknown>, {
+  context, details, summary
+} = report()) => {
   let error:  unknown;
   let result: unknown;
-  try { result = await testSuite(getContext()); } catch (e) { error = e; }
+  const stackTraceLimit = Error.stackTraceLimit;
+  Error.stackTraceLimit = Infinity;
+  try { result = await testSuite(context()); } catch (e) { error = e; }
+  Error.stackTraceLimit = stackTraceLimit;
   console.log([details(), summary()].filter(Boolean).join('\n'));
   if (error) throw error;
   return result;
 };
 
-/** The test report tracks each step of the test suite,
-  * and sorts test outcomes into categories. */
+/** Create a test report.
+  *
+  * Automatically invoked when using [run] or [suite]. */
 export const report = ({
   failFast = false,
 
@@ -45,7 +51,7 @@ export const report = ({
   warnings = category(`🟡`, 'warnings', 'Warning', yellow('warning')),
   skipped  = category(`  `, 'skipped',  'skip',    orange('skip   ')),
 
-  getContext = ({
+  context = ({
     t0 = performance.now(), ids = [], names = [],
     pass = (...args) => passed.add(performance.now()   - t0, ...args),
     fail = (...args) => failed.add(performance.now()   - t0, ...args),
@@ -53,7 +59,7 @@ export const report = ({
     warn = (...args) => warnings.add(performance.now() - t0, ...args),
     skip = (...args) => skipped.add(performance.now()  - t0, ...args),
   } = {}): Test.Context => ({
-    t0, ids, names, pass, fail, todo, warn, getContext,
+    t0, ids, names, pass, fail, todo, warn, context,
     async track <T> (id: number|null, name: string|null, step: Test.Step<T>) {
       const newIds   = [...ids, id].filter(Boolean);
       const newNames = [...names, name].filter(Boolean);
@@ -65,8 +71,8 @@ export const report = ({
       };
       //console.trace(`⏳️ @${formatMsec(t0)} ${summary}`);
       try {
-        const context = getContext({ ids: newIds, names: newNames });
-        const result  = await step(context);
+        const stepContext = context({ ids: newIds, names: newNames });
+        const result  = await step(stepContext);
         return pass(summary, null, result) as T;
       } catch (e: unknown) {
         const error = e as { todo?: unknown, message: string, stack?: string };
@@ -85,7 +91,7 @@ export const report = ({
   }),
 
 } = {}): Test.Report => ({
-  getContext, passed, failed, tasks, warnings,
+  context, passed, failed, tasks, warnings,
   summary: () => joined(' ', ...[passed, tasks, warnings, failed].map(x=>x.length > 0 && x.summary())),
   details: () => joined(' ', ...[passed, tasks, warnings, failed].map(x=>x.length > 0 && x.details())),
 });
@@ -153,7 +159,7 @@ export const todo = (...info: string[]) => Object.assign(renamed(info.join(' '),
   **/
 export const expect = (name?: string, ...steps: Test.Step<unknown>[]) =>
   Object.assign(renamed(name, async function expectation (
-    context = report().getContext()
+    context = report().context()
   ) { 
     if (steps.length === 0) steps = [todo()];
     const results: Array<undefined|{pass:unknown}|{fail: Error}|{todo: unknown}> =
@@ -239,5 +245,5 @@ export const matrix = <T>(
 
 /** Run steps in parallel. */
 export const parallel = (name: string, variants: ((_: Test.Context)=>unknown)[]) =>
-  expect(name, (context = report().getContext()) =>
-    Promise.all(variants.map(variant=>variant(context.getContext()))));
+  expect(name, (context = report().context()) =>
+    Promise.all(variants.map(variant=>variant(context.context()))));
