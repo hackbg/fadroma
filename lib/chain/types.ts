@@ -1,4 +1,5 @@
 import type { Id, Identified, Named, Colorful } from './deps.ts';
+
 export type Entity<I extends Id> = Identified<I> & Partial<Named & Colorful>;
 /** An address on a chain. */
 export type Address = string;

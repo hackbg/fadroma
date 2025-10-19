@@ -47,10 +47,6 @@ export type Semver = string; // TODO
 export type Versioned = { /* The version. */ version: Semver };
 /** TODO: Alias for various buffer types. */
 export type Bytes = Uint8Array;
-/** A valid JSON-RPC v2 response, which may be a result or an error. */
-export type JsonRpcResponse<R> = {
-  jsonrpc: string, id: number, result?: R, error?: { data: string }
-};
 /** A parse that may fail but the source and error must still be preserved. */
 export type TryToParse<T, U> =
   | [T, U,         undefined]

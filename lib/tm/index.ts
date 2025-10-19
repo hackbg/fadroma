@@ -1,13 +1,33 @@
 /** Fadroma. Copyright (C) 2023-2025 Hack.bg. License: GNU AGPLv3 or custom.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
-import type { Address, Uint128 } from './deps.ts'
-import { Core, base16, base64, uint32, camelize } from './deps.ts'
+import type {
+  Context, Block, Height, Coin, Fee,
+  BlockResponse, BlockResults, BlockResultsResponse,
+  Fungible, TokenApi, Token,
+} from './types.ts';
+import { Core, base16, base64, uint32, camelize } from './deps.ts';
+import type { Address, Hash, Uint128 } from './deps.ts';
+
+const BaseError = globalThis.Error;
+
+/** A Tendermint error .*/
+export class Error extends BaseError {
+  constructor (message, ...args: object[]) {
+    super(message); Object.assign(this, ...args);
+  }
+  static TODO = (...args: string[]) => {
+    throw Object.assign(new Error(['TODO', ...args].join(' ')), { todo: true })
+  }
+}
+
 /** Describe a Tendermint chain. */
 export const chain = ({ ...options }: Partial<Core.Chain> & ChainOptions, api = impl): Chain =>
   Core.chain(options, api as any) as Chain
+
 /** Fetch a block from a Tendermint chain, optionally with block results. */
-export const fetch = (api: context) => ({
+export const fetch = (api: Context) => ({
+
   async block (options?: {
     height?: Height, hash?: string, results?: boolean, raw?: boolean
   }): Promise<Block> {
@@ -47,8 +67,74 @@ export const fetch = (api: context) => ({
         results: { url: resultsUrl, data: resultsText },
       } : undefined
     } as Block
-  }
+  },
+
+
+  /** Fetch just the results of a Tendermint block. */
+  async blockResults (options?: {
+    height?: Height, raw?: boolean
+  }): Promise<BlockResults> {
+    const [_, [resultsText, results, resultsError]] =
+      await fetchAndTryToParseResultsResponse(api, options)
+    if (resultsError) {
+      api.log.error('failed to decode block results:', resultsError)
+      if (!options?.raw) throw new Error('failed to decode block results', { reason: resultsError })
+    }
+    if ('error' in results!) {
+      api.log.error('results error:', resultsError)
+      if (!options?.raw) throw new Error('results error', { reason: results.error })
+    }
+    return Object.assign(camelize(results!.result!) as unknown as BlockResults, {
+      raw: options?.raw ? resultsText : undefined
+    })
+  },
+
+  async abciInfo (_api: Context) { Error.TODO('fetchAbciInfo') },
+
+  async abciQuery (api: Context, path: string, options?: {
+    data?: Uint8Array, height?: Height, prove?: boolean
+  }): Promise<{
+    readonly key:       Uint8Array|null
+    readonly value:     Uint8Array|null
+    readonly codespace: string
+    readonly info:      string
+    readonly proof?:    Array<{ type: string, key: Uint8Array, data: Uint8Array }>
+    readonly height?:   number
+    readonly index?:    number
+    readonly code?:     number // non-falsy for errors
+    readonly log?:      string
+  }> {
+    if (!api.url) throw new Error('fetchAbciQuery: no api url')
+    if (!path) throw new Error('fetchAbciQuery: no path')
+    const data     = options?.data || new Uint8Array()
+    const params   = {path, data: base16.encode(data), prove: options?.prove ?? false, height: options?.height}
+    const message  = {jsonrpc: '2.0', id: Console.randomId(), method: 'abci_query', params}
+    const headers  = {'Content-Type': 'application/json'}
+    const body     = JSON.stringify(message)
+    api.log.debug('fetchAbciQuery:', body)
+    const request  = await fetch(api.url, {method: 'POST', body, headers})
+    const json     = await request.json()
+    const { result: { response }, error } = json
+    if (error) {
+      api.log.error('fetchAbciQuery error:', error)
+      throw new Error('fetchAbciQueryError', { error })
+    }
+    if (typeof response.key   === 'string') response.key   = base64.decode(response.key)
+    if (typeof response.value === 'string') response.value = base64.decode(response.value)
+    return response
+  },
+
+  async blockSearch (_query: string, _parameters: { page?: number, perPage?: number, orderBy?: string }) { return Error.TODO('fetchBlockSearch') },
+  async blockchain (_parameters: { min?: Height, max?: Height }) { return Error.TODO('fetchBlockchain') },
+  async commit (_height: Height) { return Error.TODO('fetchCommit') },
+  async genesis () { return Error.TODO('fetchGenesis') },
+  async health () { return Error.TODO('fetchHealth') },
+  async numUnconfirmedTxs () { return Error.TODO('fetchNumUnconfirmedTxs') },
+  async status () { return Error.TODO('fetchStatus') },
+  async tx () { return Error.TODO('fetchTx') },
+  async txSearch () { return Error.TODO('fetchTxSearch') }
 });
+
 const fetchAndTryToParseBlockResponse =
   async (api: Context, options?: { height?: Height, hash?: string }):
     Promise<[string, Core.TryToParse<string, BlockResponse>]> => {
@@ -58,26 +144,7 @@ const fetchAndTryToParseBlockResponse =
       if (height && isNaN(Number(height))) throw new Error(`invalid height requested: ${height}`)
       const url = `${api.url}/block?height=${height??''}`
       const response = await fetch(url).then(r=>r.text())
-      return [url, Core.tryToParse(response)]
-    }
-/** Fetch just the results of a Tendermint block. */
-export const fetchBlockResults =
-  async (api: Context, options?: { height?: Height, raw?: boolean }):
-    Promise<BlockResults> => {
-      const [_, [resultsText, results, resultsError]] =
-        await fetchAndTryToParseResultsResponse(api, options)
-      if (resultsError) {
-        api.log.error('failed to decode block results:', resultsError)
-        if (!options?.raw) throw new Error('failed to decode block results', { reason: resultsError })
-      }
-      if ('error' in results!) {
-        api.log.error('results error:', resultsError)
-        if (!options?.raw) throw new Error('results error', { reason: results.error })
-      }
-      return Object.assign(camelize(results!.result!) as unknown as BlockResults, {
-        raw: options?.raw ? resultsText : undefined
-      })
-    }
+      return [url, Core.tryToParse(response)] }
 const fetchAndTryToParseResultsResponse =
   async (api: Context, options?: { height?: Height }):
     Promise<[string, Core.TryToParse<string, BlockResultsResponse>]> => {
@@ -85,86 +152,12 @@ const fetchAndTryToParseResultsResponse =
       const { height } = options || {}
       const url = `${api.url}/block_results?height=${height??''}`
       const response = await fetch(url).then(r=>r.text())
-      return [url, Core.tryToParse(response)]
-    }
-export const fetchAbciInfo  = async (_api: Context) =>
-  Error.TODO('fetchAbciInfo')
-export const fetchAbciQuery = async (api: Context, path: string, options?: {
-  data?: Uint8Array, height?: Height, prove?: boolean
-}): Promise<{
-  readonly key:       Uint8Array|null
-  readonly value:     Uint8Array|null
-  readonly codespace: string
-  readonly info:      string
-  readonly proof?:    Array<{ type: string, key: Uint8Array, data: Uint8Array }>
-  readonly height?:   number
-  readonly index?:    number
-  readonly code?:     number // non-falsy for errors
-  readonly log?:      string
-}> => {
-  if (!api.url) throw new Error('fetchAbciQuery: no api url')
-  if (!path) throw new Error('fetchAbciQuery: no path')
-  const data     = options?.data || new Uint8Array()
-  const params   = {path, data: base16.encode(data), prove: options?.prove ?? false, height: options?.height}
-  const message  = {jsonrpc: '2.0', id: Console.randomId(), method: 'abci_query', params}
-  const headers  = {'Content-Type': 'application/json'}
-  const body     = JSON.stringify(message)
-  api.log.debug('fetchAbciQuery:', body)
-  const request  = await fetch(api.url, {method: 'POST', body, headers})
-  const json     = await request.json()
-  const { result: { response }, error } = json
-  if (error) {
-    api.log.error('fetchAbciQuery error:', error)
-    throw new Error('fetchAbciQueryError', { error })
-  }
-  if (typeof response.key   === 'string') response.key   = base64.decode(response.key)
-  if (typeof response.value === 'string') response.value = base64.decode(response.value)
-  return response
-}
-export const fetchBlockSearch = async (_api: Context, _query: string, _parameters: { page?: number, perPage?: number, orderBy?: string }) =>
-  Error.TODO('fetchBlockSearch')
-export const fetchBlockchain = async (_api: Context, _parameters: { min?: Height, max?: Height }) =>
-  Error.TODO('fetchBlockchain')
-export const fetchCommit = async (_api: Context, _height: Height) =>
-  Error.TODO('fetchCommit')
-export const fetchGenesis = async (_api: Context) =>
-  Error.TODO('fetchGenesis')
-export const fetchHealth = async (_api: Context) =>
-  Error.TODO('fetchHealth')
-export const fetchNumUnconfirmedTxs = async (_api: Context) =>
-  Error.TODO('fetchNumUnconfirmedTxs')
-export const fetchStatus = async (_api: Context) =>
-  Error.TODO('fetchStatus')
-export const fetchTx = async (_api: Context) =>
-  Error.TODO('fetchTx')
-export const fetchTxSearch = async (_api: Context) =>
-  Error.TODO('fetchTxSearch')
+      return [url, Core.tryToParse(response)] }
+
 export const subscribe = async (_api: Context, _subscribeTo: 'block'|'header'|{query: string}) =>
   Error.TODO('subscribe')
 export const broadcastTx = async (_api: Context, _method: 'sync'|'async'|'commit', _tx: Uint8Array) =>
   Error.TODO('broadcastTx')
-
-/** Default implementation of Tendermint client API. */
-export const impl = {
-  ...Core.impl,
-  ...Bank,
-  fetchBlock,
-  fetchBlockResults,
-  fetchAbciInfo,
-  fetchAbciQuery,
-  fetchBlockSearch,
-  fetchBlockchain,
-  fetchCommit,
-  fetchGenesis,
-  fetchHealth,
-  fetchNumUnconfirmedTxs,
-  fetchStatus,
-  fetchTx,
-  fetchTxSearch,
-  fetchValidators,
-  subscribe,
-  broadcastTx,
-}
 export const fetchBalance = (...args: unknown[]) =>
   Error.TODO('tendermint fetch native balance')
 export const send = (...args: unknown[]) =>
@@ -352,8 +345,6 @@ export const send = (...args: unknown[]) =>
   //}
   //return result
 //}
-/** A Tendermint error .*/
-export class Error extends Core.Error {}
 /** A Tendermint logger .*/
 export class Console extends Core.Console {
   static randomId = (): number => parseInt(Array.from({ length: 12 }) .map(() => randomNumericChar()).join(""), 10)
@@ -362,8 +353,8 @@ const numbersWithoutZero = "123456789"
 const randomNumericChar = (): string => numbersWithoutZero[Math.floor(Math.random() * numbersWithoutZero.length)]
 /** A Namada validator. */
 export interface Validator {
-  address?: Core.Address,
-  publicKey?: Core.Hash,
+  address?: Address,
+  publicKey?: Hash,
   votingPower: bigint,
   proposerPriority: bigint
 }
@@ -430,25 +421,10 @@ export const byVotingPowerDesc = (a: Validator, b: Validator)=>(
     //}
     //buf[pos] = val;
 //}
-/** Represents some amount of native token. */
-export interface Coin { readonly amount: string, readonly denom: string }
 /** Convert to coin. */
 export const makeCoin = (amount: Uint128, denom: string): Coin => ({ amount: String(amount), denom })
-/** A gas fee, payable in native tokens. */
-export interface Fee { readonly gas: Uint128, readonly amount: Coin[] }
 /** Convert to fee. */
 export const makeFee = (gas: Uint128, amount: Coin[]): Fee => ({ gas: String(gas), amount })
-/** A mapping of transaction type to default fee in one or more tokens. */
-export type FeeMap<T extends string> = { [key in T]: Fee }
-export type Token       = { readonly id: string }
-export type NativeToken = Token & { denom: string }
-export type CustomToken = Token & { address: Address, codeHash?: string }
-export type Fungible    = Token & { fungible: true }
-export type NonFungible = Token & { fungible: false }
-export type TokenApi    = {
-  amount: (amount: Uint128) => TokenAmount,
-  fee: (gas: Uint128) => Fee
-}
 export const makeToken = <T extends Token> (t: T): T & TokenApi => {
   const token: any = { ...t }
   if ('fungible' in token && token.fungible) {
@@ -477,27 +453,6 @@ export const makeTokenAmount = (a: Uint128, t: Fungible): TokenAmount => {
     toString () { return `${a} ${t.id}` },
   }
 }
-/** An amount of a fungible token. */
-export type TokenAmount = {
-  readonly amount: Uint128,
-  readonly token:  Fungible,
-  readonly denom: string|undefined
-  readonly asNativeBalance: Coin[]
-  readonly asCoin: Coin
-  asFee (gas: Uint128): Fee
-  toString (): string
-}
 
 export const addZeros = (n: number|Uint128, z: number): Uint128 =>
   `${n}${[...Array(z)].map(() => '0').join('')}`
-
-/** A pair of equivalent things. */
-export type Pair<T> = [T, T]
-/** Reverse a pair. */
-export const reverse = <T> (pair: Pair<T>): Pair<T> => [pair[1], pair[0]]
-/** A pair of tokens. */
-export type TokenPair = Pair<Token>
-/** A swap. */
-export type Swap = Pair<SwapSide>
-/** One side of a swap may contain one or more FT amounts or NFTs. */
-export type SwapSide = TokenAmount|NonFungible|Array<(TokenAmount|NonFungible)>

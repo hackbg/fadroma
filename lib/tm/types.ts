@@ -1,25 +1,79 @@
+import type {
+  Address, Hash, Uint128, Height,
+  Context     as BaseContext,
+  Connection  as BaseConnection,
+  Chain       as BaseChain,
+  Api         as BaseApi,
+  Transaction as BaseTransaction,
+  Batch       as BaseBatch,
+} from './deps.ts';
+export type { Address, Hash, Uint128, Height } from './deps.ts';
+/** A valid JSON-RPC v2 response, which may be a result or an error. */
+export type JsonRpcResponse<R> = { jsonrpc: string, id: number, result?: R, error?: { data: string } };
+/** A pair of equivalent things. */
+export type Pair<T> = [T, T];
+/** Reverse a pair. */
+export const reverse = <T> (pair: Pair<T>): Pair<T> => [pair[1], pair[0]];
+/** A pair of tokens. */
+export type TokenPair = Pair<Token>;
+/** A swap. */
+export type Swap = Pair<SwapSide>;
+/** One side of a swap may contain one or more FT amounts or NFTs. */
+export type SwapSide = TokenAmount|NonFungible|Array<(TokenAmount|NonFungible)>;
 /** Dependencies of Tendermint API methods. */
-export type Context = Core.Context
+export type Context = BaseContext;
 /** Methods available for interacting with Tendermint chains. */
-export type Api = Core.Api & Core.ToApi<typeof impl>
+export type Api = BaseApi & BaseToApi<typeof impl>;
 /** Chain global configuration pertinent to Tendermint-based chains only. */
-export type ChainOptions = {
-  bech32Prefix?:   string,
-  coinType?:       string,
-  hdAccountIndex?: string,
-}
+export type ChainOptions = { bech32Prefix?: string, coinType?: string, hdAccountIndex?: string, };
 /** A Tendermint chain. */
-export type Chain       = Core.Chain & Api & ChainOptions
+export type Chain       = BaseChain & Api & ChainOptions;
 /** A Tendermint connection. */
-export type Connection  = Core.Connection & Api & ChainOptions
+export type Connection  = BaseConnection & Api & ChainOptions;
 /** A Tendermint transaction. */
-export type Transaction = Core.Transaction
+export type Transaction = BaseTransaction;
 /** A batch of Tendermint transactions. */
-export type Batch       = Core.Batch
-/** The height of a Tendermint block. */
-export type Height      = Core.Height
+export type Batch       = BaseBatch;
+/** A Tendermint governance vote. */
+export interface Vote { proposal: ProposalId, voter: Address, power: bigint, value: VoteValue };
+/** The value of a Tendermint governance vote. */
+export type VoteValue = 'Yay'|'Nay'|'Abstain';
+/** The current state of a Tendermint governance proposal. */
+export type Proposal = { id: ProposalId, votes: Vote[], result: ProposalResult };
+/** The number of a Tendermint governance proposal. */
+export type ProposalId = bigint;
+/** The result of a Tendermint governance proposal. */
+export type ProposalResult = 'Pass'|'Fail';
+/** Represents some amount of native token. */
+export type Coin = { readonly amount: string, readonly denom: string };
+/** A gas fee, payable in native tokens. */
+export type Fee = { readonly gas: Uint128, readonly amount: Coin[] };
+/** A mapping of transaction type to default fee in one or more tokens. */
+export type FeeMap<T extends string> = { [key in T]: Fee };
+
+export type Token = { readonly id: string };
+
+export type NativeToken = Token & { denom: string }
+
+export type CustomToken = Token & { address: Address, codeHash?: string }
+
+export type Fungible    = Token & { fungible: true }
+
+export type NonFungible = Token & { fungible: false }
+
+export type TokenApi = { amount: (amount: Uint128) => TokenAmount, fee: (gas: Uint128) => Fee }
+/** An amount of a fungible token. */
+export type TokenAmount = {
+  readonly amount: Uint128,
+  readonly token:  Fungible,
+  readonly denom: string|undefined
+  readonly asNativeBalance: Coin[]
+  readonly asCoin: Coin
+  asFee (gas: Uint128): Fee
+  toString (): string
+}
 /** A Tendermint block ID. */
-export type BlockId = { hash: Core.Hash, parts?: { total: number, hash: Core.Hash } }
+export type BlockId = { hash: Hash, parts?: { total: number, hash: Hash } }
 /** A Tendermint block header. */
 export type BlockHeader = {
   readonly version:            object
@@ -38,7 +92,7 @@ export type BlockHeader = {
   readonly proposerAddress:    string
 }
 /** A Tendermint block. */
-export type Block = Core.Block & {
+export type Block = BaseBlock & {
   /** Block header. */
   readonly header?: BlockHeader
   /** Transaction in block. */
@@ -50,11 +104,11 @@ export type Block = Core.Block & {
 }
 /** The raw responses from /block and /block_results. */
 export type BlockResponses = {
-  readonly block?:   Core.Response
-  readonly results?: Core.Response
+  readonly block?:   BaseResponse
+  readonly results?: BaseResponse
 }
 /** The parsed response from the /block endpoint. */
-export type BlockResponse = Core.JsonRpcResponse<{
+export type BlockResponse = JsonRpcResponse<{
   readonly block_id: BlockId,
   readonly block: {
     readonly header: BlockHeader,
@@ -69,7 +123,7 @@ export type BlockResponse = Core.JsonRpcResponse<{
   }
 }>
 /** The parsed response from the /block_results endpoint. */
-export type BlockResultsResponse = Core.JsonRpcResponse<{
+export type BlockResultsResponse = JsonRpcResponse<{
   readonly height:                  string
   readonly txs_results:             unknown[]|null
   readonly begin_block_events:      unknown[]|null
@@ -117,15 +171,3 @@ export type SendOptions = {
   sendMemo?: string,
   parallel?: boolean
 }
-/** A Tendermint governance vote. */
-export interface Vote { proposal: ProposalId, voter: Core.Address, power: bigint, value: VoteValue }
-/** The value of a Tendermint governance vote. */
-export type VoteValue = 'Yay'|'Nay'|'Abstain'
-/** The current state of a Tendermint governance proposal. */
-export interface Proposal { id: ProposalId, votes: Vote[], result: ProposalResult }
-/** The number of a Tendermint governance proposal. */
-export type ProposalId = bigint
-/** The result of a Tendermint governance proposal. */
-export type ProposalResult = 'Pass'|'Fail'
-
-export type * from './deps.ts';

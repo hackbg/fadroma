@@ -1,5 +1,9 @@
 {
   "name": "@fadroma/chain",
   "type": "module",
-  "main": "index.ts"
+  "main": "index.ts",
+  "dependencies": {
+    "@hackbg/fadroma": "workspace:*",
+    "@fadroma/tester": "workspace:*"
+  }
 }

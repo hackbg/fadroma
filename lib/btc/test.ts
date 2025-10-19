@@ -2,5 +2,5 @@
 import { expect, suite } from '@fadroma/tester';
 export default suite(import.meta, 'Bitcoin',
   expect('Localnet'),
-  expect('Read'),
-  expect('Write'))
+  expect('Read', expect('Block'), expect('Transaction'), expect('Address')),
+  expect('Write', expect('Send')))

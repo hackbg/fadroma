@@ -115,7 +115,7 @@ export const rxApi = ({ rpc, auth = [] }) => rest('r',
     }
   }));
 
-/** Accounts API. */
+/** Address API. */
 export const axApi = ({ indexd = null, dblimit = null, heightRange = [0, 0xffffffff] }) =>
   rest('a/:address',
     param('scId', toScId),
