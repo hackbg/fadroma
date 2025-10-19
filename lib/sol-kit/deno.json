@@ -2,7 +2,7 @@
   "imports": {
     "@hackbg/fadroma":   "../core/index.ts",
     "@fadroma/gen":      "../gen/index.ts",
-    "@fadroma/tester":   "../tester/index.ts"
+    "@fadroma/tester":   "../tester/index.ts",
   },
   "nodeModulesDir": "auto",
   "lint": {

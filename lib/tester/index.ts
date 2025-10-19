@@ -1,10 +1,12 @@
 import type * as Test from './types.ts';
-import { ok, deepStrictEqual as equal } from 'node:assert';
-import { entrypoint, renamed, joined, formatMsec, red, green, orange, yellow, blue, gray } from './deps.ts';
+import {
+  argv, ok, equal, isEntrypoint, setImmediate, renamed, joined,
+  formatMsec, red, green, orange, yellow, blue, gray
+} from './deps.ts';
 
 export * from './types.ts';
 
-/** Define a test suite. Running it will output a test report.
+/** Test entrypoint. Runs the contained tests and reports.
   *
   * Example:
   *
@@ -15,18 +17,21 @@ export * from './types.ts';
   *         expect('Test C', todo())
   *         expect('Test D', todo()))))
   **/
-export const suite = (meta: ImportMeta, name: string, ...steps: Test.Step<unknown>[]) =>
-  entrypoint(meta, Object.assign(renamed(name, async function runTestSuite (..._args: string[]) {
+export const suite = (meta: ImportMeta, name: string, ...steps: Test.Step<unknown>[]) => {
+  const run = expect(name, ...steps);
+  if (isEntrypoint(meta, argv[1])) setImmediate(async ()=>{
     Error.stackTraceLimit = Infinity;
-    const run = expect(name, ...steps);
     const { getContext, details, summary } = report();
     let error:  unknown;
     let result: unknown;
+    console.log({run})
     try { result = await run(getContext()); } catch (e) { error = e; }
     console.log([details(), summary()].filter(Boolean).join('\n'));
     if (error) throw error;
     return result;
-  }), { steps }), expect(name, ...steps));
+  });
+  return run
+};
 
 /** The test report tracks each step of the test suite,
   * and sorts test outcomes into categories. */
@@ -39,17 +44,20 @@ export const report = ({
   warn = category(`🟡`, 'warnings', 'Warning', yellow('warning')),
 
   getContext = ({
-    t0 = performance.now(), ids = [], names = [],
-    track = async function track <T> (id: number|null, name: string|null, step: Test.Step<T>): Promise<T> {
-      if (!step) return null
+    t0 = performance.now(), ids = [], names = [], ...rest
+  } = {}): Test.Context => ({
+    t0, ids, names,
+    ...[pass, fail, todo, warn].map(x=>x.add), ...rest,
+    async track <T> (id: number|null, name: string|null, step: Test.Step<T>) {
       const newIds   = [...ids, id].filter(Boolean);
       const newNames = [...names, name].filter(Boolean);
       const summary  = joined('',
         blue((joined('.', ...newIds)+' ').padEnd(10)),
         joined(': ', newNames.map((x, i)=>gray(i*2, x))));
+      if (typeof step !== 'function') return warn.add(t0, `not a function: ${summary}`, step);
       //console.trace(`⏳️ @${formatMsec(t0)} ${summary}`);
       try {
-        const context = getContext({ ids: [...ids, id], names: [...names, name] });
+        const context = getContext({ ids: newIds, names: newNames });
         const result  = await step(context);
         return pass.add(t0, summary, null, result) as T;
       } catch (e: unknown) {
@@ -66,10 +74,6 @@ export const report = ({
         }
       }
     },
-    ...rest
-  } = {}): Test.Context => ({
-    t0: performance.now(), ids, names, track,
-    ...[pass, fail, todo, warn].map(x=>x.add), ...rest,
   }),
 
 } = {}): Test.Report => ({
@@ -218,8 +222,3 @@ export const matrix = <T>(
 export const parallel = (name: string, variants: ((_: Test.Context)=>unknown)[]) =>
   expect(name, (context = report().getContext()) =>
     Promise.all(variants.map(variant=>variant(context.getContext()))));
-
-const warnReturn = (context: Test.Context, id: string, result: unknown) =>
-  context.warn(0, `Test step ${id} returned an unexpected value.`,
-    `This may indicate a faulty test function.`,
-    result);

@@ -269,4 +269,3 @@ export async function execute (agent: Agent, ...args: Parameters<Agent["execute"
     )
   })
 }
-

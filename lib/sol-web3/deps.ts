@@ -34,8 +34,16 @@ export {
 } from '@solana/spl-token';
 
 export * as Anchor from "@coral-xyz/anchor";
-export { Program, workspace } from "@coral-xyz/anchor";
-export { ok, deepStrictEqual as equal } from 'node:assert';
 
-export type IDL    = {}; // TODO
-export type NotIDL = {}; // TODO
+export {
+  Program,
+  workspace
+} from "@coral-xyz/anchor";
+
+export {
+  ok,
+  deepStrictEqual as equal
+} from 'node:assert';
+
+export type IDL    = Record<PropertyKey, never>; // TODO
+export type NotIDL = Record<PropertyKey, never>; // TODO

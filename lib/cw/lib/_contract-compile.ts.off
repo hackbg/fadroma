@@ -135,5 +135,3 @@ export class CompiledCode {
     return base16.encode(SHA256(data)).toLowerCase()
   }
 }
-
-

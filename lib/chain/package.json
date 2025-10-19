@@ -1,0 +1,5 @@
+{
+  "name": "@fadroma/chain",
+  "type": "module",
+  "main": "index.ts"
+}

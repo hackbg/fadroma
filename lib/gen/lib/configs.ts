@@ -1,9 +1,12 @@
-import { dir, file, text, markdown, json, js, ts, toml } from './formats.ts';
+import type { Readme } from '../types.ts';
+import { dir, text, markdown, json, js, toml } from './formats.ts';
+
 export const gitignore =
   (...lines: string[]) => text('.gitignore', ...lines);
+
 export const readme =
-  ({ title }: Readme) => markdown('README.md', { [title]: {} });
-export type Readme = { title?: string, sections?: [string, string] };
+  ({ title }: Readme) => markdown('README.md', { [String(title)]: {} });
+
 export const packageJson = ({
   name,
   path             = 'package.json',
@@ -30,8 +33,11 @@ export const packageJson = ({
 })
 
 export const tsConfig = json('tsconfig.json');
+
 export const eslintConfig = js('eslint.config.js');
+
 export const moldConfig = dir('.cargo', toml('config.toml'));
+
 export const baconConfig = ({
   watch = [ "programs/*" ], jobs = []
 }) => toml('bacon.toml', {

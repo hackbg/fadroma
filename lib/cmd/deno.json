@@ -1,7 +1,13 @@
 {
-  "nodeModulesDir": "auto",
   "imports": {
-    "@hackbg/fadroma": "../core/index.ts",
-    "@fadroma/tester": "../tester/index.ts"
+    "@hackbg/fadroma":   "../core/index.ts",
+    "@fadroma/gen":      "../gen/index.ts",
+    "@fadroma/tester":   "../tester/index.ts"
+  },
+  "nodeModulesDir": "auto",
+  "lint": {
+    "rules": {
+      "exclude": ["no-async-promise-executor"]
+    }
   }
 }

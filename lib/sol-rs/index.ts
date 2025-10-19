@@ -1,43 +1,8 @@
-import type {
-  Name, Named, Semver, IDL, NotIDL, CargoDep, CargoFeature
-} from '../deps.ts';
+import type { ProjectOptions, ProgramOptions } from './types.ts';
 import {
   pick, when, dir, toml, gitignore, readme, ts, packageJson,
   tsConfig, eslintConfig, rs, cargoToml, baconConfig, moldConfig,
-} from '../deps.ts';
-
-export type ProjectOptions = Named & {
-  name:      Name,
-  legacy:    boolean,
-  anchor:    boolean|Semver,
-  solana:    boolean|Semver,
-  node:      boolean|Semver,
-  deno:      boolean|Semver,
-  ts:        boolean|Semver,
-  pnpm:      boolean,
-  bacon:     boolean,
-  eslint:    boolean,
-  web3:      boolean|Semver,
-  kit:       boolean|Semver,
-  codama:    boolean|Semver,
-  mold:      boolean,
-  idl:       IDL|null,
-  notIdl:    NotIDL|null,
-  dotenv:    boolean,
-  direnv:    boolean,
-  programs?: ProgramOptions[],
-};
-
-export type ProgramOptions = Named & {
-  name:      Name,
-  idl:       IDL|null,
-  notIdl:    IDL|null,
-  solana:    Semver,
-  anchor:    Semver|null,
-  deps?:     CargoDep[],
-  devDeps?:  CargoDep[],
-  features?: CargoFeature[]
-};
+} from './deps.ts';
 
 export const initProject = (opts: ProjectOptions) => (path: string) => dir(path,
   gitignore(),
@@ -86,3 +51,4 @@ export const initProject = (opts: ProjectOptions) => (path: string) => dir(path,
 export const initProgram = (path: string, opts: ProgramOptions) => dir(path,
   cargoToml(pick('name', 'deps', 'devDeps', 'features')(opts)),
   dir('src', rs('lib.rs')));
+

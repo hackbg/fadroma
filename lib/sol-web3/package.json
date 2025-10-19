@@ -1,0 +1,12 @@
+{
+  "name": "@fadroma/sol-web3",
+  "type": "module",
+  "main": "index.ts",
+  "dependencies": {
+    "@hackbg/fadroma":   "workspace:*",
+    "@fadroma/gen":      "workspace:*",
+    "@fadroma/tester":   "workspace:*",
+    "@solana/spl-token": "^0.4.14",
+    "case":              "^1.6.3"
+  }
+}

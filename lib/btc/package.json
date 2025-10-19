@@ -1,0 +1,5 @@
+{
+  "name": "@fadroma/btc",
+  "type": "module",
+  "main": "index.ts"
+}

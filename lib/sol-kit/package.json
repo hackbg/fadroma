@@ -1,5 +1,5 @@
 {
-  "name": "@fadroma/cmd",
+  "name": "@fadroma/sol-kit",
   "type": "module",
   "main": "index.ts"
 }

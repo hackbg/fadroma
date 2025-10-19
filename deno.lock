@@ -11,6 +11,7 @@
     "npm:@hackbg/oops@*": "1.1.0",
     "npm:@hackbg/secretjs-esm@*": "1.9.3-patch.41",
     "npm:@solana/spl-token@*": "0.4.14_@solana+web3.js@1.98.4",
+    "npm:@types/node@*": "24.2.0",
     "npm:case@^1.6.3": "1.6.3",
     "npm:protobuf-varint@1": "1.0.0"
   },

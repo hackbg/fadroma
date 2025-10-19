@@ -5,6 +5,11 @@ export * as Oops   from 'npm:@hackbg/oops';
 export * as Format from 'npm:@hackbg/4mat';
 export * as Logs   from 'npm:@hackbg/logs';
 export { Case }    from 'npm:@hackbg/4mat';
+
 export { Console, bold, randomColor } from 'npm:@hackbg/logs';
+
 export { env, cwd, exit, argv } from 'node:process';
-export { fileURLToPath }        from 'node:url';
+
+export { fileURLToPath } from 'node:url';
+
+export { setImmediate } from 'node:timers';
