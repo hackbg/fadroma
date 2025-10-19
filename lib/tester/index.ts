@@ -18,78 +18,21 @@ export * from './types.ts';
   *         expect('Test D', todo()))))
   **/
 export const suite = (meta: ImportMeta, name: string, ...steps: Test.Step<unknown>[]) => {
-  const run = expect(name, ...steps);
-  if (isEntrypoint(meta, argv[1])) setImmediate(async ()=>{
-    Error.stackTraceLimit = Infinity;
-    const { getContext, details, summary } = report();
-    let error:  unknown;
-    let result: unknown;
-    const list = collectList(collectTree(steps));
-    for (const line of list) console.log('🟠', line);
-    process.exit(123);
-    try { result = await run(getContext()); } catch (e) { error = e; }
-    console.log([details(), summary()].filter(Boolean).join('\n'));
-    if (error) throw error;
-    return result;
-  });
-  return run
+  const testSuite = expect(name, ...steps);
+  if (isEntrypoint(meta, argv[1])) setImmediate(async ()=>run(testSuite));
+  return testSuite
 };
-export const collectTree = (steps: Test.Step<unknown>[]) => {
-  const output = []
-  for (const step of steps) {
-    if (step.name) output.push({
-      name:  step.name,
-      steps: step.steps ? collectTree(step.steps) : null
-    });
-  }
-  return output
-}
-export const collectList = (steps: Test.Step<unknown>[], {
-  maxWidth  = stdout.columns || 80,
-  maxHeight = (stdout.rows - 2) || 25,
-} = {}) => {
-  let output = [];
-  displaySteps([], steps);
-  return output
-  function displaySteps (ids, steps: Test.Step<unknown> = []) {
-    for (const index in steps) {
-      const step = steps[index];
-      if (!step) continue;
-      const subids = [...ids, Number(index)+1];
-      output.push([subids.join('.'), step.name].join(' '));
-      if (step.steps) displaySteps(subids, step.steps);
-    }
-  }
-  //let maxLength = 3;
-  //const baseHeight = max(1, floor(maxHeight / steps.length));
-  //const names = steps.map(({ name, steps }, index)=>{
-    //maxLength = max(name.length + 6, maxLength);
-    //const lines = max(1, min(baseHeight, steps.length));
-    //return { index: Number(index)+1, name, steps, lines } as const;
-  //});
-  //for (const { index, name, steps, lines } of names) {
-    //for (let line = 0; line < lines; line++) {
-      //if (line === 0) stdout.write([index, name, ''].join(' ').padEnd(maxLength, '┄'));
-      //else stdout.write(''.padEnd(maxLength));
-      //if (steps[line]) {
-        //const step = steps[line];
-        //stdout.write(' ');
-        //stdout.write([[index, line+1].join('.'), step.name, ''].join(' ').padEnd(maxLength, '┄'));
-        //if (step.steps[0]) {
-          //const step2 = step.steps[0];
-          //stdout.write(' ');
-          //stdout.write([[index, line+1, 1].join('.'), step2.name, ''].join(' ').padEnd(maxLength, '┄'));
-          //if (step2.steps[0]) {
-            //const step3 = step2.steps[0]
-            //stdout.write(' ');
-            //stdout.write([[index, line+1, 1, 1].join('.'), step3.name, ''].join(' ').padEnd(maxLength, '┄'));
-          //}
-        //}
-      //}
-      //stdout.write('\n');
-    //}
-  //}
-}
+
+export const run = async testSuite => {
+  Error.stackTraceLimit = Infinity;
+  const { getContext, details, summary } = report();
+  let error:  unknown;
+  let result: unknown;
+  try { result = await testSuite(getContext()); } catch (e) { error = e; }
+  console.log([details(), summary()].filter(Boolean).join('\n'));
+  if (error) throw error;
+  return result;
+};
 
 /** The test report tracks each step of the test suite,
   * and sorts test outcomes into categories. */
@@ -128,9 +71,9 @@ export const report = ({
       } catch (e: unknown) {
         const error = e as { todo?: unknown, message: string, stack?: string };
         if (error.todo) {
-          return todo(t0, summary, error.message) as T;
+          return todo(summary, error.message) as T;
         } else {
-          const failure = fail(t0, summary, error.message, error.stack?.split('\n').slice(1).join('\n'));
+          const failure = fail(summary, error.message, error.stack?.split('\n').slice(1).join('\n'));
           if (failFast) {
             throw failure;
           } else {

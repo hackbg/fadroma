@@ -8,7 +8,11 @@ export const assignColor = <
   luminosity: 'dark', // TODO random color in okhsl space
   seed: String(thing.id)
 }) })
-// TODO color registry
+
+export const FG255 = x => `\x1b[38;5;${x}m`;
+export const BG255 = x => `\x1b[48;5;${x}m`;
+
+// TODO id -> color registry
 export const NO_COLOR = env.NO_COLOR === '1'                                                                                                                                                                                   
 export const ANSI_RESET  = NO_COLOR ? '' : `\x1b[0m`
 const ANSI_RED    = NO_COLOR ? '' : `\x1b[0;31m`
