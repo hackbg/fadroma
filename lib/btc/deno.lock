@@ -10,6 +10,9 @@
     "npm:bitcoinjs-lib@7": "7.0.0",
     "npm:indexd@~0.9.1": "0.9.1",
     "npm:leveldown@^6.1.1": "6.1.1",
+    "npm:typeforce@^1.18.0": "1.18.0",
+    "npm:yajrpc@*": "1.4.4",
+    "npm:yajrpc@^1.4.4": "1.4.4",
     "npm:zeromq@^6.5.0": "6.5.0"
   },
   "npm": {
@@ -173,8 +176,19 @@
         "ms"
       ]
     },
+    "dhttp@2.5.0": {
+      "integrity": "sha512-lvS8YbljAR3/dSGeqSXMKXXqwSSrIRwF2S1q+N/nLVm9/A9Mhy05CgqwokHgFL8c1nfsxSMwAVsAIqs61czB3w==",
+      "dependencies": [
+        "http-status-codes",
+        "parse-headers"
+      ],
+      "deprecated": true
+    },
     "has-flag@4.0.0": {
       "integrity": "sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ=="
+    },
+    "http-status-codes@1.4.0": {
+      "integrity": "sha512-JrT3ua+WgH8zBD3HEJYbeEgnuQaAnUeRRko/YojPAJjGmIfGD3KPU/asLdsLwKjfxOmQe5nXMQ0pt/7MyapVbQ=="
     },
     "ieee754@1.2.1": {
       "integrity": "sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA=="
@@ -230,8 +244,14 @@
       "integrity": "sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==",
       "bin": true
     },
+    "parse-headers@2.0.6": {
+      "integrity": "sha512-Tz11t3uKztEW5FEVZnj1ox8GKblWn+PvHY9TmJV5Mll2uHEwRdR/5Li1OlXoECjLYkApdhWy44ocONwXLiKO5A=="
+    },
     "queue-microtask@1.2.3": {
       "integrity": "sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A=="
+    },
+    "qup@2.0.1": {
+      "integrity": "sha512-Kp1K5To2/kUjdLtWL0YtGDrcGoNmixrhDTH++wHkRJz+mL3Pfv7q2q+BoamQcVoBxusqLepferUStPLi5z0WVQ=="
     },
     "run-parallel@1.2.0": {
       "integrity": "sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==",
@@ -279,6 +299,14 @@
         "uint8array-tools@0.0.8"
       ]
     },
+    "yajrpc@1.4.4": {
+      "integrity": "sha512-yG8TNiMw0BeEexEAWWnVzsB/D1u4s4PdOf6flfykJLTQwcghLojO0M+y8XbyqdO3dsrULJhQ2wsoukkMWbsQHA==",
+      "dependencies": [
+        "dhttp",
+        "qup",
+        "typeforce"
+      ]
+    },
     "zeromq@6.5.0": {
       "integrity": "sha512-vWOrt19lvcXTxu5tiHXfEGQuldSlU+qZn2TT+4EbRQzaciWGwNZ99QQTolQOmcwVgZLodv+1QfC6UZs2PX/6pQ==",
       "dependencies": [
@@ -294,6 +322,8 @@
         "npm:bitcoinjs-lib@7",
         "npm:indexd@~0.9.1",
         "npm:leveldown@^6.1.1",
+        "npm:typeforce@^1.18.0",
+        "npm:yajrpc@^1.4.4",
         "npm:zeromq@^6.5.0"
       ]
     }

@@ -18,3 +18,19 @@ export const distro = (name, ...options) => { throw new Error('TODO') };
 export const pkg = (name, ...options) => { throw new Error('TODO') };
 export const command: Option = (command: 'build'|'run') =>
   (context: Context) => Object.assign(context, { argv: [...context.argv, command] })
+export const api = (...routes: Option[]) =>
+  (context: Context) => pipe(...routes)(context);
+export const rest = (path, ...options: Option[]) =>
+  (context: Context) => pipe(...options)(context);
+export const get = (path, ...options: Option[]) =>
+  (context: Context) => pipe(...options)(context);
+export const post = (path, ...options: Option[]) =>
+  (context: Context) => pipe(...options)(context);
+export const ware = (path, ...options: Option[]) =>
+  (context: Context) => pipe(...options)(context);
+export const serve = (path, ...options: Option[]) =>
+  (context: Context) => pipe(...options)(context);
+export const compose = (path, ...options: Option[]) =>
+  (context: Context) => pipe(...options)(context);
+export const every = (path, ...options: Option[]) =>
+  (context: Context) => pipe(...options)(context);

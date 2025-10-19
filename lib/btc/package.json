@@ -9,6 +9,8 @@
     "bitcoinjs-lib": "^7.0.0",
     "indexd": "^0.9.1",
     "leveldown": "^6.1.1",
+    "typeforce": "^1.18.0",
+    "yajrpc": "^1.4.4",
     "zeromq": "^6.5.0"
   }
 }
