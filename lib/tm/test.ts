@@ -1,16 +1,9 @@
-import { expect } from '@fadroma/tester';
-import * as Tendermint from './index.ts';
-export const testLocalnet  = expect('Localnet')
-export const testConnect   = expect('Connect')
-export const testSubscribe = expect('Subscribe')
-export const testGetBlock       = expect('Get block')
-export const testGetAccount     = expect('Get account')
-export const testGetTransaction = expect('Get tx')
-export const testFTCreate    = expect('Create')
-export const testFTMint      = expect('Mint')
-export const testFTBurn      = expect('Burn')
-export const testFTTransfer  = expect('Transfer')
-export const testFTAllowance = expect('Allowance')
-export const testFTDecimals  = expect('Decimals')
-export const testNFTCreate   = expect('Create')
-export const testNFTTransfer = expect('Transfer')
+#!/usr/bin/env -S deno run --allow-env
+import { suite, expect } from '@fadroma/tester';
+export default suite(import.meta, 'Tendermint',
+  expect('Localnet', expect('Connect'), expect('Subscribe')),
+  expect('Fetch', expect('Block'), expect('Account'), expect('TX')),
+  expect('Gas', expect('Drop'), expect('Send')),
+  expect('Fungible', expect('Deploy'), expect('Mint/burn'), expect('Send'), expect('Allowance'), expect('Decimals')),
+  expect('NFT', expect('Deploy'), expect('Transact')),
+  expect('Program', expect('Deploy'), expect('Invoke')));

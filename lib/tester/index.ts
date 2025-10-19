@@ -53,7 +53,7 @@ export const report = ({
       const newNames = [...names, name].filter(Boolean);
       const summary  = joined('',
         blue((joined('.', ...newIds)+' ').padEnd(10)),
-        joined(': ', newNames.map((x, i)=>gray(i*2, x))));
+        joined('│', newNames.map((x, i)=>gray(i*2, x))));
       if (typeof step !== 'function') return warn.add(t0, `not a function: ${summary}`, step);
       //console.trace(`⏳️ @${formatMsec(t0)} ${summary}`);
       try {

@@ -5,9 +5,13 @@ import testSolWeb3 from './lib/sol-web3/test.ts';
 import testSolRust from './lib/sol-rs/test.ts';
 import testBtc     from './lib/btc/test.ts';
 import testSimf    from './lib/simf/test.ts';
+import testTm      from './lib/tm/test.ts';
+import testCw      from './lib/cw/test.ts';
 export default suite(import.meta, null,
   testTester,
-  testSolWeb3,
-  testSolRust,
   testBtc,
-  testSimf);
+  testSimf,
+  testSolRust,
+  testSolWeb3,
+  testCw,
+  testTm);

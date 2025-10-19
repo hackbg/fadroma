@@ -1,5 +1,11 @@
 {
   "name": "@fadroma/btc",
   "type": "module",
-  "main": "index.ts"
+  "main": "index.ts",
+  "dependencies": {
+    "@hackbg/fadroma": "workspace:*",
+    "@fadroma/chain": "workspace:*",
+    "@fadroma/spawn": "workspace:*",
+    "bitcoinjs-lib": "^7.0.0"
+  }
 }

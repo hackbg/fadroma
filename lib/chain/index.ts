@@ -1,6 +1,5 @@
 import type { Chain, Connection, Context, Api, Impl } from './types.ts';
 import { logger, bindMethods } from './deps.ts';
-export * from './types.ts';
 
 /** Describe a chain. */
 export const chain = (id: string, url: string|URL, {

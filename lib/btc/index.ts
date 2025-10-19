@@ -1,0 +1,25 @@
+import { BTCJS, spawn, group, env, arg, run } from './deps.ts';
+
+export const regtester = ({
+  bitcoind      = 'bitcoind',
+  bitcoinCli    = 'bitcoin-cli',
+  regtestServer = '/root/regtest-server/index.js',
+  zmq           = 'tcp://127.0.0.1:30001',
+  rpcwq         = 32,
+  address       = run(bitcoinCli, arg('-regtest'), arg('getnewaddress'), arg('""'), arg('bech32')),
+}) => group('Regtest',
+  spawn(bitcoind, arg('-server'), arg('-regtest'), arg('-txindex'),
+    arg(`-zmqpubhashtx=${zmq}`),
+    arg(`-zmqpubhashblock=${zmq}`),
+    arg(`-rpcworkqueue=${rpcwq}`)),
+  run(bitcoinCli, arg('-regtest'), arg('createwallet'), arg('default')),
+  run(bitcoinCli, arg('-regtest'), arg('generatetoaddress'), arg('432'), arg(address)),
+  spawn('node',
+    env('RPCCOOKIE',     '/root/.bitcoin/regtest/.cookie'),
+    env('KEYDB',         '/root/regtest-data/KEYS'),
+    env('INDEXDB',       '/root/regtest-data/db'),
+    env('ZMQ',           'tcp://127.0.0.1:30001'),
+    env('RPCCONCURRENT', '32'),
+    env('RPC',           'http://localhost:18443'),
+    env('PORT',          '8080'),
+    arg(regtestServer)))

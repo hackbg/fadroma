@@ -2,7 +2,7 @@
 import { expect, suite } from '@fadroma/tester';
 export default suite(import.meta, 'Solana (Rust)',
   expect('Init'), expect('Build'), expect('Deploy'), expect('Test'),
-  expect('SDK', expect('CLI'), expect('GUI')));
+  expect('SDK', expect('Test'), expect('CLI'), expect('GUI')));
 //import * as _ from './index.ts';
 //import { expect, matrix } from '../../lib/tester/index.ts';
 //export const stacks = [
