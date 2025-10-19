@@ -1,14 +1,8 @@
 {
-  "include": [
-    "bin/*",
-    "lib/*",
-    "test/*",
-    "*"
-  ],
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
-    "moduleResolution": "deno",
+    "moduleResolution": "bundler",
     "allowImportingTsExtensions": true
   }
 }
