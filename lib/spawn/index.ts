@@ -1,6 +1,6 @@
 import type { Spawn, Option, Context } from './types.ts';
 import { pipe } from './deps.ts';
-export const group = (name: string, ...spawns) => Object.assign(
+export const service = (name: string, ...spawns) => Object.assign(
   async function spawnGroup (context: Context) {
     for (const spawn of spawns) {
       const result = await spawn(context);
