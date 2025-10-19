@@ -43,19 +43,20 @@ export default entrypoint(import.meta, async function main (..._args) {
 export function output (state) {
   return new Promise(async (resolve, reject)=>{
     try {
+      console.clear();
       while (!state.exited) {
         const t0 = performance.now();
-        console.clear();
-        const t1 = performance.now();
-        const tF = (1000/25);
-        const tD = (t1 - t0);
         //console.log(tF, (tF-tD));
+        stdout.cursorTo(0, 0);
         stdout.write('\x1b[1m'+fg255(16)(bg255(208)('            Fadroma'.padEnd(state.size.width)))); 
         stdout.write('\n ')
         stdout.write(state.list.slice(0, state.size.height - 2).join('\n '));
         stdout.cursorTo(0, state.size.height - 1);
         stdout.write(bg255(240)(' Filter: '));
         stdout.write(' \x1b[1m'+state.filter);
+        const t1 = performance.now();
+        const tF = (1000/25);
+        const tD = (t1 - t0);
         await new Promise(resolve=>setTimeout(resolve, Math.max(0, tF - tD)));
       }
       console.log('Output exited');
