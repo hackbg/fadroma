@@ -14,10 +14,14 @@ export const compose = (name: string, ...services: Service[]) => Object.assign(
   renamed(name, async function spawnGroup (ctx: Pids & Ports = context()) {
     for (const service of services) {
       const result = await service(ctx);
-      if (result.pid) ctx.pids[result.pid] = result;
-      if (result.ports) for (const port of result.ports) ctx.ports[port] = result;
+      if (result?.pid) {
+        ctx.pids[result.pid] = result;
+      }
+      if (result?.ports) {
+        for (const port of result.ports) ctx.ports[port] = result;
+      }
     }
-  }), { services })
+  }), { services });
 
 export const arg = (...fragments: string[]) => Object.assign(
   function addArgument (cmd: Command) {
@@ -33,31 +37,37 @@ export const setEnv = (name: string, value: string|null) => Object.assign(
     cmd.options.env[name] = value;
   }, { name, value });
 
-export const spawn = (...options: Option[]) => pipe(...options);
+export const spawn = (arg0: string, ...options: Option[]) =>
+  Object.assign(function spawnDaemon (ctx: Pids = context()) {
+    return ctx.spawn(buildCommand(arg0, options));
+  }, { arg0, options });
 
 export const exec = (arg0: string, ...options: (Option|string)[]) =>
   Object.assign(function callShell (ctx: Pids = context()) {
-    let command = { argv: [arg0], options: {} };
-    for (const option of options) {
-      if (typeof option === 'function') {
-        command = option(command) || command;
-      } else if (typeof option === 'string') {
-        command.argv ??= []
-        command.argv.push(option);
-      } else if (option) {
-        throw new Error('unsupported option')
-      }
+    return ctx.exec(buildCommand(arg0, options));
+  }, { arg0, options });;
+
+export const buildCommand = (arg0: string, options: (Option|string)[]) => {
+  let command = { argv: [arg0], options: {} };
+  for (const option of options) {
+    if (typeof option === 'function') {
+      command = option(command) || command;
+    } else if (typeof option === 'string') {
+      command.argv ??= []
+      command.argv.push(option);
+    } else if (option) {
+      throw new Error('unsupported option')
     }
-    const spawned = ctx.exec(command)
-    return spawned
-  }, { arg0, options });
+  }
+  return command;
+}
 
 export const serveTcp = (port: number, handler: (_: Socket)=>unknown) =>
   Object.assign(function runTcpServer (ctx: Ports = context()): TcpServer {
     if (port in ctx.ports) throw new Error(`port ${port}: occupied`);
     const server = new TcpServer();
     server.on('connecton', handler);
-    server.listen(port);
+    server.listen(port, '127.0.0.1');
     ctx.ports[port] = server;
     server.on('close', () => delete ctx.ports[port]);
     return server;
@@ -66,7 +76,7 @@ export const serveTcp = (port: number, handler: (_: Socket)=>unknown) =>
 export const serveHttp = (port, ...routes: Option[]) =>
   Object.assign(function runHttpServer (ctx: Ports = context()): HttpServer {
     const server = new HttpServer();
-    server.listen(port);
+    server.listen(port, '127.0.0.1');
     ctx.ports[port] = server;
     server.on('close', () => delete ctx.ports[port]);
     return server;

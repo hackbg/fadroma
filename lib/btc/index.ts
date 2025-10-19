@@ -25,7 +25,7 @@ export const localnet = ({
   rpc        = RPC.default({ url, auth, batch, concurrent }),
   indexd     = new Indexd(index, rpc),
   address    = exec(client, arg('-regtest'), arg('getnewaddress'), arg('""'), arg('bech32')),
-} = {}) => compose('Bitcoin Localnet API',
+} = {}) => compose('BTC Localnet API',
   serveTcp(zmqPort, socket => {
     console.log('zmq connected');
     socket.on('message', message => console.log('zmq', message));
