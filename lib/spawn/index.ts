@@ -80,6 +80,10 @@ export const post = (path, ...options: Option[]) => pipe(...options);
 
 export const ware = (path, ...options: Option[]) => pipe(...options);
 
+export const param = (name, fn) => ware(async req => req.params[name] = await fn(req));
+
+export const guard = (code, fn) => ware(async req => { if (!await fn(req)) return code });
+
 export const every = (path, ...options: Option[]) => pipe(...options);
 
 export const container = (name, ...options) => { throw new Error('TODO') };
