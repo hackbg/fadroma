@@ -22,9 +22,9 @@ export const localnet = ({
   //_keyDb     = 'regtest.keys',
 
   index      = new DB('indexd'),
-  rpc        = RPC.default({ url, auth, batch, concurrent }),
+  rpc        = (...args) => console.debug('TODO:', ...args),
   indexd     = new Indexd(index, rpc),
-  address    = exec(client, arg('-regtest'), arg('getnewaddress'), arg('""'), arg('bech32')),
+  //address    = exec(client, arg('-regtest'), arg('getnewaddress'), arg('""'), arg('bech32')),
 } = {}) => compose('BTC Localnet API',
   serveTcp(zmqPort, socket => {
     console.log('zmq connected');
@@ -34,8 +34,8 @@ export const localnet = ({
     arg(`-zmqpubhashtx=tcp://127.0.0.1:${zmqPort}`),
     arg(`-zmqpubhashblock=tcp://127.0.0.1:${zmqPort}`),
     arg(`-rpcworkqueue=${rpcwq}`)),
-  exec(client, arg('-regtest'), arg('createwallet'), arg('default')),
-  exec(client, arg('-regtest'), arg('generatetoaddress'), arg('432'), arg(address)),
+  //exec(client, arg('-regtest'), arg('createwallet'), arg('default')),
+  //exec(client, arg('-regtest'), arg('generatetoaddress'), arg('432'), arg(address)),
   every(60000, () => indexd.tryResync()),
   serveHttp(httpPort,
     txApi({ rpc, indexd }),

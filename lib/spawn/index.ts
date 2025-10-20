@@ -21,6 +21,7 @@ export const compose = (name: string, ...services: Service[]) => Object.assign(
         for (const port of result.ports) ctx.ports[port] = result;
       }
     }
+    return ctx
   }), { services });
 
 export const arg = (...fragments: string[]) => Object.assign(
