@@ -1,0 +1,5 @@
+{
+  "name": "@fadroma/tui",
+  "type": "module",
+  "main": "index.ts"
+}

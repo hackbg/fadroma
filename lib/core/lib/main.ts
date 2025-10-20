@@ -1,6 +1,6 @@
 import { exit, argv, fileURLToPath, setImmediate } from '../deps.ts';
 export type Meta = Partial<ImportMeta>;
-export type Main = ((...args: string[])=>unknown);
+export type Main = (args: string[])=>unknown;
 /** If the current module is the program entrypoint,
   * runs the given main function as a separate task.
   *
@@ -20,13 +20,13 @@ export function entrypoint <M extends Main> (meta: Meta, main: M): M;
 export function entrypoint <N> (meta: Meta, main: Main, alt: N): N;
 export function entrypoint (
   meta: Partial<ImportMeta> = {},
-  main: ((...args: string[])=>unknown),
+  main: (args: string[])=>unknown,
   alt?: unknown
 ) {
   const [_, argv1, ...args] = argv
   if (isEntrypoint(meta, argv1)) setImmediate(async ()=>{
     try {
-      await Promise.resolve(main(...args))
+      await Promise.resolve(main(args))
     } catch (e) {
       const error = e as Error & { exitCode?: number };
       console.error(error);

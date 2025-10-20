@@ -18,7 +18,7 @@ export * from './types.ts';
   **/
 export const suite = (meta: ImportMeta, name: string, ...steps: Test.Step<unknown>[]) => {
   const testSuite = expect(name, ...steps);
-  if (isEntrypoint(meta, argv[1])) setImmediate(async ()=>run(testSuite));
+  if (isEntrypoint(meta, argv[1])) setImmediate(()=>run(testSuite));
   return testSuite
 };
 
