@@ -1,2 +1,0 @@
-{ "nodeModulesDir": "auto"
-, "lint": { "rules": { "exclude": ["no-async-promise-executor"] } } }

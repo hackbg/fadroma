@@ -1,0 +1,8 @@
+{
+  "name": "@fadroma/sol-kit",
+  "type": "module",
+  "main": "index.ts",
+  "dependencies": {
+    "@hackbg/fadroma": "workspace:*"
+  }
+}

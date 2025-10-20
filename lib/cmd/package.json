@@ -1,5 +1,0 @@
-{
-  "name": "@fadroma/cmd",
-  "type": "module",
-  "main": "index.ts"
-}

@@ -1,0 +1,3 @@
+[submodule "lib/toolbox"]
+	path = lib/@hackbg/toolbox
+	url = git@github.com:hackbg/toolbox.git

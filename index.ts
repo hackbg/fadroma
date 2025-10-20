@@ -1,5 +1,4 @@
-export * as Core   from '@hackbg/fadroma';
-export * as Tester from '@fadroma/tester';
+export * as Tester from '@hackbg/tester';
 export * as Tm     from '@fadroma/tm';
 export * as Cw     from '@fadroma/cw';
 export * as Scrt   from '@fadroma/scrt';

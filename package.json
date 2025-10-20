@@ -1,6 +1,7 @@
 {
+  "name": "@hackbg/fadroma-workspace",
   "private": true,
   "devDependencies": {
-    "@fadroma/tester": "workspace:*"
+    "@hackbg/fadroma": "workspace:*"
   }
 }

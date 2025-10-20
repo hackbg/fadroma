@@ -1,0 +1,10 @@
+{
+  "name": "@fadroma/sol-web3",
+  "type": "module",
+  "main": "index.ts",
+  "dependencies": {
+    "@hackbg/fadroma": "workspace:*",
+    "@coral-xyz/anchor": "^0.31.0",
+    "@solana/spl-token": "^0.4.14"
+  }
+}

@@ -1,0 +1,5 @@
+{ "name": "@fadroma/cw",
+  "type": "module",
+  "main": "index.ts",
+  "dependencies": { "@hackbg/fadroma": "workspace:*" },
+  "peerDependencies": { "@fadroma/tm": "workspace:*" } }

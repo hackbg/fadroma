@@ -1,8 +1,0 @@
-{
-  "name": "@fadroma/gen",
-  "type": "module",
-  "main": "index.ts",
-  "dependencies": {
-    "@hackbg/fadroma": "../core"
-  }
-}

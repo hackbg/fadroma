@@ -1,0 +1,6 @@
+{
+  "name": "@hackbg/fadroma",
+  "type": "module",
+  "main": "index.ts",
+  "dependencies": { "@scure/base": "^2" }
+}

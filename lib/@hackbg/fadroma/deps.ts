@@ -1,0 +1,16 @@
+export { ok, deepStrictEqual as equal } from 'node:assert';
+export { setImmediate } from 'node:timers';
+export { stdout, argv, env, cwd, exit } from 'node:process';
+export { fileURLToPath } from 'node:url';
+export { join as joinPath } from 'node:path';
+export { writeFile, mkdir } from 'node:fs/promises';
+export { Server as HttpServer } from 'node:http';
+export { Server as TcpServer, createConnection } from 'node:net';
+export type { Socket } from 'node:net';
+
+import { promisify } from 'node:util';
+import { execFile } from 'node:child_process';
+export const execImpl = promisify(execFile);
+export { spawn as spawnImpl } from 'node:child_process';
+export { base16, base64 } from '@scure/base'
+export type { ChildProcess } from 'node:child_process';
