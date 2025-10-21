@@ -1,6 +1,26 @@
-import { cwd } from '../deps.ts';
+import { cwd } from './deps.ts';
+import type { Stringy } from './string.ts';
 
-export class Oops extends Error {
+export const formatError = (e: Error, name?: Stringy) => {
+  const [head, ...tail] = (e?.stack||'').split('\n')
+  const stack = tail.map(x=>x
+    .replace('('+cwd()+'/', '(')
+    .replace('./node_modules/.pnpm/', ''))
+  e.message = e.message.split('Logs:')[0].trim()
+  if (name) e.message = name + ': ' + e.message
+  e.stack = [head, name?`    ${name}`:null, ...stack].filter(Boolean).join('\n')
+  return e
+};
+
+class Oops extends Error {
+  // Todos are handled differently by the tester.
+  todo?: boolean
+
+  // Throw a TODO.
+  static TODO (info: unknown) {
+    throw new this(info as string, { todo: true })
+  }
+
   /** Define an error subclass. */
   static define <T extends unknown[]> (
     /** Name of error class. Prepended to parent. */
@@ -22,13 +42,4 @@ export class Oops extends Error {
   }
 }
 
-export const formatError = (e: Error, name?: Stringy) => {
-  const [head, ...tail] = (e?.stack||'').split('\n')
-  const stack = tail.map(x=>x
-    .replace('('+cwd()+'/', '(')
-    .replace('./node_modules/.pnpm/', ''))
-  e.message = e.message.split('Logs:')[0].trim()
-  if (name) e.message = name + ': ' + e.message
-  e.stack = [head, name?`    ${name}`:null, ...stack].filter(Boolean).join('\n')
-  return e
-};
+export { Oops as Error }

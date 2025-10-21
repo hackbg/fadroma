@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-env --allow-net --allow-run
+#!/usr/bin/env -S deno run --allow-env --allow-net --allow-run --allow-import
 import { suite } from "@hackbg/fadroma";
 import testFadroma from "./lib/@hackbg/fadroma/test.ts";
 import testBtc     from "./lib/@fadroma/btc/test.ts";

@@ -1,3 +1,4 @@
-{ "nodeModulesDir": "auto"
+{ "strict": false
+, "nodeModulesDir": "auto"
 , "workspace": [ "./lib/@hackbg/*", "./lib/@hackbg/toolbox/*", "./lib/@fadroma/*" ]
 , "lint": { "rules": { "exclude": ["no-async-promise-executor", "require-await"] } }, }

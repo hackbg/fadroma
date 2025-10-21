@@ -1,5 +1,5 @@
-import { writeFile, joinPath, mkdir } from '../deps.ts';
-import { pipe } from '../reflect/index.ts';
+import { writeFile, joinPath, mkdir } from './deps.ts';
+import { pipe } from './reflect.ts';
 
 /** Context for executing filesystem operations: current working directory. */
 export type FSContext = string;

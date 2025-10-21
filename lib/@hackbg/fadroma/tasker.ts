@@ -1,7 +1,19 @@
-import { exit, argv, fileURLToPath, setImmediate } from '../deps.ts';
+import { exit, argv, fileURLToPath, setImmediate } from './deps.ts';
 
 export type Meta = Partial<ImportMeta>;
-export type Main = (args: string[])=>unknown;
+
+export type Main = (args: string[]) => unknown;
+
+export type Step<T = unknown> = (context: T) => unknown;
+
+export type Steps<T = unknown> =
+  (...steps: Step<T>[])  => Step<T>;
+
+export type StepsWithName<T = unknown> =
+  (name: string, ...steps: Step<T>[]) => Step<T>;
+
+export type StepsWithPort<T = unknown> =
+  (port: string, ...steps: Step<T>[]) => Step<T>;
 
 /** If the current module is the program entrypoint,
   * runs the given main function as a separate task.

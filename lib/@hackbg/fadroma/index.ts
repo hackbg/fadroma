@@ -15,14 +15,15 @@
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-export * from './chain/index.ts';
-export * from './cmds/index.ts';
-export * from './color/index.ts';
-export * from './error/index.ts';
-export * from './format/index.ts';
-export * from './gen/index.ts';
-export * from './reflect/index.ts';
-export * from './spawn/index.ts';
-export * from './tasker/index.ts';
-export * from './tester/index.ts';
-export * from './tui/index.ts';
+export * from './error.ts';
+export * from './color.ts';
+export * from './format.ts';
+export * from './reflect.ts';
+export * from './compose.ts';
+export * from './gen.ts';
+export * from './cmd.ts';
+export * from './listen.ts';
+export * from './spawn.ts';
+export * from './tasker.ts';
+export * from './tester.ts';
+export * from './tui.ts';

@@ -1,5 +1,5 @@
 import type { Identified, Id, Colorful, Stringy } from './types.ts';
-import { env } from '../deps.ts';
+import { env } from './deps.ts';
 
 /** Color. TODO specify representation */
 export type Color = unknown;

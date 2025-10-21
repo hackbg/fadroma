@@ -1,3 +1,5 @@
+import type { Named } from './format.ts';
+
 /** Rename a function. */
 export const renamed = <N extends Named> (name: string|Falsy, fn: N): N => {
   if (!name) return fn

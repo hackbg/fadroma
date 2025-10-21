@@ -4,7 +4,7 @@ if (globalThis.Deno) {
 
 export {
   compose, exec, spawn, every, setEnv, arg, waitPort,
-  serveTcp, serveHttp, rest, param, guard, ware, get, post,
+  serveTcp, serveHttp, route, param, guard, ware, get, post,
 } from '@hackbg/fadroma';
 
 //export * as ZMQ    from 'npm:zeromq';

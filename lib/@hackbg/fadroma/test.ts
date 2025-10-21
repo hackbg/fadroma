@@ -1,5 +1,5 @@
 #!/usr/bin/env -S deno run --allow-env --allow-net --allow-run
-import { suite, expect }  from "@hackbg/fadroma";
+import { suite, expect }  from "./tester.ts";
 
 export const testTester = expect(
   'Tester',
