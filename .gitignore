@@ -5,3 +5,4 @@ coverage
 docs
 .docs
 .misc
+.direnv

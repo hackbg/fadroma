@@ -1,21 +1,28 @@
-#!/usr/bin/env -S deno run --allow-env --allow-net --allow-run
-import { suite, expect }  from "./tester.ts";
+#!/usr/bin/env -S deno run --coverage --allow-env --allow-net --allow-run
+import { testContext, suite, expect, forbid, matrix }  from "./tester.ts";
+import { spawnContext, exec, spawn } from './index.ts';
+import { ok, equal } from './deps.ts';
 
-export const testTester = expect(
-  'Tester',
-  expect('Category'),
-  expect('Context'),
-  expect('Counter'),
-  expect('Result'),
-  expect('Suite'),
-  expect('Expect'),
-  expect('Forbid'),
-  expect('Matrix'));
+export const testTester = expect('Tester',
+  expect('Context', () => { testContext(); }),
+  expect('Suite',   () => { suite(null, 'Suite'); }),
+  expect('Expect',  () => { expect('Something') }),
+  expect('Forbid',  () => { forbid('Something', () => {}) }),
+  expect('Matrix',  () => { matrix('Something', [], () => {}); }));
 
-export const testSpawn = expect(
-  'Spawn',
-  expect('Process'),
-  expect('Docker', 'Pull', 'Run', 'Kill', 'Build'));
+export const testSpawn = expect('Process',
+  expect('Exec', async () => {
+    const context = spawnContext();
+    equal(await exec('true')(context), context);
+  }),
+  expect('Spawn', async () => {
+    const context = spawnContext();
+    equal(await spawn('true')(context), context);
+  }),
+  expect('Kill'));
+
+export const testContainer = expect('Container',
+  'Pull', 'Run', 'Kill', 'Build');
 
 export const testGen = expect(
   'Generator',

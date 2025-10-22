@@ -2355,7 +2355,8 @@
       "lib/@hackbg/fadroma": {
         "packageJson": {
           "dependencies": [
-            "npm:@scure/base@2"
+            "npm:@scure/base@2",
+            "npm:case@^1.6.3"
           ]
         }
       },

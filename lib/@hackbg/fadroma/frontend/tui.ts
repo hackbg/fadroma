@@ -1,28 +1,14 @@
-import type { TuiState } from './types.ts';
+import type { Timed } from '../index.ts';
 
-export type TuiState = {
-  exited: boolean,
-  width:  number,
-  height: number,
-  input: { [Symbol.asyncIterator] (): AsyncIterator<string|Uint8Array> },
-  cursorTo (x: number, y: number): void
-  write (_: string): void
-} & FrameTimings;
-
-export type FrameTimings = {
-  t0: number,
-  t1: number,
-  tF: number,
-  tD: number,
-  tS: number,
-}
-
-export const tui = (input, output, state = {}) => ({
+export const tuiContext = (
+  input: TuiIn, output: TuiOut, state = {}
+): Tui => ({
   exited: false,
 
   input,
   isTTY: input?.isTTY || false,
   isRaw: input?.isRaw || false,
+  get [Symbol.asyncIterator] () { return input[Symbol.asyncIterator] },
 
   output,
   width:    output?.columns || 80,
@@ -33,14 +19,32 @@ export const tui = (input, output, state = {}) => ({
   ...state
 });
 
-export const when = (condition, callback, alternative?) =>
-  Object.assign(async function conditional (state) {
-    if (typeof condition === 'function') condition = await condition(state);
-    if (condition) return callback(state);
-    if (alternative) return alternative(state);
-  }, { condition, callback, alternative });
+export type Tui = FrameTimings & TuiIn & TuiOut & {
+  exited:  boolean,
+  input:   TuiIn,
+  output:  TuiOut,
+  width:   number,
+  height:  number,
+};
 
-export const runInput = <T extends TuiState> (
+export type TuiIn = {
+  [Symbol.asyncIterator] (): AsyncIterator<string|Uint8Array>
+  isTTY: boolean,
+  isRaw: boolean,
+}
+
+export type TuiOut = {
+  cursorTo: (x: number, y: number) => void
+  write:    (_: string)            => void
+};
+
+export type FrameTimings = Timed & {
+  t1: number,
+  tF: number,
+  tS: number,
+};
+
+export const runInput = <T extends Tui> (
   state: T, handler: (state: T, chunk: string|Uint8Array)=>unknown
 ) => new Promise(async (resolve, reject)=>{
   try {
@@ -58,7 +62,7 @@ export const runInput = <T extends TuiState> (
   }
 })
 
-export const runOutput = <T extends TuiState> (
+export const runOutput = <T extends Tui> (
   state: T, ...steps: Array<string|((_: T)=>unknown)>
 ) => new Promise(async (resolve, reject)=>{
   try {
@@ -79,16 +83,16 @@ export const runOutput = <T extends TuiState> (
   }
 });
 
-export const at = <T extends TuiState> (
+export const at = <T extends Tui> (
   x: number, y: number, ...steps: Array<string|((_: T)=>unknown)>
-) => Object.assign(function drawAt (state: TuiState) {
+) => Object.assign(function drawAt (state: Tui) {
   state.cursorTo(x, y);
   return draw(...steps)(state);
 });
 
-export const draw = <T extends TuiState> (
+export const draw = <T extends Tui> (
   ...steps: Array<string|((_: T)=>unknown)>
-) => Object.assign(async function draw (state: TuiState) {
+) => Object.assign(async function draw (state: Tui) {
   for (const step of steps) {
     if (typeof step === 'string') {
       state.write(step);

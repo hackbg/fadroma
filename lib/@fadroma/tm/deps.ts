@@ -17,9 +17,9 @@ export type {
   Connection  as BaseConnection,
   Transaction as BaseTransaction,
   Context     as ChainContext,
-} from '@hackbg/fadroma';
+} from '@fadroma/chain';
 
-export { chain as baseChain, } from '@hackbg/fadroma';
+export { chain as baseChain, } from '@fadroma/chain';
 
 export { Case, base16, base64, } from '@hackbg/4mat';
 

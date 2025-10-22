@@ -1,28 +1,51 @@
-import { exit, argv, fileURLToPath, setImmediate } from './deps.ts';
-/** False, zero, empty string, null, undefined, zip, nada, zilch. */
-export type Falsy = 0 | '' | false | null | undefined;
-/** Soft optional. */
-export type Maybe<T> = T|Falsy;
-/** Thing, or promise of thing. */
-export type MaybeAsync<T = unknown> = T|Promise<T>;
-/** Function that may or may not be async. */
-export type MaybeAsyncFn<T = unknown, A extends unknown[] = unknown[]> =
-  (..._: A)=>MaybeAsync<T>;
+import type { Falsy } from './index.ts';
+
 /** Import metadata. Used to recognize entrypoint. */
 export type Meta = Partial<ImportMeta>;
+
 /** A program's entrypoint. */
-export type Main = (...args: unknown[]) => unknown;
+export type Main = Fn;
 
-export type Step<T = unknown, U = T> = (context: T) => MaybeAsync<U>;
+/** Function type. */
+export type Fn<T extends unknown[] = unknown[], U = unknown> =
+  Takes<T> & Returns<U>;
 
-export type Steps<T = unknown> =
-  (...steps: Step<T>[])  => Step<T>;
+/** May be either value or promise; either is handled asynchronously. */
+export type Async<T = unknown> = T|Promise<T>;
 
-export type StepsWithName<T = unknown> =
-  (name: string, ...steps: Step<T>[]) => Step<T>;
+/** Function arguments. */
+export type Takes<T extends unknown[]> = (...args: T) => unknown;
 
-export type StepsWithPort<T = unknown> =
-  (port: string, ...steps: Step<T>[]) => Step<T>;
+/** Function return type. */
+export type Returns<T> = (...args: unknown[]) => T;
+
+/** Annotations added by [reflect]. */
+export type Reflects<F extends Fn[] = Fn[]> = { stack?: string[], steps?: F };
+
+/** Procedure. Mutates context and returns void or new context. */
+export type Op<T> = Takes<[T]> & Returns<Async<T|void>>;
+
+/** A sequence of functions. */
+export type Pipe<X, Y, F extends Fn = Fn> =
+  Takes<[X]> & Returns<Async<Y>> & Reflects<F[]>;
+
+//type Method<T> = (_: T, ...__: unknown[]) => unknown[]
+
+/** An annotated step in a pipeline.
+  * 
+  * TODO: By default, steps are expected to return the 1st argument,
+  *       or a transformation of it. But many steps instead work by
+  *       mutating the context. Those should be separate types (`Op`?) */
+export type Step<T = unknown, U = T> =
+  Takes<[T]> & Returns<Async<U>> & Reflects;
+
+/** A function that composes multiple steps into one step. */
+export type Steps<T = unknown, U = T> =
+  (...steps: Step<T>[])  => Step<T, U>;
+
+/** A function that composes multiple steps and adds an annotation. */
+export type StepsWith<X = unknown, T = unknown, U = T> =
+  (_: X, ...steps: Step<T>[]) => Step<T, U>;
 
 /** Start time and duration. */
 export type Timed = {
@@ -36,6 +59,7 @@ export type Timed = {
 export type ToApi<I> = {
   [f in keyof I]: I[f] extends (...args: infer _I) => infer _O ? Method<I[f]> : I[f]
 };
+
 /** Slices first argument of implementation signature
   * (see https://stackoverflow.com/a/67605309) */
 export type Method<F> = F extends (arg0: never, ...rest: infer R) =>
@@ -45,51 +69,12 @@ export type Method<F> = F extends (arg0: never, ...rest: infer R) =>
 export type Impl<Api, Context> = {
   [f in keyof Api]: Api[f] extends (...args: infer R) => infer T
     ? ((context: Context, ...args: R) => T)
-    : never
-};
+    : never };
 
-/** If the current module is the program entrypoint,
-  * runs the given main function as a separate task.
+/** Rename a function.
   *
-  * If the task throws, the error is logged and the process exits.
-  * The exit code can be specified by the `exitCode` field of the
-  * thrown exception. If not specified, it defaults to 1.
-  *
-  * Example:
-  *
-  *   export default entrypoint(import.meta.main || import.meta.url, main)
-  *   async function main (...args: string[]) {
-  *     console.log('Program arguments:', ...args)
-  *   }
-  *
-  * */
-export function entrypoint <M extends Main> (meta: Meta, main: M): M;
-export function entrypoint <N> (meta: Meta, main: Main, alt: N): N;
-export function entrypoint (
-  meta: Partial<ImportMeta> = {},
-  main: (args: string[])=>unknown,
-  alt?: unknown
-) {
-  const [_, argv1, ...args] = argv
-  if (isEntrypoint(meta, argv1)) setImmediate(async ()=>{
-    try {
-      await Promise.resolve(main(args))
-    } catch (e) {
-      const error = e as Error & { exitCode?: number };
-      console.error(error);
-      exit(error.exitCode ?? 1);
-    }
-  })
-  if (alt) return alt
-  return main
-}
-
-export const isEntrypoint = (meta: boolean|Partial<ImportMeta>, argv1: string) =>
-  (!(meta === false)) && (
-    (meta === true) || (!!meta.main) || (meta.url && fileURLToPath(meta.url) == argv1)
-  );
-
-/** Rename a function. */
+  * By default, the `name` property of functions is read-only,
+  * so this is accomplished using [Object.defineProperty]. */
 export const renamed = <N extends { name: string }> (name: string|Falsy, fn: N): N => {
   if (!name) return fn
   if (typeof name === 'string') return Object.defineProperty(fn, 'name', { configurable: true, value: name })
@@ -97,8 +82,13 @@ export const renamed = <N extends { name: string }> (name: string|Falsy, fn: N):
 }
 
 /** Rename a function and add metadata. */
-export const reflect = <T>(name, fn, props: T = {}) =>
+export const reflect = <T>(name, fn, props?: T) =>
   Object.assign(renamed(name, fn), props);
+
+/** The identity function.
+  *
+  * Works great as a NOP when you need one. */
+export const identity = <T>(x: T): T => x;
 
 /** Partial application of a function.
   * Use this to prepare a function with arguments for testing.
@@ -148,8 +138,6 @@ export const pipe = <X, Y, F extends (_: unknown)=>unknown> (
   for (const step of steps) state = resolveSync(state as unknown as X, step);
   return state as Y
 }, { steps });
-
-export type Pipe<X, Y, F> = ((_: X) => Y) & { steps: F[] };
 
 /** Universal color-blind combinator.
   *
@@ -203,13 +191,24 @@ export const mapEntries = <T extends object> (
 ) => (obj: T) => Object.fromEntries(Object.entries(obj)
   .map(([k, v], i)=>[k, fn(k as keyof T, v, i)]))
 
-//type Method<T> = (_: T, ...__: unknown[]) => unknown[]
-
-/** Point-free NOP. */
-export const identity = <T>(x: T): T => x;
-
-/** Specify a condition. */
+/** Specify a binary condition. */
 export const when = (condition: boolean, ...fns: Step<unknown>[]) =>
-  Object.assign(function when <T> (context: T) {
-    return (condition ? pipe(...fns) : identity)(context)
-  }, { condition, fns });
+  either(condition, pipe(...fns));
+
+/** Specify a ternary condition. */
+export const either = <C> (
+  condition:  boolean|((_: C)=>Async<boolean>),
+  whenTrue:   Takes<[C]>,
+  whenFalse?: Takes<[C]>
+) => Object.assign(async function branch (state: C) {
+  if (typeof condition === 'function') condition = await condition(state);
+  if (condition) return whenTrue(state);
+  if (whenFalse) return whenFalse(state);
+}, { condition, whenTrue, whenFalse });
+
+/** Define a reducer for object entries. */
+export const objectReducer = (f) => (a, [k, v]) =>
+  Object.assign(a, { [k]: f(v, k) });
+
+/** Apply an object reducer to an object's entries. */
+export const reduceObject = f => x => Object.entries(x).reduce(f, {});

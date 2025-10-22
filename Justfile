@@ -9,7 +9,7 @@ doc:
 doc-lint:
   deno doc --html --private --lint --name=@hackbg/fadroma index.ts
 check:
-  deno check test.ts
+  deno check --allow-import test.ts
 push:
   git push
 tpush:

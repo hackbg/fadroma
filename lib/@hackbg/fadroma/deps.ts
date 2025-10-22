@@ -7,10 +7,11 @@ export { writeFile, mkdir } from 'node:fs/promises';
 export { Server as HttpServer } from 'node:http';
 export { Server as TcpServer, createConnection } from 'node:net';
 export type { Socket } from 'node:net';
-
+export { inspect } from 'node:util';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 export const execImpl = promisify(execFile);
 export { spawn as spawnImpl } from 'node:child_process';
 export { base16, base64 } from '@scure/base'
 export type { ChildProcess } from 'node:child_process';
+export { default as Case } from 'case';

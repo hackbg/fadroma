@@ -1,5 +1,5 @@
-import { getCwd } from './deps.ts';
-import type { Stringy } from './string.ts';
+import type { Stringy } from '../index.ts';
+import { getCwd } from '../deps.ts';
 
 export const formatError = (e: Error, name?: Stringy) => {
   const [head, ...tail] = (e?.stack||'').split('\n')
@@ -15,6 +15,11 @@ export const formatError = (e: Error, name?: Stringy) => {
 class Oops extends Error {
   // Todos are handled differently by the tester.
   todo?: boolean
+
+  constructor (message: string, args?: object) {
+    super(message);
+    args && Object.assign(this, args);
+  }
 
   // Throw a TODO.
   static TODO (info: unknown) {

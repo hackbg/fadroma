@@ -1,7 +1,4 @@
-import type { Falsy } from './format.ts';
-
-/** String, or something with a `toString` method. */
-export type Stringy = string|{ toString(): string };
+import type { Falsy, Stringy } from '../format.ts';
 
 export const chunks = (...strs: Array<Falsy|Stringy|Array<Falsy|Stringy>>) =>
   strs.flat().filter(Boolean).map(x=>x!.toString())

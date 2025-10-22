@@ -14,6 +14,9 @@ importers:
 
   lib/@fadroma/btc:
     dependencies:
+      '@fadroma/dlt':
+        specifier: workspace:*
+        version: link:../chain
       '@hackbg/fadroma':
         specifier: workspace:*
         version: link:../../@hackbg/fadroma
@@ -32,6 +35,12 @@ importers:
       yajrpc:
         specifier: ^1.4.4
         version: 1.4.4
+
+  lib/@fadroma/chain:
+    dependencies:
+      '@hackbg/fadroma':
+        specifier: workspace:*
+        version: link:../../@hackbg/fadroma
 
   lib/@fadroma/cw:
     dependencies:
@@ -113,6 +122,9 @@ importers:
       '@scure/base':
         specifier: ^2
         version: 2.0.0
+      case:
+        specifier: ^1.6.3
+        version: 1.6.3
 
   lib/@hackbg/toolbox:
     devDependencies:

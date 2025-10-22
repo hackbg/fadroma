@@ -3,7 +3,7 @@ if (globalThis.Deno) {
 }
 
 export {
-  compose, exec, spawn, every, setEnv, arg, waitPort, dir,
+  service, interval, exec, spawn, setEnv, arg, waitPort, dir,
   serveTcp, serveHttp, route, param, guard, ware, get, post,
 } from '@hackbg/fadroma';
 
@@ -15,8 +15,4 @@ export * as RPC from 'yajrpc';
 import Typeforce from 'typeforce';
 export const isHex64 = Typeforce.HexN(64);
 
-import * as BTCJS from 'bitcoinjs-lib';
-export const { ECPair, TransactionBuilder } = BTCJS;
-export const { sha256 } = BTCJS.crypto;
-export const { p2pkh } = BTCJS.payments;
-export const { toOutputScript } = BTCJS.address;
+export * as BTCJS from 'bitcoinjs-lib';

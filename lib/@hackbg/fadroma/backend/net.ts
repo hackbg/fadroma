@@ -1,11 +1,13 @@
-import type { Step, StepsWithName } from './call.ts';
-import { pipe, reflect } from './call.ts';
-import type { Socket } from './deps.ts';
-import { TcpServer, HttpServer, createConnection } from './deps.ts';
+import type { Socket } from '../deps.ts';
+import { TcpServer, HttpServer, createConnection } from '../deps.ts';
 
-export type Net = { ports: Record<number, TcpServer> };
+import type { Net, Route, Handler } from '../index.ts';
+import { pipe, reflect } from '../call.ts';
 
-export const netContext = (): Net => ({ ports: {} });
+export const netContext = ({
+  ports = {},
+  ...rest
+} = {}) => ({ ports, ...rest });
 
 export const serveTcp = (port: number, handler: (_: Socket)=>unknown) =>
   reflect(`TCP ${port}`, function runTcpServer (ctx: Net = netContext()): TcpServer {
@@ -37,12 +39,6 @@ export const waitPort = ({
     }
   })
 }, { port });
-
-type Router = { method?: string };
-
-type Route = StepsWithName<Router>;
-
-type Handler = Step<Router>;
 
 export const serveHttp = (port: number, ...routes: Handler[]) =>
   reflect(`HTTP ${port}`, function runHttpServer (ctx: Net = netContext()): HttpServer {
@@ -78,5 +74,5 @@ export const ware: Route = (...routes) =>
 export const param: Route = (name, fn) =>
   ware(async req => req.params[name] = await fn(req));
 
-export const guard: Route = (code, fn) =>
-  ware(async req => { if (!await fn(req)) return code });
+export const guard = (code: number, ...handlers: Handler[]) =>
+  ware(async req => { if (!await (pipe(...handlers)(req))) return code });

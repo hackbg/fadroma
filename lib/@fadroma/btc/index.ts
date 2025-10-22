@@ -1,10 +1,9 @@
 import {
-  compose, dir, exec, spawn, every, arg, waitPort,
+  service, dir, exec, spawn, interval, arg, waitPort,
   serveHttp, route, param, guard, get, post,
   serveTcp,
 
-  Indexd, DB, isHex64, ECPair, TransactionBuilder,
-  sha256, p2pkh, toOutputScript,
+  BTCJS, Indexd, DB, isHex64,
 } from './deps.ts';
 
 const stubRpc = (...args: unknown[]) => console.debug('TODO:', ...args);
@@ -12,7 +11,9 @@ const stubRpc = (...args: unknown[]) => console.debug('TODO:', ...args);
 /** Spawn BTC localnet in regression test mode with indexer and API. */
 export const localnet = ({
   datadir    = '/tmp/fadroma-btc/'+(+new Date()),
-  bitcoinCli = (...args: unknown[]) => exec('bitcoin-cli', `-datadir=${datadir}`, '-regtest', ...args),
+  bitcoinCli = (...args: unknown[]) => exec('bitcoin-cli',
+    `-rpcpassword=fadroma`, `-datadir=${datadir}`, '-regtest',
+    ...args),
   address    = bitcoinCli(arg('getnewaddress'), arg('""'), arg('bech32')),
 
   btcPort  = 18443,
@@ -20,7 +21,8 @@ export const localnet = ({
   httpPort = 48484,
   rpcwq    = 32,
   bitcoind = (...args: unknown[]) => spawn('bitcoind',
-    arg('-server'), arg('-regtest'), arg('-txindex'),
+    `-rpcpassword=fadroma`, `-datadir=${datadir}`, '-regtest',
+    arg('-server'), arg('-txindex'),
     arg('-zmqpubhashblock=tcp:/'+'/127.0.0.1:'+zmqPort),
     arg('-zmqpubhashtx=tcp:/'+'/127.0.0.1:'+zmqPort),
     arg('-rpcworkqueue='+rpcwq), arg('-rpcport='+btcPort), ...args),
@@ -42,16 +44,14 @@ export const localnet = ({
   ////_rpc2      = 'http://localhost:18443',
   ////_keyDb     = 'regtest.keys',
 
-} = {}) => compose('BTC Localnet API',
+} = {}) => service('BTC Localnet API',
   dir(datadir),
   serveTcp(zmqPort, zmqStub),
   waitPort({ port: zmqPort }),
   bitcoind(),
   waitPort({ port: btcPort }),
-  bitcoinCli(arg('createwallet'), arg('default')),
-  async ctx => { ctx.address = await address(ctx).stdout },
-  ctx => bitcoinCli(arg('generatetoaddress'), arg('432'), arg(ctx.address))(ctx),
-  every(60000, async () => (await indexd).indexd.tryResync()),
+  bitcoinCli('-rpcwallet=fadroma', '-generate'),
+  interval(60000, async () => (await indexd).indexd.tryResync()),
   serveHttp(httpPort,
     txApi({ rpc, indexd }),
     bxApi({ rpc, indexd }),
@@ -123,7 +123,7 @@ export const rxApi = ({
   network = 'regtest' // FIXME?
 }) => route('1/r',
   guard(401, ({query:{key}}) => !!key),
-  guard(403, ({query:{key}}) => (!(sha256(key).toString('hex') in auth))),
+  guard(403, ({query:{key}}) => (!(BTCJS.crypto.sha256(key).toString('hex') in auth))),
   post('generate', ({query:{address, count}}) => address
     ? rpc('generatetoaddress', [parseInt(count) || 1, address])
     : rpc('getnewaddress', []).then(address =>
@@ -131,10 +131,10 @@ export const rxApi = ({
   post('faucet', ({query:{address,value}}) => rpc('sendtoaddress', [
     address, parseInt(value) / 1e8, '', '', false, false, null, 'unset', false, 1])),
   post('faucetScript', async req => {
-    const key = ECPair.makeRandom({ network })
-    const payment = p2pkh({ pubkey: key.publicKey, network })
+    const key = BTCJS.ECPair.makeRandom({ network })
+    const payment = BTCJS.payments.p2pkh({ pubkey: key.publicKey, network })
     const address = payment.address
-    const scId = sha256(payment.output).toString('hex')
+    const scId = BTCJS.crypto.sha256(payment.output).toString('hex')
 
     const txId = await pRpc('sendtoaddress', [address, parseInt(req.query.value) * 2 / 1e8, '', '', false, false, null, 'unset', false, 1])
     let unspent
@@ -148,21 +148,21 @@ export const rxApi = ({
         await sleep(10)
       }
     }
-    const txvb = new TransactionBuilder(network);
+    const txvb = new BTCJS.TransactionBuilder(network);
     txvb.addInput(unspent.txId, unspent.vout, undefined, payment.output);
     txvb.addOutput(Buffer.from(req.query.script, 'hex'), parseInt(req.query.value));
     txvb.sign(0, key);
     const txv = txvb.build();
     await pRpc('sendrawtransaction', [txv.toHex()])
-    res.easy(undefined, txv.getId())
+    return txv.getId()
   }));
 
 const pRpc = async (...args) => { throw new Error('TODO') };
 const pUtxosByScriptRange = async id => { throw new Error('TODO') };
 const sleep = async t => { throw new Error('todo') };
 
-const toScId = address => sha256((!address.match(/^[0-9a-f]+$/i))
-  ? toOutputScript(address, NETWORK)
+const toScId = address => BTCJS.crypto.sha256((!address.match(/^[0-9a-f]+$/i))
+  ? BTCJS.address.toOutputScript(address, NETWORK)
   : Buffer.from(address, 'hex')).toString('hex')
 
 //export const zeromqIndexd = (url, indexd, seq = {}) =>
