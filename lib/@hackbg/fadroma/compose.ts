@@ -1,13 +1,15 @@
-import type { StepsWithName } from './tasker.ts';
-import type { Ports } from './listen.ts';
+import type { StepsWithName } from './call.ts';
+import type { Net } from './net.ts';
 import type { Pids } from './spawn.ts';
-import { reflect } from './reflect.ts';
-import { listenContext } from './listen.ts';
+import type { FS } from './fs.ts';
+import type { Log } from './log.ts';
+import { reflect } from './call.ts';
+import { netContext } from './net.ts';
 import { spawnContext } from './spawn.ts';
-export const compose: StepsWithName<Ports & Pids> = (name, ...services) =>
-  reflect(name, async function spawnGroup (ctx: Pids & Ports = {
-    ...listenContext(),
-    ...spawnContext(),
+import { fsContext } from './fs.ts';
+export const compose: StepsWithName<Net & Pids & FS & Log> =
+  (name, ...services) => reflect(name, async function spawnGroup (ctx = {
+    ...netContext(), ...spawnContext(), ...fsContext(),
   }) {
     for (const service of services) {
       const result = await service(ctx);

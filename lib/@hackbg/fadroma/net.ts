@@ -1,30 +1,18 @@
+import type { Step, StepsWithName } from './call.ts';
+import { pipe, reflect } from './call.ts';
 import type { Socket } from './deps.ts';
 import { TcpServer, HttpServer, createConnection } from './deps.ts';
-import { pipe, reflect } from './reflect.ts';
 
-type Router = {
-  method?: string
-};
+export type Net = { ports: Record<number, TcpServer> };
 
-type Route = Step<Router>;
-
-export type ListenContext = {
-  ports: Record<number, unknown>
-};
-
-export const listenContext = (): ListenContext => ({
-  ports: {}
-});
+export const netContext = (): Net => ({ ports: {} });
 
 export const serveTcp = (port: number, handler: (_: Socket)=>unknown) =>
-  reflect(`TCP ${port}`, function runTcpServer (ctx: ListenContext = listenContext()): TcpServer {
+  reflect(`TCP ${port}`, function runTcpServer (ctx: Net = netContext()): TcpServer {
     if (port in ctx.ports) throw new Error(`port ${port}: occupied`);
-    const server = new TcpServer();
-    server.on('connecton', handler);
-    server.listen(port, '127.0.0.1');
-    ctx.ports[port] = server;
-    server.on('close', () => delete ctx.ports[port]);
-    return server;
+    ctx.ports[port] = new TcpServer().on('connecton', handler).listen(port, '127.0.0.1');
+    ctx.ports[port].on('close', () => delete ctx.ports[port]);
+    return ctx.ports[port];
   }, { port, handler });
 
 export const waitPort = ({
@@ -50,8 +38,14 @@ export const waitPort = ({
   })
 }, { port });
 
-export const serveHttp = (port: number, ...routes: Route[]) =>
-  reflect(`HTTP ${port}`, function runHttpServer (ctx: ListenContext = listenContext()): HttpServer {
+type Router = { method?: string };
+
+type Route = StepsWithName<Router>;
+
+type Handler = Step<Router>;
+
+export const serveHttp = (port: number, ...routes: Handler[]) =>
+  reflect(`HTTP ${port}`, function runHttpServer (ctx: Net = netContext()): HttpServer {
     const server = new HttpServer();
     server.listen(port, '127.0.0.1');
     ctx.ports[port] = server;
@@ -62,30 +56,27 @@ export const serveHttp = (port: number, ...routes: Route[]) =>
 export const matchRoute = (expected) => (actual) =>
   false; // TODO
 
-export const param:  StepsWithName<Router> = (name, fn) =>
-  ware(async req => req.params[name] = await fn(req));
-
-export const guard:  StepsWithName<Router> = (code, fn) =>
-  ware(async req => { if (!await fn(req)) return code });
-
-export const route:  StepsWithName<Router> = (path, ...routes) => Object.assign(
+export const route: Route = (path, ...routes) => Object.assign(
   async function routeRequest (context: Router) {
     if (matchRoute(path)(context.path)) return pipe(...routes)(context)
   }, { routes });
 
-export const method: StepsWithName<Router> = (method, ...routes) => Object.assign(
+export const method: Route = (method, ...routes) => Object.assign(
   async function onMethod (context: Router) {
     if (context.method === method) return pipe(...routes)(context);
   }, { method, routes });
 
-export const get:    StepsWithName<Router> = (path, ...routes) =>
+export const get: Route = (path, ...routes) =>
   route(path, method('get', ...routes));
 
-export const post:   StepsWithName<Router> = (path, ...routes) =>
+export const post: Route = (path, ...routes) =>
   route(path, method('post', ...routes));
 
-export const ware:   Steps<Router> = (...routes) =>
-  pipe(...options);
+export const ware: Route = (...routes) =>
+  pipe(...routes);
 
-export const set:    StepsWithName    = (key?: string) =>
-  pipe(...options);
+export const param: Route = (name, fn) =>
+  ware(async req => req.params[name] = await fn(req));
+
+export const guard: Route = (code, fn) =>
+  ware(async req => { if (!await fn(req)) return code });

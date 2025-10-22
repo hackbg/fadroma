@@ -1,8 +1,8 @@
 export { ok, deepStrictEqual as equal } from 'node:assert';
 export { setImmediate } from 'node:timers';
-export { stdout, argv, env, cwd, exit } from 'node:process';
+export { stdout, argv, env, cwd as getCwd, exit } from 'node:process';
 export { fileURLToPath } from 'node:url';
-export { join as joinPath } from 'node:path';
+export { join as joinPath, resolve as resolvePath } from 'node:path';
 export { writeFile, mkdir } from 'node:fs/promises';
 export { Server as HttpServer } from 'node:http';
 export { Server as TcpServer, createConnection } from 'node:net';

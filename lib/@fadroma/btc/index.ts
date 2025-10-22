@@ -1,25 +1,25 @@
 import {
-  compose, exec, spawn, every, arg, waitPort,
-  serveHttp, route, param, guard, set, get, post,
+  compose, dir, exec, spawn, every, arg, waitPort,
+  serveHttp, route, param, guard, get, post,
   serveTcp,
 
-  Indexd, DB, RPC, isHex64, ECPair, TransactionBuilder,
+  Indexd, DB, isHex64, ECPair, TransactionBuilder,
   sha256, p2pkh, toOutputScript,
 } from './deps.ts';
 
-const stubRpc = (...args) => console.debug('TODO:', ...args);
+const stubRpc = (...args: unknown[]) => console.debug('TODO:', ...args);
 
 /** Spawn BTC localnet in regression test mode with indexer and API. */
 export const localnet = ({
   datadir    = '/tmp/fadroma-btc/'+(+new Date()),
-  bitcoinCli = (...args) => exec('bitcoin-cli', `-datadir=${datadir}`, '-regtest', ...args),
+  bitcoinCli = (...args: unknown[]) => exec('bitcoin-cli', `-datadir=${datadir}`, '-regtest', ...args),
   address    = bitcoinCli(arg('getnewaddress'), arg('""'), arg('bech32')),
 
-  btcPort    = 18443,
-  zmqPort    = 48485,
-  httpPort   = 48484,
-  rpcwq      = 32,
-  bitcoind   = (...args) => spawn('bitcoind',
+  btcPort  = 18443,
+  zmqPort  = 48485,
+  httpPort = 48484,
+  rpcwq    = 32,
+  bitcoind = (...args: unknown[]) => spawn('bitcoind',
     arg('-server'), arg('-regtest'), arg('-txindex'),
     arg('-zmqpubhashblock=tcp:/'+'/127.0.0.1:'+zmqPort),
     arg('-zmqpubhashtx=tcp:/'+'/127.0.0.1:'+zmqPort),
@@ -27,7 +27,7 @@ export const localnet = ({
 
   _elementd  = null, // TODO
 
-  rpc        = (...args) => console.debug('TODO:', ...args),
+  rpc        = stubRpc,
   indexd     = runIndexd({ rpc })(),
 
   zmqStub  = socket => {
@@ -43,6 +43,7 @@ export const localnet = ({
   ////_keyDb     = 'regtest.keys',
 
 } = {}) => compose('BTC Localnet API',
+  dir(datadir),
   serveTcp(zmqPort, zmqStub),
   waitPort({ port: zmqPort }),
   bitcoind(),
@@ -68,7 +69,7 @@ export const runIndexd = ({
 
 /** Blocks API. */
 export const bxApi = ({ rpc, indexd }) => route('1/b',
-  get('best',     _req => rpc('getbestblockhash', [])),
+  get('best',     (_: unknown) => rpc('getbestblockhash', [])),
   get('fees',     ({query:{count=64}}) => indexd().latestFeesForNBlocks(count),
   route(':id',
     param('id',   ({params:{id}}) => (id === 'best') ? rpc('getbestblockhash', []) : id),

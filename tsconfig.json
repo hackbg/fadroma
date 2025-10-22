@@ -4,6 +4,8 @@
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
   }
 }

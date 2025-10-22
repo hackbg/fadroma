@@ -58,12 +58,6 @@ export const runInput = <T extends TuiState> (
   }
 })
 
-export const RESET = `\x1b[0m`;
-export const FG255 = (x: number) => `\x1b[38;5;${x}m`;
-export const BG255 = (x: number) => `\x1b[48;5;${x}m`;
-export const fg255 = (x: number) => (text: string) => `\x1b[38;5;${x}m${text}${RESET}`;
-export const bg255 = (x: number) => (text: string) => `\x1b[48;5;${x}m${text}${RESET}`;
-
 export const runOutput = <T extends TuiState> (
   state: T, ...steps: Array<string|((_: T)=>unknown)>
 ) => new Promise(async (resolve, reject)=>{

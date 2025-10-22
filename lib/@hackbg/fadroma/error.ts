@@ -1,10 +1,10 @@
-import { cwd } from './deps.ts';
+import { getCwd } from './deps.ts';
 import type { Stringy } from './string.ts';
 
 export const formatError = (e: Error, name?: Stringy) => {
   const [head, ...tail] = (e?.stack||'').split('\n')
   const stack = tail.map(x=>x
-    .replace('('+cwd()+'/', '(')
+    .replace('('+getCwd()+'/', '(')
     .replace('./node_modules/.pnpm/', ''))
   e.message = e.message.split('Logs:')[0].trim()
   if (name) e.message = name + ': ' + e.message

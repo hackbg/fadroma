@@ -1,8 +1,8 @@
-import type { Info, Timed, MaybeAsync, MaybeAsyncFn } from './format.ts';
-import { joined, } from './format.ts';
+import type { Timed, MaybeAsync, MaybeAsyncFn } from './call.ts';
+import type { Info } from './string.ts';
 import { red, green, blue, orange, yellow, gray } from './color.ts';
-import { isEntrypoint } from './tasker.ts';
-import { reflect } from './reflect.ts';
+import { reflect, isEntrypoint } from './call.ts';
+import { joined, } from './string.ts';
 import { argv } from './deps.ts';
 
 /** A test step. */

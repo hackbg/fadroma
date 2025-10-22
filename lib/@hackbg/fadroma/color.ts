@@ -1,26 +1,24 @@
-import type { Identified, Id, Colorful, Stringy } from './types.ts';
+import type { Stringy } from './string.ts';
 import { env } from './deps.ts';
-
 /** Color. TODO specify representation */
 export type Color = unknown;
 /** Thing identifiable by color. */
 export type Colorful = { /** The identifying color. */ color: Color };
-
 /** Generate predictable color from ID. */
-export const assignColor = <
-  C extends Colorful & Identified<I>,
-  I extends Id
-> (thing: C): C => Object.assign(thing, { color: randomColor({
-  luminosity: 'dark', // TODO random color in okhsl space
-  seed: String(thing.id)
-}) })
-
-export const FG255 = (x: Stringy) => `\x1b[38;5;${x}m`;
-export const BG255 = (x: Stringy) => `\x1b[48;5;${x}m`;
-
+export const assignColor = <C extends Colorful & { id: unknown }> (thing: C): C =>
+  Object.assign(thing, { color: randomColor({
+    luminosity: 'dark', // TODO random color in okhsl space
+    seed: String(thing.id)
+  }) })
 // TODO id -> color registry
+  //
 export const NO_COLOR = env.NO_COLOR === '1'                                                                                                                                                                                   
 export const ANSI_RESET  = NO_COLOR ? '' : `\x1b[0m`
+export const RESET = `\x1b[0m`;
+export const FG255 = (x: number) => `\x1b[38;5;${x}m`;
+export const BG255 = (x: number) => `\x1b[48;5;${x}m`;
+export const fg255 = (x: number) => (text: string) => `\x1b[38;5;${x}m${text}${RESET}`;
+export const bg255 = (x: number) => (text: string) => `\x1b[48;5;${x}m${text}${RESET}`;
 const ANSI_RED    = NO_COLOR ? '' : `\x1b[0;31m`
 const ANSI_GREEN  = NO_COLOR ? '' : `\x1b[0;32m`
 const ANSI_YELLOW = NO_COLOR ? '' : `\x1b[0;33m`
