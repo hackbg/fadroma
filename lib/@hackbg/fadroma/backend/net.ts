@@ -52,12 +52,12 @@ export const serveHttp = (port: number, ...routes: Handler[]) =>
 export const matchRoute = (expected) => (actual) =>
   false; // TODO
 
-export const route: Route = (path, ...routes) => Object.assign(
+export const route: Route = (path, ...routes) => reflect(path,
   async function routeRequest (context: Router) {
     if (matchRoute(path)(context.path)) return pipe(...routes)(context)
   }, { routes });
 
-export const method: Route = (method, ...routes) => Object.assign(
+export const method: Route = (method, ...routes) => reflect(method,
   async function onMethod (context: Router) {
     if (context.method === method) return pipe(...routes)(context);
   }, { method, routes });
