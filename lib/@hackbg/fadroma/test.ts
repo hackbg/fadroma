@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --coverage --allow-env --allow-net --allow-run
 import { testContext, suite, expect, forbid, matrix }  from "./tester.ts";
-import { spawnContext, exec, spawn } from './index.ts';
-import { ok, equal } from './deps.ts';
+import { spawnContext, addArgs, exec, spawn } from './index.ts';
+import { ok, equal, ChildProcess } from './deps.ts';
 
 export const testTester = expect('Tester',
   expect('Context', () => { testContext(); }),
@@ -11,15 +11,32 @@ export const testTester = expect('Tester',
   expect('Matrix',  () => { matrix('Something', [], () => {}); }));
 
 export const testSpawn = expect('Process',
+  expect('Context', () => {
+    const context = spawnContext();
+    equal(context.pids, {});
+  }),
+  expect('Args', () => {
+    const args = addArgs('foo', 'bar', 'baz');
+    equal({ ...spawn('true', args) }, { arg0: 'true', options: [args] });
+    equal({ ...exec('true', args)  }, { arg0: 'true', options: [args] });
+  }),
   expect('Exec', async () => {
     const context = spawnContext();
-    equal(await exec('true')(context), context);
+    const run = exec('true');
+    equal({ ...run }, { arg0: 'true', options: [] });
+    equal(await run(context), context);
   }),
-  expect('Spawn', async () => {
+  expect('Spawn and kill', async () => {
     const context = spawnContext();
-    equal(await spawn('true')(context), context);
-  }),
-  expect('Kill'));
+    const start = spawn('true');
+    equal({ ...start }, { arg0: 'true', options: [] });
+    equal(await start(context), context);
+    ok('pid' in start);
+    ok(context.pids[start.pid].pid === start.pid);
+    ok(context.pids[start.pid].killed === false);
+    ok(context.pids[start.pid].kill());
+    ok(context.pids[start.pid].killed === true);
+  }));
 
 export const testContainer = expect('Container',
   'Pull', 'Run', 'Kill', 'Build');
