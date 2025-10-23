@@ -1,5 +1,5 @@
 import type { ChildProcess } from '../deps.ts';
-import type { Fn } from '../index.ts';
+import type { Fn, Step } from '../index.ts';
 import { execImpl, spawnImpl } from '../deps.ts';
 import { reflect } from '../call.ts';
 
@@ -27,36 +27,29 @@ export type Command =
   { argv:     string[]
   , options?: { env?: Record<string, unknown> } };
 
-export const arg = (...fragments: string[]) =>
-  reflect(fragments[0], function addArgument (cmd: Command) {
-    return Object.assign(cmd, { argv: [...cmd.argv || [], fragments.join(' ')] })
-  }, { fragments });
+export type CommandOption = Step<Command>;
 
-export const setEnv = (name: string, value: string|null) =>
-  reflect(name, function setEnvironmentVariable (cmd: Command) {
-    cmd.options ??= {};
-    cmd.options.env ??= {};
-    cmd.options.env[name] = value;
-  }, { name, value });
-
-export const spawn = (arg0: string, ...options: Option[]) =>
-  reflect(arg0, function spawnDaemon (ctx: Pids = spawnContext()) {
-    const child = ctx.spawn(buildCommand(arg0, options));
-    if (child.pid) ctx.pids[child.pid] = child;
+export const spawn = (arg0: string, ...options: (CommandOption|string)[]) =>
+  reflect(arg0, async function spawnDaemon (ctx: Pids = spawnContext()) {
+    const child = ctx.spawn(await buildCommand(arg0, options));
+    if (child.pid) {
+      ctx.pids[child.pid] = child;
+      Object.assign(spawnDaemon, { pid: child.pid });
+    }
     return ctx
   }, { arg0, options });
 
-export const exec = (arg0: string, ...options: (Option|string)[]) =>
+export const exec = (arg0: string, ...options: (CommandOption|string)[]) =>
   reflect(arg0, async function executeCommand (ctx: Pids = spawnContext()) {
-    const result = await ctx.exec(buildCommand(arg0, options));
+    const result = await ctx.exec(await buildCommand(arg0, options));
     return ctx;
   }, { arg0, options });;
 
-export const buildCommand = (arg0: string, options: (Option|string)[]) => {
+export const buildCommand = async (arg0: string, options: (CommandOption|string)[]) => {
   let command = { argv: [arg0], options: {} };
   for (const option of options) {
     if (typeof option === 'function') {
-      command = option(command) || command;
+      command = await (option(command) || command);
     } else if (typeof option === 'string') {
       command.argv ??= []
       command.argv.push(option);
@@ -66,3 +59,15 @@ export const buildCommand = (arg0: string, options: (Option|string)[]) => {
   }
   return command;
 }
+
+export const setEnv = (name: string, value: string|null) =>
+  reflect(name, function setEnvironmentVariable (cmd: Command) {
+    cmd.options ??= {};
+    cmd.options.env ??= {};
+    cmd.options.env[name] = value;
+  }, { name, value });
+
+export const addArgs = (...fragments: string[]) =>
+  reflect(fragments[0], function addArgument (cmd: Command) {
+    return Object.assign(cmd, { argv: [...cmd.argv || [], fragments.join(' ')] })
+  }, { fragments });
