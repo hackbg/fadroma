@@ -212,3 +212,17 @@ export const objectReducer = (f) => (a, [k, v]) =>
 
 /** Apply an object reducer to an object's entries. */
 export const reduceObject = f => x => Object.entries(x).reduce(f, {});
+
+/** Leak the resolve and reject methods of a promise
+  * out of the promise executor, allowing the promise
+  * to be resolved from elsewhere. */
+export const defer = (callback?) => {
+  let resolve, reject;
+  const promise = new Promise((arg0, arg1)=>{
+    resolve = arg0;
+    reject  = arg1;
+    if (callback) callback(resolve, reject);
+  });
+  return Object.assign(promise, { resolve, reject });
+  return promise
+}
