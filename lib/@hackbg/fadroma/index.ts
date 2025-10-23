@@ -15,8 +15,10 @@
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-export * from './backend.ts';
 export * from './call.ts';
 export * from './codegen.ts';
 export * from './format.ts';
+export * from './logger.ts';
+export * from './network.ts';
+export * from './service.ts';
 export * from './tester.ts';

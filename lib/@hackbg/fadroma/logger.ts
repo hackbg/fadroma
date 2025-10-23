@@ -1,6 +1,5 @@
-import { inspect, stdout } from '../deps.ts';
-import { red, yellow, dim } from './color.ts';
-import { joined } from './string.ts';
+import { inspect, stdout } from './deps.ts';
+import { joined, red, yellow, dim } from './format.ts';
 
 /** Logging interface. */
 export type Log = {

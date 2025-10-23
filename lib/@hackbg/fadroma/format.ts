@@ -2,7 +2,6 @@ export * from './format/number.ts';
 export * from './format/string.ts';
 export * from './format/color.ts';
 export * from './format/error.ts';
-export * from './format/logger.ts';
 
 /** False, zero, empty string, null, undefined, zip, nada, zilch. */
 export type Falsy = 0 | '' | false | null | undefined;
@@ -24,8 +23,8 @@ export type Decimal64<P extends Num>  = Decimal<P, 64>;  // deprecated
 export type Decimal128<P extends Num> = Decimal<P, 128>; // deprecated
 export type Decimal256<P extends Num> = Decimal<P, 256>; // deprecated
 
-export type Base<B extends Number> = {
-  __base: N,
+export type Base<B extends number> = {
+  __base: B,
   encode: (_: Num) => Bytes,
   decode: (_: Bytes) => Num,
 }

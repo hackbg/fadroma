@@ -226,3 +226,11 @@ export const defer = (callback?) => {
   return Object.assign(promise, { resolve, reject });
   return promise
 }
+
+export const interval =
+  (msec: number, ...steps: Step[]) =>
+    reflect(null, async function interval (..._: unknown[]) {
+      return setInterval(() => {
+        pipe(...steps)(performance.now())
+      }, msec);
+    }, { msec });

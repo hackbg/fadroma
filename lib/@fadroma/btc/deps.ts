@@ -3,7 +3,7 @@ if (globalThis.Deno) {
 }
 
 export {
-  service, interval, exec, spawn, setEnv, arg, waitPort, dir,
+  service, interval, exec, spawn, setEnv, addArgs, waitPort, dir,
   serveTcp, serveHttp, route, param, guard, ware, get, post,
 } from '@hackbg/fadroma';
 

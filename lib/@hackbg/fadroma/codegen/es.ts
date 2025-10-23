@@ -1,4 +1,4 @@
-import { writeFormat, json } from '../backend.ts';
+import { writeFormat, json } from '../service.ts';
 
 /** Specify a JS file. */
 export const js = writeFormat((_: unknown) => {

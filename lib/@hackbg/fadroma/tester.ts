@@ -1,7 +1,8 @@
 import type { Log, Timed, Takes, Returns, Reflects, Async } from './index.ts';
 import { getCwd, stdout, exit, argv, setImmediate, ok, equal } from './deps.ts';
 import { isEntrypoint } from './frontend/cmd.ts';
-import { Error, logger, msec, joined, red, green, blue, orange, yellow, gray, bold, dim, dT } from './format.ts';
+import { logger } from './logger.ts';
+import { Error, msec, joined, red, green, blue, orange, yellow, gray, bold, dim, dT } from './format.ts';
 import { reflect, objectReducer, reduceObject, identity } from './call.ts';
 
 /** A step of the test suite. */

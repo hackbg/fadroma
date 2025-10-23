@@ -12,7 +12,7 @@ import testSimf    from "./lib/@fadroma/simf/test.ts";
 export default suite(import.meta, null,
   testFadroma,
   testBtc,
-  //testSimf,
+  testSimf,
   //testSolRust,
   //testSolWeb3,
   //testSolKit,

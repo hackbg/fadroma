@@ -1,4 +1,4 @@
-import { dir, toml } from '../backend.ts';
+import { dir, toml } from '../service.ts';
 
 export type Rust =
   { rust?:      boolean
