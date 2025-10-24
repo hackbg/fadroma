@@ -1,4 +1,3 @@
-export * from './log.ts';
-export * from './cmd.ts';
-export * from './tui.ts';
-export * from './dom.ts';
+export * from './frontend/cmd.ts';
+export * from './frontend/tui.ts';
+export * from './frontend/dom.ts';

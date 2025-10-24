@@ -18,6 +18,7 @@
 export * from './call.ts';
 export * from './codegen.ts';
 export * from './format.ts';
+export * from './frontend.ts';
 export * from './logger.ts';
 export * from './network.ts';
 export * from './service.ts';

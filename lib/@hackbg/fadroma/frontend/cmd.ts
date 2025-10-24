@@ -45,7 +45,7 @@ export const isEntrypoint = (meta: boolean|Partial<ImportMeta>, argv1: string) =
     || (meta?.url && fileURLToPath(meta?.url) == argv1));
 export const command = (name, ...steps) => () => { throw new Error('TODO') }
 
-export const flag = (name, ...steps) => () => { throw new Error('TODO') }
+export const commandOption = (name, ...steps) => () => { throw new Error('TODO') }
 
 export const CLI = command(null,
   command('build',
@@ -62,5 +62,5 @@ export const CLI = command(null,
     command('wait')),
   command('repl'),
   command('test',
-    flag('full'),
-    flag('debug')))
+    commandOption('full'),
+    commandOption('debug')))

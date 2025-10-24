@@ -1,12 +1,8 @@
 #!/usr/bin/env -S deno run --allow-env --allow-run
 import { stdin, stdout } from 'node:process';
-import testSuite         from './test.ts';
-import * as Test         from './lib/@hackbg/tester/index.ts';
-import { entrypoint }    from './lib/@hackbg/main/index.ts';
-import { gray }          from './lib/@hackbg/color/index.ts';
-import { exec }          from './lib/@hackbg/spawn/index.ts';
-import type { TuiState } from './lib/@hackbg/tui/types.ts';
-import { tui, runInput, runOutput, when, draw, at, fg255, bg255 } from './lib/@hackbg/tui/index.ts';
+import testSuite from './test.ts';
+import { entrypoint, gray, exec, when, fg255, bg255 } from './lib/@hackbg/fadroma/index.ts';
+import { tuiContext, runInput, runOutput, draw, at } from './lib/@hackbg/fadroma/frontend/tui.ts';
 
 export type State = {
   list:     string[],
@@ -29,21 +25,23 @@ export default entrypoint(import.meta, async function main (_args) {
   }
 });
 
-export const start = (state: Partial<State> = tui(stdin, stdout, {
-  list:     collectList(collectTree(testSuite.steps)),
-  scroll:   0,
-  columns:  true,
-  filter:   '',
-  suite:    testSuite,
-  runTests: () => Test.run(state.suite),
+export const start = (
+  state: Partial<State> = tuiContext(stdin, stdout, {
+    list:     collectList(collectTree(testSuite.steps)),
+    scroll:   0,
+    columns:  true,
+    filter:   '',
+    suite:    testSuite,
+    runTests: () => Test.run(state.suite),
 
-  checks:   [],
-  check:    exec('deno', 'check', 'lib/btc/index.ts'),
-  runCheck: async () => {
-    const result = await state.check();
-    console.log({result});
-  },
-})) => Promise.all([
+    checks:   [],
+    check:    exec('deno', 'check', 'lib/btc/index.ts'),
+    runCheck: async () => {
+      const result = await state.check();
+      console.log({result});
+    },
+  })
+) => Promise.all([
   runInput(state as State, input),
   runOutput(state as State, output),
 ])
