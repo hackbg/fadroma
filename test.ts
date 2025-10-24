@@ -1,5 +1,5 @@
 #!/usr/bin/env -S deno run --coverage --allow-env --allow-net --allow-run --allow-import --allow-write
-import { suite } from "@hackbg/fadroma";
+import { suite }   from "@hackbg/fadroma";
 import testFadroma from "./lib/@hackbg/fadroma/test.ts";
 import testBtc     from "./lib/@fadroma/btc/test.ts";
 import testSimf    from "./lib/@fadroma/simf/test.ts";

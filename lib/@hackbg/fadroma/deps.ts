@@ -15,3 +15,8 @@ export { spawn as spawnImpl } from 'node:child_process';
 export { base16, base64 } from '@scure/base'
 export type { ChildProcess } from 'node:child_process';
 export { default as Case } from 'case';
+export type { Buffer } from 'node:buffer';
+export const {
+  connect,
+  listen,
+} = globalThis.Deno || {};

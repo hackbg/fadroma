@@ -234,3 +234,33 @@ export const interval =
         pipe(...steps)(performance.now())
       }, msec);
     }, { msec });
+
+export type AsyncIter<T> = {
+  [Symbol.asyncIterator](): AsyncIterableIterator<T>
+};
+
+export const asyncIter = getIter => state => {
+  const iter = getIter(state);
+  return Object.assign(state, { [Symbol.asyncIterator]() { return iter } });
+};
+
+export const withCatcher = (c: Fn) =>
+  <T extends unknown[]>(f: Fn<T>) =>
+    (...args: T) => Promise.resolve(f(...args)).catch(c);
+
+/** Stub test step. When reached, terminates without passing or failing,
+  * and adds a task to the test report.
+  *
+  * Example:
+  *
+  *     import { suite, expect, todo } from '@hackbg/fadroma';
+  *     export default suite(import.meta,
+  *       expect('Auto todo'),
+  *       expect('Manual todo', todo()),
+  *       expect('Manual todo with more info', todo('the more info')));
+  *
+  **/
+export const todo = (...info: string[]) => reflect(info.join(' '),
+  function trackTodo <T extends Testing>(_context: T) {
+    throw Object.assign(new Error(info.join(' ')), { todo: true })
+  }, { info });

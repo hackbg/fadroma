@@ -1,5 +1,24 @@
-import type { Uint128 } from '../index.ts';
 import { yellow } from './color.ts';
+
+export type Num = number|string|bigint;
+
+/** Unsigned integer of fixed bitness. */
+export type Uint<B extends number> = { __bits: B } & Num;
+export type Uint64  = Uint<64>;  // deprecated
+export type Uint128 = Uint<128>; // deprecated
+export type Uint256 = Uint<256>; // deprecated
+
+/** Decimal fraction of fixed bitness. */
+export type Decimal<N extends Num, B extends number> = { __denom: N } & Uint<B>; 
+export type Decimal64<P extends Num>  = Decimal<P, 64>;  // deprecated
+export type Decimal128<P extends Num> = Decimal<P, 128>; // deprecated
+export type Decimal256<P extends Num> = Decimal<P, 256>; // deprecated
+
+export type Base<B extends number> = {
+  __base: B,
+  encode: (_: Num) => Bytes,
+  decode: (_: Bytes) => Num,
+}
 
 const numbersWithoutZero =
   "123456789";

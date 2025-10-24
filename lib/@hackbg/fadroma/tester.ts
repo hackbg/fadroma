@@ -3,7 +3,7 @@ import { getCwd, stdout, exit, argv, setImmediate, ok, equal } from './deps.ts';
 import { isEntrypoint } from './frontend/cmd.ts';
 import { logger } from './logger.ts';
 import { Error, msec, joined, red, green, blue, orange, yellow, gray, bold, dim, dT } from './format.ts';
-import { reflect, objectReducer, reduceObject, identity } from './call.ts';
+import { reflect, objectReducer, reduceObject, identity, todo } from './call.ts';
 
 /** A step of the test suite. */
 export type TestStep<T extends Testing = Testing> =
@@ -158,23 +158,6 @@ export async function runTest <T extends Testing> (
   Error.stackTraceLimit = stackTraceLimit;
   return { context, result };
 };
-
-/** Stub test step. When reached, terminates without passing or failing,
-  * and adds a task to the test report.
-  *
-  * Example:
-  *
-  *     import { suite, expect, todo } from '@hackbg/fadroma';
-  *     export default suite(import.meta,
-  *       expect('Auto todo'),
-  *       expect('Manual todo', todo()),
-  *       expect('Manual todo with more info', todo('the more info')));
-  *
-  **/
-export const todo = (...info: string[]) => reflect(info.join(' '),
-  function trackTodo <T extends Testing>(_context: T) {
-    throw Object.assign(new Error(info.join(' ')), { todo: true })
-  }, { info });
 
 /** A test case, consisting of a name and zero or more test steps.
   * 

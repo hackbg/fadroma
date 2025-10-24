@@ -7,7 +7,7 @@ export default suite(import.meta, 'BTC',
   expect('Localnet', testLocalnet),
   expect('Read', 'Block', 'Transaction', 'Address'),
   expect('Write', 'Send'),
-  stopLocalnet);
+  expect('Stop localnet', stopLocalnet));
 
 export async function testLocalnet (test: TestContext) {
   const timeout  = (_, reject)=>setTimeout(timedOut(reject), 10000);

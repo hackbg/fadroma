@@ -40,3 +40,19 @@ export const waitPort = ({
   })
 }, { port });
 
+export const denoServerTransport = () => Deno.listen({
+  transport: "tcp",
+  port: this.port,
+  hostname: this.hostname,
+});
+
+export const denoClientTransport = async () => {
+  const rawConn = await Deno.connect({
+    transport: "tcp",
+    hostname: this.hostname,
+    port: this.port,
+  });
+  const conn = createConnection(rawConn);
+  this.conn = conn;
+  return conn;
+}

@@ -1,18 +1,34 @@
-import type { Falsy, Stringy } from '../format.ts';
+import type { Falsy, Bytes } from '../format.ts';
+import { Case } from '../deps.ts';
+
+/** String, or something with a `toString` method. */
+export type Stringy = string|{ toString(): string };
+
+export const UTF8 = {
+  encoder: new TextEncoder(),
+  decoder: new TextDecoder(),
+  encode (x: string): Uint8Array {
+    return UTF8.encoder.encode(x)
+  },
+  decode (x: Bytes|Array<number>): string {
+    if (!(x instanceof Uint8Array)) x = new Uint8Array(x);
+    return UTF8.decoder.decode(x); // TODO optimize
+  },
+}
 
 export const chunks = (...strs: Array<Falsy|Stringy|Array<Falsy|Stringy>>) =>
-  strs.flat().filter(Boolean).map(x=>x!.toString())
+  strs.flat().filter(Boolean).map(x=>x!.toString());
+
 export const str = (...strs: Array<Falsy|Stringy|Array<Falsy|Stringy>>) =>
-  chunks(...strs).join('')
+  chunks(...strs).join('');
+
 export const joined = (joiner: string, ...strs: Array<Falsy|Stringy|Array<Falsy|Stringy>>) =>
-  chunks(...strs).join(joiner)
-export const joiner = (x?: Stringy, y = ' ') => x ? (x.toString() + y) : ''
-           , col1 = 8
-           , pad1 = (x?: Stringy, c = '·') => joiner(x).padEnd(col1, c)
-           , col2 = 48
-           , pad2 = (x?: Stringy, c = ' ') => joiner(x).padEnd(col2, c);
-/** Human-readable info interface. */
-export type Info = { summary (): string, details (): string };
+  chunks(...strs).join(joiner);
+
+export const
+  joiner = (x?: Stringy, y = ' ') => x ? (x.toString() + y) : '',
+  col1 = 8,  pad1 = (x?: Stringy, c = '·') => joiner(x).padEnd(col1, c),
+  col2 = 48, pad2 = (x?: Stringy, c = ' ') => joiner(x).padEnd(col2, c);
 
 export const see = (arg: unknown) => {
   const color = !NO_COLOR // FIXME move these to color.ts:
