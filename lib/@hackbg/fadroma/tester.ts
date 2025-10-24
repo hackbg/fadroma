@@ -1,10 +1,10 @@
 import type { Log, Timed, Takes, Returns, Reflects, Async } from './index.ts';
-import { getCwd, stdout, exit, argv, setImmediate, ok, equal } from './deps.ts';
+import { ok, equal, throws, rejects, getCwd, stdout, exit, argv, setImmediate, } from './deps.ts';
 import { isEntrypoint } from './frontend/cmd.ts';
 import { logger } from './logger.ts';
-import { Error, msec, joined, red, green, blue, orange, yellow, gray, bold, dim, dT } from './format.ts';
-import { reflect, objectReducer, reduceObject, identity, todo } from './call.ts';
-export { ok, equal }
+import { Error, msec, dT, joined, red, green, blue, orange, yellow, gray, bold, dim } from './format.ts';
+import { call, reflect, objectReducer, reduceObject, identity, todo } from './call.ts';
+export { call, ok, equal, throws, rejects }
 
 /** A step of the test suite. */
 export type TestStep<T extends Testing = Testing> =
@@ -116,7 +116,7 @@ const testSummary = ({
   if (!categorySpecs[state]) throw new Error(`unknown category: ${state}`);
   const {icon, color} = categorySpecs[state];
   const style = (results.length > 1) ? bold : identity;
-  let line = joined(' ', color(state), icon, (indent+style(name||'<from unnamed>')).padEnd(20));
+  let line = joined(' ', color(state), icon, (indent+style(name||gray(5, '<unnamed>'))).padEnd(20));
   if (state === 'fail' && result.error) {
     line = line + ' ' + gray(2, joined(': ', bold(result.error.name), result.error.message));
     lines.push(line);
@@ -124,6 +124,9 @@ const testSummary = ({
   } else {
     lines.push(line);
   };
+  if (results.length === 1 && results[0].state === 'pass' && !results[0].name) {
+    return lines;
+  }
   for (let index = 0; index < results.length; index++) {
     const result = results[index];
     testSummary({ context, result, indent: indent + ` `, lines, });
@@ -195,7 +198,6 @@ export function expect <T extends Testing> (
   return reflect(name, expectations, { steps });
   async function expectations (ctx: T = testContext() as T) {
     if (steps.length === 0) return {name, state: 'todo', results: []};
-    if (steps.length === 1) return {name, ...await testResult(ctx, steps[0])};
     let results: Array<TestResult|undefined> = steps.map(_=>undefined);
     for (const index in steps) {
       const step     = steps[index];
