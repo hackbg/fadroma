@@ -1,8 +1,9 @@
 import {
+  joined, call,
   service, dir, exec, spawn, interval, addArgs, waitPort,
   serveHttp, route, param, guard, get, post,
   serveTcp,
-  joined,
+  zmqSub,
 
   BTCJS, Indexd, DB, isHex64,
 } from './deps.ts';
@@ -34,9 +35,9 @@ export function btcLocalnet (...config: Partial<BtcLocalnetConfig>[]) {
     httpPort  = 48484,
     rpc       = stubRpc,
     onZmq     = stubZmq,
-    dir       = '/tmp/fadroma/test/btc/',
-    dataDir   = joined('', dir, +new Date()),
-    walletDir = joined('', dir, +new Date()),
+    dataRoot  = '/tmp/fadroma/test/btc/',
+    dataDir   = joined('', dataRoot, +new Date()),
+    walletDir = joined('', dataRoot, +new Date()),
     indexd    = runIndexd({ rpc })(),
 
     //bitcoinArg = addArgs(),

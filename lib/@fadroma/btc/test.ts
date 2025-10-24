@@ -1,5 +1,5 @@
 #!/usr/bin/env -S deno run --allow-env --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443
-import * as Btc from './index.ts';
+import { btcLocalnet } from './index.ts';
 import { expect, suite, defer } from '@hackbg/fadroma';
 import type { Testing } from '@hackbg/fadroma';
 
@@ -9,14 +9,14 @@ export default suite(import.meta, 'BTC',
   expect('Localnet', testLocalnet,
     expect('Subscribe', 'TX', 'Block'),
     expect('Query', 'Block', 'Transaction', 'Address'),
-    expect('Send', 'Send'),
+    expect('Send', 'OP_CHECKSIG'),
     stopLocalnet));
 
 export async function testLocalnet (test: TestContext) {
   const timeout  = (_, reject)=>setTimeout(timedOut(reject), 10000);
   const timedOut = reject => () => reject(new Error('timed out waiting for ZMQ'));
   const zmqTest  = defer(timeout);
-  const localnet = Btc.localnet({ onZmqPub: zmqTest.resolve });
+  const localnet = btcLocalnet({ onZmqPub: zmqTest.resolve });
   test.localnet  = await localnet();
   console.log('Waiting for ZMQ');
   await zmqTest;

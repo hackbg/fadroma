@@ -116,7 +116,7 @@ const testSummary = ({
   if (!categorySpecs[state]) throw new Error(`unknown category: ${state}`);
   const {icon, color} = categorySpecs[state];
   const style = (results.length > 1) ? bold : identity;
-  let line = joined(' ', color(state), icon, joined(' ', indent, style(name||gray(5, '<unnamed>'))).padEnd(20));
+  let line = joined(' ', color(state), icon, joined(' ', (indent+' ').padEnd(10,'-'), style((name||'<unnamed>').padEnd(20))));
   if (state === 'fail' && result.error) {
     line = joined(' ', line, gray(2, joined(': ', bold(result.error.name), result.error.message)));
     lines.push(line);

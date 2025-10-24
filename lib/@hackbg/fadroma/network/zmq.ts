@@ -46,6 +46,43 @@ export function zmqEncodeFrame (payload: Uint8Array = new Uint8Array(), {
   return zmqDecodeFrame(enc.done());
 }
 
+export function zmqEncodeGreet ({
+  maj = 3, min = 0, pub = false, sec = 'NULL' as ZmqSec
+} = {}) {
+  const bytes = new Uint8Array(zmqGreetSize);
+  bytes[0] = 0xFF;
+  bytes[8] = 0x01;
+  bytes[9] = 0x7F;
+  bytes[10] = maj & 0xFF;
+  bytes[11] = min & 0xFF;
+  const mechanism = UTF8.encode(sec);
+  bytes.set(mechanism.length < 6 ? mechanism : mechanism.subarray(0, 5), 12);
+  if (pub) bytes[32] = 0x01;
+  return Object.assign(bytes, {
+    sig: bytes.subarray(0, 10),
+    sec: UTF8.decode(mechanism),
+    pub, ver: { maj, min },
+  });
+}
+
+export function zmqEncodeReady (metadata = [], {
+  payloadSize = 1 + zmqReady.length + ((metadata||[])
+    .map((v: Bytes, i: number) => v.length + (i % 2 === 0 ? 1 : 4))
+    .reduce((a: number, b: number) => a + b, 0)),
+  encoder = writeAdvance(new Uint8Array(1 + 1 + payloadSize)),
+} = {}) {
+  const { u8, u32, str, done } = encoder;
+  u8(zmqFlagCmd.mask);
+  u8(payloadSize);
+  u8(zmqReady.length);
+  str(zmqReady);
+  (metadata||[]).forEach((it: string, i: number) => {
+    ((i % 2 === 0) ? u8 : u32)(it.length);
+    str(it);
+  });
+  return done();
+};
+
 export function zmqDecodeFrame (bytes: Bytes|null = null): ZmqFrame|null {
   if (!bytes) return null;
   const long = zmqFlagLong(bytes);
@@ -55,6 +92,15 @@ export function zmqDecodeFrame (bytes: Bytes|null = null): ZmqFrame|null {
   const payloadOffset = 1 + (long ? 8 : 1);
   return Object.assign(bytes, { size, more, long, cmd, payloadOffset });
 };
+
+export function zmqDecodeGreet (bytes: Bytes): ZmqGreet {
+  return Object.assign(bytes, {
+    sig: bytes.subarray(0, 10),
+    sec: UTF8.decode(bytes.subarray(12, 6)),
+    ver: { maj: bytes[10] & 0xFF, min: bytes[11] & 0xFF },
+    pub: bytes[32] === 0x01,
+  });
+}
 
 export function zmqDecodeCmd (bytes: Bytes): ZmqCmd {
   const frame = zmqDecodeFrame(bytes) as ZmqCmd;
@@ -104,52 +150,6 @@ const zmqConnIter = ({ readFrame }) =>
   async function * iter (): AsyncIterableIterator<ZmqFrame> {
     for (;;) { try { yield await readFrame(); } catch (e) { this.notifyClose(); throw e; } }
   };
-
-export function zmqDecodeGreet (bytes: Bytes): ZmqGreet {
-  return Object.assign(bytes, {
-    sig: bytes.subarray(0, 10),
-    sec: UTF8.decode(bytes.subarray(12, 6)),
-    ver: { maj: bytes[10] & 0xFF, min: bytes[11] & 0xFF },
-    pub: bytes[32] === 0x01,
-  });
-}
-
-export function zmqEncodeGreet ({
-  maj = 3, min = 0, pub = false, sec = 'NULL' as ZmqSec
-} = {}) {
-  const bytes = new Uint8Array(zmqGreetSize);
-  bytes[0] = 0xFF;
-  bytes[8] = 0x01;
-  bytes[9] = 0x7F;
-  bytes[10] = maj & 0xFF;
-  bytes[11] = min & 0xFF;
-  const mechanism = UTF8.encode(sec);
-  bytes.set(mechanism.length < 6 ? mechanism : mechanism.subarray(0, 5), 12);
-  if (pub) bytes[32] = 0x01;
-  return Object.assign(bytes, {
-    sig: bytes.subarray(0, 10),
-    sec: UTF8.decode(mechanism),
-    pub, ver: { maj, min },
-  });
-}
-
-export function zmqEncodeReady (metadata = [], {
-  payloadSize = 1 + zmqReady.length + ((metadata||[])
-    .map((v: Bytes, i: number) => v.length + (i % 2 === 0 ? 1 : 4))
-    .reduce((a: number, b: number) => a + b, 0)),
-  encoder = writeAdvance(new Uint8Array(1 + 1 + payloadSize)),
-} = {}) {
-  const { u8, u32, str, done } = encoder;
-  u8(zmqFlagCmd.mask);
-  u8(payloadSize);
-  u8(zmqReady.length);
-  str(zmqReady);
-  (metadata||[]).forEach((it: string, i: number) => {
-    ((i % 2 === 0) ? u8 : u32)(it.length);
-    str(it);
-  });
-  return done();
-};
 
 export type ZmqSubscription = Log & {
   transport: unknown;
@@ -234,13 +234,9 @@ export function zmqConnect (
   });
 }
 
-export function zmqSub (...handlers: Fn<[ZmqSubscription]>[]) {
-  return reflect(null, async function zmqSubscribe ({
-    hostname  = 'localhost',
-    port      = null as number,
-    transport = null as unknown,
-  } = {}): Promise<ZmqSubscription> {
-    transport = await (transport ??= connect({ transport: 'tcp', port, hostname }));
+export function zmqSub (port: number, handler: Fn<[ZmqSubscription]>) {
+  return reflect(null, async function zmqSubscribe (_: unknown): Promise<ZmqSubscription> {
+    const transport  = connect({ transport: 'tcp', port, hostname });
     const connection = zmqConnect({ transport });
     await zmqSubShake(connection);
     const { readFrame, write, flush } = connection;
@@ -270,7 +266,7 @@ export function zmqSub (...handlers: Fn<[ZmqSubscription]>[]) {
         return res;
       }
     });
-  }, { handlers });
+  }, { handler });
 }
 
 export const encodeMessages = (...messages: Bytes[]): Bytes => {

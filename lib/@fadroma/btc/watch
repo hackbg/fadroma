@@ -10,9 +10,8 @@ async function update (event = {}) {
   if (timer) clearTimeout(timer);
   console.clear();
   console.log(event.kind, ...event.paths||[]);
-  timer = setTimeout(async ()=>console.log(decoder.decode(await Deno.run({
-    cmd: ["./test.ts"],
-    stdout: 'piped',
-    stderr: 'piped',
-  }).output())), interval);
+  timer = setTimeout(async ()=>{
+    const ran = Deno.run({ cmd: ["./test.ts"], stdout: 'piped', stderr: 'piped', })
+    console.log(decoder.decode(await ran.output()))
+  }, interval);
 }
