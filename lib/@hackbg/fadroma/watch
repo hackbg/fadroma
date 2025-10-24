@@ -1,0 +1,15 @@
+#!/usr/bin/env -S deno run --allow-read --allow-run
+import { setTimeout, clearTimeout } from 'node:timers';
+const watcher = Deno.watchFs(".");
+let timer = null;
+const interval = 100;
+const decoder = new TextDecoder();
+for await (const event of watcher) {
+  if (timer) clearTimeout(timer);
+  console.log(event.kind, ...event.paths);
+  timer = setTimeout(async ()=>console.log(decoder.decode(await Deno.run({
+    cmd: ["./test.ts"],
+    stdout: 'piped',
+    stderr: 'piped',
+  }).output())), interval);
+}
