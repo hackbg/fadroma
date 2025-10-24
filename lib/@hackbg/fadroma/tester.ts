@@ -116,9 +116,9 @@ const testSummary = ({
   if (!categorySpecs[state]) throw new Error(`unknown category: ${state}`);
   const {icon, color} = categorySpecs[state];
   const style = (results.length > 1) ? bold : identity;
-  let line = joined(' ', color(state), icon, (indent+style(name||gray(5, '<unnamed>'))).padEnd(20));
+  let line = joined(' ', color(state), icon, joined(' ', indent, style(name||gray(5, '<unnamed>'))).padEnd(20));
   if (state === 'fail' && result.error) {
-    line = line + ' ' + gray(2, joined(': ', bold(result.error.name), result.error.message));
+    line = joined(' ', line, gray(2, joined(': ', bold(result.error.name), result.error.message)));
     lines.push(line);
     lines.push(result.error.stack.split('\n').map(alignTrace).slice(1).join('\n'));
   } else {
@@ -129,7 +129,7 @@ const testSummary = ({
   }
   for (let index = 0; index < results.length; index++) {
     const result = results[index];
-    testSummary({ context, result, indent: indent + ` `, lines, });
+    testSummary({ context, result, indent: joined('.', indent, Number(index)+1), lines, });
   }
   return lines;
 };

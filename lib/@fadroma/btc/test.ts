@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-env
+#!/usr/bin/env -S deno run --allow-env --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443
 import * as Btc from './index.ts';
 import { expect, suite, defer } from '@hackbg/fadroma';
 import type { Testing } from '@hackbg/fadroma';
