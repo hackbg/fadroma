@@ -18,7 +18,4 @@ export const flag = (name: string, bit: number) =>
     const mask = 1 << bit;
     const masked = Number(value) & mask;
     return masked !== 0;
-  }, {
-    bit,
-    mask: 1 << bit
-  });
+  }, { bit, mask: 1 << bit });

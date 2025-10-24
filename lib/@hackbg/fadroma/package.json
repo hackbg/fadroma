@@ -2,6 +2,12 @@
   "name": "@hackbg/fadroma",
   "type": "module",
   "main": "index.ts",
-  "dependencies": { "case":    "^1.6.3"
-                  , "@scure/base": "^2" }
+  "scripts": {
+    "check": "deno check"
+  },
+  "dependencies": {
+    "@scure/base": "^2",
+    "@std/streams": "npm:@jsr/std__streams@^1.0.13",
+    "case": "^1.6.3"
+  }
 }

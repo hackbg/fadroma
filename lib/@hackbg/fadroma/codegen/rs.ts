@@ -6,7 +6,8 @@ export type Rust =
   , mold?:      boolean
   , workspace?: boolean };
 
-export const moldConfig = dir('.cargo', toml('config.toml'));
+export const moldConfig = dir('.cargo',
+  toml('config.toml'));
 
 export const baconConfig = ({
   watch = [ "programs/*" ], jobs = []

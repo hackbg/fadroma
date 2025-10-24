@@ -1,11 +1,11 @@
-import { writeFormat, json } from '../service.ts';
+import { textFormat, json } from '../service.ts';
 
 /** Specify a JS file. */
-export const js = writeFormat((_: unknown) => {
+export const js = textFormat((_: unknown) => {
   throw new Error('unimplemented') });
 
 /** Specify a TS file. */
-export const ts = writeFormat((_: unknown) => {
+export const ts = textFormat((_: unknown) => {
   throw new Error('unimplemented') });
 
 export type ECMAScript =
@@ -29,7 +29,7 @@ export const packageJson = ({
   peerDependencies = [],
   main             = undefined,
   exports          = undefined,
-}) => json(path, {
+}) => json(path, () => ({
   name,
   type: legacy ? "script" : "module",
   main,
@@ -40,7 +40,7 @@ export const packageJson = ({
   dependencies:     Object.fromEntries(dependencies.filter(Boolean)),
   devDependencies:  Object.fromEntries(devDependencies.filter(Boolean)),
   peerDependencies: Object.fromEntries(peerDependencies.filter(Boolean)),
-})
+}))
 
 export const tsConfig = json('tsconfig.json');
 

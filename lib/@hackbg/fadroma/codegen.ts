@@ -20,7 +20,6 @@ export type Project = {
 
 export const gitignore = (...lines: string[]) =>
   text('.gitignore', ...lines);
-
 export type Readme = { title?: string, sections?: [string, string] };
 export const readme = ({ title }: Readme) =>
-  markdown('README.md', { [String(title)]: {} });
+  markdown('README.md', () => ({ [String(title)]: {} }));

@@ -27,7 +27,7 @@ export const dir = (
 ) => reflect(`mkdir ${path}`, async function makeDirectory (fs: FS = fsContext()) {
   const location = resolvePath(fs.cwd, path);
   await mkdir(location, { recursive: true });
-  fs.paths[location] = { directory: true };
+  (fs.paths ||= {})[location] = { directory: true };
   return await Promise.all(contents.map((x: FSOp)=>x({ ...fs, cwd: location })));
 }, { path });
 
@@ -54,20 +54,22 @@ export const text = (
   return data;
 }, { path, value, steps });
 
-export const writeFormat = format => <T>(path: string, ...steps: Step<T>[]) =>
-  text(path, ...steps, format);
+/** Specify a text file format. */
+export const textFormat = format =>
+  <T>(path: string, ...steps: Step<T>[]) =>
+    text(path, ...steps, format);
 
 /** Specify a JSON file. */
-export const json = writeFormat((x: unknown) => JSON.stringify(x));
+export const json = textFormat((x: unknown) => JSON.stringify(x));
 
 /** Specify a Markdown file. */
-export const markdown = writeFormat((_: unknown) => { throw new Error('unimplemented') });
+export const markdown = textFormat((_: unknown) => { throw new Error('unimplemented') });
 
 /** Specify a YAML file. */
-export const yaml = writeFormat((_: unknown) => { throw new Error('unimplemented') });
+export const yaml = textFormat((_: unknown) => { throw new Error('unimplemented') });
 
 /** Specify a TOML file. */
-export const toml = writeFormat((_: unknown) => { throw new Error('unimplemented') });
+export const toml = textFormat((_: unknown) => { throw new Error('unimplemented') });
 
 /** Specify a Rust file. */
-export const rust = writeFormat((_: unknown) => { throw new Error('unimplemented') });
+export const rust = textFormat((_: unknown) => { throw new Error('unimplemented') });

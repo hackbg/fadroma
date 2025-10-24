@@ -1,55 +1,58 @@
-import { call, suite, expect, equal, throws, todo } from '../tester.ts';
+import { ok, expect, call, suite, equal, throws, todo } from '../tester.ts';
 import {
-  zmqSub, zmqConnect, zmqSubShake,
-  zmqEncodeGreet, zmqEncodeFrame, zmqEncodeReady,
-  zmqDecodeGreet, zmqDecodeFrame, zmqDecodeCmd, zmqDecodeReady,
-  zmqReady, zmqFlagCmd,
+  zmqConnect,
+  zmqPub, zmqPubShake,
+  zmqSub, zmqSubShake,
+  zmqEncodeFrame, zmqDecodeFrame,
+  zmqReady, zmqFlagCmd, zmqGreetSize,
 } from './zmq.ts';
 
-export const testZmqEncode =
-  expect('Encode', testZmqEncodeFrame,
-    expect('Ready', testZmqEncodeReady));
-
-export const testZmqDecode =
-  expect('Decode',    testZmqDecodeFrame,
-    expect('Command', testZmqDecodeCmd,
-      expect('Ready', testZmqDecodeReady)));
-
 export default suite(import.meta, 'ZeroMQ',
-  expect('Frame', testZmqEncode, testZmqDecode),);
-
-function testZmqEncodeFrame () {
-  equal([...zmqEncodeFrame()], [0, 0]);
-}
-
-function testZmqEncodeReady () {
-  equal([...zmqEncodeReady()], [ 4, 6, 5, 82, 69, 65, 68, 89 ]);
-  equal([...zmqEncodeReady([])], [ 4, 6, 5, 82, 69, 65, 68, 89 ]);
-}
-
-function testZmqDecodeFrame () {
-  equal(zmqDecodeFrame(), null);
-  const b = new Uint8Array(64);
-  equal(zmqDecodeFrame(b), b);
-};
-
-function testZmqDecodeCmd () {
-  throws(call(zmqDecodeCmd));
-  throws(call(zmqDecodeCmd, null));
-  const b = new Uint8Array(64);
-  throws(call(zmqDecodeCmd, b));
-  b[0] |= zmqFlagCmd.mask;
-  equal(zmqDecodeCmd(b), b);
-};
-
-function testZmqDecodeReady () {
-  throws(call(zmqDecodeReady));
-  throws(call(zmqDecodeReady, null));
-  const b = new Uint8Array(64);
-  throws(()=>zmqDecodeReady(b));
-  b[0] |= zmqFlagCmd.mask;
-  throws(()=>zmqDecodeReady(b));
-  Object.assign(b, { name: zmqReady });
-  equal(zmqDecodeReady(b)[0], zmqFlagCmd.mask);
-  todo(call(equal, zmqDecodeReady(b).metadata, []));
-};
+  expect('Codec',
+    expect('Greet', async function testZmqGreet (ctx) {
+      throws(()=>zmqDecodeGreet(null));
+      const b = new Uint8Array(64);
+      equal(zmqDecodeGreet(b), b);
+    }),
+    expect('Frame', async function testZmqFrame (ctx) {
+      throws(call(zmqDecodeFrame));
+      throws(call(zmqDecodeFrame, null));
+      const binary  = new Uint8Array(64);
+      const decoded = zmqDecodeFrame(b)
+      equal(zmqDecodeFrame(b), b);
+    },
+      expect('Command', async function testZmqFrameCmd (ctx) {
+        throws(call(zmqDecodeFrame));
+        throws(call(zmqDecodeFrame, null));
+        const b = new Uint8Array(64);
+        throws(call(zmqDecodeFrame, b));
+        b[0] |= zmqFlagFrame.mask;
+        equal(zmqDecodeFrame(b), b);
+      },
+        expect('Ready', async function testZmqFrameCmdReady (ctx) {
+          equal([...zmqEncodeFrame({ cmd: true, name: 'READY' })], [ 4, 6, 5, 82, 69, 65, 68, 89 ]);
+          throws(call(zmqDecodeFrame));
+          throws(call(zmqDecodeFrame, null));
+          const b = new Uint8Array(64);
+          throws(()=>zmqDecodeFrame(b));
+          b[0] |= zmqFlagFrame.mask;
+          throws(()=>zmqDecodeFrame(b));
+          Object.assign(b, { name: zmqFrame });
+          equal(zmqDecodeFrame(b)[0], zmqFlagFrame.mask);
+          todo(call(equal, zmqDecodeFrame(b).metadata, []));
+        })))),
+  expect('Pub', async function testZmqPub () {
+    const mock    = [];
+    const onSub   = (...args) => mock.push(...args);
+    const publish = zmqPub({ port: 12321 }, onSub);
+    const pub     = await publish();
+    equal(typeof pub.stop, 'function');
+    pub.stop();
+  }),
+  expect('Sub', async function testZmqSub () {
+    const mock      = [];
+    const onSub     = (...args) => mock.push(...args);
+    const subscribe = zmqSub({ port: 32123 }, onSub);
+    const sub       = await subscribe();
+    equal(sub, {});
+  }));

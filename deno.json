@@ -3,4 +3,4 @@
 , "noUnusedParameters": false
 , "nodeModulesDir": "auto"
 , "workspace": [ "./lib/@hackbg/*", "./lib/@hackbg/toolbox/*", "./lib/@fadroma/*" ]
-, "lint": { "rules": { "exclude": ["no-async-promise-executor", "require-await"] } }, }
+, "lint": { "rules": { "exclude": ["no-async-promise-executor", "require-await"] } } }

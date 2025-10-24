@@ -5,12 +5,15 @@ import { logger } from './logger.ts';
 import { Error, msec, dT, joined, red, green, blue, orange, yellow, gray, bold, dim } from './format.ts';
 import { call, reflect, objectReducer, reduceObject, identity, todo } from './call.ts';
 export { call, ok, equal, throws, rejects, todo }
-
 /** A step of the test suite. */
 export type TestStep<T extends Testing = Testing> =
   Reflects & Takes<[T]> & Returns<Async<T|void>> & { skip?: boolean };
-
-/** Create a test context, containing a categorized test report.
+/** The context in which steps are executed. */
+export type Testing = Log & Timed & TestOptions & TestPath & {
+  /** Lists of test results by category. */
+  report: Record<TestCategory, TestAddToCategory>,
+};
+/** Create a test context.
   *
   * This is automatically invoked when using [suite] or [run]. */
 export const testContext = ({
@@ -22,46 +25,34 @@ export const testContext = ({
   names    = [],
   ...rest
 } = {}): Testing => ({
-  ...logger(),
-  failFast, failTodo, report, t0, ids, names,
-  ...rest,
+  ...logger(), failFast, failTodo, report, t0, ids, names, ...rest,
 });
-
-/** The test context for a step. */
-export type Testing = Log & Timed & TestOptions & TestPath & {
-  /** Lists of test results by category. */
-  report: Record<TestCategory, TestCategoryAdd>,
-};
-
 /** Test config. */
 export type TestOptions = {
-  /** Whether the whole test run should terminate on the first failing step,
-    * or continue to look for more fails. */
+  /** Whether the whole test run should terminate as soon as one step fails. */
   failFast?: boolean,
   /** Whether TODOs count toward test fails. */  
   failTodo?: boolean
 };
-
+/** Each case has a path in the test tree.
+  * This is used for indentation, bulleted lists, etc. */
 export type TestPath = {
   /** Breadcrumb of step indexes. */
   ids: number[],
   /** Breadcrumb of step names. */
   names: string[],
 };
-
 /** Test result categories. TODO infer */
 export type TestCategory = 'pass'|'fail'|'todo'|'warn'|'skip'|'note';
-
 /** Collection of results for a given category. */
-export type TestCategoryAdd =
+export type TestAddToCategory =
   (<R>(context: Testing, result?: R, ...details: unknown[]) => R) & {
     id: string,
     icon: string,
     label: string,
     results: TestResult[]
   };
-const toCategory    = objectReducer((cat, id)=>testCategory(id, cat));
-const toReport      = reduceObject(toCategory);
+const toReport = reduceObject(objectReducer((cat, id)=>testCategory(id, cat)));
 const categoryOrder = ['pass', 'fail', 'todo', 'warn', 'skip', 'note'];
 const categorySpecs = { pass: { icon: `🟢`, color: green,  label: 'passed'   }
                       , fail: { icon: `🔴`, color: red,    label: 'failed'   }
@@ -70,7 +61,7 @@ const categorySpecs = { pass: { icon: `🟢`, color: green,  label: 'passed'   }
                       , skip: { icon: `  `, color: orange, label: 'skip'     }
                       , idea: { icon: `  `, color: blue,   label: 'ideas'    }
                       , note: { icon: `  `, color: blue,   label: 'notes'    } } as const;
-const testCategory = (id: string, { icon, label, color }): TestCategoryAdd =>
+const testCategory = (id: string, { icon, label, color }): TestAddToCategory =>
   reflect(id, async function categorize ({ log, t0, ids, names }: Testing, ...details: unknown[]) {
     const results = [];
     const t1 = performance.now();
@@ -102,24 +93,24 @@ export function suite (meta: ImportMeta, name: string, ...steps: TestStep[]) {
 }
 const testAndExit = (test: TestStep) => () =>
   runTest(test).then(({ context, result })=>{
-    const lines = testSummary({ context, result });
+    const lines = testSummarize({ context, result });
     stdout.write('\n'+joined('\n', lines) + '\n');
     exit(('pass' in result) ? 0 : 1);
   });
 
 /** Format the test summary. */
-export function testSummary ({
+export function testSummarize ({
   lines = [], indent = '', context, result
 }) {
   const { tD, state, name, results = [] } = result;
   if (!categorySpecs[state]) throw new Error(`unknown category: ${state}`);
   const {icon, color} = categorySpecs[state];
   const style = (results.length > 1) ? bold : identity;
-  let line = joined(' ', '',
-    color((' '+indent+' ').padEnd(15,'-')),
-    style((name||'<unnamed>').padEnd(20)),
+  let line = joined(' ',
+    ' '+icon,
     color(state),
-    icon,
+    color((indent+' ').padEnd(15,'-')),
+    style((name||'<unnamed>').padEnd(20)),
                    );
   if (state === 'fail' && result.error) {
     line = joined(' ', line, gray(2, joined(': ', bold(result.error.name), result.error.message)));
@@ -133,7 +124,7 @@ export function testSummary ({
   }
   for (let index = 0; index < results.length; index++) {
     const result = results[index];
-    testSummary({ context, result, indent: joined('.', indent, Number(index)+1), lines, });
+    testSummarize({ context, result, indent: joined('.', indent, Number(index)+1), lines, });
   }
   return lines;
 };
@@ -199,22 +190,25 @@ export function expect <T extends Testing> (
   name: string|null, ...steps: (string|TestStep)[]
 ) {
   return reflect(name, expectations, { steps });
-  async function expectations (ctx: T = testContext() as T) {
+  async function expectations (context: T = testContext() as T) {
     if (steps.length === 0) return {name, state: 'todo', results: []};
+    const {t0, ids: baseIds = [], names: baseNames = []} = context;
     let results: Array<TestResult|undefined> = steps.map(_=>undefined);
     for (const index in steps) {
-      const step     = steps[index];
-      const id       = Number(index)+1;
-      const t0       = performance.now();
-      const ids      = [...ctx.ids||[],   id].filter(Boolean);
-      const names    = [...ctx.names||[], step.name].filter(Boolean);
-      const result   = await testResult(Object.assign(ctx, { t0, ids, names }), step);
+      const step  = steps[index];
+      const id    = Number(index)+1;
+      const t0    = performance.now();
+      const ids   = [...baseIds, id].filter(Boolean);
+      const names = [...baseNames, step.name].filter(Boolean);
+      Object.assign(context, { t0, ids, names });
+      const result = await testResult(context, step);
       results[index] = result;
-      if ('fail' in result && ctx.failFast) throw result.fail;
+      if ('fail' in result && context.failFast) throw result.fail;
     };
+    Object.assign(context, { t0, ids: baseIds, names: baseNames })
     results = results.filter(Boolean);
     let state = 'pass';
-    if (results.some(isTodo)) state = ctx.failTodo ? 'fail' : 'todo';
+    if (results.some(isTodo)) state = context.failTodo ? 'fail' : 'todo';
     if (results.some(isFail)) state = 'fail';
     return { name, state, results };
   }
@@ -229,16 +223,23 @@ export type TestResult = Timed & {
 const testResult = async <T extends Testing> (
   ctx: T, step: TestStep<T>
 ): Promise<TestResult> => {
-  if (!step) return { state: 'skip', tD: dT(ctx.t0) };
-  if (typeof step === 'string') return { state: 'todo', tD: dT(ctx.t0), name: step }
-  if (step.skip) return { state: 'skip', tD: dT(ctx.t0) };
-  try {
-    const result = await step(ctx);
-    return { state: 'pass', tD: dT(ctx.t0), ...result };
-  } catch (e) {
-    const error = addStepStack(step, e as Error);
-    if (error.todo) return { state: 'todo', tD: dT(ctx.t0), error, };
-    return { state: 'fail', tD: dT(ctx.t0), error, };
+  const name = (typeof step === 'string') ? step : step.name;
+  const tD = dT(ctx.t0);
+  if (!step) {
+    return { name, state: 'skip', tD };
+  } else if (typeof step === 'string') {
+    return { name, state: 'todo', tD, }
+  } else if (step.skip) {
+    return { name, state: 'skip', tD }
+  } else {
+    try {
+      const result = await step(ctx);
+      return { name, state: 'pass', tD, result };
+    } catch (e) {
+      const error = addStepStack(step, e as Error);
+      if (error.todo) return { name, state: 'todo', tD, error, };
+      return { state: 'fail', tD, error, };
+    }
   }
 }
 const isTodo = (x?: { state?: unknown }) => x?.state === 'todo';
@@ -256,7 +257,7 @@ export function forbid (
   name = [`Forbid`, name].filter(Boolean).join(': ');
   return reflect(name, forbidRun, { failure, steps });
   function forbidRun (context: Testing) {
-    return testStep(context, forbidRunTracked, 0, name);
+    return testResult(context, forbidRunTracked);//, 0, name);
     async function forbidRunTracked () {
       let result: unknown;
       let error:  unknown;
@@ -312,5 +313,6 @@ export const matrix = <T>(
 
 /** Run steps in parallel. */
 export const parallel = (name: string, variants: ((_: Testing)=>unknown)[]) =>
-  expect(name, (context = testContext()) =>
-    Promise.all(variants.map(variant=>variant(context.context()))));
+  expect(name, async (context = testContext()) => {
+    await Promise.all(variants.map(variant=>variant(context)))
+  });

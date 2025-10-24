@@ -49,7 +49,7 @@ export const buildCommand = async (arg0: string, options: (CommandOption|string)
   let command = { argv: [arg0], options: {} };
   for (const option of options) {
     if (typeof option === 'function') {
-      command = await (option(command) || command);
+      command = ((await option(command)) || command);
     } else if (typeof option === 'string') {
       command.argv ??= []
       command.argv.push(option);

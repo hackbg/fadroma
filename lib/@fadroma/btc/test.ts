@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-env --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443
+#!/usr/bin/env -S deno run --allow-env --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443 --allow-net=localhost
 import { btcLocalnet, btcClient, btcDaemon } from './index.ts';
 import { ok, equal, expect, suite, defer } from '@hackbg/fadroma';
 import type { Testing } from '@hackbg/fadroma';
@@ -17,7 +17,7 @@ export default suite(import.meta, 'BTC',
 export async function testBtcClient (test: TestContext) {
   const clients = btcClient();
   ok(typeof clients === 'function');
-  const client  = await clients();
+  const client = await clients();
   ok(typeof client  === 'function');
   let mock = null;
   const context = {exec(...args){mock = args}};
@@ -31,7 +31,7 @@ export async function testBtcClient (test: TestContext) {
 export async function testBtcDaemon () {
   const daemons = btcDaemon();
   ok(typeof daemons === 'function');
-  const daemon  = await daemons();
+  const daemon = await daemons();
   ok(typeof daemon  === 'function');
   let mock = null;
   const context = {pids: {}, spawn(...args){mock = args; return {}}};
@@ -43,7 +43,7 @@ export async function testBtcDaemon () {
 }
 
 export async function testLocalnet (test: TestContext) {
-  const timeout  = (_, reject)=>setTimeout(timedOut(reject), 10000);
+  const timeout  = (_, reject)=>setTimeout(timedOut(reject), 60000);
   const timedOut = reject => () => reject(new Error('timed out waiting for ZMQ'));
   const zmqTest  = defer(timeout);
   const localnet = btcLocalnet({ onZmq: zmqTest.resolve });

@@ -14,11 +14,8 @@ export const serviceContext = pipe(logger, spawnContext, fsContext, netContext);
 export type ServiceComponent = Step<ServiceContext>;
 export const service: StepsWith<string, ServiceContext> =
   (name, ...services: ServiceComponent[]) => reflect(name,
-    async function spawnGroup (ctx: ServiceContext) {
-      const pids = {}, ports = {};
-      for (const service of services)
-        await service({ ...ctx, pids, ports });
-      const kill = () => Promise.all(Object.values(ctx.pids)
-        .map(proc=>proc.kill()));
-      return { name, ports, pids, kill }
+    async function spawnGroup (ctx = serviceContext() as ServiceContext) {
+      for (const service of services) await service(ctx);
+      const kill = () => Promise.all(Object.values(ctx.pids).map(proc=>proc.kill()));
+      return { name, kill }
     }, { services });

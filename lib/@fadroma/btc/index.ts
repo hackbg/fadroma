@@ -57,11 +57,11 @@ export function btcLocalnet (...config: Partial<BtcLocalnetConfig>[]) {
 
   return service('BTC Localnet API',
     dir(dataDir),
-    zmqSub(zmqPort, onZmq),
-    waitPort({ port: zmqPort }),
     bitcoind(),
-    waitPort({ port: btcPort }),
+    waitPort({ port: zmqPort }),
+    zmqSub({ port: zmqPort }, onZmq),
     dir(walletDir),
+    waitPort({ port: btcPort }),
     bitcoinCli('createwallet', walletDir),
     bitcoinCli(`-rpcwallet=${walletDir}`, '-generate'),
     interval(60000, async () => (await indexd).indexd.tryResync()),
@@ -163,7 +163,7 @@ export const txApi = ({rpc, indexd}) => route('1/t',
 export const rxApi = ({
   rpc,
   auth = [],
-  network = 'regtest' // FIXME?
+  network = 'regtest' as BTCJS.Network // FIXME?
 }) => route('1/r',
   guard(401, ({query:{key}}) => !!key),
   guard(403, ({query:{key}}) => (!(BTCJS.crypto.sha256(key).toString('hex') in auth))),

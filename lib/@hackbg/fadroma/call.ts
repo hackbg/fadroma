@@ -1,4 +1,4 @@
-import type { Falsy } from './index.ts';
+import type { Falsy, Testing } from './index.ts';
 
 /** Import metadata. Used to recognize entrypoint. */
 export type Meta = Partial<ImportMeta>;
@@ -166,12 +166,22 @@ export const isFn = isType('function')
 
 /** Pick named keys from an object. */
 export const pick = <T, K extends keyof T>(
-  ...keys: Array<K>
+  keys: Array<K>, ...steps: Fn<[T[K], T]>[]
+) => Object.assign(async function pickKeys (data: T) {
+  const pipeline = pipe(...steps);
+  const result: Partial<Pick<T, K>> = {};
+  for (const key of keys) result[key] = await pipeline(data[key], data) as T[K];
+  return result as Pick<T, K>;
+}, { keys, steps });
+
+/** Pick named methods from an object, ensuring `this` bindings. */
+export const pickMethods = <T, K extends keyof T>(
+  keys: Array<K>, ...steps: Fn<[K]>[]
 ) => Object.assign(function pickKeys (data: T): Pick<T, K> {
   const result: Partial<Pick<T, K>> = {};
-  for (const key of keys) result[key] = data[key];
+  for (const key of keys) result[key] = (data[key] as Function).bind(data);
   return result as Pick<T, K>;
-}, { keys });
+}, { keys, steps });
 
 /** Construct a new "static object" (i.e. without prototypes)
   * out of method collections and base object. */
@@ -268,3 +278,25 @@ export const todo = (...info: string[]) => reflect(info.join(' '),
   function trackTodo <T extends Testing>(_context: T) {
     throw Object.assign(new Error(info.join(' ')), { todo: true })
   }, { info });
+
+export const required = <T>(...info: string[]): T => {
+  throw new Error('Missing required value: ' + info.join(' '));
+}
+
+export const requiredLate = (...info: string[]) => () => {
+  throw new Error('Missing required value: ' + info.join(' '));
+}
+
+export const sequence = <T>(...steps: Fn<[T]>[]) => reflect(null,
+  async function runSequentially (context: T) {
+    for (const step of steps) {
+      if (!step) continue;
+      await step(context)
+    }
+    return context;
+  }, { steps });
+
+export const setProp = <T extends object>(key: keyof T, ...fns: Fn[]) =>
+  reflect(`set ${String(key)}`, async function setProperty (context) {
+    return Object.assign(context, { [key]: await pipe(...fns)(context) });
+  }, { key, fns });

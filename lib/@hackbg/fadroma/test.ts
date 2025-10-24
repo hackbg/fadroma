@@ -27,7 +27,7 @@ export const testSpawn = expect('Process',
     equal({ ...run }, { arg0: 'true', options: [] });
     equal(await run(context), context);
   }),
-  expect('Spawn and kill', async () => {
+  expect('Spawn', async () => {
     const context = spawnContext();
     const start = spawn('true');
     equal({ ...start }, { arg0: 'true', options: [] });
