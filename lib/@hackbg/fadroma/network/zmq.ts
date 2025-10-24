@@ -3,8 +3,34 @@
 import type { Fn, AsyncIter, Log, Bytes, Async } from '../index.ts';
 import { connect, setImmediate } from "../deps.ts";
 import { UTF8, flag, parse, writeAdvance } from '../format.ts';
-import { todo, reflect, asyncIter, withCatcher } from '../call.ts';
+import { call, todo, reflect, asyncIter, withCatcher } from '../call.ts';
 import { logger } from '../logger.ts';
+import { suite, expect, equal } from '../tester.ts';
+import { Error } from '../format/error.ts';
+
+const testZmqDecodeFrame = () => {
+  equal(zmqFrameDecode(), null);
+  const b = new Uint8Array(64);
+  equal(zmqFrameDecode(b), b);
+};
+const testZmqDecodeCmd = () => {
+  equal(zmqCmdDecode(null), null);
+  const b = new Uint8Array(64);
+  equal(zmqCmdDecode(b), b);
+};
+const testZmqDecodeReady = () => {
+  equal(zmqReadyDecode(null), null);
+  const b = new Uint8Array(64);
+  equal(zmqReadyDecode(b), b);
+};
+export default suite(import.meta, 'ZeroMQ',
+  expect('Frame',
+    expect('Decode', testZmqDecodeFrame,
+      expect('Command', testZmqDecodeCmd,
+        expect('Ready', testZmqDecodeReady))),
+    expect('Encode', () => {
+      equal(zmqFrameEncode(), null);
+    })));
 
 export const zmqCmdReady  = 'READY';
 export const zmqFlagMore  = flag('MORE', 0);
@@ -24,8 +50,8 @@ export type ZmqFrame = Bytes & { size: number
                                ; cmd:  boolean
                                ; payloadOffset: number; };
 
-export function zmqFrameDecode (bytes: Bytes|null): ZmqFrame|null {
-  if (bytes === null) return null;
+export function zmqFrameDecode (bytes: Bytes|null = null): ZmqFrame|null {
+  if (!bytes) return null;
   const long = zmqFlagLong(bytes);
   const size = Number(parse(bytes)[long ? 'u64' : 'u8'](1));
   const more = zmqFlagMore(bytes);
@@ -34,8 +60,7 @@ export function zmqFrameDecode (bytes: Bytes|null): ZmqFrame|null {
   return Object.assign(bytes, { size, more, long, cmd, payloadOffset });
 };
 
-export function zmqFrameEncode ({
-  payload = new Uint8Array(),
+export function zmqFrameEncode (payload: Uint8Array = new Uint8Array(), {
   len  = payload?.length || 0,
   more = false,
   flag = 0,
@@ -56,9 +81,9 @@ export function zmqFrameEncode ({
   return zmqFrameDecode(enc.done());
 }
 
-export function zmqCmdDecode (frame: Bytes & Partial<ZmqCmd>): ZmqCmd {
-  frame = zmqFrameDecode(frame) as ZmqCmd;
-  if (!frame.cmd) throw new Error('not a command frame');
+export function zmqCmdDecode (bytes: Bytes): ZmqCmd {
+  const frame = zmqFrameDecode(bytes) as ZmqCmd;
+  if (!frame?.cmd) throw new Error('not a command frame', { frame });
   if (frame.name) return frame as ZmqCmd;
   let offset = frame.payloadOffset;
   const commandNameSize = frame[offset];
@@ -67,11 +92,9 @@ export function zmqCmdDecode (frame: Bytes & Partial<ZmqCmd>): ZmqCmd {
   return Object.assign(frame, { name }) as ZmqCmd;
 }
 
-export function zmqReadyDecode (
-  frame: Bytes & Partial<ZmqReady>
-): ZmqReady {
-  frame = zmqCmdDecode(frame) as ZmqReady;
-  if (frame.name !== zmqCmdReady) throw new Error('not a ready command');
+export function zmqReadyDecode (bytes: Bytes): ZmqReady {
+  const frame = zmqCmdDecode(bytes) as ZmqReady;
+  if (frame?.name !== zmqCmdReady) throw new Error('not a ready command', { frame });
   const offset = frame.payloadOffset + 1 + zmqCmdReady.length;
   const metadata = [];
   const { u8, u32, str } = parse(frame);
@@ -251,7 +274,7 @@ export function zmqSub (...handlers: Fn<[ZmqSubscription]>[]) {
         const payload = new Uint8Array(topic.length + 1);
         payload[0] = 0x01;
         payload.set(topic, 1);
-        await write(zmqFrameEncode({ payload }));
+        await write(zmqFrameEncode(payload));
         await flush();
       },
       async send (...msgs: Bytes[]): Promise<void> {
@@ -276,7 +299,7 @@ export const encodeMessages = (...messages: MessageLike[]): Uint8Array => {
   const b = [];
   // write head
   for (let i = 0; i < messages.length - 1; i++) {
-    const next = DataFrame.builder().hasMore(true).payload(messages[i]).build();
+    const next = zmqFrameEncode(messages[i], { more: true });
     b.push(next.bytes());
   }
   // write last

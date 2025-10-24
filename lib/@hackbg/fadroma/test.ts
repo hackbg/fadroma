@@ -2,6 +2,7 @@
 import { testContext, suite, expect, forbid, matrix }  from "./tester.ts";
 import { spawnContext, addArgs, exec, spawn } from './index.ts';
 import { ok, equal, ChildProcess } from './deps.ts';
+import testZeroMQ from './network/zmq.ts';
 
 export const testTester = expect('Tester',
   expect('Context', () => { testContext(); }),
@@ -41,25 +42,29 @@ export const testSpawn = expect('Process',
 export const testContainer = expect('Container',
   'Pull', 'Run', 'Kill', 'Build');
 
-export const testGen = expect(
-  'Generator',
-  expect('Directory',
-    '.gitignore',
-    'README',
-    expect('ES',
-      expect('node/npm/pnpm'),
-      expect('tsc'),
-      expect('deno'),
-      expect('eslint')),
-    expect('Rust',
-      expect('cargo', 'workspace'),
-      expect('bacon'),
-      expect('mold'))));
+export const testGen = expect('Generator',
+  '.gitignore',
+  'README',
+  expect('ES',
+    expect('node/npm/pnpm'),
+    expect('tsc'),
+    expect('deno'),
+    expect('eslint')),
+  expect('Rust',
+    expect('cargo', 'workspace'),
+    expect('bacon'),
+    expect('mold')));
+
+export const testNet = expect('Network',
+  expect('TCP'),
+  expect('HTTP'),
+  testZeroMQ);
 
 export default suite(import.meta, 'Fadroma',
   testTester,
   testSpawn,
-  testGen);
+  testGen,
+  testNet);
 
 //import * as Core from './index.ts'
 //import * as assert from 'node:assert'
