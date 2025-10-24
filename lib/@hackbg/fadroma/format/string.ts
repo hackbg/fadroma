@@ -10,6 +10,11 @@ export const UTF8 = {
   encode (x: string): Uint8Array {
     return UTF8.encoder.encode(x)
   },
+  encodeInto (x: string, bytes: ArrayBufferView, offset = 0) {
+    const encoded = UTF8.encode(x);
+    for (let index = 0; index < encoded.length; index++) bytes[offset + index] = encoded[index];
+    return encoded.length
+  },
   decode (x: Bytes|Array<number>): string {
     if (!(x instanceof Uint8Array)) x = new Uint8Array(x);
     return UTF8.decoder.decode(x); // TODO optimize

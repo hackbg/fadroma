@@ -244,9 +244,11 @@ export const asyncIter = getIter => state => {
   return Object.assign(state, { [Symbol.asyncIterator]() { return iter } });
 };
 
-export const withCatcher = (c: Fn) =>
-  <T extends unknown[]>(f: Fn<T>) =>
-    (...args: T) => Promise.resolve(f(...args)).catch(c);
+export const withCatcher =
+  <T extends unknown[], U>(catcher: Fn<T, U>) =>
+  <V extends unknown[], W>(f: Fn<V, W>) =>
+  (...args: T): Async<W> =>
+    Promise.resolve(f(...args)).catch(catcher) as Async<W>;
 
 /** Stub test step. When reached, terminates without passing or failing,
   * and adds a task to the test report.
