@@ -1,8 +1,8 @@
 #!/usr/bin/env -S deno run --coverage --allow-env --allow-net --allow-run
 import { testContext, suite, expect, forbid, matrix }  from "./tester.ts";
 import { spawnContext, addArgs, exec, spawn } from './index.ts';
-import { ok, equal, ChildProcess } from './deps.ts';
-import testZeroMQ from './network/zmq.ts';
+import { ok, equal } from './deps.ts';
+import testZeroMQ from './network/zmq.test.ts';
 
 export const testTester = expect('Tester',
   expect('Context', () => { testContext(); }),
@@ -61,10 +61,7 @@ export const testNet = expect('Network',
   testZeroMQ);
 
 export default suite(import.meta, 'Fadroma',
-  testTester,
-  testSpawn,
-  testGen,
-  testNet);
+  testTester, testSpawn, testNet, testGen);
 
 //import * as Core from './index.ts'
 //import * as assert from 'node:assert'

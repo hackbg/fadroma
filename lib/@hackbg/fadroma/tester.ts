@@ -4,7 +4,7 @@ import { isEntrypoint } from './frontend/cmd.ts';
 import { logger } from './logger.ts';
 import { Error, msec, dT, joined, red, green, blue, orange, yellow, gray, bold, dim } from './format.ts';
 import { call, reflect, objectReducer, reduceObject, identity, todo } from './call.ts';
-export { call, ok, equal, throws, rejects }
+export { call, ok, equal, throws, rejects, todo }
 
 /** A step of the test suite. */
 export type TestStep<T extends Testing = Testing> =

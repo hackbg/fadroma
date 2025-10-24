@@ -1,4 +1,4 @@
-export { ok, deepStrictEqual as equal } from 'node:assert';
+export { ok, deepStrictEqual as equal, throws, rejects } from 'node:assert';
 export { setImmediate } from 'node:timers';
 export { stdout, argv, env, cwd as getCwd, exit } from 'node:process';
 export { fileURLToPath } from 'node:url';

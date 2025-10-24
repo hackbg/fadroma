@@ -1,6 +1,16 @@
-import type { Step, Bytes, FS, FSOp } from '../index.ts';
+import type { Step, Bytes } from '../index.ts';
 import { writeFile, resolvePath, mkdir, getCwd } from '../deps.ts';
 import { pipe, reflect } from '../call.ts';
+
+/** Context for executing filesystem operations. */
+export type FS = {
+  /** Current working directory */
+  cwd: string
+  /** Paths touched by FS ops. */
+  paths: Record<string, unknown>
+};
+/** A filesystem operation. Needs current working directory. */
+export type FSOp = (_: FS) => FS;
 
 export const fsContext = ({
   cwd   = getCwd(),

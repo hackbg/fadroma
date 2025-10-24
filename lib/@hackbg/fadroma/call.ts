@@ -115,6 +115,8 @@ export const curry = <F extends ((..._:unknown[])=>unknown)>(
   fn, args, stack: new Error().stack?.split('\n').slice(3)
 })
 
+export { curry as call }
+
 /** Point-free combinator: construct a callable pipeline of functions.
   *
   * When there's an async step in the pipeline,

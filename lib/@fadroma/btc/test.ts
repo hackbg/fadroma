@@ -1,13 +1,16 @@
 #!/usr/bin/env -S deno run --allow-env
 import * as Btc from './index.ts';
 import { expect, suite, defer } from '@hackbg/fadroma';
-import type { TestContext as Context } from '@hackbg/fadroma';
+import type { Testing } from '@hackbg/fadroma';
+
+export type TestContext = Testing & { localnet: unknown };
 
 export default suite(import.meta, 'BTC',
-  expect('Localnet', testLocalnet),
-  expect('Read', 'Block', 'Transaction', 'Address'),
-  expect('Write', 'Send'),
-  expect('Stop localnet', stopLocalnet));
+  expect('Localnet', testLocalnet,
+    expect('Subscribe', 'TX', 'Block'),
+    expect('Query', 'Block', 'Transaction', 'Address'),
+    expect('Send', 'Send'),
+    stopLocalnet));
 
 export async function testLocalnet (test: TestContext) {
   const timeout  = (_, reject)=>setTimeout(timedOut(reject), 10000);
@@ -22,5 +25,3 @@ export async function testLocalnet (test: TestContext) {
 export async function stopLocalnet (test: TestContext) {
   test.localnet.kill();
 }
-
-export type TestContext = Context & { localnet: unknown };

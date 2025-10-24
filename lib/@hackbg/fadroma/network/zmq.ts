@@ -5,38 +5,13 @@ import { connect, setImmediate } from "../deps.ts";
 import { UTF8, flag, parse, writeAdvance } from '../format.ts';
 import { call, todo, reflect, asyncIter, withCatcher } from '../call.ts';
 import { logger } from '../logger.ts';
-import { suite, expect, equal } from '../tester.ts';
 import { Error } from '../format/error.ts';
 
-const testZmqDecodeFrame = () => {
-  equal(zmqFrameDecode(), null);
-  const b = new Uint8Array(64);
-  equal(zmqFrameDecode(b), b);
-};
-const testZmqDecodeCmd = () => {
-  equal(zmqCmdDecode(null), null);
-  const b = new Uint8Array(64);
-  equal(zmqCmdDecode(b), b);
-};
-const testZmqDecodeReady = () => {
-  equal(zmqReadyDecode(null), null);
-  const b = new Uint8Array(64);
-  equal(zmqReadyDecode(b), b);
-};
-export default suite(import.meta, 'ZeroMQ',
-  expect('Frame',
-    expect('Decode', testZmqDecodeFrame,
-      expect('Command', testZmqDecodeCmd,
-        expect('Ready', testZmqDecodeReady))),
-    expect('Encode', () => {
-      equal(zmqFrameEncode(), null);
-    })));
-
-export const zmqCmdReady  = 'READY';
+export const zmqReady     = 'READY';
 export const zmqFlagMore  = flag('MORE', 0);
 export const zmqFlagLong  = flag('LONG', 1);
 export const zmqFlagCmd   = flag('CMD',  2);
-export const zmqEmptyMore = zmqFrameDecode(new Uint8Array([1, 0]));
+export const zmqEmptyMore = zmqDecodeFrame(new Uint8Array([1, 0]));
 export const zmqGreetSize = 64;
 
 export type ZmqSec        = 'NULL'|'PLAIN'|'CURVE';
@@ -50,17 +25,7 @@ export type ZmqFrame = Bytes & { size: number
                                ; cmd:  boolean
                                ; payloadOffset: number; };
 
-export function zmqFrameDecode (bytes: Bytes|null = null): ZmqFrame|null {
-  if (!bytes) return null;
-  const long = zmqFlagLong(bytes);
-  const size = Number(parse(bytes)[long ? 'u64' : 'u8'](1));
-  const more = zmqFlagMore(bytes);
-  const cmd  = zmqFlagCmd(bytes);
-  const payloadOffset = 1 + (long ? 8 : 1);
-  return Object.assign(bytes, { size, more, long, cmd, payloadOffset });
-};
-
-export function zmqFrameEncode (payload: Uint8Array = new Uint8Array(), {
+export function zmqEncodeFrame (payload: Uint8Array = new Uint8Array(), {
   len  = payload?.length || 0,
   more = false,
   flag = 0,
@@ -78,11 +43,21 @@ export function zmqFrameEncode (payload: Uint8Array = new Uint8Array(), {
     enc.u8(len);
   }
   if (len > 0) enc.writeUint8Array(payload);
-  return zmqFrameDecode(enc.done());
+  return zmqDecodeFrame(enc.done());
 }
 
-export function zmqCmdDecode (bytes: Bytes): ZmqCmd {
-  const frame = zmqFrameDecode(bytes) as ZmqCmd;
+export function zmqDecodeFrame (bytes: Bytes|null = null): ZmqFrame|null {
+  if (!bytes) return null;
+  const long = zmqFlagLong(bytes);
+  const size = Number(parse(bytes)[long ? 'u64' : 'u8'](1));
+  const more = zmqFlagMore(bytes);
+  const cmd  = zmqFlagCmd(bytes);
+  const payloadOffset = 1 + (long ? 8 : 1);
+  return Object.assign(bytes, { size, more, long, cmd, payloadOffset });
+};
+
+export function zmqDecodeCmd (bytes: Bytes): ZmqCmd {
+  const frame = zmqDecodeFrame(bytes) as ZmqCmd;
   if (!frame?.cmd) throw new Error('not a command frame', { frame });
   if (frame.name) return frame as ZmqCmd;
   let offset = frame.payloadOffset;
@@ -92,10 +67,12 @@ export function zmqCmdDecode (bytes: Bytes): ZmqCmd {
   return Object.assign(frame, { name }) as ZmqCmd;
 }
 
-export function zmqReadyDecode (bytes: Bytes): ZmqReady {
-  const frame = zmqCmdDecode(bytes) as ZmqReady;
-  if (frame?.name !== zmqCmdReady) throw new Error('not a ready command', { frame });
-  const offset = frame.payloadOffset + 1 + zmqCmdReady.length;
+export function zmqDecodeReady (bytes: Bytes): ZmqReady {
+  const frame = zmqDecodeCmd(bytes) as ZmqReady;
+  if (frame?.name !== zmqReady) {
+    throw new Error('not a ready command', { frame });
+  }
+  const offset = frame.payloadOffset + 1 + zmqReady.length;
   const metadata = [];
   const { u8, u32, str } = parse(frame);
   for (let cursor = offset; cursor < frame.length;) {
@@ -108,6 +85,8 @@ export function zmqReadyDecode (bytes: Bytes): ZmqReady {
 }
 
 export type ZmqConnection = Log & AsyncIter<ZmqFrame> & {
+  transport: unknown;
+
   tags: Set<string>;
   close (): void; onClose (fn: Fn): void;
   flush (): Promise<void>; write (message: Bytes): Promise<number>;
@@ -126,7 +105,7 @@ const zmqConnIter = ({ readFrame }) =>
     for (;;) { try { yield await readFrame(); } catch (e) { this.notifyClose(); throw e; } }
   };
 
-export function zmqGreetDecode (bytes: Bytes) {
+export function zmqDecodeGreet (bytes: Bytes): ZmqGreet {
   return Object.assign(bytes, {
     sig: bytes.subarray(0, 10),
     sec: UTF8.decode(bytes.subarray(12, 6)),
@@ -135,13 +114,7 @@ export function zmqGreetDecode (bytes: Bytes) {
   });
 }
 
-function zmqGreetMech (bytes: Bytes) {
-  let end = 17;
-  for (let i = 1; i <= 5; i++) { if (bytes[17 - i] !== 0x00) break; end--; }
-  return bytes.subarray(12, end);
-}
-
-export function zmqGreetEncode ({
+export function zmqEncodeGreet ({
   maj = 3, min = 0, pub = false, sec = 'NULL' as ZmqSec
 } = {}) {
   const bytes = new Uint8Array(zmqGreetSize);
@@ -160,20 +133,21 @@ export function zmqGreetEncode ({
   });
 }
 
-export function zmqReadyEncode ({
-  metadata = [],
-  payloadSize = 1 + zmqCmdReady.length + (metadata
+export function zmqEncodeReady (metadata = [], {
+  payloadSize = 1 + zmqReady.length + ((metadata||[])
     .map((v: Bytes, i: number) => v.length + (i % 2 === 0 ? 1 : 4))
     .reduce((a: number, b: number) => a + b, 0)),
   encoder = writeAdvance(new Uint8Array(1 + 1 + payloadSize)),
-}) {
+} = {}) {
   const { u8, u32, str, done } = encoder;
   u8(zmqFlagCmd.mask);
   u8(payloadSize);
-  u8(zmqCmdReady.length);
-  str(zmqCmdReady);
-  const meta = (it: string, i: number) => { ((i % 2 === 0) ? u8 : u32)(it.length); str(it); };
-  metadata.forEach(meta);
+  u8(zmqReady.length);
+  str(zmqReady);
+  (metadata||[]).forEach((it: string, i: number) => {
+    ((i % 2 === 0) ? u8 : u32)(it.length);
+    str(it);
+  });
   return done();
 };
 
@@ -182,22 +156,16 @@ export type ZmqSubscription = Log & {
   connection: ZmqConnection;
   socketType: ZmqSocketType;
   receive (): Promise<ZmqFrame[]>;
-  subscribe (topic: string): Promise<void>;
   send (...msgs: Bytes[]): Promise<void>;
+  subscribe (topic: string): Promise<void>;
 };
 
 const zmqSubIter = ({
   connection,
-  toPayload = (frame: ZmqFrame, offset = 1): Uint8Array => {
-    const { buf, u8, u64 } = parse(frame);
-    const n = frame.long ? Number(u64(offset)) : u8(offset);
-    offset += frame.long ? 4 : 1;
-    return buf(n, offset);
-  }
 }) => async function * zmqSubIterator (): AsyncIterableIterator<Bytes[]> {
   let messages: Bytes[] = [];
   for await (const x of connection) {
-    const frame = zmqFrameDecode(x.bytes());
+    const frame = zmqDecodeFrame(x.bytes());
     if (frame.more || frame.size > 0) {
       messages.push(toPayload(frame));
       yield messages;
@@ -206,7 +174,16 @@ const zmqSubIter = ({
   }
 };
 
-export function zmqConnect (...args): ZmqConnection {
+const toPayload = (frame: ZmqFrame, offset = 1): Uint8Array => {
+  const { buf, u8, u64 } = parse(frame);
+  const n = frame.long ? Number(u64(offset)) : u8(offset);
+  offset += frame.long ? 4 : 1;
+  return buf(n, offset);
+};
+
+export function zmqConnect (
+  ...options: Partial<ZmqConnection>[]
+): ZmqConnection {
   const {
     debug     = console.debug,
     error     = console.error,
@@ -217,7 +194,7 @@ export function zmqConnect (...args): ZmqConnection {
     closers   = [] as Fn[],
     runCloser = (f: Fn) => { try { f(); } catch (e) { error(e) }; return null; },
     tags      = new Set() as Set<string>,
-  } = Object.assign(logger(), ...args);
+  } = Object.assign(logger(), ...options);
   const rethrown = withCatcher((e: unknown) => { close(); throw e });
   const peek     = (n: number): Promise<Bytes> => reader.peek(n);
   const tryPeek  = rethrown(peek);
@@ -230,7 +207,7 @@ export function zmqConnect (...args): ZmqConnection {
   const read      = (n: number): Promise<Bytes> => reader.readFull(n);
   const tryRead   = rethrown(read);
   const readGreet = () => tryRead(zmqGreetSize)
-    .then((x: Bytes) => zmqGreetDecode(x))
+    .then((x: Bytes) => zmqDecodeGreet(x))
     .then((x: ZmqGreet) => { debug(`RCV: greeting=${x}`); return x });
   const readFrame  = rethrown(async () => {
     const [flags, long] = await tryPeek(2) || [null, null];
@@ -244,7 +221,7 @@ export function zmqConnect (...args): ZmqConnection {
       size += 1 + long;
     }
     const body = new Uint8Array(size);
-    return zmqFrameDecode(await reader.readFull(body));
+    return zmqDecodeFrame(await reader.readFull(body));
   });
 
   return asyncIter(zmqConnIter)({
@@ -263,7 +240,8 @@ export function zmqSub (...handlers: Fn<[ZmqSubscription]>[]) {
     port      = null as number,
     transport = null as unknown,
   } = {}): Promise<ZmqSubscription> {
-    const connection = zmqConnect({ transport: await (transport ??= connect({ transport: 'tcp', port, hostname })) });
+    transport = await (transport ??= connect({ transport: 'tcp', port, hostname }));
+    const connection = zmqConnect({ transport });
     await zmqSubShake(connection);
     const { readFrame, write, flush } = connection;
     return asyncIter(zmqSubIter)({
@@ -274,7 +252,7 @@ export function zmqSub (...handlers: Fn<[ZmqSubscription]>[]) {
         const payload = new Uint8Array(topic.length + 1);
         payload[0] = 0x01;
         payload.set(topic, 1);
-        await write(zmqFrameEncode(payload));
+        await write(zmqEncodeFrame(payload));
         await flush();
       },
       async send (...msgs: Bytes[]): Promise<void> {
@@ -288,36 +266,33 @@ export function zmqSub (...handlers: Fn<[ZmqSubscription]>[]) {
         const res = [];
         for (let frame: ZmqFrame;
           (frame = await readFrame())?.more;
-          (frame.size > 0) && res.push(zmqFrameDecode(frame)));
+          (frame.size > 0) && res.push(zmqDecodeFrame(frame)));
         return res;
       }
     });
   }, { handlers });
 }
 
-export const encodeMessages = (...messages: MessageLike[]): Uint8Array => {
+export const encodeMessages = (...messages: Bytes[]): Bytes => {
   const b = [];
-  // write head
-  for (let i = 0; i < messages.length - 1; i++) {
-    const next = zmqFrameEncode(messages[i], { more: true });
-    b.push(next.bytes());
-  }
-  // write last
-  const tail = DataFrame.builder().payload(messages[messages.length - 1])
-    .build();
-  b.push(tail.bytes());
-  return bytes.concat(...b);
+  for (let i = 0; i < messages.length - 1; i++)
+    b.push(zmqEncodeFrame(messages[i], { more: true }));
+  b.push(zmqEncodeFrame(messages[messages.length - 1]));
+  const output = new Uint8Array(b.reduce((l,b)=>l+b.length, 0));
+  let i = 0; for (const c of b) for (const d of c) output[i++] = d;
+  return output;
 };
-
 
 export async function zmqSubShake (
   connection: ZmqConnection
 ): Promise<ZmqConnection> {
   const { readGreet, readFrame, write, flush } = connection;
-  await write(zmqGreetEncode({ pub: false })); await flush();
+  await write(zmqEncodeGreet({ pub: false }));
+  await flush();
   await readGreet();
-  const { metadata } = zmqReadyDecode(await readFrame());
-  await write(zmqReadyEncode({ metadata })); await flush();
+  const { metadata } = zmqDecodeReady(await readFrame());
+  await write(zmqEncodeReady(metadata));
+  await flush();
   return connection;
 }
 
@@ -326,11 +301,13 @@ export async function zmqPubShake <T> (
   { onConnect = (_: unknown): Async<T> => todo()() } = {}
 ): Promise<T> {
   const { write, flush, peekVer, readGreet, readFrame } = connection;
-  await write(zmqGreetEncode({ pub: true })); await flush();
+  await write(zmqEncodeGreet({ pub: true }));
+  await flush();
   await peekVer();
   await readGreet();
-  await write(zmqReadyEncode({})); await flush();
-  return onConnect(zmqReadyDecode(await readFrame()));
+  await write(zmqEncodeReady());
+  await flush();
+  return onConnect(zmqDecodeReady(await readFrame()));
 }
 
 export const zmqPubSocket = ({
@@ -347,7 +324,7 @@ export const zmqPubSocket = ({
   }
 });
 
-function zmqPubRun (transport, socket) {
+function zmqPub (transport, socket) {
   let stopped = false;
   setImmediate(async ()=>{
     for await (const connection of transport) {
