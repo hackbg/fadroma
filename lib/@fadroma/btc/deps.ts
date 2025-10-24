@@ -2,6 +2,7 @@ if (globalThis.Deno) {
   await import("https://deno.land/x/indexeddb@v1.1.0/polyfill_memory.ts");
 }
 
+export type { Fn } from '@hackbg/fadroma';
 export {
   service, interval, exec, spawn, setEnv, addArgs, waitPort, dir,
   serveTcp, serveHttp, zmqSub, route, param, guard, ware, get, post,

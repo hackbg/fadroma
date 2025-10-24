@@ -51,6 +51,7 @@ export type TestPath = {
 
 /** Test result categories. TODO infer */
 export type TestCategory = 'pass'|'fail'|'todo'|'warn'|'skip'|'note';
+
 /** Collection of results for a given category. */
 export type TestCategoryAdd =
   (<R>(context: Testing, result?: R, ...details: unknown[]) => R) & {
@@ -81,10 +82,8 @@ const testCategory = (id: string, { icon, label, color }): TestCategoryAdd =>
   }, { id, icon, label, color });
 
 /** Define a test suite that may run as module entrypoint.
-  * Otherwise equivalent to [expect].
   *
-  * Use helpers like [expect] and [forbid]
-  * to define test steps without punctuation overload.
+  * Use helpers like [expect] and [forbid] to define test steps.
   *
   * Example:
   *
@@ -101,22 +100,27 @@ export function suite (meta: ImportMeta, name: string, ...steps: TestStep[]) {
   if (isEntrypoint(meta, argv[1])) setImmediate(testAndExit(testSuite));
   return testSuite as TestStep;
 }
-
 const testAndExit = (test: TestStep) => () =>
   runTest(test).then(({ context, result })=>{
     const lines = testSummary({ context, result });
-    stdout.write(joined('\n', lines));
+    stdout.write('\n'+joined('\n', lines) + '\n');
     exit(('pass' in result) ? 0 : 1);
   });
 
-const testSummary = ({
+/** Format the test summary. */
+export function testSummary ({
   lines = [], indent = '', context, result
-}) => {
+}) {
   const { tD, state, name, results = [] } = result;
   if (!categorySpecs[state]) throw new Error(`unknown category: ${state}`);
   const {icon, color} = categorySpecs[state];
   const style = (results.length > 1) ? bold : identity;
-  let line = joined(' ', color(state), icon, joined(' ', (indent+' ').padEnd(10,'-'), style((name||'<unnamed>').padEnd(20))));
+  let line = joined(' ', '',
+    color((' '+indent+' ').padEnd(15,'-')),
+    style((name||'<unnamed>').padEnd(20)),
+    color(state),
+    icon,
+                   );
   if (state === 'fail' && result.error) {
     line = joined(' ', line, gray(2, joined(': ', bold(result.error.name), result.error.message)));
     lines.push(line);
@@ -133,8 +137,7 @@ const testSummary = ({
   }
   return lines;
 };
-
-const alignTrace = (line) => {
+const alignTrace = (line: string) => {
   line = line.replace('file://'+getCwd(), '.');
   line = line.replace(getCwd(), '.');
   line = line.split(' (')

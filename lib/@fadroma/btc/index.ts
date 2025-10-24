@@ -1,54 +1,58 @@
+import type { Fn } from './deps.ts';
 import {
   joined, call,
-  service, dir, exec, spawn, interval, addArgs, waitPort,
-  serveHttp, route, param, guard, get, post,
-  serveTcp,
-  zmqSub,
-
+  service, dir, exec, spawn, interval, waitPort,
+  zmqSub, serveHttp, route, param, guard, get, post,
   BTCJS, Indexd, DB, isHex64,
 } from './deps.ts';
 
-const stubRpc = (...args: unknown[]) => console.debug('TODO:', ...args);
-
 export type BtcLocalnetConfig = {
+  regTest:    boolean
   btcPort:    number
   zmqPort:    number
   httpPort:   number
-  dir:        number
+  dataRoot:   number
   dataDir:    string
   walletDir:  string
   bitcoinCli: unknown
   bitcoind:   unknown
-  elementd:   unknown
+  elementsd:  unknown
   rpc:        unknown
   indexd:     unknown
-  onZmqPub:   unknown
+  onZmq:      Fn
 };
+
+export const btcIndexd = ({
+  db     = new DB('indexd'),
+  rpc    = stubRpc,
+  indexd = new Indexd(db, rpc),
+} = {}) => Object.assign(async function runIndexd () {
+  await db.open();
+  return { db, rpc, indexd }
+}, { db, rpc, indexd })
 
 /** Spawn BTC localnet in regression test mode with indexer and API.
  *
-  * Slimmed-down reimplementation of https://github.com/bitcoinjs/regtest-server */
+ * Slimmed-down reimplementation of https://github.com/bitcoinjs/regtest-server */
 export function btcLocalnet (...config: Partial<BtcLocalnetConfig>[]) {
   const {
-    btcPort   = 18443,
-    zmqPort   = 48485,
-    httpPort  = 48484,
-    rpc       = stubRpc,
-    onZmq     = stubZmq,
+    regTest = true,
+    btcPort = regTest ? 18443 : 8443,
+    zmqPort = 48485,
+    httpPort = 48484,
+
     dataRoot  = '/tmp/fadroma/test/btc/',
     dataDir   = joined('', dataRoot, +new Date()),
     walletDir = joined('', dataRoot, +new Date()),
-    indexd    = runIndexd({ rpc })(),
 
-    //bitcoinArg = addArgs(),
-    bitcoinCli = (...arg: unknown[]) => exec('bitcoin-cli',
-      `-rpcpassword=fadroma`, `-datadir=${dataDir}`, '-regtest', ...arg),
-    bitcoind   = (...arg: unknown[]) => spawn('bitcoind',
-      `-rpcpassword=fadroma`, `-datadir=${dataDir}`, '-regtest', '-server', '-txindex',
-      '-zmqpubhashblock=tcp:/' + '/127.0.0.1:' + zmqPort,
-      '-zmqpubhashtx=tcp:/'    + '/127.0.0.1:' + zmqPort,
-      '-rpcworkqueue=', '-rpcport='+btcPort, ...arg),
-    _elementd  = null, // TODO
+    rpc    = stubRpc,
+    onZmq  = stubZmq,
+    indexd = btcIndexd({ rpc })(),
+
+    bitcoinCli = btcClient({ regTest, dataDir }),
+    bitcoind   = btcDaemon({ regTest, dataDir, btcPort, zmqPort }),
+    elementsd  = (...arg) => spawn('elementsd', ...arg), // TODO
+
   } = call(Object.assign, ...config)() as BtcLocalnetConfig;
 
   return service('BTC Localnet API',
@@ -61,26 +65,50 @@ export function btcLocalnet (...config: Partial<BtcLocalnetConfig>[]) {
     bitcoinCli('createwallet', walletDir),
     bitcoinCli(`-rpcwallet=${walletDir}`, '-generate'),
     interval(60000, async () => (await indexd).indexd.tryResync()),
-    serveHttp(httpPort,
-      txApi({ rpc, indexd }),
-      bxApi({ rpc, indexd }),
-      rxApi({ rpc }),
-      axApi({ indexd, rpc })));
+    serveHttp(httpPort, txApi({ rpc, indexd }),
+                        bxApi({ rpc, indexd }),
+                        rxApi({ rpc }),
+                        axApi({ indexd, rpc })));
 }
+
+export const btcDaemon = ({
+  dataDir = null,
+  regTest = true,
+  btcPort = regTest ? 18443 : 8443,
+  zmqPort = null,
+  txIndex = true,
+  rpcPw   = 'fadroma',
+  rpcWq   = 32,
+} = {}) => call(spawn,
+  'bitcoind',
+  rpcPw   && `-rpcpassword=${rpcPw}`,
+  dataDir && `-datadir=${dataDir}`,
+  regTest && '-regtest',
+  '-server',
+  txIndex && '-txindex',
+  zmqPort && ('-zmqpubhashblock=tcp:/' + '/127.0.0.1:' + zmqPort),
+  zmqPort && ('-zmqpubhashtx=tcp:/'    + '/127.0.0.1:' + zmqPort),
+  rpcWq   && ('-rpcworkqueue=' + rpcWq),
+  btcPort && ('-rpcport=' + btcPort));
+
+export const btcClient = ({
+  dataDir = null,
+  regTest = true,
+  btcPort = regTest ? 18443 : 8443,
+  rpcPw   = 'fadroma',
+} = {}) => call(exec,
+  'bitcoin-cli',
+  rpcPw   && `-rpcpassword=${rpcPw}`,
+  dataDir && `-datadir=${dataDir}`,
+  regTest && '-regtest',
+  btcPort && ('-rpcport=' + btcPort));
+
+const stubRpc = (...args: unknown[]) => console.debug('TODO:', ...args);
 
 export const stubZmq = socket => {
   console.log('zmq connected');
   socket.on('message', message => console.log('zmq', message));
 };
-
-export const runIndexd = ({
-  db     = new DB('indexd'),
-  rpc    = stubRpc,
-  indexd = new Indexd(db, rpc),
-} = {}) => Object.assign(async function runIndexd () {
-  await db.open();
-  return { db, rpc, indexd }
-}, { db, rpc, indexd })
 
 /** Blocks API. */
 export const bxApi = ({ rpc, indexd }) => route('1/b',
