@@ -26,9 +26,7 @@
     "npm:acorn-walk@^8.3.0": "8.3.4",
     "npm:acorn@^8.11.2": "8.15.0",
     "npm:astring@^1.8.6": "1.9.0",
-    "npm:bitcoinjs-lib@*": "7.0.0_typescript@5.3.3",
     "npm:bitcoinjs-lib@7": "7.0.0_typescript@5.3.3",
-    "npm:browser-level@*": "3.0.0",
     "npm:browser-level@3": "3.0.0",
     "npm:c8@^7.14.0": "7.14.0",
     "npm:c8@^8.0.1": "8.0.1",
@@ -39,7 +37,6 @@
     "npm:glob@^9.3.5": "9.3.5",
     "npm:highlight.js@^11.9.0": "11.11.1",
     "npm:husky@^8.0.3": "8.0.3",
-    "npm:indexd@*": "0.9.1",
     "npm:indexd@~0.9.1": "0.9.1",
     "npm:js-yaml@^4.1.0": "4.1.0",
     "npm:lint-staged@^13.3.0": "13.3.0",
@@ -62,16 +59,13 @@
     "npm:toml@3": "3.0.0",
     "npm:typedoc@0.25.13": "0.25.13_typescript@5.3.3",
     "npm:typedoc@~0.25.4": "0.25.13_typescript@5.3.3",
-    "npm:typeforce@*": "1.18.0",
     "npm:typeforce@^1.18.0": "1.18.0",
     "npm:typescript@~5.3.3": "5.3.3",
     "npm:typescript@~5.7.2": "5.7.3",
     "npm:why-is-node-still-running@1": "1.0.0",
     "npm:ws@^8.14.2": "8.18.3_bufferutil@4.0.9_utf-8-validate@5.0.10",
-    "npm:yajrpc@*": "1.4.4",
     "npm:yajrpc@^1.4.4": "1.4.4",
-    "npm:zen-observable@~0.8.15": "0.8.15",
-    "npm:zeromq@*": "6.5.0"
+    "npm:zen-observable@~0.8.15": "0.8.15"
   },
   "npm": {
     "@babel/helper-string-parser@7.27.1": {
@@ -887,10 +881,6 @@
         "wrap-ansi@7.0.0"
       ]
     },
-    "cmake-ts@1.0.2": {
-      "integrity": "sha512-5l++JHE7MxFuyV/OwJf3ek7ZZN1aGPFPM5oUz6AnK5inQAPe4TFXRMz5sA2qg2FRgByPWdqO+gSfIPo8GzoKNQ==",
-      "bin": true
-    },
     "color-convert@2.0.1": {
       "integrity": "sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==",
       "dependencies": [
@@ -1617,9 +1607,6 @@
     "ms@2.1.3": {
       "integrity": "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA=="
     },
-    "node-addon-api@8.5.0": {
-      "integrity": "sha512-/bRZty2mXUIFY/xU5HLvveNHlswNJej+RnxBjOMkidWfwZzgTbPG1E3K5TOxRLOR+5hX7bSofy8yf1hZevMS8A=="
-    },
     "node-domexception@1.0.0": {
       "integrity": "sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==",
       "deprecated": true
@@ -2302,14 +2289,6 @@
     },
     "zen-observable@0.8.15": {
       "integrity": "sha512-PQ2PC7R9rslx84ndNBZB/Dkv8V8fZEpk83RLgXtYd0fwUgEjseMn1Dgajh2x6S8QbZAFa9p2qVCEuYZNgve0dQ=="
-    },
-    "zeromq@6.5.0": {
-      "integrity": "sha512-vWOrt19lvcXTxu5tiHXfEGQuldSlU+qZn2TT+4EbRQzaciWGwNZ99QQTolQOmcwVgZLodv+1QfC6UZs2PX/6pQ==",
-      "dependencies": [
-        "cmake-ts",
-        "node-addon-api"
-      ],
-      "scripts": true
     }
   },
   "remote": {
@@ -2317,6 +2296,7 @@
     "https://cdn.skypack.dev/-/regenerator-runtime@v0.13.9-4Dxus9nU31cBsHxnWq2H/dist=es2019,mode=imports/optimized/regenerator-runtime.js": "9d5c28ca64c45a9e606d5f3b35aec61568ed451495968171c8cc3ef1923cb7fe",
     "https://cdn.skypack.dev/indexeddbshim@v9.0.0/dist/indexeddbshim-noninvasive.js": "8825b3ce26bfea3ddfb612fd95ae295c78542423511bc4042c3d2e2a89894c08",
     "https://cdn.skypack.dev/regenerator-runtime@0.13.9": "adf7d286d4d4dd28347f3b0bc62fc614a7da3c76ad15e8ea4e4b2511d9632c9e",
+    "https://deno.land/x/indexeddb@v1.1.0/lib/indexeddb.ts": "6d8eeec0c4074ed2e3ed5ae3c99e3b66703f772c791279d052680fe3b334de2d",
     "https://deno.land/x/indexeddb@v1.1.0/lib/indexeddb_global.ts": "88269f2c9c97dbcb5641706bb17d14500eddb209da0fc8822ee4bbb5e57359f8",
     "https://deno.land/x/indexeddb@v1.1.0/lib/shim.ts": "1cc9b0961a2ddb9836643e1fc661cf44eb55a777cd7625cba4256d259920d51b",
     "https://deno.land/x/indexeddb@v1.1.0/polyfill_memory.ts": "83911d846564fe689356bd08054ccb994405b82d3167807f2129a7bb558f0498",
@@ -2338,7 +2318,7 @@
   },
   "workspace": {
     "members": {
-      "lib/@fadroma/btc": {
+      "@fadroma/btc": {
         "packageJson": {
           "dependencies": [
             "npm:bitcoinjs-lib@7",
@@ -2349,7 +2329,7 @@
           ]
         }
       },
-      "lib/@fadroma/sol-web3": {
+      "@fadroma/sol-web3": {
         "packageJson": {
           "dependencies": [
             "npm:@coral-xyz/anchor@0.31",
@@ -2357,14 +2337,14 @@
           ]
         }
       },
-      "lib/@fadroma/tm": {
+      "@fadroma/tm": {
         "packageJson": {
           "dependencies": [
             "npm:protobuf-varint@1"
           ]
         }
       },
-      "lib/@hackbg/fadroma": {
+      "@hackbg/fadroma": {
         "packageJson": {
           "dependencies": [
             "npm:@jsr/std__streams@^1.0.13",
@@ -2373,7 +2353,7 @@
           ]
         }
       },
-      "lib/@hackbg/toolbox": {
+      "@hackbg/toolbox": {
         "packageJson": {
           "dependencies": [
             "npm:@types/node@latest",
@@ -2384,7 +2364,7 @@
           ]
         }
       },
-      "lib/@hackbg/toolbox/4mat": {
+      "@hackbg/toolbox/4mat": {
         "packageJson": {
           "dependencies": [
             "npm:@noble/curves@^1.3.0",
@@ -2396,7 +2376,7 @@
           ]
         }
       },
-      "lib/@hackbg/toolbox/docs": {
+      "@hackbg/toolbox/docs": {
         "packageJson": {
           "dependencies": [
             "npm:case@^1.6.3",
@@ -2404,7 +2384,7 @@
           ]
         }
       },
-      "lib/@hackbg/toolbox/ensuite": {
+      "@hackbg/toolbox/ensuite": {
         "packageJson": {
           "dependencies": [
             "npm:@hackbg/file@^2.0.2",
@@ -2427,7 +2407,7 @@
           ]
         }
       },
-      "lib/@hackbg/toolbox/file": {
+      "@hackbg/toolbox/file": {
         "packageJson": {
           "dependencies": [
             "npm:@folder/xdg@^4.0.1",
@@ -2445,7 +2425,7 @@
           ]
         }
       },
-      "lib/@hackbg/toolbox/fork": {
+      "@hackbg/toolbox/fork": {
         "packageJson": {
           "dependencies": [
             "npm:@types/zen-observable@~0.8.7",
@@ -2453,7 +2433,7 @@
           ]
         }
       },
-      "lib/@hackbg/toolbox/ganesha": {
+      "@hackbg/toolbox/ganesha": {
         "packageJson": {
           "dependencies": [
             "npm:@hackbg/ubik@^3.0.1",
@@ -2461,21 +2441,21 @@
           ]
         }
       },
-      "lib/@hackbg/toolbox/logs": {
+      "@hackbg/toolbox/logs": {
         "packageJson": {
           "dependencies": [
             "npm:chalk@^4.1.2"
           ]
         }
       },
-      "lib/@hackbg/toolbox/port": {
+      "@hackbg/toolbox/port": {
         "packageJson": {
           "dependencies": [
             "npm:exponential-backoff@^3.1.1"
           ]
         }
       },
-      "lib/@hackbg/toolbox/ubik": {
+      "@hackbg/toolbox/ubik": {
         "packageJson": {
           "dependencies": [
             "npm:@babel/parser@^7.22.10",
