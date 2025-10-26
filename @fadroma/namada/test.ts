@@ -1,7 +1,7 @@
-import { suite, expect, curry } from '@hackbg/fadroma';
+import { testSuite, expect, curry } from '@hackbg/fadroma';
 import * as Namada from './lib/namada.ts';
 import { readFileSync } from 'node:fs'
-export default suite(import.meta, 'Namada',
+export default testSuite(import.meta, 'Namada',
   expect('Localnet',
     expect('Subscribe'),
     expect('Fetch',

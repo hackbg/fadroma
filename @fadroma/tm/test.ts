@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --allow-env
-import { suite, expect } from '@hackbg/fadroma';
-export default suite(import.meta, 'Tendermint',
+import { testSuite, expect } from '@hackbg/fadroma';
+export default testSuite(import.meta, 'Tendermint',
   expect('Localnet', expect('Connect'), expect('Subscribe')),
   expect('Fetch', expect('Block'), expect('Account'), expect('TX')),
   expect('Gas', expect('Drop'), expect('Send')),

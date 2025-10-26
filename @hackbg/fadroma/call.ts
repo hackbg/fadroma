@@ -259,8 +259,8 @@ export const withCatcher =
   *
   * Example:
   *
-  *     import { suite, expect, todo } from '@hackbg/fadroma';
-  *     export default suite(import.meta,
+  *     import { testSuite, expect, todo } from '@hackbg/fadroma';
+  *     export default testSuite(import.meta,
   *       expect('Auto todo'),
   *       expect('Manual todo', todo()),
   *       expect('Manual todo with more info', todo('the more info')));

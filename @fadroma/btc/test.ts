@@ -1,11 +1,11 @@
 #!/usr/bin/env -S deno run --allow-env --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443 --allow-net=localhost
 import { btcLocalnet, btcClient, btcDaemon } from './index.ts';
-import { ok, equal, expect, suite, defer } from '@hackbg/fadroma';
+import { ok, equal, expect, testSuite, defer } from '@hackbg/fadroma';
 import type { Testing } from '@hackbg/fadroma';
 
 export type TestContext = Testing & { localnet: unknown };
 
-export default suite(import.meta, 'BTC',
+export default testSuite(import.meta, 'BTC',
   expect('Client', testBtcClient),
   expect('Daemon', testBtcDaemon),
   expect('Localnet', testLocalnet,

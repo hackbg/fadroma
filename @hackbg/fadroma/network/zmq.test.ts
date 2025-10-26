@@ -1,4 +1,4 @@
-import { ok, expect, call, suite, equal, throws, todo } from '../tester.ts';
+import { ok, expect, call, testSuite, equal, throws, todo } from '../tester.ts';
 import {
   zmqConnect,
   zmqPub, zmqPubShake,
@@ -7,7 +7,7 @@ import {
   zmqReady, zmqFlagCmd, zmqGreetSize,
 } from './zmq.ts';
 
-export default suite(import.meta, 'ZeroMQ',
+export default testSuite(import.meta, 'ZeroMQ',
   expect('Codec',
     expect('Greet', async function testZmqGreet (ctx) {
       throws(()=>zmqDecodeGreet(null));

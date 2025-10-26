@@ -1,15 +1,15 @@
 #!/usr/bin/env -S deno run --coverage --allow-env --allow-net --allow-run
-import { testContext, suite, expect, forbid, matrix }  from "./tester.ts";
+import { testContext, testSuite, expect, forbid, matrix }  from "./tester.ts";
 import { spawnContext, addArgs, exec, spawn } from './index.ts';
 import { ok, equal } from './deps.ts';
 import testZeroMQ from './network/zmq.test.ts';
 
 export const testTester = expect('Tester',
   expect('Context', () => { testContext(); }),
-  expect('Suite',   () => { suite(null, 'Suite'); }),
+  expect('Suite',   () => { testSuite(null, 'Suite'); }),
   expect('Expect',  () => { expect('Something') }),
   expect('Forbid',  () => { forbid('Something', () => {}) }),
-  expect('Matrix',  () => { matrix('Something', [], () => {}); }));
+  expect('Matrix',  () => { matrix('Something', []); }));
 
 export const testSpawn = expect('Process',
   expect('Context', () => {
@@ -60,7 +60,7 @@ export const testNet = expect('Network',
   expect('HTTP'),
   testZeroMQ);
 
-export default suite(import.meta, 'Fadroma',
+export default testSuite(import.meta, 'Fadroma',
   testTester,
   testSpawn,
   testNet,

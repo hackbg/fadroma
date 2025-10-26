@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-env
-import { expect, suite } from '@hackbg/fadroma';
+import { expect, testSuite } from '@hackbg/fadroma';
 import * as SolWeb3 from './index.ts';
-export default suite(import.meta, 'Solana (Web3)',
+export default testSuite(import.meta, 'Solana (Web3)',
   expect('Localnet', expect('Connect'), expect('Subscribe')),
   expect('Fetch', expect('Block'), expect('Account'), expect('TX')),
   expect('Gas', expect('Drop'), expect('Send')),

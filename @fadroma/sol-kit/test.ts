@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-env
-import { expect, suite } from '@hackbg/fadroma';
+import { expect, testSuite } from '@hackbg/fadroma';
 import * as SolKit from './index.ts';
-export default suite(import.meta, 'Solana (Kit)',
+export default testSuite(import.meta, 'Solana (Kit)',
   expect('Localnet', expect('Connect'), expect('Subscribe')),
   expect('Fetch', expect('Block'), expect('Account'), expect('TX')),
   expect('Gas', expect('Drop'), expect('Send')),
