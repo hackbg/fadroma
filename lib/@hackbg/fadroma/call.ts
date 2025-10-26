@@ -1,52 +1,33 @@
 import type { Falsy, Testing } from './index.ts';
-
-/** Import metadata. Used to recognize entrypoint. */
+/** Used to recognize entrypoint. */
 export type Meta = Partial<ImportMeta>;
-
 /** A program's entrypoint. */
 export type Main = Fn;
-
-/** Function type. */
-export type Fn<T extends unknown[] = unknown[], U = unknown> =
-  Takes<T> & Returns<U>;
-
-/** May be either value or promise; either is handled asynchronously. */
+/** Either `T` or `Promise<T>`; both cases handled asynchronously. */
 export type Async<T = unknown> = T|Promise<T>;
-
 /** Function arguments. */
 export type Takes<T extends unknown[]> = (...args: T) => unknown;
-
 /** Function return type. */
 export type Returns<T> = (...args: unknown[]) => T;
-
 /** Annotations added by [reflect]. */
 export type Reflects<F extends Fn[] = Fn[]> = { stack?: string[], steps?: F };
-
 /** Procedure. Mutates context and returns void or new context. */
 export type Op<T> = Takes<[T]> & Returns<Async<T|void>>;
-
+/** Gradually elaboratable function type. */
+export type Fn<Inputs extends unknown[] = unknown[], Output = unknown> =
+  & Takes<Inputs> & Returns<Output>;
 /** A sequence of functions. */
-export type Pipe<X, Y, F extends Fn = Fn> =
-  Takes<[X]> & Returns<Async<Y>> & Reflects<F[]>;
-
-//type Method<T> = (_: T, ...__: unknown[]) => unknown[]
-
-/** An annotated step in a pipeline.
-  * 
-  * TODO: By default, steps are expected to return the 1st argument,
-  *       or a transformation of it. But many steps instead work by
-  *       mutating the context. Those should be separate types (`Op`?) */
+export type Pipe<Output, Inputs extends []> = 
+  Reflects & Fn<Inputs, Async<Output>>;
+/** Part of a [Pipe]. */
 export type Step<T = unknown, U = T> =
-  Takes<[T]> & Returns<Async<U>> & Reflects;
-
+  Reflects & Takes<[T]> & Returns<Async<U>>;
 /** A function that composes multiple steps into one step. */
 export type Steps<T = unknown, U = T> =
   (...steps: Step<T>[])  => Step<T, U>;
-
 /** A function that composes multiple steps and adds an annotation. */
 export type StepsWith<X = unknown, T = unknown, U = T> =
   (_: X, ...steps: Step<T>[]) => Step<T, U>;
-
 /** Start time and duration. */
 export type Timed = {
   /** Starting time in milliseconds. */
@@ -117,11 +98,11 @@ export const curry = <F extends ((..._:unknown[])=>unknown)>(
 
 export { curry as call }
 
-/** Point-free combinator: construct a callable pipeline of functions.
+/** Combine functions, where the return value of each step
+  * is passed as first argument to the next one.
   *
   * When there's an async step in the pipeline,
-  * the whole pipeline "becomes asynchronous"
-  * and can be `await`ed as a whole.
+  * the pipeline transparently becomes asynchronous.
   *
   * Example:
   *   const param = "hello"
@@ -133,13 +114,24 @@ export { curry as call }
   *   async function f2 (p) { ... }
   *   function f3 (p) { ... }
   **/
-export const pipe = <X, Y, F extends (_: unknown)=>unknown> (
-  ...steps: F[]
-): Pipe<X, Y, F> => Object.assign(function pipe (value: X): Y {
-  let state: unknown = value;
-  for (const step of steps) state = resolveSync(state as unknown as X, step);
-  return state as Y
-}, { steps });
+export const pipe = <Result, Input = unknown> (
+  step0: Fn<[Input]>, ...steps: Fn[]
+): Fn<[Result]> => reflect(
+  `pipe ${steps.length+Number(!!step0)}`,
+  function pipe (value: Input): Async<Output> {
+    let state: unknown = value;
+    for (const step of steps) state = resolveSync(state as unknown as X, step);
+    return state as Y
+  }, { steps });
+
+export const sequence = <T>(...steps: Fn<[T]>[]) => reflect(null,
+  async function runSequentially (context: T) {
+    for (const step of steps) {
+      if (!step) continue;
+      await step(context)
+    }
+    return context;
+  }, { steps });
 
 /** Universal color-blind combinator.
   *
@@ -287,16 +279,10 @@ export const requiredLate = (...info: string[]) => () => {
   throw new Error('Missing required value: ' + info.join(' '));
 }
 
-export const sequence = <T>(...steps: Fn<[T]>[]) => reflect(null,
-  async function runSequentially (context: T) {
-    for (const step of steps) {
-      if (!step) continue;
-      await step(context)
-    }
-    return context;
-  }, { steps });
 
 export const setProp = <T extends object>(key: keyof T, ...fns: Fn[]) =>
   reflect(`set ${String(key)}`, async function setProperty (context) {
     return Object.assign(context, { [key]: await pipe(...fns)(context) });
   }, { key, fns });
+
+//type Method<T> = (_: T, ...__: unknown[]) => unknown[]

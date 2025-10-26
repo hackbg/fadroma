@@ -1,14 +1,14 @@
 import type { Socket } from '../deps.ts';
 import { TcpServer, createConnection } from '../deps.ts';
 import { reflect } from '../call.ts';
-
+/** A network context. */
 export type Net = { ports: Record<number, TcpServer> };
-
+/** Define network context. */
 export const netContext = ({
   ports = {},
   ...rest
 } = {}) => ({ ports, ...rest });
-
+/** Define TCP service. */
 export const serveTcp = (port: number, handler: (_: Socket)=>unknown) =>
   reflect(`TCP ${port}`, function runTcpServer (ctx: Net = netContext()): TcpServer {
     if (port in ctx.ports) throw new Error(`port ${port}: occupied`);
@@ -16,7 +16,7 @@ export const serveTcp = (port: number, handler: (_: Socket)=>unknown) =>
     ctx.ports[port].on('close', () => delete ctx.ports[port]);
     return ctx.ports[port];
   }, { port, handler });
-
+/** Wait for port to open until proceeding. */
 export const waitPort = ({
   port, host = 'localhost', retries = 20, interval = 250
 }) => reflect(`Wait for ${host}:${port}`, function waitForPort (_?: unknown) {
