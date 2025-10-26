@@ -18,16 +18,21 @@ and are in the process of being ported to the new implementation.
   * A `Chain` can be reached over multiple `Connection`s.
   * A script can use multiple independent `Agent` identities.
 
-* Tendermint:
+* Tendermint/CosmWasm:
   * Fetch blocks and results.
   * Fetch results of ABCI queries.
   * Partial clients for `Bank`, `Staking` and `Governance` APIs.
   * Describe fungible and non-fungible tokens.
-
-* CosmWasm:
   * Compile, upload, and instantiate contracts from source, binary, or code ID.
   * Query and transact with contracts by address and code hash.
-
-* Chain-specific features:
   * Secret Network support.
   * Namada support with enhanced transaction data decoding.
+
+* Solana
+  * Programs
+  * Program clients with Web3/Anchor
+  * Program clients with Kit/Codama
+
+* Bitcoin
+  * Regtest setup
+  * SimplicityHL
