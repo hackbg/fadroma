@@ -126,6 +126,10 @@ export const pipe = <Result, Input = unknown> (
     return state as Result
   }, { steps });
 
+/** Run functions sequentially in the same context.
+ *
+  * Return values are ignored; to pass state or
+  * collect results, mutate the context. */
 export const sequence = <T>(...steps: Fn<[T]>[]) => reflect(null,
   async function runSequentially (context: T) {
     for (const step of steps) {
@@ -144,6 +148,9 @@ export const resolveSync = <X, F extends (_: unknown)=>unknown> (
 ) => isThenable(x)
   ? (x as unknown as { then: (_:F)=>Promise<unknown> }).then(f)
   : f(x);
+
+export const toThenable = <T extends Async>(x: T): Promise<T> =>
+  (typeof x?.then === 'function') ? x : Promise.resolve(x);
 
 export const isThenable = (x: unknown) => !!x
   && (typeof x === 'object')
