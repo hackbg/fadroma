@@ -15,12 +15,11 @@ export default testSuite(import.meta, 'BTC',
     stopLocalnet));
 
 export async function testBtcClient (test: TestContext) {
-  const clients = btcClient();
-  ok(typeof clients === 'function');
-  const client = await clients();
-  ok(typeof client  === 'function');
+  ok(typeof btcClient() === 'function');
+  const client = btcClient()();
+  ok(typeof btcClient()()  === 'function');
   let mock = null;
-  const context = {exec(...args){mock = args}};
+  const context = {exec(...args){mock = args; return {}}};
   equal(context, await client(context));
   equal(mock, [
     { argv: [ 'bitcoin-cli', '-rpcpassword=fadroma', '-regtest', '-rpcport=18443' ]
@@ -42,16 +41,18 @@ export async function testBtcDaemon () {
     , options: {} } ]);
 }
 
-export async function testLocalnet (test: TestContext) {
-  const timeout  = (_, reject)=>setTimeout(timedOut(reject), 60000);
+export async function testLocalnet (ctx: TestContext) {
+  const timeout  = (_, reject)=>setTimeout(timedOut(reject), 1000);
   const timedOut = reject => () => reject(new Error('timed out waiting for ZMQ'));
   const zmqTest  = defer(timeout);
-  const localnet = btcLocalnet({ onZmq: zmqTest.resolve });
-  test.localnet  = await localnet();
+  const localnet = btcLocalnet({ onZmq: zmqTest.resolve })();
   console.log('Waiting for ZMQ');
   await zmqTest;
+  console.log(ctx);
+  ctx.localnet  = await localnet;
 }
 
-export async function stopLocalnet (test: TestContext) {
-  test.localnet.kill();
+export async function stopLocalnet (ctx: TestContext) {
+  console.log(ctx);
+  ctx.localnet?.kill();
 }

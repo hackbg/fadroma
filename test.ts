@@ -11,8 +11,8 @@ import testSimf    from "./@fadroma/simf/test.ts";
 //import testNamada  from "./@fadroma/namada/test.ts";
 export default testSuite(import.meta, 'Fadroma (full)',
   testFadroma,
-  //testBtc,
-  //testSimf,
+  testBtc,
+  testSimf,
   //testSolRust,
   //testSolWeb3,
   //testSolKit,

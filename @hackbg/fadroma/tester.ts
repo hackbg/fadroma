@@ -1,4 +1,4 @@
-import type { Log, Timed, Takes, Returns, Reflects, Async } from './index.ts';
+import type { Fn, Log, Timed, Takes, Returns, Reflects, Async } from './index.ts';
 import { ok, equal, throws, rejects, getCwd, stdout, exit, argv, setImmediate, } from './deps.ts';
 import { isEntrypoint } from './frontend/cmd.ts';
 import { logger } from './logger.ts';
@@ -50,17 +50,19 @@ export async function testRun <T extends Testing> (
 };
 /** Context for test step. */
 export type Testing = Log & Timed & {
-  /** Lists of test results by category. */
-  report:    Record<TestCategoryName, TestCategory>,
   /** Whether the whole test run should terminate as soon as one step fails. */
   failFast?: boolean,
   /** Whether TODOs count toward test fails. */  
   failTodo?: boolean
-  /** Breadcrumb of step indexes. */
+  /** Breadcrumb of indexes pointing to current step. */
   ids:       number[],
-  /** Breadcrumb of step names. */
+  /** Breadcrumb of names pointing to current step. */
   names:     string[],
+  /** Test results are collected here */
+  report:    TestReport,
 };
+/** Lists of test results by category. */
+export type TestReport = Record<TestCategoryName, TestCategory>;
 /** Create test context. */
 export function testContext <T extends Testing> ({
   failFast = false,
@@ -73,7 +75,9 @@ export function testContext <T extends Testing> ({
 }: Partial<T> = {}): T {
   return { ...logger(), failFast, failTodo, report, t0, ids, names, ...rest, }
 }
-const testReport = reduceObject(objectReducer((cat, id)=>testCategory(id, cat)));
+const testReport = reduceObject(
+  objectReducer((cat, id: string)=>testCategory(id, cat))
+) as Returns<TestReport>;
 /** Test result categories. TODO infer */
 export type TestCategoryName =
   'pass'| 'fail'| 'todo'| 'warn'| 'skip'| 'note';
@@ -88,8 +92,17 @@ const categorySpecs = {
   idea: { icon: `  `, color: blue,   label: 'ideas'    },
   note: { icon: `  `, color: blue,   label: 'notes'    }, } as const;
 /** Callable. Collection of results for a given category. */
-export type TestCategory = TestCollect & {
-  id: string, icon: string, label: string, results: TestResult[]
+export type TestCategory = TestCollect & TestCategoryOpts & {
+  /** Test results in this category. */
+  results: TestResult[]
+};
+export type TestCategoryOpts = {
+  /** Plain emoji. (Watch out for the unicode character widths.) */
+  icon: string,
+  /** Plural. What kind of items are there in the category? */
+  label: string,
+  /** Apply formatting modifiers to label. */
+  color: Fn<[string], string>
 };
 /** Collect a test result into a category. */
 export type TestCollect = <R>(
@@ -102,7 +115,8 @@ const testCategory = (id: string, { icon, label, color }): TestCategory =>
     const t1 = performance.now();
     const tD = t1 - t0;
     const result = { tD, details };
-    log(msec(tD), icon, color(id), blue(ids.join('.')), gray(names.length, names.join(': ')), ...details.filter(Boolean));
+    log(msec(tD), icon, color(id), blue(ids.join('.')),
+      gray(names.length, names.join(': ')), ...details.filter(Boolean));
     results.push(result);
     return { [id]: result };
   }, { id, icon, label, color });
@@ -113,7 +127,7 @@ export function testSummarize ({ lines = [], indent = '', context, result }) {
   const {icon, color} = categorySpecs[state];
   const style = (results.length > 1) ? bold : identity;
   let line = joined(' ',
-    ' '+icon,
+    ` ${icon}`,
     color(state),
     color((indent+' ').padEnd(15,'-')),
     style((name||'<unnamed>').padEnd(20)),
@@ -143,7 +157,48 @@ const alignTrace = (line: string) => {
     .join(gray(3, ' ('));
   return line
 }
-
+/** The result of a test step. */
+export type TestResult = Timed & {
+  name:     string,
+  state:    TestCategoryName,
+  result?:  unknown,
+  results?: unknown[],
+  error?:   Error,
+};
+/** Evaluate a step and return a result. */
+const testResult = async <T extends Testing> (
+  ctx: T, step: TestStep<T>
+): Promise<TestResult> => {
+  const name = (typeof step === 'string') ? step : step.name;
+  const tD = dT(ctx.t0);
+  if (!step) {
+    return { name, state: 'skip', tD };
+  } else if (typeof step === 'string') {
+    return { name, state: 'todo', tD, }
+  } else if (step.skip) {
+    return { name, state: 'skip', tD }
+  } else {
+    try {
+      const result = await step(ctx);
+      return { name, state: 'pass', tD, ...(result||{}) as object };
+    } catch (e) {
+      const error = addStepStack(step, e as Error);
+      if (error.todo) return { name, state: 'todo', tD, error, };
+      return { name, state: 'fail', tD, error, };
+    }
+  }
+}
+/** Add originating test step to stack trace.
+  *
+  * Since there is a degree of indirection when composing curried functions
+  * (the code is defined from one place but executed from another),
+  * without this helper the real stack gets lost. */
+const addStepStack = (step: TestStep, error: Error) => {
+  if (typeof error !== 'object') error = new Error(error);
+  error.stack ||= ''
+  if (step.stack) error.stack += '\n  From:\n' + step.stack.join('\n')
+  return error
+}
 /** A step of the test suite.
   *
   * Test steps are not meant to be piped to each other. 
@@ -193,7 +248,9 @@ export function expect <T extends Testing> (
       Object.assign(context, { t0, ids, names });
       const result = await testResult(context, step);
       results[index] = result;
-      if ('fail' in result && context.failFast) throw result.fail;
+      if ('fail' in result && context.failFast) {
+        throw result.fail;
+      }
     };
     Object.assign(context, { t0, ids: baseIds, names: baseNames })
     results = results.filter(Boolean);
@@ -201,35 +258,6 @@ export function expect <T extends Testing> (
     if (results.some(isTodo)) state = context.failTodo ? 'fail' : 'todo';
     if (results.some(isFail)) state = 'fail';
     return { name, state, results };
-  }
-}
-/** The result of a test step. */
-export type TestResult = Timed & {
-  name:     string,
-  state:    TestCategoryName,
-  result?:  unknown,
-  results?: unknown[],
-  error?:   Error,
-};
-const testResult = async <T extends Testing> (
-  ctx: T, step: TestStep<T>
-): Promise<TestResult> => {
-  const name = (typeof step === 'string') ? step : step.name;
-  const tD = dT(ctx.t0);
-  if (!step) {
-    return { name, state: 'skip', tD };
-  } else if (typeof step === 'string') {
-    return { name, state: 'todo', tD, }
-  } else if (step.skip) {
-    return { name, state: 'skip', tD }
-  } else {
-    try {
-      return { name, state: 'pass', tD, ...(await step(ctx))||{} as {} };
-    } catch (e) {
-      const error = addStepStack(step, e as Error);
-      if (error.todo) return { name, state: 'todo', tD, error, };
-      return { name, state: 'fail', tD, error, };
-    }
   }
 }
 const isTodo = (x?: { state?: unknown }) => x?.state === 'todo';
@@ -240,7 +268,7 @@ const isFail = (x?: { state?: unknown }) => x?.state === 'fail';
 
 ///////////////////////////////////////////////////////////////////////////////
 
-/** A test case which expects an exception to be thrown. */
+/** TODO: A test case which expects an exception to be thrown. */
 export function forbid (
   name: string, failure: TestStep, ...steps: Array<(_: Error)=>unknown>
 ) {
@@ -261,8 +289,7 @@ export function forbid (
     }
   }
 }
-
-/** Required assertions. */
+/** TODO: Assertions. */
 export const MUST = {
   include: <T>(expected: T) =>
     (actual: { includes (expected: T): boolean }) => actual.includes(expected),
@@ -271,20 +298,10 @@ export const MUST = {
   have: <T extends object> (key: keyof T|unknown) =>
     (actual: T|unknown) => ok((key as keyof T) in (actual as T), `missing key ${key}`),
 };
-
-/** Assertions that only emit a warning. */
+/** TODO: Assertions only emit warning. */
 export const SHOULD = {
   /* TODO */
 };
-
-/** Add the originating test step to an [Error]'s stack trace. */
-const addStepStack = (step: TestStep, error: Error) => {
-  if (typeof error !== 'object') error = new Error(error);
-  error.stack ||= ''
-  if (step.stack) error.stack += '\n  From:\n' + step.stack.join('\n')
-  return error
-}
-
 /** FIXME: Run the same set of test steps against different starting points.
   *
   * Example:
@@ -300,8 +317,7 @@ export const matrix = <T>(
   name: string, variants: T[]|Record<string, T>, ...steps: TestStep[]
 ) => Object.assign(expect(name, ...Object.entries(variants)
   .map(([k, v])=>expect(k, ...steps))), variants, steps);
-
-/** Run steps in parallel. */
+/** TODO: Run steps in parallel. */
 export const parallel = (name: string, variants: ((_: Testing)=>unknown)[]) =>
   expect(name, async (context = testContext()) => {
     await Promise.all(variants.map(variant=>variant(context)))

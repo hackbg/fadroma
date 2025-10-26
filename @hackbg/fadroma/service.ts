@@ -1,5 +1,5 @@
-import type { Bytes, Fn, Step, StepsWith, Net, Log } from './index.ts';
-import { writeFile, resolvePath, mkdir, getCwd, execImpl, spawnImpl } from './deps.ts';
+import type { Bytes, Fn, Step, StepsWith, Net, Log, Async } from './index.ts';
+import { tmpdir, mkdtemp, writeFile, resolvePath, mkdir, getCwd, execImpl, spawnImpl } from './deps.ts';
 import type { ChildProcess } from './deps.ts';
 import { pipe, reflect } from './call.ts';
 import { logger } from './logger.ts';
@@ -7,21 +7,27 @@ import { netContext } from './network.ts';
 /** Define process management context. */
 export const spawnContext = ({
   pids  = {},
-  exec  = ({ argv, options }: Command) => execImpl(argv[0],  argv.slice(1), options),
+  exec  = async ({ argv, options }: Command) => {
+    return await execImpl(argv[0],  argv.slice(1), options);
+  },
   spawn = ({ argv, options }: Command) => spawnImpl(argv[0], argv.slice(1), options),
   kill  = (_pid?: number) => { throw new Error('TODO') },
+  stdout = '',
+  stderr = '',
   ...rest
-} = {}) => ({ pids, exec, spawn, kill, ...rest });
+} = {}) => ({ pids, exec, spawn, kill, stdout, stderr, ...rest });
 /** Process management context. */
 export type Pids = {
+  stdout: string|unknown,
+  stderr: string|unknown,
   /** Process IDs known to this context. */
   pids: Record<number, { kill?: Fn }>,
   /** Invoke an external process. */
-  exec  (_: Command): ExecResult
+  exec  (_: Command): Async<ExecResult>
   /** Launch a long-running background process. */
-  spawn (_: Command): SpawnResult
+  spawn (_: Command): Async<SpawnResult>
   /** Kill any running process by pid. */
-  kill  (id: number): Promise<unknown>
+  kill  (id: number): Async
 };
 /** A background process. */
 export type SpawnResult = ChildProcess;
@@ -43,7 +49,7 @@ export type Command = {
 /** Define a background task. */
 export const spawn = (arg0: string, ...options: (Step<Command>|string)[]) =>
   reflect(arg0, async function spawnDaemon (ctx: Pids = spawnContext()) {
-    const child = ctx.spawn(await buildCommand(arg0, options));
+    const child = await ctx.spawn(await buildCommand(arg0, options));
     if (child.pid) {
       ctx.pids[child.pid] = child;
       Object.assign(spawnDaemon, { pid: child.pid });
@@ -54,8 +60,12 @@ export const spawn = (arg0: string, ...options: (Step<Command>|string)[]) =>
 export const exec = (arg0: string, ...options: (Step<Command>|string)[]) =>
   reflect(arg0, async function executeCommand (ctx: Pids = spawnContext()) {
     const result = await ctx.exec(await buildCommand(arg0, options));
+    if (!result) throw new Error('ctx.exec returned nothing')
+    const { stdout = '', stderr = '' } = result || {};
+    ctx.stdout += stdout;
+    ctx.stderr += stderr;
     return ctx;
-  }, { arg0, options });;
+  }, { arg0, options });
 /** Compose a command invocation from options. */
 export const buildCommand = async (arg0: string, options: (Step<Command>|string)[]) => {
   let command = { argv: [arg0], options: {} };
@@ -121,43 +131,61 @@ export type FS = {
   paths: Record<string, unknown>
 };
 /** A filesystem operation. Needs current working directory. */
-export type FSOp = (_: FS) => FS;
+export type FSItem = (_: FS) => FS;
 /** Define a filesystem context. */
 export const fsContext = ({
   cwd = getCwd(), paths = {}, ...rest
 } = {}) => ({ cwd, paths, ...rest });
 /** Specify a temporary directory. */
-export const tmpdir = () => { throw new Error("TODO") };
+export const tmp = (
+  prefix: string, ...contents: FSItem[]
+) => reflect(
+  `temporary ${prefix}`,
+  async function inTemporaryDirectory (fs: FS = fsContext()) {
+    const temp = await mkdtemp(resolvePath(tmpdir(), `fadroma`, `${prefix}-`));
+    fs.paths[temp] ??= {};
+    const cwd = fs.cwd;
+    fs.cwd = temp;
+    const result = await Promise.all(contents.map((x: FSItem)=>x&&x({ ...fs, cwd: temp })));
+    fs.cwd = cwd;
+    return result
+  }, { prefix, contents });
 /** Specify a directory. */
 export const dir = (
-  path: string, ...contents: FSOp[]
-) => reflect(`mkdir ${path}`, async function makeDirectory (fs: FS = fsContext()) {
-  const location = resolvePath(fs.cwd, path);
-  await mkdir(location, { recursive: true });
-  (fs.paths ||= {})[location] = { directory: true };
-  return await Promise.all(contents.map((x: FSOp)=>x({ ...fs, cwd: location })));
-}, { path });
+  path: string, ...contents: FSItem[]
+) => reflect(
+  `mkdir ${path}`,
+  async function makeDirectory (fs: FS = fsContext()) {
+    const location = resolvePath(fs.cwd, path);
+    await mkdir(location, { recursive: true });
+    (fs.paths ||= {})[location] = { directory: true };
+    return await Promise.all(contents.map((x: FSItem)=>x({ ...fs, cwd: location })));
+  }, { path, contents });
 /** Specify a binary data file. */
 export const data = (
   path: string, value?: number|Bytes, ...steps: Step<Bytes>[]
-) => Object.assign(async function writeBinaryData (fs: FS = fsContext()) {
-  value = (typeof value === 'number') ? new Uint8Array(value) : value
-  const location = resolvePath(fs.cwd, path);
-  const data = await Promise.resolve(pipe(...steps)(value)) as Bytes;
-  await writeFile(location, data);
-  fs.paths[location] = { file: true };
-  return data;
-}, { path, value, steps });
+) => reflect(
+  `data at ${path}`,
+  async function writeBinaryData (fs: FS = fsContext()) {
+    value = (typeof value === 'number') ? new Uint8Array(value) : value
+    const location = resolvePath(fs.cwd, path);
+    const data = await Promise.resolve(pipe(...steps)(value||''))||'' as Bytes;
+    await writeFile(location, data);
+    fs.paths[location] = { file: true };
+    return data;
+  }, { path, value, steps });
 /** Specify a text file. */
 export const text = (
   path: string, value?: string|string[], ...steps: Step<string>[]
-) => Object.assign(async function writeText (fs: FS = fsContext()) {
-  const location = resolvePath(fs.cwd, path);
-  const data = await Promise.resolve(pipe(...steps)(value || '')) as string;
-  await writeFile(location, data, 'utf8');
-  fs.paths[location] = { file: true };
-  return data;
-}, { path, value, steps });
+) => reflect(
+  `text at ${path}`,
+  async function writeText (fs: FS = fsContext()) {
+    const location = resolvePath(fs.cwd, path);
+    const data = await Promise.resolve(pipe(...steps)(value || '')) as string;
+    await writeFile(location, data, 'utf8');
+    fs.paths[location] = { file: true };
+    return data;
+  }, { path, value, steps });
 /** Specify a text file format. */
 export const textFormat = format =>
   <T>(path: string, ...steps: Step<T>[]) =>

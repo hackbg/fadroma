@@ -1,10 +1,9 @@
-export * from './codegen/es.ts';
-export * from './codegen/es.ts';
-export * from './codegen/rs.ts';
-
-import { text, markdown } from './service/fs.ts';
+import { text, markdown } from './service.ts';
 import type { ECMAScript } from './codegen/es.ts';
 import type { Rust } from './codegen/rs.ts';
+
+export * from './codegen/es.ts';
+export * from './codegen/rs.ts';
 
 /** Semantic version. */
 export type Semver = string; // TODO

@@ -233,7 +233,6 @@ export function zmqDecodeFrame (bytes: Bytes|null = null): ZmqFrame|null {
       Object.assign(bytes, { metadata });
     }
   }
-  console.log({ decode: bytes });
   return bytes as ZmqFrame
 };
 
