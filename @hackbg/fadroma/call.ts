@@ -115,13 +115,15 @@ export { curry as call }
   *   function f3 (p) { ... }
   **/
 export const pipe = <Result, Input = unknown> (
-  step0: Fn<[Input]>, ...steps: Fn[]
+  ...steps: [Fn<[Input]>, ...Fn[]]
 ): Fn<[Result]> => reflect(
-  `pipe ${steps.length+Number(!!step0)}`,
-  function pipe (value: Input): Async<Output> {
+  `pipe ${steps.length}`,
+  function pipe (value: Input): Async<Result> {
     let state: unknown = value;
-    for (const step of steps) state = resolveSync(state as unknown as X, step);
-    return state as Y
+    for (const step of steps) {
+      state = resolveSync(state, step);
+    }
+    return state as Result
   }, { steps });
 
 export const sequence = <T>(...steps: Fn<[T]>[]) => reflect(null,

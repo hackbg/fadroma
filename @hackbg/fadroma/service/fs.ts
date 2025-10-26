@@ -1,4 +1,4 @@
-import type { Step, Bytes } from '../index.ts';
+import type { Step, Bytes, Fn } from '../index.ts';
 import { writeFile, resolvePath, mkdir, getCwd } from '../deps.ts';
 import { pipe, reflect } from '../call.ts';
 /** Context for executing filesystem operations. */
@@ -38,7 +38,7 @@ export const data = (
 }, { path, value, steps });
 /** Specify a text file. */
 export const text = (
-  path: string, value?: string|string[], ...steps: Array<(_:unknown)=>unknown>
+  path: string, value?: string|string[], ...steps: Step<string>[]
 ) => Object.assign(async function writeText (fs: FS = fsContext()) {
   const location = resolvePath(fs.cwd, path);
   const data = await Promise.resolve(pipe(...steps)(value || '')) as string;
