@@ -1,6 +1,6 @@
 packages:
   - .
-  - ./lib/@hackbg/*
-  - ./lib/@hackbg/toolbox/*
-  - ./lib/@hackbg/toolbox/ganesha/*
-  - ./lib/@fadroma/*
+  - ./@hackbg/fadroma
+  - ./@hackbg/toolbox/*
+  - ./@hackbg/toolbox/ganesha/*
+  - ./@fadroma/*

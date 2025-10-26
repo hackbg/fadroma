@@ -1,20 +1,13 @@
 import type { Id, Identified, Named, Colorful } from './deps.ts';
-
-export type Entity<I extends Id> = Identified<I> & Partial<Named & Colorful>;
-
 /** An address on a chain. */
 export type Address = string;
-
 /** A chain's unique ID. */
 export type ChainId = string;
-
 /** Reference to chain by id. */
-export type ChainRef = Entity<ChainId>;
-
+export type ChainRef = Identified<ChainId>;
 /** A chain's full representation. */
 export type Chain = ChainRef & Context & Api &
   { connect: (url?: string|URL)=>Connection };
-
 /** Represents the backend of a managed chain (such as a devnet). */
 export type ChainBackend = Logger<ChainId, Console> & {
   connect   ():                 Promise<Chain>
@@ -24,20 +17,15 @@ export type ChainBackend = Logger<ChainId, Console> & {
   /** For providing initial balances. */
   gasToken: string
 };
-
 /** Represents an individual remote API endpoint. */
 export type Connection = ChainRef & Context & Api & { url?: string|URL };
-
 /** Block height. */
 export type Height = number|bigint;
-
 /** Global unit of event time. Contains zero or more transactions. */
-export type Block = Entity<string> &
+export type Block = Identified<string> &
   { chain: ChainRef, height: Height, header: unknown, transactions: Transaction[] };
-
 /** A transaction in a block on a chain. */
-export type Transaction = Entity<Hash> & { chain: ChainRef, block: Height, data: unknown };
-
+export type Transaction = Identified<Hash> & { chain: ChainRef, block: Height, data: unknown };
 /** A batch of transactions. */
 export interface Batch {
   /** Add a transaction to the batch. */
@@ -45,7 +33,6 @@ export interface Batch {
   /** Submit the batch. */
   submit (agent: Agent): Promise<unknown>
 }
-
 /** Dependencies of chain API methods. */
 export type Context = Logger<ChainId, Console> & {
   /** The connection URL. */
@@ -55,7 +42,6 @@ export type Context = Logger<ChainId, Console> & {
   /** Return a descriptior for this chain. */
   chain (): ChainRef
 }
-
 /** Chain API methods. */
 export type Api = {
   /** Fetch defails about a block. */
@@ -76,16 +62,15 @@ export type Api = {
   /** Fetch the block after it increments. */
   fetchNextHeight (interval?: number): Promise<Height>
 }
-
 /** A cryptographic identity. */
 export type Signer = { publicKey?: Hash, sign (_: unknown): unknown };
-
 /** Binds a `Signer` to a `Chain`, enabling broadcasting of transactions. */
 export type Agent = Signer & AgentApi & Logger<Hash, Console> &
   { chain: () => ChainRef, batch: () => Batch, address: Address, };
-
 export type AgentApi =
   { fetchBalance (): Promise<Record<string, Uint128>> };
+export type Context = unknown;
+type ChainApiOptions = { interval?: number, log?: Console }// = 1000, log = api.log ?? logger() }
 
 /** Describe a chain. */
 export const chain = (id: string, url: string|URL, {
@@ -97,22 +82,18 @@ export const chain = (id: string, url: string|URL, {
   id, live, name, log, api,
   connect: (to: string|URL = url) => connection(chain, api, to)
 });
-
 /** Describe a connection to a given `chain` by a given `url` */
 export const connection = <C extends Connection> (
   chain: Chain, api = impl, url?: string|URL
 ): C => bindMethods(api)({
   ...chain, url, log: logger({ name: `${chain.name}[${url?.toString()||'(disconnected)'}]` })
 });
-
 //export const impl: Impl<Api, Context & Api> = {
   //fetchBlock (_, __) { throw new Error('base fetchBlock is not implemented') },
   //fetchNextBlock,
   //fetchHeight,
   //fetchNextHeight,
 //};
-
-type ChainApiOptions = { interval?: number, log?: Console }// = 1000, log = api.log ?? logger() }
 const fetch = (api: Api, options?: ChainApiOptions) => ({
   height:     () => fetch(api).block().then(({height})=>BigInt(height)),
   nextHeight: () => fetch(api).nextBlock(options?.interval).then(({height})=>BigInt(height)),
@@ -140,19 +121,3 @@ const fetch = (api: Api, options?: ChainApiOptions) => ({
     } })
   }),
 });
-
-export type Context = unknown;
-export type Test = (_: Context)=>unknown;
-export const testChain = (chain: ChainTest) => expect(chain.name,
-  chain.testLocal, chain.testFetch, chain.testGas, chain.testFungible,
-  chain.testNFT, chain.testProgram, chain.testProject);
-export type ChainTest = {
-  name:          string,
-  testLocal?:    Test,
-  testFetch?:    Test,
-  testGas?:      Test,
-  testFungible?: Test,
-  testNFT?:      Test,
-  testProgram?:  Test,
-  testProject?:  Test,
-};
