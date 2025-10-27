@@ -1,5 +1,5 @@
 import type { Fn } from './deps.ts';
-import { joined, call, service, dir, exec, spawn, interval, waitPort,
+import { joined, call, service, dir, exec, spawn, interval, tcpWait,
   zmqSub, serveHttp, route, param, guard, get, post,
   BTCJS, Indexd, DB, isHex64 } from './deps.ts';
 
@@ -90,10 +90,10 @@ export function btcLocalnet (...config: Partial<BtcLocalnetConfig>[]) {
   return service('BTC Localnet API',
     dir(dataDir),
     bitcoind(),
-    waitPort({ port: zmqPort }),
+    tcpWait({ port: zmqPort }),
     zmqSub({ port: zmqPort }, onZmq),
     dir(walletDir),
-    waitPort({ port: btcPort }),
+    tcpWait({ port: btcPort }),
     bitcoinCli('createwallet', walletDir),
     bitcoinCli(`-rpcwallet=${walletDir}`, '-generate'),
     interval(60000, async () => (await indexd).indexd.tryResync()),

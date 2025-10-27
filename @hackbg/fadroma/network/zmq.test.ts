@@ -1,58 +1,61 @@
 import { ok, expect, call, testSuite, equal, throws, todo } from '../tester.ts';
-import {
-  zmqConnect,
-  zmqPub, zmqPubShake,
-  zmqSub, zmqSubShake,
-  zmqEncodeFrame, zmqDecodeFrame,
-  zmqReady, zmqFlagCmd, zmqGreetSize,
-} from './zmq.ts';
+import { zmqFlag, zmqFrame, zmqGreet, zmqPub, zmqPubShake, zmqSub, zmqSubShake, } from './zmq.ts';
+
+//const testZmqCodec = expect('Codec',
+  //expect('Greet',   testCall(zmqGreet)),
+  //expect('Frame',   testCall(zmqFrame)),
+  //expect('Command', testCall(zmqFrame, { command: 'READY', metadata: [] })));
+const testZmqCodec = expect('Codec',
+  expect('Greet',   testZmqGreet),
+  expect('Frame',   testZmqFrame),
+  expect('Command', testZmqFrameCmd),
+  expect('Ready',   testZmqFrameCmdReady));
+async function testZmqGreet (_) {
+  throws(()=>zmqGreet(null));
+  const b = new Uint8Array(64);
+  equal(zmqGreet(b), b);
+}
+async function testZmqFrame (_) {
+  throws(call(zmqFrame));
+  throws(call(zmqFrame, null));
+  const binary = new Uint8Array(64);
+  equal(zmqFrame(binary), binary);
+}
+async function testZmqFrameCmd (_) {
+  throws(call(zmqFrame));
+  throws(call(zmqFrame, null));
+  const b = new Uint8Array(64);
+  throws(call(zmqFrame, b));
+  b[0] |= zmqFlag.cmd.mask;
+  equal(zmqFrame(b), b);
+}
+async function testZmqFrameCmdReady (_) {
+  equal([...zmqFrame({ command: 'READY' })], [ 4, 6, 5, 82, 69, 65, 68, 89 ]);
+  throws(call(zmqFrame));
+  throws(call(zmqFrame, null));
+  const b = new Uint8Array(64);
+  throws(()=>zmqFrame(b));
+  b[0] |= zmqFlag.cmd.mask;
+  throws(()=>zmqFrame(b));
+  Object.assign(b, { name: zmqFrame });
+  equal(zmqFrame(b)[0], zmqFlag.cmd.mask);
+  todo(call(equal, zmqFrame(b).metadata, []));
+}
+
+export const testZmqPub = expect('Pub', async function testZmqPub () {
+  const mock    = [];
+  const publish = zmqPub(12321, (...args) => mock.push(...args));
+  const pub     = await publish();
+  equal(typeof pub.stop, 'function');
+  pub.stop();
+});
+
+export const testZmqSub = expect('Sub', async function testZmqSub () {
+  const mock      = [];
+  const subscribe = zmqSub(32123, (...args) => mock.push(...args));
+  const sub       = await subscribe();
+  equal(sub, {});
+});
 
 export default testSuite(import.meta, 'ZeroMQ',
-  expect('Codec',
-    expect('Greet', async function testZmqGreet (ctx) {
-      throws(()=>zmqDecodeGreet(null));
-      const b = new Uint8Array(64);
-      equal(zmqDecodeGreet(b), b);
-    }),
-    expect('Frame', async function testZmqFrame (ctx) {
-      throws(call(zmqDecodeFrame));
-      throws(call(zmqDecodeFrame, null));
-      const binary  = new Uint8Array(64);
-      const decoded = zmqDecodeFrame(b)
-      equal(zmqDecodeFrame(b), b);
-    },
-      expect('Command', async function testZmqFrameCmd (ctx) {
-        throws(call(zmqDecodeFrame));
-        throws(call(zmqDecodeFrame, null));
-        const b = new Uint8Array(64);
-        throws(call(zmqDecodeFrame, b));
-        b[0] |= zmqFlagFrame.mask;
-        equal(zmqDecodeFrame(b), b);
-      },
-        expect('Ready', async function testZmqFrameCmdReady (ctx) {
-          equal([...zmqEncodeFrame({ cmd: true, name: 'READY' })], [ 4, 6, 5, 82, 69, 65, 68, 89 ]);
-          throws(call(zmqDecodeFrame));
-          throws(call(zmqDecodeFrame, null));
-          const b = new Uint8Array(64);
-          throws(()=>zmqDecodeFrame(b));
-          b[0] |= zmqFlagFrame.mask;
-          throws(()=>zmqDecodeFrame(b));
-          Object.assign(b, { name: zmqFrame });
-          equal(zmqDecodeFrame(b)[0], zmqFlagFrame.mask);
-          todo(call(equal, zmqDecodeFrame(b).metadata, []));
-        })))),
-  expect('Pub', async function testZmqPub () {
-    const mock    = [];
-    const onSub   = (...args) => mock.push(...args);
-    const publish = zmqPub({ port: 12321 }, onSub);
-    const pub     = await publish();
-    equal(typeof pub.stop, 'function');
-    pub.stop();
-  }),
-  expect('Sub', async function testZmqSub () {
-    const mock      = [];
-    const onSub     = (...args) => mock.push(...args);
-    const subscribe = zmqSub({ port: 32123 }, onSub);
-    const sub       = await subscribe();
-    equal(sub, {});
-  }));
+  testZmqCodec, testZmqPub, testZmqSub);

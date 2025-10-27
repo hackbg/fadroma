@@ -2,11 +2,11 @@ import type { Bytes } from '../index.ts';
 import { reflect } from '../call.ts';
 import { concatBytes } from '../format/bytes.ts';
 /** Simplified bidirectional stream interface. */
-export type RW<T> = Reader<T> & Writer<T>;
+export type RW<T = Bytes> = Reader<T> & Writer<T>;
 /** Input stream reader. */
 export type Reader<T = Bytes> = { read: Read<T> };
 /** Output stream writer. */
-export type Writer<T> = { write: Write<T> };
+export type Writer<T = Bytes> = { write: Write<T> };
 /** Write to stream. */
 export type Write<T = Bytes> = (_: T) => Promise<void>;
 /** Read from stream. */

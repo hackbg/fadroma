@@ -20,8 +20,8 @@ export { default as Case } from 'case';
 export type { Buffer } from 'node:buffer';
 
 export const {
-  connect,
-  listen,
+  connect: denoConnect,
+  listen:  denoListen,
 } = globalThis.Deno || {};
 
 export type TcpConn = Deno.TcpConn;

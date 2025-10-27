@@ -27,9 +27,6 @@ const randomNumeric = (): string =>
 export const randomId = (length = 12): number =>
   parseInt(Array.from({ length }) .map(() => randomNumeric()).join(""), 10);
 
-export const msec = (t: number) =>
-  yellow((t.toFixed(0)+'ms').padEnd(10));
-
 export const addZeros = (n: number|Uint128, z: number): Uint128 =>
   `${n}${[...Array(z)].map(() => '0').join('')}`;
 export const toHex = (d: string|number|bigint, pad = 2) => {

@@ -1,6 +1,6 @@
 import type { Fn, Log, Timed, Takes, Returns, Reflects, Async } from './index.ts';
 import { ok, equal, throws, rejects, getCwd, stdout, exit, argv, setImmediate, } from './deps.ts';
-import { isEntrypoint } from './frontend/cmd.ts';
+import { isEntrypoint } from './client/cmd.ts';
 import { logger } from './logger.ts';
 import { Error, msec, dT, joined, red, green, blue, orange, yellow, gray, bold, dim } from './format.ts';
 import { call, reflect, objectReducer, reduceObject, identity, todo } from './call.ts';

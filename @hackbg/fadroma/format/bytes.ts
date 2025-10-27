@@ -47,3 +47,4 @@ export function writeAdvance (bytes: Bytes, {
     done, u8, u16, u32, u64, i16, i32, i64, str, buf,
   }
 }
+export const toU8A = x => (x instanceof Uint8Array) ? x : new Uint8Array(x);

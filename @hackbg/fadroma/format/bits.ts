@@ -1,14 +1,13 @@
 import { reflect } from '../call.ts';
-
 /** False, zero, empty string, null, undefined, zip, nada, zilch. */
 export type Falsy = 0 | '' | false | null | undefined;
-
 /** Null or undefined. */
 export type Nullish = null | undefined;
-
 /** Soft optional. */
 export type Maybe<T> = T|Falsy;
-
+/** A binary flag helper. */
+export type Flag = ReturnType<typeof flag>;
+/** Specify a flag. */
 export const flag = (name: string, bit: number) =>
   reflect(`bit ${bit}: ${name}`, function testFlag (
     value: number|[number] = null
