@@ -1,4 +1,4 @@
-import type { Fn, RW } from '../index.ts';
+import type { Fn, RW, AsyncIter } from '../index.ts';
 import type { Socket } from '../deps.ts';
 import { TcpServer, createConnection, denoConnect, denoListen } from '../deps.ts';
 import { reflect } from '../call.ts';
@@ -10,7 +10,7 @@ export type Tcp = {
   connect (to: number|string|URL): Promise<RW>
 };
 /** A network endpoint. */
-export type Endpoint = URL & TcpServer;
+export type Endpoint = URL & TcpServer & AsyncIter<Socket>;
 /** Define network context. */
 export function tcpContext <T extends Tcp>({
   ports   = {},

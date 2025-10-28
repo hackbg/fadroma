@@ -11,13 +11,15 @@ export const tuiContext = (
   get [Symbol.asyncIterator] () { return input[Symbol.asyncIterator] },
 
   output,
+  rows:     output?.columns || 80,
+  columns:  output?.rows    || 25,
   width:    output?.columns || 80,
   height:   output?.rows    || 25,
   cursorTo: (...args) => output?.cursorTo(...args),
   write:    (...args) => output?.write(...args),
 
   ...state
-});
+}) as Tui;
 
 export type Tui = FrameTimings & TuiIn & TuiOut & {
   exited:  boolean,
@@ -34,6 +36,8 @@ export type TuiIn = {
 }
 
 export type TuiOut = {
+  rows,
+  columns,
   cursorTo: (x: number, y: number) => void
   write:    (_: string)            => void
 };
@@ -92,7 +96,7 @@ export const at = <T extends Tui> (
 
 export const draw = <T extends Tui> (
   ...steps: Array<string|((_: T)=>unknown)>
-) => Object.assign(async function draw (state: Tui) {
+) => Object.assign(async function draw (state: T) {
   for (const step of steps) {
     if (typeof step === 'string') {
       state.write(step);

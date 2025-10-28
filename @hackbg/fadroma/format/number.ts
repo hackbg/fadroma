@@ -1,4 +1,4 @@
-import { yellow } from './color.ts';
+import type { Bytes } from './bytes.ts';
 
 export type Num = number|string|bigint;
 

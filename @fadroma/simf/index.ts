@@ -1,4 +1,5 @@
 import { pipe, dir, text, data, exec, resolvePath, fileURLToPath } from './deps.ts';
+import type { FS, Pids } from './deps.ts';
 
 export function simfInit ({
   name    = null,
@@ -23,10 +24,10 @@ export function simfBuild ({
   simf    = name && `${name}.simf`,
   witness = name && `${name}.wit`,
 }) {
-  return ctx => pipe(
-    exec(simc, resolvePath(ctx.cwd, simf)),
-    ctx => ctx.stdout.split('\n')[1],
-  )(ctx)
+  return pipe(
+    (ctx: FS) => exec(simc, resolvePath(ctx.cwd, simf))(ctx),
+    (ctx: Pids) => ctx.stdout.split('\n')[1],
+  )
 }
 
 const defaultSimc = resolvePath(fileURLToPath(import.meta.url), '../simc');

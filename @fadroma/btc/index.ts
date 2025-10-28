@@ -3,6 +3,60 @@ import { joined, call, service, dir, exec, spawn, interval, tcpWait,
   zmqSub, serveHttp, route, param, guard, get, post,
   BTCJS, Indexd, DB, isHex64 } from './deps.ts';
 
+export type BtcLocalnetConfig = {
+  regTest:    boolean
+  btcPort:    number
+  zmqPort:    number
+  httpPort:   number
+  dataRoot:   number
+  dataDir:    string
+  walletDir:  string
+  bitcoinCli: unknown
+  bitcoind:   unknown
+  elementsd:  unknown
+  rpc:        unknown
+  indexd:     unknown
+  db:         DB,
+  onZmq:      Fn
+};
+
+/** Spawn BTC localnet in regression test mode with indexer and API.
+ *
+ * Slimmed-down reimplementation of https://github.com/bitcoinjs/regtest-server */
+export function btcLocalnet (...config: Partial<BtcLocalnetConfig>[]) {
+  const {
+    regTest    = true,
+    btcPort    = regTest ? 18443 : 8443,
+    zmqPort    = 48485,
+    httpPort   = 48484,
+    dataRoot   = '/tmp/fadroma/test/btc/',
+    dataDir    = joined('', dataRoot, +new Date()),
+    walletDir  = joined('', dataRoot, +new Date()),
+    rpc        = stubRpc,
+    onZmq      = stubZmq,
+    db         = new DB('indexd'),
+    indexd     = new Indexd(db, rpc),
+    bitcoinCli = btcClient({ regTest, dataDir }),
+    bitcoind   = btcDaemon({ regTest, dataDir, btcPort, zmqPort }),
+    elementsd  = (...arg) => spawn('elementsd', ...arg), // TODO
+  } = call(Object.assign, ...config)() as BtcLocalnetConfig;
+  return service('BTC Localnet API',
+    (_)=>db.open(),
+    dir(dataDir),
+    bitcoind(),
+    tcpWait({ port: zmqPort }),
+    zmqSub(zmqPort, onZmq),
+    dir(walletDir),
+    tcpWait({ port: btcPort }),
+    bitcoinCli('createwallet', walletDir),
+    bitcoinCli(`-rpcwallet=${walletDir}`, '-generate'),
+    interval(60000, () => indexd.tryResync()),
+    serveHttp(httpPort, txApi({ rpc, indexd }),
+                        bxApi({ rpc, indexd }),
+                        rxApi({ rpc }),
+                        axApi({ indexd, rpc })));
+}
+
 /** Call Bitcoin CLI. */
 export const btcClient = ({
   dataDir = null,
@@ -36,72 +90,6 @@ export const btcDaemon = ({
   zmqPort && ('-zmqpubhashtx=tcp:/'    + '/127.0.0.1:' + zmqPort),
   rpcWq   && ('-rpcworkqueue=' + rpcWq),
   btcPort && ('-rpcport=' + btcPort));
-
-/** Spawn Bitcoin indexer. */
-export const btcIndexd = ({
-  db     = new DB('indexd'),
-  rpc    = stubRpc,
-  indexd = new Indexd(db, rpc),
-} = {}) => Object.assign(async function runIndexd () {
-  await db.open();
-  return { db, rpc, indexd }
-}, { db, rpc, indexd })
-
-export type BtcLocalnetConfig = {
-  regTest:    boolean
-  btcPort:    number
-  zmqPort:    number
-  httpPort:   number
-  dataRoot:   number
-  dataDir:    string
-  walletDir:  string
-  bitcoinCli: unknown
-  bitcoind:   unknown
-  elementsd:  unknown
-  rpc:        unknown
-  indexd:     unknown
-  onZmq:      Fn
-};
-
-/** Spawn BTC localnet in regression test mode with indexer and API.
- *
- * Slimmed-down reimplementation of https://github.com/bitcoinjs/regtest-server */
-export function btcLocalnet (...config: Partial<BtcLocalnetConfig>[]) {
-  const {
-    regTest = true,
-    btcPort = regTest ? 18443 : 8443,
-    zmqPort = 48485,
-    httpPort = 48484,
-
-    dataRoot  = '/tmp/fadroma/test/btc/',
-    dataDir   = joined('', dataRoot, +new Date()),
-    walletDir = joined('', dataRoot, +new Date()),
-
-    rpc    = stubRpc,
-    onZmq  = stubZmq,
-    indexd = btcIndexd({ rpc })(),
-
-    bitcoinCli = btcClient({ regTest, dataDir }),
-    bitcoind   = btcDaemon({ regTest, dataDir, btcPort, zmqPort }),
-    elementsd  = (...arg) => spawn('elementsd', ...arg), // TODO
-
-  } = call(Object.assign, ...config)() as BtcLocalnetConfig;
-
-  return service('BTC Localnet API',
-    dir(dataDir),
-    bitcoind(),
-    tcpWait({ port: zmqPort }),
-    zmqSub({ port: zmqPort }, onZmq),
-    dir(walletDir),
-    tcpWait({ port: btcPort }),
-    bitcoinCli('createwallet', walletDir),
-    bitcoinCli(`-rpcwallet=${walletDir}`, '-generate'),
-    interval(60000, async () => (await indexd).indexd.tryResync()),
-    serveHttp(httpPort, txApi({ rpc, indexd }),
-                        bxApi({ rpc, indexd }),
-                        rxApi({ rpc }),
-                        axApi({ indexd, rpc })));
-}
 
 const stubRpc = (...args: unknown[]) => console.debug('TODO:', ...args);
 
