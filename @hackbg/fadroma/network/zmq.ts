@@ -47,7 +47,8 @@ export function zmqSub (to: number|string|URL, handler: Fn<[ZmqSub]>) {
     const subscribe = (t: string) => zmqSubAddTopic(socket, t);
     const receive   = () => zmqSubReceive(socket);
     const close     = () => { stopped = true; socket.close() };
-    Object.assign(socket, { subscribe, receive, close })
+    Object.assign(socket, { subscribe, receive, close });
+    console.log({socket});
     await handshake(socket);
     const subscription = asyncIter(zmqSubIterator)(socket);
     setImmediate(zmqSubIterate);

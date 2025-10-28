@@ -1,37 +1,25 @@
 #!/usr/bin/env -S deno run --allow-read --allow-run --allow-env --allow-import
 import { setTimeout, clearTimeout } from 'node:timers';
 import { entrypoint, call, orange, bold, gray, blue, wordWrap } from './index.ts';
-import { getCwd, stdout, execImpl, stripVTControlCharacters, watchFs } from './@hackbg/fadroma/deps.ts';
-import { resolve as resolvePath } from 'node:path';
-import { realpathSync } from 'node:fs';
+import { stdout, execImpl, stripVTControlCharacters, watchFs } from './deps.ts';
 const RE = /(TS\d+)(.+)\n[\s\S]+? at (file:\/\/\/.+\n)/gm;
 const decoder = new TextDecoder();
 entrypoint(import.meta, main);
 async function main (argv) {
-  const cwd = `${getCwd()}`;
   console.log({argv});
   let timer = null;
   const interval = 100;
-  await update({ force: true });
+  await update({ paths: [''] });
   await receive(watchFs("."), update);
-  async function update ({ force = false, kind = null, paths = [] } = {}) {
-    if (!force) {
-      if (kind === 'access') return;
-      //paths = paths.map(x=>(typeof x === 'string')?x.replace(cwd, '.'):x);
-      paths = paths
-        .filter(x=>!x.endsWith('~'))
-        .filter(x=>!x.includes('/.git/'))
-        .filter(x=>!x.includes('/toolbox/'))
-        .filter(x=>!x.includes('/.deno.lock'));
-      if (paths.length === 0) return;
-      paths = paths
-        .map(x=>{ try { return realpathSync(x) } catch (e) { if (e.code!=='ENOENT') throw e } })
-        .filter(Boolean)
-        .map(x=>resolvePath(x))
-        .filter(x=>!x.includes('/node_modules/.deno/'));
-      if (paths.length === 0) return;
-      stdout.write(`\x1b[${stdout.rows||1};1H\x1b[0K`+blue(bold(kind)+' '+paths.map(blue).join(', ').slice(0, stdout.columns-10)));
-    }
+  async function update ({ kind, paths = [] } = {}) {
+    if (kind === 'access') return;
+    console.log(`\x1b[1;1H\x1b[0K`, blue(bold(kind)+' '+paths.map(blue).join(', ')));
+    paths = paths
+      .filter(x=>!x.endsWith('~'))
+      .filter(x=>!x.includes('/.git/'))
+      .filter(x=>!x.includes('/.deno.lock'))
+      .filter(x=>!x.includes('/node_modules/'));
+    if (paths.length === 0) return;
     if (timer) clearTimeout(timer);
     timer = setTimeout(call(typecheck, kind, paths), interval);
   }

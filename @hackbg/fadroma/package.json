@@ -6,8 +6,16 @@
     "check": "deno check"
   },
   "dependencies": {
-    "@scure/base": "^2",
     "@std/streams": "npm:@jsr/std__streams@^1.0.13",
-    "case": "^1.6.3"
+    "case": "^1.6.3",
+    "@scure/base": "^2"
+  },
+  "peerDependencies": {
+    "@noble/curves": "^2",
+    "@noble/ed25519": "^3",
+    "@noble/hashes": "^2",
+    "@noble/secp256k1": "^3",
+    "@scure/bip32": "^2",
+    "@scure/bip39": "^2"
   }
 }

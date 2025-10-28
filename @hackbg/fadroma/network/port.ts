@@ -1,3 +1,10 @@
+export type Ports = {
+  ports: Record<number, Endpoint>
+};
+export type Endpoint = {
+  url: URL
+};
+
 //import * as net from 'net'
 //import { Console } from '@hackbg/logs'
 //const log = new Console(`@hackbg/port`)

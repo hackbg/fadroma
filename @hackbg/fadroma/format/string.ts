@@ -1,5 +1,7 @@
 import type { Falsy, Bytes } from '../format.ts';
 import { Case } from '../deps.ts';
+import { NO_COLOR } from './color.ts';
+import { identity } from '../call.ts';
 
 /** String, or something with a `toString` method. */
 export type Stringy = string|{ toString(): string };
@@ -76,4 +78,43 @@ export const camelize = <T extends object>(object: T) => {
     Object.assign(returned, { [Case.camel(key) as keyof T]: value as T[keyof T] })
   }
   return returned
+};
+
+/* Wrap string at whitespace.
+ *
+ * word-wrap <https://github.com/jonschlinkert/word-wrap>
+ * Copyright (c) 2014-2023, Jon Schlinkert.
+ * Released under the MIT License. */
+export function wordWrap (str: string, {
+  width = 50,
+  indent = '  ',
+  newline = '\n' + indent,
+  escape = identity,
+  cut = false,
+  trim = false
+} = {}) {
+  if (str == null) return str;
+  let regexString = '.{1,' + width + '}';
+  if (cut !== true) regexString += '([\\s\u200B]+|$)|[^\\s\u200B]+?([\\s\u200B]+|$)';
+  const re = new RegExp(regexString, 'g');
+  const lines = str.match(re) || [];
+  let result = indent + lines.map(function(line: string) {
+    if (line.slice(-1) === '\n') line = line.slice(0, line.length - 1);
+    return escape(line);
+  }).join(newline);
+  if (trim === true) result = trimTabAndSpaces(result);
+  return result;
+  function trimEnd (str: string) {
+    let lastCharPos = str.length - 1;
+    let lastChar = str[lastCharPos];
+    while(lastChar === ' ' || lastChar === '\t') {
+      lastChar = str[--lastCharPos];
+    }
+    return str.substring(0, lastCharPos + 1);
+  }
+  function trimTabAndSpaces (str: string) {
+    const lines = str.split('\n');
+    const trimmedLines = lines.map((line) => trimEnd(line));
+    return trimmedLines.join('\n');
+  }
 };

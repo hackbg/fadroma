@@ -1,16 +1,15 @@
-import type { Fn, RW, AsyncIter } from '../index.ts';
+import type { Fn, RW, AsyncIter, Ports, Endpoint } from '../index.ts';
 import type { Socket } from '../deps.ts';
 import { TcpServer, createConnection, denoConnect, denoListen } from '../deps.ts';
-import { reflect } from '../call.ts';
+import { reflect, asyncIter } from '../call.ts';
 import { toRW } from './stream.ts';
 /** TCP context. */
-export type Tcp = {
-  ports: Record<number, TcpServer>
-  listen (at: number|string|URL, handler: Fn<[Socket]>): Endpoint
+export type Tcp = Ports & {
+  listen (at: number|string|URL, handler: Fn<[Socket]>): TcpEndpoint
   connect (to: number|string|URL): Promise<RW>
 };
 /** A network endpoint. */
-export type Endpoint = URL & TcpServer & AsyncIter<Socket>;
+export type TcpEndpoint = Endpoint & TcpServer & AsyncIter<Socket>;
 /** Define network context. */
 export function tcpContext <T extends Tcp>({
   ports   = {},
@@ -25,29 +24,35 @@ export function tcpContext <T extends Tcp>({
     ...rest
   } as T
 }
+export function tcpAddr (to: number|string|URL): URL {
+  if (!isNaN(Number(to))) to = `tcp://localhost:${to}`;
+  if (typeof to === 'string') to = new URL(to);
+  return to as URL
+}
+
 /** Connect to a listener. */
 export async function tcpConnect (to: number|string|URL): Promise<RW> {
-  if (typeof to === 'number') to = `tcp://localhost:${to}`;
-  if (typeof to === 'string') to = new URL(to);
-  const { port, hostname } = to as URL;
+  const { port, hostname } = tcpAddr(to);
   if (denoConnect) {
     const socket = await denoConnect({ hostname, port: Number(port) });
-    return Object.assign(to, toRW(socket));
+    return toRW(socket);
   } else {
     throw new Error('not implemented');
   }
 }
 /** Listen for connections. */
-export function tcpListen (at: number|string|URL, handler?: Fn<[Socket]>): Endpoint {
-  if (typeof at === 'number') at = `tcp://localhost:${at}`;
-  if (typeof at === 'string') at = new URL(at);
+export function tcpListen (at: number|string|URL, handler?: Fn<[Socket]>): TcpEndpoint {
   const server = new TcpServer().on('connecton', handler);
-  if (handler) server.listen(at, handler);
-  return Object.assign(server, at, { handler }) as Endpoint;
+  if (handler) server.listen(tcpAddr(at), handler);
+  return asyncIter(async function * (s: typeof server) {
+    while (s.listening) {
+      yield await new Promise(resolve=>s.once('connection', resolve))
+    }
+  })(Object.assign(server, at, { handler })) as TcpEndpoint;
 }
 /** Define TCP service. */
 export const tcpServe = (port: number, handler: Fn<[Socket]>) =>
-  reflect(`TCP ${port}`, function runTcpServer (ctx: Tcp = tcpContext()): Endpoint {
+  reflect(`TCP ${port}`, function runTcpServer (ctx: Tcp = tcpContext()): TcpEndpoint {
     if (port in ctx.ports) throw new Error(`port ${port}: occupied`);
     const endpoint = tcpListen(port, handler);
     endpoint.on('close', () => delete ctx.ports[port]);

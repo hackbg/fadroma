@@ -9,3 +9,5 @@ export * from './format/string.ts';
 export * from './format/time.ts';
 /** Human-readable info interface. */
 export type Info = { summary (): string, details (): string };
+
+export * as Borsh from './format/borsh.ts';

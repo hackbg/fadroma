@@ -42,6 +42,7 @@ export const readBytes = ({ min = 0, max = 256 } = {}) =>
       let total = 0;
       const chunks = []
       while (true) {
+        console.log({read});
         const { done, value } = await read();
         chunks.push(value);
         total += value?.length ?? 0;

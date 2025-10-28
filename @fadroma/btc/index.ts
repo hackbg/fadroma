@@ -40,7 +40,7 @@ export function btcLocalnet (...config: Partial<BtcLocalnetConfig>[]) {
     bitcoind   = btcDaemon({ regTest, dataDir, btcPort, zmqPort }),
     elementsd  = (...arg) => spawn('elementsd', ...arg), // TODO
   } = call(Object.assign, ...config)() as BtcLocalnetConfig;
-  return service('BTC Localnet API',
+  return service('BTC Localnet',
     (_)=>db.open(),
     dir(dataDir),
     bitcoind(),
@@ -114,11 +114,11 @@ export const axApi = ({
 }) =>
   route('1/a/:address',
     param('options', ({params:{scId}}) => ({ scId: toScId(scId), heightRange, mempool })),
-    get('firstseen', ({ware}) => indexd().firstSeenScriptId(ware.options.scId)),
-    get('txos',      ({ware}) => indexd().txosByScriptRange(ware.options, dblimit)),
-    get('unspents',  ({ware}) => indexd().utxosByScriptRange(ware.options, dblimit)),
-    get('txids',     ({ware}) => indexd().transactionIdsByScriptRange(ware.options, dblimit)),
-    get('txs',       ({ware}) => indexd().transactionIdsByScriptRange(ware.options, dblimit), getRaw(rpc)),
+    get('firstseen', ({options}) => indexd().firstSeenScriptId(options.scId)),
+    get('txos',      ({options}) => indexd().txosByScriptRange(options, dblimit)),
+    get('unspents',  ({options}) => indexd().utxosByScriptRange(options, dblimit)),
+    get('txids',     ({options}) => indexd().transactionIdsByScriptRange(options, dblimit)),
+    get('txs',       ({options}) => indexd().transactionIdsByScriptRange(options, dblimit), getRaw(rpc)),
     get('alt/:address/unspents'));
 
 const getRaw = rpc => txIds =>

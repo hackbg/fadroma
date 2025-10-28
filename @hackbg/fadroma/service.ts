@@ -55,13 +55,12 @@ export const spawnContext = <T extends Pids>({
 export const serviceContext = pipe(
   logger, spawnContext, fsContext, tcpContext);
 /** Define a service. */
-export const service: StepsWith<string, ServiceContext> =
-  (name, ...services: Fn<[ServiceContext]>[]) => reflect(name,
-    async function spawnGroup (ctx = serviceContext() as ServiceContext) {
-      for (const service of services) await service(ctx);
-      const kill = () => Promise.all(Object.values(ctx.pids).map(proc=>proc.kill()));
-      return { name, kill }
-    }, { services });
+export const service = (name: string, ...services: Fn<[ServiceContext]>[]) => reflect(name,
+  async function spawnGroup (ctx = serviceContext() as ServiceContext) {
+    for (const service of services) await service(ctx);
+    const kill = () => Promise.all(Object.values(ctx.pids).map(proc=>proc.kill()));
+    return { name, kill }
+  }, { services });
 /** A service. */
 export type Service = Pick<ServiceContext, 'pids'|'ports'> &
   { name: string, kill (): Promise<void> };

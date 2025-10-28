@@ -1,4 +1,4 @@
-import type { Bytes, Step } from './index.ts';
+import type { Fn, Async, Bytes, Step } from './index.ts';
 import { tmpdir, mkdtemp, writeFile, resolvePath, mkdir, getCwd } from './deps.ts';
 import { pipe, reflect } from './call.ts';
 /** Context for executing filesystem operations. */
@@ -30,7 +30,7 @@ export const gitignore = (...lines: string[]) => text('.gitignore', ...lines);
 export type Readme = { title?: string, sections?: [string, string] };
 /** Define the project's README. */
 export const readme = ({ title }: Readme) =>
-  markdown('README.md', () => ({ [String(title)]: {} }));
+  markdown('README.md', `# ${title}`);
 /** Specify a temporary directory. */
 export const tmp = (
   prefix: string, ...contents: FSItem[]
@@ -64,27 +64,29 @@ export const data = (
   async function writeBinaryData (fs: FS = fsContext()) {
     value = (typeof value === 'number') ? new Uint8Array(value) : value
     const location = resolvePath(fs.cwd, path);
-    const data = await Promise.resolve(pipe(...steps)(value||''))||'' as Bytes;
-    await writeFile(location, data);
+    const data = await Promise.resolve(pipe(...steps)(value||''))||'';
+    await writeFile(location, data as Bytes);
     fs.paths[location] = { file: true };
     return data;
   }, { path, value, steps });
 /** Specify a text file. */
 export const text = (
-  path: string, value?: string|string[], ...steps: Step<string>[]
+  path: string, value?: string|string[], ...steps: (string|((_:string)=>Async<string>))[]
 ) => reflect(
   `text at ${path}`,
   async function writeText (fs: FS = fsContext()) {
     const location = resolvePath(fs.cwd, path);
-    const data = await Promise.resolve(pipe(...steps)(value || '')) as string;
+    const build = pipe(...steps.map(step=>(typeof step === 'string')
+      ?((x: string) => x + step):step));
+    const data = await Promise.resolve(build(value || '')) as string;
     await writeFile(location, data, 'utf8');
     fs.paths[location] = { file: true };
     return data;
   }, { path, value, steps });
 /** Specify a text file format. */
-export const textFormat = format =>
-  <T>(path: string, ...steps: Step<T>[]) =>
-    text(path, ...steps, format);
+export const textFormat = (format: unknown) =>
+  <T>(path: string, value?: string|string[], ...steps: (string|((_:string)=>Async<string>))[]) =>
+    text(path, value, ...steps, format as (_:string)=>Async<string>);
 /** Specify a JSON file. */
 export const json = textFormat((x: unknown) => JSON.stringify(x));
 /** Specify a Markdown file. */
