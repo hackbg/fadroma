@@ -43,7 +43,7 @@ export function tcpListen (at: number|string|URL, handler?: Fn<[Socket]>): Endpo
   if (typeof at === 'string') at = new URL(at);
   const server = new TcpServer().on('connecton', handler);
   if (handler) server.listen(at, handler);
-  return Object.assign(server, at, { handler });
+  return Object.assign(server, at, { handler }) as Endpoint;
 }
 /** Define TCP service. */
 export const tcpServe = (port: number, handler: Fn<[Socket]>) =>

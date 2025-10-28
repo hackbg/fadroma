@@ -1,5 +1,6 @@
 import { ok, expect, call, testSuite, equal, throws, todo } from '../tester.ts';
 import { zmqFlag, zmqFrame, zmqGreet, zmqPub, zmqPubShake, zmqSub, zmqSubShake, } from './zmq.ts';
+import type { ZmqFrame } from './zmq.ts';
 
 //const testZmqCodec = expect('Codec',
   //expect('Greet',   testCall(zmqGreet)),
@@ -25,7 +26,7 @@ async function testZmqFrameCmd (_) {
   throws(call(zmqFrame));
   throws(call(zmqFrame, null));
   const b = new Uint8Array(64);
-  throws(call(zmqFrame, b));
+  throws(call(zmqFrame, b as Partial<ZmqFrame>));
   b[0] |= zmqFlag.cmd.mask;
   equal(zmqFrame(b), b);
 }

@@ -25,8 +25,8 @@ export const serveHttp = (port: number, ...routes: Handler[]) =>
   }, { port, routes });
 /** Define URL route. */
 export const route: Route = (path, ...routes) => reflect(path,
-  async function routeRequest (context: Router) {
-    if (matchRoute(path)(context.path)) return pipe(...routes)(context)
+  async function routeRequest (context: Request) {
+    if (matchRoute(path)(context.url)) return pipe(...routes)(context)
   }, { routes });
 /** Match URL from request against route patterns. */
 export const matchRoute = (expected) => (actual) => false; // TODO

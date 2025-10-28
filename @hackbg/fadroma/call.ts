@@ -114,17 +114,31 @@ export { curry as call }
   *   async function f2 (p) { ... }
   *   function f3 (p) { ... }
   **/
-export const pipe = <Result, Input = unknown> (
-  ...steps: [Fn<[Input]>, ...Fn[]]
-): Fn<[Result]> => reflect(
-  `pipe ${steps.length}`,
-  function pipe (value: Input): Async<Result> {
-    let state: unknown = value;
-    for (const step of steps) {
-      state = resolveSync(state, step);
-    }
-    return state as Result
-  }, { steps });
+export function pipe (...steps: Fn[]): Fn;
+export function pipe <A, B> (
+  f0: Fn<[A], B>
+): Fn<[A], B>;
+export function pipe <A, B, C> (
+  f0: Fn<[A], B>, f1: Fn<[B], C>
+): Fn<[A], C>;
+export function pipe <A, B, C, D> (
+  f0: Fn<[A], B>, f1: Fn<[B], C>, f2: Fn<[C], D>
+): Fn<[A], D>;
+export function pipe <A, B, C, D, E> (
+  f0: Fn<[A], B>, f1: Fn<[B], C>, f2: Fn<[C], D>, f3: Fn<[D], E>
+): Fn<[A], E>;
+export function pipe (...steps: Fn[]): Fn {
+  return reflect(
+    `pipe ${steps.length}`,
+    function pipe (value: Parameters<typeof steps[0]>[0]) {
+      let state: unknown = value;
+      for (const step of steps) {
+        state = resolveSync(state, step);
+      }
+      return state
+    }, { steps }
+  );
+}
 
 /** Run functions sequentially in the same context.
  *
@@ -150,7 +164,9 @@ export const resolveSync = <X, F extends (_: unknown)=>unknown> (
   : f(x);
 
 export const toThenable = <T extends Async>(x: T): Promise<T> =>
-  (typeof x?.then === 'function') ? x : Promise.resolve(x);
+  (typeof (x as { then?: Function })?.then === 'function')
+    ? x as Promise<T>
+    : Promise.resolve(x);
 
 export const isThenable = (x: unknown) => !!x
   && (typeof x === 'object')

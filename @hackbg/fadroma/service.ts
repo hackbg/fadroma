@@ -56,7 +56,7 @@ export const serviceContext = pipe(
   logger, spawnContext, fsContext, tcpContext);
 /** Define a service. */
 export const service: StepsWith<string, ServiceContext> =
-  (name, ...services: ServiceComponent[]) => reflect(name,
+  (name, ...services: Fn<[ServiceContext]>[]) => reflect(name,
     async function spawnGroup (ctx = serviceContext() as ServiceContext) {
       for (const service of services) await service(ctx);
       const kill = () => Promise.all(Object.values(ctx.pids).map(proc=>proc.kill()));
@@ -65,7 +65,6 @@ export const service: StepsWith<string, ServiceContext> =
 /** A service. */
 export type Service = Pick<ServiceContext, 'pids'|'ports'> &
   { name: string, kill (): Promise<void> };
-export type ServiceComponent = Step<ServiceContext>;
 /** Define a background task. */
 export const spawn = (arg0: string, ...opts: (Step<Invoke>|string)[]) =>
   reflect(arg0, async function spawnDaemon (ctx: Pids = spawnContext()) {

@@ -1,3 +1,5 @@
+import { yellow } from './color.ts';
+
 export function timestamp (d = new Date()) {
   return d.toISOString()
     .replace(/[-:\.Z]/g, '')
