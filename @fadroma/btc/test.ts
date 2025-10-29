@@ -23,7 +23,7 @@ export async function testBtcClient (test: TestContext) {
   equal(context, await client(context));
   equal(mock, [
     { argv: [ 'bitcoin-cli', '-rpcpassword=fadroma', '-regtest', '-rpcport=18443' ]
-    , options: {} } ]);
+    , opts: {} } ]);
   //const instance = await invoke({});  equal(instance, {});
 }
 
@@ -38,7 +38,7 @@ export async function testBtcDaemon () {
   equal(mock, [
     { argv: [ 'bitcoind', '-rpcpassword=fadroma', '-regtest', '-server'
             , '-txindex', '-rpcworkqueue=32', '-rpcport=18443' ]
-    , options: {} } ]);
+    , opts: {} } ]);
 }
 
 export async function testLocalnet (ctx: TestContext) {

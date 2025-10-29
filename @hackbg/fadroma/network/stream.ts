@@ -38,7 +38,7 @@ export const write = <T>(...data: T[]) =>
 /** Read between `min` and `max` bytes. */
 export const readBytes = ({ min = 0, max = 256 } = {}) =>
   reflect(`read between ${min} and ${max} bytes`,
-    async function readSomeBytes (read: Read<Bytes>) {
+    async function readSomeBytes ({ read }: Reader<Bytes>) {
       let total = 0;
       const chunks = []
       while (true) {
