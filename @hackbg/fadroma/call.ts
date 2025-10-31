@@ -92,9 +92,14 @@ export const identity = <T>(x: T): T => x;
   */
 export const curry = <F extends ((..._:unknown[])=>unknown)>(
   fn: F, ...args: Partial<Parameters<F>>
-) => Object.assign(fn.bind(null, ...args), {
+) => reflect(`${fn.name}(${curriedArgs(args)})`, fn.bind(null, ...args), {
   fn, args, stack: new Error().stack?.split('\n').slice(3)
-})
+});
+
+const curriedArgs = args => args
+  .map(String)
+  .map((x: string) => x==='undefined'?'_':x)
+  .join(', ');
 
 export { curry as call }
 
@@ -292,7 +297,7 @@ export const withCatcher =
   *
   **/
 export const todo = (...info: string[]) => reflect(info.join(' '),
-  function trackTodo <T extends Testing>(_context: T) {
+  function trackTodo <T extends Testing> (_context: T) {
     throw Object.assign(new Error(info.join(' ')), { todo: true })
   }, { info });
 

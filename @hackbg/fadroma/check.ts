@@ -28,8 +28,6 @@ async function typecheck (kind, paths) {
   try {
     const ran = await execImpl('deno', ["check", "index.ts"], { stdio: 'inherit', })
     console.clear();
-    //console.log(kind, ...paths);
-    //console.log({ran});
     const out = await ran.output();
     console.log(decoder.decode(out))
   } catch (e) {

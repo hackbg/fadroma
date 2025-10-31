@@ -1,4 +1,4 @@
-import type { Fn, Async, Bytes, Step } from './index.ts';
+import type { Fn, Returns, Async, Bytes, Step } from './index.ts';
 import { tmpdir, mkdtemp, writeFile, resolvePath, mkdir, getCwd } from './deps.ts';
 import { pipe, reflect } from './call.ts';
 /** Context for executing filesystem operations. */
@@ -70,23 +70,24 @@ export const data = (
     return data;
   }, { path, value, steps });
 /** Specify a text file. */
-export const text = (
-  path: string, value?: string|string[], ...steps: (string|((_:string)=>Async<string>))[]
-) => reflect(
-  `text at ${path}`,
-  async function writeText (fs: FS = fsContext()) {
-    const location = resolvePath(fs.cwd, path);
-    const build = pipe(...steps.map(step=>(typeof step === 'string')
-      ?((x: string) => x + step):step));
+export const text = <T = string|number|object|null> (
+  path: string, value?: T|T[]|Step<T>, ...steps: Array<T|Step<T>>
+) => {
+  const toStep = step=>(typeof step === 'string')?((x: string) => x + step):step;
+  const build = pipe(...steps.map(toStep));
+  return reflect(`text at ${path}`, async function writeText (fs: FS = fsContext()) {
+    const full = resolvePath(fs.cwd, path);
     const data = await Promise.resolve(build(value || '')) as string;
-    await writeFile(location, data, 'utf8');
-    fs.paths[location] = { file: true };
+    await writeFile(full, data, 'utf8');
+    fs.paths[full] = { file: true };
     return data;
   }, { path, value, steps });
+};
 /** Specify a text file format. */
-export const textFormat = (format: unknown) =>
-  <T>(path: string, value?: string|string[], ...steps: (string|((_:string)=>Async<string>))[]) =>
-    text(path, value, ...steps, format as (_:string)=>Async<string>);
+export const textFormat = <T = string|number|object|null>
+  (format: Returns<string>) =>
+    (path: string, value?: T|T[]|Step<T>, ...steps: Array<T|Step<T>>) =>
+      text(path, value, ...steps, format as (_:T)=>Async<T>);
 /** Specify a JSON file. */
 export const json = textFormat((x: unknown) => JSON.stringify(x));
 /** Specify a Markdown file. */
@@ -164,7 +165,7 @@ export const packageJson = ({
   peerDependencies = [],
   main             = undefined,
   exports          = undefined,
-}) => json(path, () => ({
+}) => json(path, ()=>({
   name,
   type: legacy ? "script" : "module",
   main,
