@@ -9,6 +9,8 @@
     "@noble/secp256k1": "^3.0.0",
     "@scure/base": "^2",
     "@scure/bip32": "^2.0.1",
-    "@scure/bip39": "^2.0.1"
+    "@scure/bip39": "^2.0.1",
+    "@types/deno": "^2.5.0",
+    "typedoc": "^0.28.14"
   }
 }

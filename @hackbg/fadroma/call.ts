@@ -71,6 +71,8 @@ export const reflect = <T>(name, fn, props?: T) =>
   * Works great as a NOP when you need one. */
 export const identity = <T>(x: T): T => x;
 
+export const nop = (..._: unknown[]) => identity;
+
 /** Partial application of a function.
   * Use this to prepare a function with arguments for testing.
   *

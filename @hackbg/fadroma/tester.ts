@@ -1,8 +1,8 @@
-import type { Fn, Log, Timed, Takes, Returns, Reflects, Async } from './index.ts';
+import type { Fn, Step, Log, Timed, Takes, Returns, Reflects, Async } from './index.ts';
 import { ok, equal, throws, rejects, getCwd, stdout, exit, argv, setImmediate, } from './deps.ts';
 import { isEntrypoint } from './client/cmd.ts';
 import { logger } from './logger.ts';
-import { Error, msec, dT, joined, red, green, blue, orange, yellow, gray, bold, dim } from './format.ts';
+import { ANSI, Error, alignTrace, addStepStack, msec, dT, joined } from './format.ts';
 import { call, sequence, reflect, objectReducer, reduceObject, identity, todo } from './call.ts';
 export { call, ok, equal, throws, rejects, todo }
 
@@ -81,7 +81,7 @@ export type TestReport = Record<TestCategoryName, TestCategory>;
 
 /** Test result categories. TODO infer */
 export type TestCategoryName =
-  'pass'| 'fail'| 'todo'| 'warn'| 'skip'| 'note';
+  'pass'|'fail'|'todo'|'idea'|'warn'|'skip'|'note';
 
 /** Callable. Collection of results for a given category. */
 export type TestCategory = TestCollect & TestCategoryOpts & {
@@ -136,9 +136,15 @@ export const testAndExit = (test: TestStep, ...args: string[]) =>
   testRun(test, args).then(({ context, result })=>{
     const lines = testSummary({ context, result });
     stdout.write('\n'+joined('\n', lines) + '\n');
-    for (const name of categoryOrder) {
-      const { icon, color, label } = categorySpecs[name];
-      stdout.write('\n'+joined(' ', ` ${icon}`, color(`${context.report[name].length} ${label}`), ''));
+    for (const name of [
+      'pass', 'fail', 'todo', 'idea', 'warn', 'skip', 'note'
+    ]) {
+      const category = context.report[name];
+      //console.log({category});
+      const { icon, color, label } = category;
+      const final = joined(' ', ` ${icon}`,
+        color(`${context.report[name].length} ${label}`), '')
+      stdout.write('\n'+final);
     }
     exit(('pass' in result) ? 0 : 1);
   });
@@ -157,7 +163,7 @@ export async function testRun <T extends Testing> (
   return { context, result };
 }
 
-/** Create test context. */
+/** Create an empty test context. */
 export const testContext = <T extends Testing> ({
   args     = [],
   failFast = args.includes('--fail-fast'),
@@ -167,7 +173,15 @@ export const testContext = <T extends Testing> ({
   t0       = performance.now(),
   ids      = [],
   names    = [],
-  report   = testReport(categorySpecs),
+  report   = {
+    pass: testCategory('pass', `🟢`, ANSI.green,  'passed'  ),
+    fail: testCategory('fail', `🔴`, ANSI.red,    'failed'  ),
+    todo: testCategory('todo', `🟠`, ANSI.orange, 'tasks'   ),
+    warn: testCategory('warn', `🟡`, ANSI.yellow, 'warnings'),
+    skip: testCategory('skip', `🟣`, ANSI.purple, 'skipped' ),
+    idea: testCategory('idea', `🔵`, ANSI.blue,   'ideas'   ),
+    note: testCategory('note', `⚫️`, ANSI.dim,    'notes'   ),
+  } as const,
   ...rest
 }: Partial<T> & { args?: string[] } = {}): T => ({
   ...logger(),
@@ -175,16 +189,51 @@ export const testContext = <T extends Testing> ({
   ...rest,
 });
 
-/** Add originating test step to stack trace.
-  *
-  * Since there is a degree of indirection when composing curried functions
-  * (the code is defined from one place but executed from another),
-  * without this helper the real stack gets lost. */
-const addStepStack = (step: TestStep, error: Error) => {
-  if (typeof error !== 'object') error = new Error(error);
-  error.stack ||= ''
-  if (step.stack) error.stack += '\n  From:\n' + step.stack.join('\n')
-  return error
+/** Create a callable test result collection. */
+const testCategory = (
+  id: string, icon: string, color: Step<string>, label = id
+): TestCategory => reflect(id, async function categorizeTestResult (
+  context: Testing, ...details: unknown[]
+) {
+  const { log, t0, ids, names } = context;
+  const results = [];
+  const t1 = performance.now();
+  const tD = t1 - t0;
+  const result = { tD, details };
+  log(msec(tD), icon, color(id), ANSI.blue(ids.join('.')),
+    ANSI.gray(names.length, names.join(': ')), ...details.filter(Boolean));
+  results.push(result);
+  return { [id]: result };
+}, { id, icon, label, color });
+
+/** Print a summary of test results. */
+export function testSummary ({ context, result, lines = [], indent = '' }) {
+  if (!context.report[result.state]) return [];
+  const state = result.state;
+  const name  = result.name;
+  const icon  = context.report[state]?.icon  || '';
+  const color = context.report[state]?.color || identity;
+  const style = (result.results?.length > 1) ? ANSI.bold : identity;
+  const line  = joined(' ', ` ${icon}`, color(state), color((indent+' ').padEnd(15,'-')), style((name||'<unnamed>').padEnd(20)));
+  if (state === 'fail' && result?.error?.message) {
+    lines.push(joined(' ', line, ANSI.gray(2, joined(': ', ANSI.bold(result.error.name), result.error.message))));
+    lines.push(result.error.stack.split('\n').map(alignTrace).slice(1).join('\n'));
+  } else {
+    lines.push(line);
+  };
+  const results = result?.results || [];
+  if (results.length === 1 && results[0].state === 'pass' && !results[0].name) {
+    return lines
+  }
+  for (let index = 0; index < results.length; index++) {
+    testSummary({
+      context,
+      lines,
+      result: results[index],
+      indent: joined('.', indent, Number(index)+1),
+    });
+  }
+  return lines
 }
 
 /** A test case, consisting of a name and zero or more test steps.
@@ -351,67 +400,3 @@ export const parallel = (name: string, variants: ((_: Testing)=>unknown)[]) =>
   expect(name, async (context = testContext()) => {
     await Promise.all(variants.map(variant=>variant(context)))
   });
-
-const testReport = reduceObject(
-  objectReducer((cat, id: string)=>testCategory(id, cat))
-) as Returns<TestReport>;
-const categoryOrder: TestCategoryName[] = [
-  'pass', 'fail', 'todo', 'warn', 'skip', 'note'];
-const categorySpecs = {
-  pass: { icon: `🟢`, color: green,  label: 'passed'   },
-  fail: { icon: `🔴`, color: red,    label: 'failed'   },
-  todo: { icon: `🟠`, color: orange, label: 'tasks'    },
-  warn: { icon: `🟡`, color: yellow, label: 'warnings' },
-  skip: { icon: `  `, color: orange, label: 'skip'     },
-  idea: { icon: `  `, color: blue,   label: 'ideas'    },
-  note: { icon: `  `, color: blue,   label: 'notes'    }, } as const;
-/** Create a callable test result collection. */
-const testCategory = (id: string, { icon, label, color }): TestCategory =>
-  reflect(id, async function categorize ({ log, t0, ids, names }: Testing, ...details: unknown[]) {
-    const results = [];
-    const t1 = performance.now();
-    const tD = t1 - t0;
-    const result = { tD, details };
-    log(msec(tD), icon, color(id), blue(ids.join('.')),
-      gray(names.length, names.join(': ')), ...details.filter(Boolean));
-    results.push(result);
-    return { [id]: result };
-  }, { id, icon, label, color });
-/** Print a summary of test results. */
-export function testSummary ({ context, result, lines = [], indent = '' }) {
-  if (!categorySpecs[result.state]) return [];
-  const state = result.state;
-  const name  = result.name;
-  const icon  = categorySpecs[state]?.icon  || '';
-  const color = categorySpecs[state]?.color || identity;
-  const style = (result.results?.length > 1) ? bold : identity;
-  const line  = joined(' ', ` ${icon}`, color(state), color((indent+' ').padEnd(15,'-')), style((name||'<unnamed>').padEnd(20)));
-  if (state === 'fail' && result?.error?.message) {
-    lines.push(joined(' ', line, gray(2, joined(': ', bold(result.error.name), result.error.message))));
-    lines.push(result.error.stack.split('\n').map(alignTrace).slice(1).join('\n'));
-  } else {
-    lines.push(line);
-  };
-  const results = result?.results || [];
-  if (results.length === 1 && results[0].state === 'pass' && !results[0].name) {
-    return lines
-  }
-  for (let index = 0; index < results.length; index++) {
-    testSummary({
-      context,
-      lines,
-      result: results[index],
-      indent: joined('.', indent, Number(index)+1),
-    });
-  }
-  return lines
-}
-/** Format the test summary. */
-const alignTrace = (line: string) => {
-  line = line.replace('file://'+getCwd(), '.');
-  line = line.replace(getCwd(), '.');
-  line = line.split(' (')
-    .map((x,i)=>(i===0)?bold(gray(2, x.padEnd(32))):gray(3, x))
-    .join(gray(3, ' ('));
-  return line
-}

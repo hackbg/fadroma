@@ -1,6 +1,6 @@
 import type { Falsy, Bytes } from '../format.ts';
 import { Case } from '../deps.ts';
-import { NO_COLOR } from './color.ts';
+import { NO_COLOR } from './ansi.ts';
 import { identity } from '../call.ts';
 
 /** String, or something with a `toString` method. */

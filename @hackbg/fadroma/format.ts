@@ -1,6 +1,6 @@
+export * as ANSI from './format/ansi.ts';
 export * from './format/bits.ts';
 export * from './format/bytes.ts';
-export * from './format/color.ts';
 export * from './format/dump.ts';
 export * from './format/error.ts';
 export * from './format/hash.ts';

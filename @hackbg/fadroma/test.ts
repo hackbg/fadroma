@@ -11,7 +11,14 @@ export default testSuite(import.meta, 'Fadroma',
   expect('Tester',
     expect('Context', call(testContext, _)),
     expect('Suite',   call(testSuite, null, 'Suite', _)),
-    expect('Expect',  call(expect, 'Something')),
+    expect('Expect',  call(expect, 'Something'),
+      expect('Chain', async () => {
+        const context  = testContext();
+        const returned = Symbol();
+        const step     = expect('', () => { ok(true); return returned });
+        const result   = await step(context);
+        equal(result.returned, returned);
+      })),
     expect('Forbid',  call(forbid, 'Something', () => {})),
     expect('Matrix',  call(matrix, 'Something', []))),
 

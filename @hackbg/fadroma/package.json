@@ -3,7 +3,9 @@
   "type": "module",
   "main": "index.ts",
   "scripts": {
-    "check": "deno check"
+    "check":       "deno check",
+    "doc:typedoc": "typedoc --darkHighlightTheme everforest-dark --cleanOutputDir --groupReferencesByType --useFirstParagraphOfCommentAsSummary index.ts",
+    "doc:deno":    "deno doc --html index.ts"
   },
   "dependencies": {
     "@std/streams": "npm:@jsr/std__streams@^1.0.13",
@@ -19,3 +21,4 @@
     "@scure/bip39": "^2"
   }
 }
+

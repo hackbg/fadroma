@@ -11,7 +11,7 @@ async function main (argv) {
   const interval = 100;
   await update({ paths: [''] });
   await receive(watchFs("."), update);
-  async function update ({ kind, paths = [] } = {}) {
+  async function update ({ kind = null, paths = [] } = {}) {
     if (kind === 'access') return;
     console.log(`\x1b[1;1H\x1b[0K`, blue(bold(kind)+' '+paths.map(blue).join(', ')));
     paths = paths
@@ -26,8 +26,10 @@ async function main (argv) {
 }
 async function typecheck (kind, paths) {
   try {
+    //@ts-ignore FIXME
     const ran = await execImpl('deno', ["check", "index.ts"], { stdio: 'inherit', })
     console.clear();
+    //@ts-ignore FIXME
     const out = await ran.output();
     console.log(decoder.decode(out))
   } catch (e) {

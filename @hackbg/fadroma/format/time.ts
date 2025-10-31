@@ -1,4 +1,4 @@
-import { yellow } from './color.ts';
+import { yellow } from './ansi.ts';
 
 export function timestamp (d = new Date()) {
   return d.toISOString()

@@ -1,6 +1,7 @@
 import { inspect, stdout } from './deps.ts';
-import { joined, red, yellow, dim } from './format.ts';
+import { joined, ANSI } from './format.ts';
 import { reflect } from './call.ts';
+const { red, yellow, dim } = ANSI;
 
 /** Logging interface. */
 export type Log = {

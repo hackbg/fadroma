@@ -1,5 +1,6 @@
 import type { Stringy } from '../index.ts';
 import { getCwd } from '../deps.ts';
+import { bold, gray } from './ansi.ts';
 
 export const formatError = (e: Error, name?: Stringy) => {
   const [head, ...tail] = (e?.stack||'').split('\n')
@@ -48,3 +49,25 @@ class Oops extends Error {
 }
 
 export { Oops as Error }
+
+/** Format the test summary. */
+export const alignTrace = (line: string) => {
+  line = line.replace('file://'+getCwd(), '.');
+  line = line.replace(getCwd(), '.');
+  line = line.split(' (')
+    .map((x,i)=>(i===0)?bold(gray(2, x.padEnd(32))):gray(3, x))
+    .join(gray(3, ' ('));
+  return line
+}
+
+/** Add originating test step to stack trace.
+  *
+  * Since there is a degree of indirection when composing curried functions
+  * (the code is defined from one place but executed from another),
+  * without this helper the real stack gets lost. */
+export const addStepStack = (step: TestStep, error: Error) => {
+  if (typeof error !== 'object') error = new Error(error);
+  error.stack ||= ''
+  if (step.stack) error.stack += '\n  From:\n' + step.stack.join('\n')
+  return error
+}
