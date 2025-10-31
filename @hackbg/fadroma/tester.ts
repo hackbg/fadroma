@@ -203,7 +203,14 @@ const testCategory = (
   log(msec(tD), icon, color(id), ANSI.blue(ids.join('.')),
     ANSI.gray(names.length, names.join(': ')), ...details.filter(Boolean));
   results.push(result);
-  return { [id]: result };
+  return {
+    state: id,
+    name,
+    td: dT(t0),
+    error,
+    returned,
+    results
+  };
 }, { id, icon, label, color });
 
 /** Print a summary of test results. */
@@ -264,28 +271,18 @@ export function expect <T extends Testing> (
   if (steps.length === 0) {
     return reflect(name, call(todo, name, undefined), { steps });
   } else if (steps.length === 1) {
-    return reflect(name, call(expectation, steps[0], true), { steps });
+    return reflect(name, expectation, { steps });
   } else {
     return reflect(name, expectations, { steps });
   }
-  async function expectation (step: TestStep<T>, single: boolean, context: T): Promise<TestResult> {
+  async function expectation (context: T): Promise<TestResult> {
+    const step = steps[0];
     const t0 = performance.now();
     try {
-      context.returned = await step(context);
-      if (single) {
-        return { state: 'pass', name: step.name, tD: dT(t0), returned: context.returned };
-      } else {
-        return context.returned as TestResult;
-      }
+      const returned = await step(context) as TestResult;
+      return { state: 'pass', name: step.name, tD: dT(t0), returned };
     } catch (error) {
-      const e = addStepStack(step, error);
-      if (e.todo) {
-        if (context.failTodo && context.failFast) throw e;
-        return { state: 'todo', name: step.name, tD: dT(t0), error: e };
-      } else {
-        if (context.failFast) throw e;
-        return { state: 'fail', name: step.name, tD: dT(t0), error: e };
-      }
+      return expectationFailed(t0, step, error, context);
     }
   }
   async function expectations (context: T): Promise<TestResult> {
@@ -296,7 +293,12 @@ export function expect <T extends Testing> (
       context.t0    = performance.now();
       context.ids   = [...ids, Number(index)+1].filter(Boolean);
       context.names = [...names, step.name].filter(Boolean);
-      results[index] = await expectation(step, false, context);
+      try {
+        context.returned = await step(context);
+      } catch (error) {
+        context.returned = expectationFailed(t0, step, error, context);
+      }
+      results[index] = context.returned;
     }
     await sequence(...steps.map(inContext))(context);
     Object.assign(context, { t0, ids, names, results })
@@ -305,6 +307,16 @@ export function expect <T extends Testing> (
     if (results.some(isTodo)) state = context.failTodo ? 'fail' : 'todo';
     if (results.some(isFail)) state = 'fail';
     return { state, name, tD: dT(t1), results };
+  }
+  function expectationFailed (t0: number, step: TestStep<T>, error: Error, context: T) {
+    const e = addStepStack(step, error);
+    if (e.todo) {
+      if (context.failTodo && context.failFast) throw e;
+      return { state: 'todo', name: step.name, tD: dT(t0), error: e };
+    } else {
+      if (context.failFast) throw e;
+      return { state: 'fail', name: step.name, tD: dT(t0), error: e };
+    }
   }
 }
 const isTodo = (x?: { state?: unknown }) => x?.state === 'todo';

@@ -158,13 +158,12 @@ export const zmqPubShake = (metadata = []) => sequence(
 //}
 /** Zero-length ZeroMQ frame with `MORE` flag set. */
 export const zmqEmptyMore = zmqFrame(new Uint8Array([zmqFlag.more.mask, 0]));
-
 /** ZeroMQ greeting options. */
 export type ZmqGreet = { sig: Bytes, sec: ZmqSec, ver: ZmqVer, pub: boolean };
 /** ZeroMQ protocol version. */
-export type ZmqVer   = { maj: number, min: number };
+export type ZmqVer = { maj: number, min: number };
 /** Known ZeroMQ security mechanisms. */
-export type ZmqSec   = 'NULL'|'PLAIN'|'CURVE';
+export type ZmqSec = 'NULL'|'PLAIN'|'CURVE';
 /** Buffer size for greet packet. */
 export const zmqGreetSize = 64;
 /** Read and decode a ZeroMQ greet. */
@@ -201,7 +200,6 @@ export function zmqGreet (input?: unknown): ZmqGreet & Bytes {
     pub, sec, ver: { maj, min }
   }) as ZmqGreet & Bytes;
 }
-
 /** A ZeroMQ frame packet. */
 export type ZmqFrame = ZmqFlags & {
   size:      number
