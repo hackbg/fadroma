@@ -1,5 +1,5 @@
 import type { Fn, Step, Log, Timed, Takes, Returns, Reflects, Async } from './index.ts';
-import { ok, equal, throws, rejects, getCwd, stdout, exit, argv, setImmediate, } from './deps.ts';
+import { ok, equal, throws, rejects, getCwd, stdout, exit, argv, setImmediate, inspect } from './deps.ts';
 import { isEntrypoint } from './client/cmd.ts';
 import { logger } from './logger.ts';
 import { ANSI, Error, alignTrace, addStepStack, msec, dT, joined } from './format.ts';
@@ -352,23 +352,26 @@ export const must: RFC2119 = {
         return returned;
       }),
   equal: (value, info?: string|Error) => reflect(
-    `MUST equal ${value}`,
+    `MUST equal ${inspect(value)}`,
       function mustEqual ({ returned }) {
         equal(value, returned, info);
         return returned;
       }),
   have: (key, ...args) => reflect(
-    `MUST have ${key}` + ((args.length > 0) ? ` = ${args[0]}` : ''),
+    `MUST have ${key}` + ((args.length > 0) ? ` = ${inspect(args[0])}` : ''),
       function mustHave ({ returned }) {
         ok(returned && typeof returned === 'object', 'non-object');
         ok(key as keyof typeof returned in returned, `${key} missing`);
         if (args.length > 0) {
-          equal(returned[key as keyof typeof returned], args[0], `${key} wrong`);
+          const expected = args[0];
+          const actual   = returned[key as keyof typeof returned];
+          const message  = `${key} wrong (${inspect(actual)} != ${inspect(expected)})`;
+          equal(actual, expected, message);
         }
         return returned;
       }, { key, value: args[0], checks: args.slice(1) }),
   include: (value) => reflect(
-    `MUST include ${value}`,
+    `MUST include ${inspect(value)}`,
     function mustInclude ({ returned }) {
       ok(returned && typeof returned === 'object', 'non-object');
       ok(typeof returned['includes'] === 'function', 'no includes method');
