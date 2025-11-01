@@ -248,21 +248,38 @@ export function expect <T extends Testing> (
     step=>(typeof step === 'string')?todo(step):step);
   if (steps.length === 0) {
     return todo(name);
+  } else if (steps.length === 1) {
+    return reflect(name, expectation, { steps });
   } else {
     return reflect(name, expectations, { steps });
+  }
+  async function expectation (context: T): Promise<TestResult> {
+    const step = steps[0];
+    if (step.steps?.length > 1) context.log(`@`+msec(context.t0), '🏁',
+      context.ids.join('.').padEnd(20), context.names.join(': '));
+    const t0 = performance.now();
+    try {
+      context.returned = await step(context) as TestResult;
+      context.thrown = undefined;
+    } catch (error) {
+      context.returned = undefined;
+      context.thrown = addStepStack(step, error);
+      throw context.thrown;
+    }
+    return context.pass({ ...context, name: step.name, tD: dT(t0), });
   }
   async function expectations (context: T): Promise<TestResult> {
     const t1 = performance.now();
     // Store original context values
     const {t0, ids = [], names = []} = context;
     // Run each step in updated context
-    context.results = [];
+    const results = [];
     for (let index = 0; index < steps.length; index++) {
       const step = steps[index];
       if (steps.length > 1) {
         context.t0    = performance.now();
         context.ids   = [...ids, index+1].filter(Boolean);
-        context.names = [...names, step.name].filter(Boolean);
+        context.names = [...names, step.name||'(unnamed)'].filter(Boolean);
       }
       if (step.steps?.length > 1) context.log(
         `@`+msec(context.t0), '🏁',
@@ -271,40 +288,20 @@ export function expect <T extends Testing> (
       try {
         context.returned = await step(context) as TestResult;
         context.thrown = undefined;
+        results.push(context.pass({ ...context, name: step.name, tD: dT(t0), }));
       } catch (error) {
         context.returned = undefined;
         context.thrown = addStepStack(step, error);
-        if (error.todo) {
-          context.results.push(context.todo({ ...context, name: step.name, tD: dT(t0) }));
-          if (context.failTodo) throw error;
-          continue;
-        } else {
-          const failure = context.fail({
-            ...context, name: step.name, tD: dT(t0),
-            log: steps.length > 1 ? context.log : identity
-          });
-          context.results.push(failure);
-          if (context.failFast) {
-            throw error;
-          } else {
-            return failure as TestResult;
-          }
-        }
+        results.push(context.fail({ ...context, name: step.name, tD: dT(t0), thrown: context.thrown, }));
+        if (context.failFast) throw context.thrown;
       }
-      context.results.push(context.pass({
-        ...context, name: step.name, tD: dT(t0),
-        log: steps.length > 1 ? context.log : identity
-      }));
     }
     // Restore original context values and add results.
-    Object.assign(context, { t0, ids, names })
+    Object.assign(context, { t0, ids, names, results })
     let state = 'pass';
-    if (context.results.some(isTodo)) state = context.failTodo ? 'fail' : 'todo';
-    if (context.results.some(isFail)) state = 'fail';
-    return context[state]({
-      ...context, name, tD: dT(t1),
-      log: steps.length > 1 ? context.log : identity
-    });
+    if (results.some(isTodo)) state = context.failTodo ? 'fail' : 'todo';
+    if (results.some(isFail)) state = 'fail';
+    return context[state]({ ...context, name, tD: dT(t1), });
   }
 }
 const isTodo = (x?: { state?: unknown }) => x?.state === 'todo';
