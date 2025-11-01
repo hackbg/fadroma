@@ -1,7 +1,7 @@
 import type { Falsy, Bytes } from '../format.ts';
 import { Case } from '../deps.ts';
 import { NO_COLOR } from './ansi.ts';
-import { identity } from '../call.ts';
+import { call, identity } from '../call.ts';
 
 /** String, or something with a `toString` method. */
 export type Stringy = string|{ toString(): string };
@@ -31,6 +31,9 @@ export const str = (...strs: Array<Falsy|Stringy|Array<Falsy|Stringy>>) =>
 
 export const joined = (joiner: string, ...strs: Array<Falsy|Stringy|Array<Falsy|Stringy>>) =>
   chunks(...strs).join(joiner);
+export const glued  = call(joined, '');
+export const spaced = call(joined, ' ');
+export const lines  = call(joined, '\n');
 
 export const
   joiner = (x?: Stringy, y = ' ') => x ? (x.toString() + y) : '',

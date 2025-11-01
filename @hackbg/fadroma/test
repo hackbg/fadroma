@@ -1,0 +1,30 @@
+#!/usr/bin/env -S deno run --allow-read --allow-run --allow-env --allow-import
+import { setTimeout, clearTimeout } from 'node:timers';
+import { entrypoint, call, ANSI, wordWrap } from './index.ts';
+import { getCwd, stdout, execImpl, stripVTControlCharacters, watchFs } from './deps.ts';
+import { resolve as resolvePath } from 'node:path';
+import { realpathSync } from 'node:fs';
+import { watch } from './watch.ts';
+const { orange, bold, gray, blue, } = ANSI;
+const RE = /(TS\d+)(.+)\n[\s\S]+? at (file:\/\/\/.+\n)/gm;
+const decoder = new TextDecoder();
+entrypoint(import.meta, call(watch, test));
+async function test (kind, paths) {
+  const t0 = performance.now();
+  try {
+    const ran = await execImpl('./test.ts', { stdio: 'inherit', })
+    console.clear();
+    //console.log(kind, ...paths);
+    //console.log({ran});
+    const out = await ran.output();
+    console.log(decoder.decode(out))
+  } catch (e) {
+    console.clear();
+    e.message = stripVTControlCharacters(e.message)
+    console.error(e.stdout);
+    console.log();
+    console.error(e.stderr);
+  } finally {
+    console.log(performance.now() - t0);
+  }
+}

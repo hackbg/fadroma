@@ -63,8 +63,9 @@ export const renamed = <N extends { name: string }> (name: string|Falsy, fn: N):
 }
 
 /** Rename a function and add metadata. */
-export const reflect = <T>(name, fn, props?: T) =>
-  Object.assign(renamed(name, fn), props);
+export const reflect = <T>(name: string, fn, props?: T) =>
+  Object.defineProperties(renamed(name, fn),
+    props ? Object.getOwnPropertyDescriptors(props) : {});
 
 /** The identity function.
   *

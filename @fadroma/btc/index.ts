@@ -8,7 +8,7 @@ export type BtcLocalnetConfig = {
   btcPort:    number
   zmqPort:    number
   httpPort:   number
-  dataRoot:   number
+  dataRoot:   string
   dataDir:    string
   walletDir:  string
   bitcoinCli: unknown
@@ -20,18 +20,22 @@ export type BtcLocalnetConfig = {
   onZmq:      Fn
 };
 
+const merge = <T> (fragments: Partial<T>[]): T =>
+  call(Object.assign, ...fragments)() as T;
+
 /** Spawn BTC localnet in regression test mode with indexer and API.
  *
  * Slimmed-down reimplementation of https://github.com/bitcoinjs/regtest-server */
 export function btcLocalnet (...config: Partial<BtcLocalnetConfig>[]) {
-  const {
+
+  let {
     regTest    = true,
     btcPort    = regTest ? 18443 : 8443,
     zmqPort    = 48485,
     httpPort   = 48484,
     dataRoot   = '/tmp/fadroma/test/btc/',
-    dataDir    = joined('', dataRoot, +new Date()),
-    walletDir  = joined('', dataRoot, +new Date()),
+    dataDir    = joined('', dataRoot, 'data',   +new Date()),
+    walletDir  = joined('', dataRoot, 'wallet', +new Date()),
     rpc        = stubRpc,
     onZmq      = stubZmq,
     db         = new DB('indexd'),
@@ -39,7 +43,15 @@ export function btcLocalnet (...config: Partial<BtcLocalnetConfig>[]) {
     bitcoinCli = btcClient({ regTest, dataDir }),
     bitcoind   = btcDaemon({ regTest, dataDir, btcPort, zmqPort }),
     elementsd  = (...arg) => spawn('elementsd', ...arg), // TODO
-  } = call(Object.assign, ...config)() as BtcLocalnetConfig;
+  }: BtcLocalnetConfig = merge(config);
+
+  if (typeof bitcoind === 'string') {
+    bitcoind = btcDaemon({ bitcoind, regTest, dataDir, btcPort, zmqPort })
+  }
+  if (typeof bitcoinCli === 'string') {
+    bitcoinCli = btcClient({ bitcoinCli, regTest, dataDir })
+  }
+
   return service('BTC Localnet',
     (_)=>db.open(),
     dir(dataDir),
@@ -64,15 +76,17 @@ export const btcClient = ({
   regTest = true,
   btcPort = regTest ? 18443 : 8443,
   rpcPw   = 'fadroma',
-} = {}) => exec(bitcoinCli,
-  rpcPw   && `-rpcpassword=${rpcPw}`,
-  dataDir && `-datadir=${dataDir}`,
-  regTest && '-regtest',
-  btcPort && ('-rpcport=' + btcPort));
+} = {}) => reflect(
+  `exec ${bitcoinCli}`,
+  call(exec, bitcoinCli,
+    rpcPw   && `-rpcpassword=${rpcPw}`,
+    dataDir && `-datadir=${dataDir}`,
+    regTest && '-regtest',
+    btcPort && ('-rpcport=' + btcPort)));
 
 /** Spawn Bitcoin daemon. */
 export const btcDaemon = ({
-  bitcoinDaemon = 'bitcoind',
+  bitcoind = 'bitcoind',
   dataDir = null,
   regTest = true,
   btcPort = regTest ? 18443 : 8443,
@@ -80,16 +94,18 @@ export const btcDaemon = ({
   txIndex = true,
   rpcPw   = 'fadroma',
   rpcWq   = 32,
-} = {}) => spawn(bitcoinDaemon,
-  rpcPw   && `-rpcpassword=${rpcPw}`,
-  dataDir && `-datadir=${dataDir}`,
-  regTest && '-regtest',
-  '-server',
-  txIndex && '-txindex',
-  zmqPort && ('-zmqpubhashblock=tcp:/' + '/127.0.0.1:' + zmqPort),
-  zmqPort && ('-zmqpubhashtx=tcp:/'    + '/127.0.0.1:' + zmqPort),
-  rpcWq   && ('-rpcworkqueue=' + rpcWq),
-  btcPort && ('-rpcport=' + btcPort));
+} = {}) => reflect(
+  `spawn ${bitcoind}`,
+  call(spawn, bitcoind,
+    rpcPw   && `-rpcpassword=${rpcPw}`,
+    dataDir && `-datadir=${dataDir}`,
+    regTest && '-regtest',
+    '-server',
+    txIndex && '-txindex',
+    zmqPort && ('-zmqpubhashblock=tcp:/' + '/127.0.0.1:' + zmqPort),
+    zmqPort && ('-zmqpubhashtx=tcp:/'    + '/127.0.0.1:' + zmqPort),
+    rpcWq   && ('-rpcworkqueue=' + rpcWq),
+    btcPort && ('-rpcport=' + btcPort)));
 
 const stubRpc = (...args: unknown[]) => console.debug('TODO:', ...args);
 

@@ -46,7 +46,6 @@ export const spawnContext = <T extends Pids>({
 }: Partial<T> = {}): T => ({
   pids, exec, spawn, kill, stdout, stderr, ...rest
 } as T);
-
 /** Define a background task. */
 export const spawn = (arg0: string, ...opts: (Step<Invoke>|string)[]) =>
   reflect(arg0, async function spawnDaemon (ctx: Pids = spawnContext()) {

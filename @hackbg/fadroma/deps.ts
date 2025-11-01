@@ -1,11 +1,12 @@
 //export { Buffer as StreamBuffer } from '@std/streams';
 export type { Buffer } from 'node:buffer';
 export { ok, deepStrictEqual as equal, throws, rejects } from 'node:assert';
-export { setImmediate } from 'node:timers';
+export { setImmediate, } from 'node:timers';
 export { tmpdir } from 'node:os';
 export { stdout, argv, env, cwd as getCwd, exit } from 'node:process';
 export { fileURLToPath } from 'node:url';
 export { join as joinPath, resolve as resolvePath } from 'node:path';
+export { realpathSync } from 'node:fs';
 export { writeFile, mkdir, mkdtemp } from 'node:fs/promises';
 export { Server as HttpServer } from 'node:http';
 export { Server as TcpServer, createConnection } from 'node:net';

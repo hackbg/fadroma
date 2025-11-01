@@ -32,15 +32,14 @@ export default testSuite(import.meta, 'ZeroMQ',
         must.have('flag',    4),
         must.have('command', "READY")))),
 
-  expect('Sub', call(zmqSub, 32123, mockCallback()),
-    must.be('function'),
-    must.have('name', `ZeroMQ SUB 32123`),
-    expect('scribe', ditto(), must.be('object'))),
-
   expect('Pub', call(zmqPub, 32123, mockCallback()),
     must.be('function'),
     must.have('name', `ZeroMQ PUB 32123`),
-    expect('lish', ditto(), must.be('object')))
+    expect('lish', ditto(), must.be('object')),
+    expect('Sub', call(zmqSub, 32123, mockCallback()),
+      must.be('function'),
+      must.have('name', `ZeroMQ SUB 32123`),
+      expect('scribe', ditto(), must.be('object')))),
 
 );
 

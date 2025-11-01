@@ -17,9 +17,13 @@ const zmqTimeout = (t = 1000) => {
 export default testSuite(import.meta, 'BTC',
 
   expect('Client',
-    expect('Template',    call(btcClient, _),               must.be('function')),
-    expect('Constructor', call(call(btcClient, _), _),      must.be('function')),
-    expect('Instance',    call(call(call(btcClient, _), _), mockExecContext()),
+    expect('Template', call(btcClient, _),
+      must.be('function'),
+      must.have('name', 'bitcoin-cli')),
+    expect('Constructor', call(call(btcClient, _), _),
+      must.be('function'),
+      must.have('name', 'bitcoin-cli')),
+    expect('Instance', call(call(call(btcClient, _), _), mockExecContext()),
       must.be('object'),
       must.have('mock', [
         { argv: [ 'bitcoin-cli', '-rpcpassword=fadroma', '-regtest', '-rpcport=18443' ]

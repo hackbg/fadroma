@@ -2,15 +2,23 @@ import type { Fn, Step, Log, Timed, Reflects, Async, Prototype } from './index.t
 import { ok, equal, throws, rejects, stdout, exit, argv, setImmediate, inspect } from './deps.ts';
 import { isEntrypoint } from './client/cmd.ts';
 import { logger } from './logger.ts';
-import { ANSI, Error, alignTrace, addStepStack, dT, joined, msec } from './format.ts';
+import { ANSI, Error, alignTrace, addStepStack, dT, joined, spaced, lines, msec } from './format.ts';
 import { call, reflect, identity, todo } from './call.ts';
 export { call, ok, equal, throws, rejects, todo }
 
 /** Context passed to each test step. */
-export type Testing = Log
-  & TestOptions
+export type Testing =
+  & Log
   & TestResult
-  & Record<TestCategoryName, TestCategory>;
+  & Record<TestCategoryName, TestCategory>
+  & { /** Whether the whole test run should terminate as soon as one step fails. */
+      failFast?: boolean
+      /** Whether TODOs count toward test fails. */  
+      failTodo?: boolean
+      /** Filters. */
+      include?:  string[]
+      /** Filters. */
+      exclude?:  string[] };
 
 /** A step of the test suite.
   *
@@ -23,17 +31,6 @@ export type Testing = Log
 * */
 export type TestStep<T extends Testing = Testing> =
   Reflects & Fn<[T], Async<unknown>> & { skip?: boolean };
-
-export type TestOptions = {
-  /** Whether the whole test run should terminate as soon as one step fails. */
-  failFast?: boolean,
-  /** Whether TODOs count toward test fails. */  
-  failTodo?: boolean
-  /** Filters. */
-  include?:  string[],
-  /** Filters. */
-  exclude?:  string[],
-};
 
 /** The result of a test step. */
 export type TestResult = Timed & {
@@ -105,7 +102,7 @@ export type TestCategory = {
   *
   **/
 export function testSuite (
-  meta: ImportMeta, name: string, ...steps: TestStep[]
+  meta: ImportMeta, name: string, ...steps: (TestStep|string)[]
 ) {
   const testSuite = expect(name, ...steps);
   if (isEntrypoint(meta, argv[1])) {
@@ -117,16 +114,15 @@ export function testSuite (
 /** Run a single test step and exit the interpreter. */
 export const testAndExit = (test: TestStep, ...args: string[]) =>
   testRun(test, args).then(({ context, result })=>{
-    const lines = testSummary({ context, result });
-    stdout.write('\n'+joined('\n', lines) + '\n');
+    const details = testSummary({ context, result });
+    stdout.write('\n'+lines(details) + '\n');
     for (const name of [
       'pass', 'fail', 'todo', 'idea', 'warn', 'skip', 'note'
     ]) {
       const category = context[name];
       //console.log({category});
       const { icon, color, label } = category;
-      const final = joined(' ', ` ${icon}`,
-        color(`${context[name].length} ${label}`), '')
+      const final = spaced(` ${icon}`, color(`${context[name].count} ${label}`), '')
       stdout.write('\n'+final);
     }
     exit(('pass' in result) ? 0 : 1);
@@ -156,7 +152,7 @@ export const testContext = <T extends Testing> ({
   t0       = performance.now(),
   ids      = [],
   names    = [],
-  category = (state: string, icon: string, color: Step<string>, label = state): TestCategory =>
+  category = (state: string, icon: string, color: Step<string>, label = state, count = 0): TestCategory =>
     reflect(state, async function categorizeTestResult ({
       log, error, ids, names, name, tD,
       returned = undefined,
@@ -164,10 +160,14 @@ export const testContext = <T extends Testing> ({
       thrown   = undefined,
       details  = undefined,
     }) {
-      log(`+`+msec(tD), icon, ids.join('.').padEnd(20), names.join(': '));
+      count++;
+      log(`+`+msec(tD),
+          icon,
+          color(ids.join('.').padEnd(20)),
+          color(names.join(': ')));
       if (thrown && !thrown.todo) error(thrown);
       return { state, name, tD, thrown, returned, results, details };
-    }, { state, icon, label, color }),
+    }, { state, icon, label, color, get count () { return count } }),
   pass = category('pass', `🟢`, ANSI.green,  'passed'  ),
   fail = category('fail', `🔴`, ANSI.red,    'failed'  ),
   todo = category('todo', `🟠`, ANSI.orange, 'tasks'   ),
@@ -192,33 +192,33 @@ export const testContext = <T extends Testing> ({
 });
 
 /** Print a summary of test results. */
-export function testSummary ({ context, result, lines = [], indent = '' }) {
+export function testSummary ({ context, result, details = [], indent = '' }) {
   if (!context[result.state]) return [];
   const state = result.state;
   const name  = result.name;
   const icon  = context[state]?.icon  || '';
   const color = context[state]?.color || identity;
   const style = (result.results?.length > 1) ? ANSI.bold : identity;
-  const line  = joined(' ', ` ${icon}`, color(state), color((indent+' ').padEnd(15,'-')), style((name||'<unnamed>').padEnd(20)));
+  const line  = spaced(` ${icon}`, color(state), color((indent+' ').padEnd(15,'-')), style((name||'<unnamed>').padEnd(20)));
   if (state === 'fail' && result?.error?.message) {
-    lines.push(joined(' ', line, ANSI.gray(2, joined(': ', ANSI.bold(result.error.name), result.error.message))));
-    lines.push(result.error.stack.split('\n').map(alignTrace).slice(1).join('\n'));
+    details.push(spaced(line, ANSI.gray(2, joined(': ', ANSI.bold(result.error.name), result.error.message))));
+    details.push(result.error.stack.split('\n').map(alignTrace).slice(1).join('\n'));
   } else {
-    lines.push(line);
+    details.push(line);
   };
   const results = result?.results || [];
   if (results.length === 1 && results[0].state === 'pass' && !results[0].name) {
-    return lines
+    return details
   }
   for (let index = 0; index < results.length; index++) {
     testSummary({
       context,
-      lines,
+      details,
       result: results[index],
       indent: joined('.', indent, Number(index)+1),
     });
   }
-  return lines
+  return details
 }
 
 /** A test case, consisting of a name and zero or more test steps.
@@ -247,7 +247,7 @@ export function expect <T extends Testing> (
   const steps: TestStep<T>[] = stepsAndTodos.map(
     step=>(typeof step === 'string')?todo(step):step);
   if (steps.length === 0) {
-    return reflect(name, call(todo, name, undefined), { steps });
+    return todo(name);
   } else {
     return reflect(name, expectations, { steps });
   }
@@ -263,27 +263,34 @@ export function expect <T extends Testing> (
         context.t0    = performance.now();
         context.ids   = [...ids, index+1].filter(Boolean);
         context.names = [...names, step.name].filter(Boolean);
-        context.log(`@`+msec(context.t0), '⏳️',
-                    context.ids.join('.').padEnd(20),
-                    context.names.join(': '));
       }
+      if (step.steps?.length > 1) context.log(
+        `@`+msec(context.t0), '🏁',
+        context.ids.join('.').padEnd(20),
+        context.names.join(': '));
       try {
         context.returned = await step(context) as TestResult;
+        context.thrown = undefined;
       } catch (error) {
         context.returned = undefined;
         context.thrown = addStepStack(step, error);
-        switch (true) {
-          case error.todo && context.failTodo:
+        if (error.todo) {
+          context.results.push(context.todo({ ...context, name: step.name, tD: dT(t0) }));
+          if (context.failTodo) throw error;
+          continue;
+        } else {
+          const failure = context.fail({
+            ...context, name: step.name, tD: dT(t0),
+            log: steps.length > 1 ? context.log : identity
+          });
+          context.results.push(failure);
+          if (context.failFast) {
             throw error;
-          case error.todo:
-            return context.todo({ ...context, name: step.name, tD: dT(t0) });
-          case context.failFast:
-            throw error;
-          default:
-            return context.fail({ ...context, name: step.name, tD: dT(t0) });
+          } else {
+            return failure as TestResult;
+          }
         }
       }
-      context.thrown = undefined;
       context.results.push(context.pass({
         ...context, name: step.name, tD: dT(t0),
         log: steps.length > 1 ? context.log : identity
@@ -303,9 +310,86 @@ export function expect <T extends Testing> (
 const isTodo = (x?: { state?: unknown }) => x?.state === 'todo';
 const isFail = (x?: { state?: unknown }) => x?.state === 'fail';
 
-//const stepSummary = ({ t0, ids, names }) => joined('', stepIds(ids), stepNames(names));
-//const stepIds     = ids   => blue(((joined('.', ...ids)||'<no id>')+' ').padEnd(10));
-//const stepNames   = names => joined('│', names) || '<no name>';//.map((x, i)=>gray(i*2, x)));
+/** Assertions. */
+export const must: RFC2119 = {
+  be: (type) => reflect(`MUST be ${type}`, function mustBe ({ returned }) {
+    ok(typeof returned === type, `not ${type}: ${inspect(returned)}`);
+    return returned;
+  }, { type }),
+
+  equal: (expected, info?: string|Error) => reflect(
+    `MUST equal ${inspect(expected)}`, function mustEqual ({ returned }) {
+      equal(expected, returned, info);
+      return returned;
+    }, { expected }),
+
+  beInstanceOf: (prototype) => reflect(`MUST be instance of ${prototype}`,
+    function mustBe ({ returned }) {
+      ok(returned, 'missing');
+      ok(typeof returned === 'object', `not object: ${inspect(returned)}`);
+      ok(returned instanceof prototype);
+      return returned;
+    }, { prototype }),
+
+  have: (key, ...args) => reflect(
+    `MUST have ${key}` + ((args.length > 0) ? ` = ${inspect(args[0])}` : ''),
+    function mustHave ({ returned }) {
+      ok(returned, 'falsy');
+      ok(key as keyof typeof returned in returned, `${key} missing`);
+      if (args.length > 0) {
+        const expected = args[0];
+        const actual   = returned[key as keyof typeof returned];
+        const message  = `${inspect(actual)} != ${inspect(expected)}`;
+        equal(expected, actual, `${key} wrong: ${message}`);
+      }
+      return returned;
+    }, { key, value: args[0], checks: args.slice(1) }),
+
+  include: (item) => reflect(
+    `MUST include ${inspect(item)}`,
+    function mustInclude ({ returned }) {
+      ok(returned && typeof returned === 'object', 'non-object');
+      ok(typeof returned['includes'] === 'function', 'no includes method');
+      ok(returned.includes(item), `doesn't include ${item}`)
+      return returned;
+    }, { item }),
+
+};
+
+/** Continue as substep. */
+export const ditto = () => {
+  let name = 'ditto';
+  return Object.defineProperty(ditto, 'name', { get () { return name } });
+  function ditto ({ returned }) {
+    name = returned?.name;
+    return returned();
+  }
+};
+
+/** TODO: RFC2119 assertions that only emit warning. */
+export const should = { /* TODO */ };
+
+/** TODO: Run steps in parallel. */
+export const parallel = (name: string, variants: ((_: Testing)=>unknown)[]) =>
+  expect(name, async (context: Testing) => {
+    await Promise.all(variants.map(variant=>variant(context)))
+  });
+
+/** FIXME: Run the same set of test steps against different starting points.
+  *
+  * Example:
+  *
+  *     const strawberry = 1.0, chocolate = 1.0, vanilla = 1.0;
+  *     const flavors = { strawberry, chocolate, vanilla };
+  *     const testTastiness = matrix('Ice cream', flavors, flavor => [
+  *       MUST.gte(0.5, 'bleh')
+  *     ])
+  *
+  * */
+export const matrix = <T>(
+  name: string, variants: T[]|Record<string, T>, ...steps: TestStep[]
+) => Object.assign(expect(name, ...Object.entries(variants)
+  .map(([k, _v])=>expect(k, ...steps))), variants, steps);
 
 /** FIXME: A test case which expects an exception to be thrown. */
 export function forbid (
@@ -328,83 +412,3 @@ export function forbid (
     }
   }
 }
-
-/** Assertions. */
-export const must: RFC2119 = {
-  be: (type) => reflect(
-    `MUST be ${type}`,
-      function mustBe ({ returned }) {
-        ok(typeof returned === type,
-          `${inspect(returned)} not ${type}`);
-        return returned;
-      }, { type }),
-  beInstanceOf: (prototype) => reflect(
-    `MUST be instance of ${prototype}`,
-      function mustBe ({ returned }) {
-        ok(returned && typeof returned === 'object',
-           `${inspect(returned)} not object`);
-        ok(returned instanceof prototype);
-        return returned;
-      }, { prototype }),
-  equal: (expected, info?: string|Error) => reflect(
-    `MUST equal ${inspect(expected)}`,
-      function mustEqual ({ returned }) {
-        equal(expected, returned, info);
-        return returned;
-      }, { expected }),
-  have: (key, ...args) => reflect(
-    `MUST have ${key}` + ((args.length > 0) ? ` = ${inspect(args[0])}` : ''),
-      function mustHave ({ returned }) {
-        ok(returned, 'falsy');
-        ok(key as keyof typeof returned in returned, `${key} missing`);
-        if (args.length > 0) {
-          const expected = args[0];
-          const actual   = returned[key as keyof typeof returned];
-          const message  = `${key} wrong (${inspect(actual)} != ${inspect(expected)})`;
-          equal(expected, actual, message);
-        }
-        return returned;
-      }, { key, value: args[0], checks: args.slice(1) }),
-  include: (item) => reflect(
-    `MUST include ${inspect(item)}`,
-    function mustInclude ({ returned }) {
-      ok(returned && typeof returned === 'object', 'non-object');
-      ok(typeof returned['includes'] === 'function', 'no includes method');
-      ok(returned.includes(item), `doesn't include ${item}`)
-      return returned;
-    }, { item }),
-};
-
-/** Assertions that only emit warning. */
-export const should = { /* TODO */ };
-
-/** FIXME: Run the same set of test steps against different starting points.
-  *
-  * Example:
-  *
-  *     const strawberry = 1.0, chocolate = 1.0, vanilla = 1.0;
-  *     const flavors = { strawberry, chocolate, vanilla };
-  *     const testTastiness = matrix('Ice cream', flavors, flavor => [
-  *       MUST.gte(0.5, 'bleh')
-  *     ])
-  *
-  * */
-export const matrix = <T>(
-  name: string, variants: T[]|Record<string, T>, ...steps: TestStep[]
-) => Object.assign(expect(name, ...Object.entries(variants)
-  .map(([k, _v])=>expect(k, ...steps))), variants, steps);
-/** TODO: Run steps in parallel. */
-export const parallel = (name: string, variants: ((_: Testing)=>unknown)[]) =>
-  expect(name, async (context: Testing) => {
-    await Promise.all(variants.map(variant=>variant(context)))
-  });
-
-/** Continue as substep. */
-export const ditto = () => {
-  let name = 'ditto';
-  return Object.defineProperty(ditto, 'name', { get () { return name } });
-  function ditto ({ returned }) {
-    name = returned?.name;
-    return returned();
-  }
-};
