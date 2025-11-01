@@ -275,6 +275,7 @@ export type AsyncIter<T> = {
   [Symbol.asyncIterator](): AsyncIterableIterator<T>
 };
 
+/** Add `Symbol.asyncIterator` to an object, as defined by a getter. */
 export const asyncIter = getIter => state => {
   const iter = getIter(state);
   return Object.assign(state, { [Symbol.asyncIterator]() { return iter } });
@@ -318,3 +319,5 @@ export const setProp = <T extends object>(key: keyof T, ...fns: Fn[]) =>
   }, { key, fns });
 
 //type Method<T> = (_: T, ...__: unknown[]) => unknown[]
+
+export type Prototype = { [Symbol.hasInstance] (_: unknown): boolean };

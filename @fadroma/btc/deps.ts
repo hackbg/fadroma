@@ -6,7 +6,7 @@ export type { Fn } from '@hackbg/fadroma';
 export {
   service, interval, exec, spawn, setEnv, addArgs, tcpWait, dir,
   serveHttp, zmqSub, route, param, guard, get, post,
-  joined, call,
+  joined, call, reflect,
 } from '@hackbg/fadroma';
 
 //export * as ZMQ    from 'npm:zeromq';

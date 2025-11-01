@@ -48,7 +48,6 @@ export function zmqSub (to: number|string|URL, handler: Fn<[ZmqSub]>) {
     const receive   = () => zmqSubReceive(socket);
     const close     = () => { stopped = true; socket.close() };
     Object.assign(socket, { subscribe, receive, close });
-    console.log({socket});
     await handshake(socket);
     const subscription = asyncIter(zmqSubIterator)(socket);
     setImmediate(zmqSubIterate);
@@ -259,9 +258,8 @@ export function zmqFrame (input?: unknown): ZmqFrame & Bytes {
     ...rest
   } = (input ||= {}) as Partial<ZmqFrame>;
   let flag = 0;
-  if (more) {
-    flag |= zmqFlag.more.mask;
-  }
+  if (more) flag |= zmqFlag.more.mask;
+  if (command) flag |= zmqFlag.cmd.mask;
   const metadataLength = metadata => metadata
     .map((v: { length: number }, i: number) => v.length + (i % 2 === 0 ? 1 : 4))
     .reduce((a: number, b: number) => a + b, 0);

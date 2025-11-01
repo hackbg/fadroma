@@ -23,4 +23,5 @@ export * from './format.ts';
 export * from './logger.ts';
 export * from './network.ts';
 export * from './service.ts';
+export * from './spawn.ts';
 export * from './tester.ts';

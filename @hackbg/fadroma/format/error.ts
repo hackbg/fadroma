@@ -65,7 +65,9 @@ export const alignTrace = (line: string) => {
   * Since there is a degree of indirection when composing curried functions
   * (the code is defined from one place but executed from another),
   * without this helper the real stack gets lost. */
-export const addStepStack = (step: TestStep, error: Error) => {
+export const addStepStack = (
+  step: { name?: string, stack?: string[] }, error: Error
+) => {
   if (typeof error !== 'object') error = new Error(error);
   error.stack ||= ''
   if (step.stack) error.stack += '\n  From:\n' + step.stack.join('\n')

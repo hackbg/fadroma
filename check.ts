@@ -1,9 +1,10 @@
 #!/usr/bin/env -S deno run --allow-read --allow-run --allow-env --allow-import
 import { setTimeout, clearTimeout } from 'node:timers';
-import { entrypoint, call, orange, bold, gray, blue, wordWrap } from './index.ts';
+import { entrypoint, call, ANSI, wordWrap } from './index.ts';
 import { getCwd, stdout, execImpl, stripVTControlCharacters, watchFs } from './@hackbg/fadroma/deps.ts';
 import { resolve as resolvePath } from 'node:path';
 import { realpathSync } from 'node:fs';
+const { orange, bold, gray, blue, } = ANSI;
 const RE = /(TS\d+)(.+)\n[\s\S]+? at (file:\/\/\/.+\n)/gm;
 const decoder = new TextDecoder();
 entrypoint(import.meta, main);

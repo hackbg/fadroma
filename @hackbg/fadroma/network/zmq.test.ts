@@ -1,4 +1,4 @@
-import { ok, expect, call, testSuite, equal, todo, must } from '../tester.ts';
+import { ok, expect, call, testSuite, equal, todo, must, ditto } from '../tester.ts';
 import { zmqFlag, zmqFrame, zmqGreet, zmqPub, zmqSub } from './zmq.ts';
 
 const _ = undefined;
@@ -23,27 +23,26 @@ export default testSuite(import.meta, 'ZeroMQ',
       must.have('more',           false),
       must.have('long',           false),
       must.have('command',        null),
-      must.have('metadata',       null),
-      must.have('metadataLength'),
       must.have('payload',        null),
       must.have('payloadLength',  0),
+      must.have('metadata',       null),
+      must.have('metadataLength'),
       expect('Ready',
         call(zmqFrame, { command: "READY" }),
         must.have('flag',    4),
         must.have('command', "READY")))),
 
-  expect('Sub',
-    expect('Constructor', call(zmqSub, 32123, mockCallback()),
-      must.be('function')),
-    expect('Instance', call(call(zmqSub, 32123, mockCallback()), _),
-      must.equal({}))),
+  expect('Sub', call(zmqSub, 32123, mockCallback()),
+    must.be('function'),
+    must.have('name', `ZeroMQ SUB 32123`),
+    expect('scribe', ditto(), must.be('object'))),
 
-  expect('Pub',
-    expect('Constructor', call(zmqPub, 12321, mockCallback()),
-      must.be('function')),
-    expect('Instance', call(call(zmqPub, 12321, mockCallback()), _),
-      must.have('stop'),
-      _ => _.result.stop())));
+  expect('Pub', call(zmqPub, 32123, mockCallback()),
+    must.be('function'),
+    must.have('name', `ZeroMQ PUB 32123`),
+    expect('lish', ditto(), must.be('object')))
+
+);
 
 //const testZmqCodec = expect('Codec',
   //expect('Greet',   testCall(zmqGreet)),

@@ -1,5 +1,5 @@
 import type { Fn } from './deps.ts';
-import { joined, call, service, dir, exec, spawn, interval, tcpWait,
+import { joined, call, reflect, service, dir, exec, spawn, interval, tcpWait,
   zmqSub, serveHttp, route, param, guard, get, post,
   BTCJS, Indexd, DB, isHex64 } from './deps.ts';
 
@@ -59,12 +59,12 @@ export function btcLocalnet (...config: Partial<BtcLocalnetConfig>[]) {
 
 /** Call Bitcoin CLI. */
 export const btcClient = ({
+  bitcoinCli = 'bitcoin-cli',
   dataDir = null,
   regTest = true,
   btcPort = regTest ? 18443 : 8443,
   rpcPw   = 'fadroma',
-} = {}) => call(exec,
-  'bitcoin-cli',
+} = {}) => exec(bitcoinCli,
   rpcPw   && `-rpcpassword=${rpcPw}`,
   dataDir && `-datadir=${dataDir}`,
   regTest && '-regtest',
@@ -72,6 +72,7 @@ export const btcClient = ({
 
 /** Spawn Bitcoin daemon. */
 export const btcDaemon = ({
+  bitcoinDaemon = 'bitcoind',
   dataDir = null,
   regTest = true,
   btcPort = regTest ? 18443 : 8443,
@@ -79,8 +80,7 @@ export const btcDaemon = ({
   txIndex = true,
   rpcPw   = 'fadroma',
   rpcWq   = 32,
-} = {}) => call(spawn,
-  'bitcoind',
+} = {}) => spawn(bitcoinDaemon,
   rpcPw   && `-rpcpassword=${rpcPw}`,
   dataDir && `-datadir=${dataDir}`,
   regTest && '-regtest',
