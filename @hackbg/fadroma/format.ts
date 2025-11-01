@@ -1,4 +1,3 @@
-export * as ANSI from './format/ansi.ts';
 export * from './format/bits.ts';
 export * from './format/bytes.ts';
 export * from './format/dump.ts';
@@ -7,7 +6,5 @@ export * from './format/hash.ts';
 export * from './format/number.ts';
 export * from './format/string.ts';
 export * from './format/time.ts';
-/** Human-readable info interface. */
-export type Info = { summary (): string, details (): string };
-
+export * as ANSI from './format/ansi.ts';
 export * as Borsh from './format/borsh.ts';

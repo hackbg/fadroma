@@ -74,6 +74,9 @@ export const identity = <T>(x: T): T => x;
 
 export const nop = (..._: unknown[]) => identity;
 
+export const merge = <T> (fragments: Partial<T>[]): T =>
+  curry(Object.assign, ...fragments)() as T;
+
 /** Partial application of a function.
   * Use this to prepare a function with arguments for testing.
   *

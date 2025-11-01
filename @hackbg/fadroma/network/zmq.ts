@@ -1,6 +1,6 @@
 /// Inspired by code by @jjeffcaii (originally published under Apache License 2.0).
 /// See https://github.com/jjeffcaii/deno-zeromq/blob/master/LICENSE.
-import type { Fn, Flag, AsyncIter, Log, Bytes, Reader, Read, Write, Async } from '../index.ts';
+import type { Fn, Flag, AsyncIter, Log, Bytes, Reader, Read, Writer, Write, Async } from '../index.ts';
 import type { TcpConn } from "../deps.ts";
 import { setImmediate } from "../deps.ts";
 import { UTF8, toU8A, flag, parse, writeAdvance, concatBytes } from '../format.ts';
@@ -38,17 +38,19 @@ export type ZmqSub = ZmqConn & {
   subscribe (topic: string): Promise<void>;
   receive (): Promise<ZmqFrame[]>;
 };
+
 /** Launch a ZeroMQ subscription. */
 export function zmqSub (to: number|string|URL, handler: Fn<[ZmqSub]>) {
   return reflect(`ZeroMQ SUB ${to}`, async function zmqSubscriber (_: unknown): Promise<ZmqSub> {
     let   stopped   = false;
     const socket    = await tcpConnect(to);
-    const handshake = zmqSubShake();
+    const shake     = zmqSubShake();
     const subscribe = (t: string) => zmqSubAddTopic(socket, t);
     const receive   = () => zmqSubReceive(socket);
     const close     = () => { stopped = true; socket.close() };
     Object.assign(socket, { subscribe, receive, close });
-    await handshake(socket);
+    console.log({shake});
+    await shake(socket);
     const subscription = asyncIter(zmqSubIterator)(socket);
     setImmediate(zmqSubIterate);
     return subscription;
@@ -74,25 +76,33 @@ export function zmqSub (to: number|string|URL, handler: Fn<[ZmqSub]>) {
     }
   }, { to, handler });
 }
+
 /** The subscriber's side of the ZeroMQ handshake. */
-export const zmqSubShake = () => sequence(
+export const zmqSubShake = () => reflect('ZMQ SUB shake', sequence(
   reflect("Write hello", zmqWriteGreet()),
   reflect("Read hello",  zmqReadGreet),
-  reflect("Read ready", async (s: Reader) => {
-    const { command, metadata } = await zmqReadFrame(s.read) as ZmqFrame;
-    if (command !== zmqReady) throw new Error('not a READY frame');
-    Object.assign(s, { meta: metadata })}),
-  reflect("Write ready", s => s.write(zmqFrame({
-    command: zmqReady,
-    metadata: s.meta
-  } as Partial<ZmqFrame>))));
+  reflect("Read ready",  zmqReadReady),
+  reflect("Write ready", zmqWriteReady)));
+
+async function zmqReadReady <R extends Reader> (s: R) {
+  const { command, metadata } = await zmqReadFrame(s.read) as ZmqFrame;
+  if (command !== zmqReady) throw new Error('not a READY frame');
+  Object.assign(s, { metadata }) as R & { metadata: string[] };
+}
+
+async function zmqWriteReady <W extends Writer> (s: W & { metadata: string[] }) {
+  const frame = zmqFrame({ command: zmqReady, metadata: s.metadata } as Partial<ZmqFrame>);
+  s.write(frame);
+}
+
 /** Write frame payload. */
-const toPayload = (frame: ZmqFrame & Bytes, offset = 1): Uint8Array => {
+function toPayload (frame: ZmqFrame & Bytes, offset = 1): Uint8Array {
   const { buf, u8, u64 } = parse(frame);
   const n = frame.long ? Number(u64(offset)) : u8(offset);
   offset += frame.long ? 4 : 1;
   return buf(n, offset);
 };
+
 /** Receive published messages. */
 async function zmqSubReceive ({ read }): Promise<ZmqFrame[]> {
   const res = [];
@@ -101,6 +111,7 @@ async function zmqSubReceive ({ read }): Promise<ZmqFrame[]> {
     (frame.size > 0) && res.push(zmqFrame(frame)));
   return res;
 }
+
 /** Add a subscription. */
 async function zmqSubAddTopic ({ write }, topicName: string) {
   const topic = UTF8.encode(topicName) as Uint8Array;
@@ -109,40 +120,42 @@ async function zmqSubAddTopic ({ write }, topicName: string) {
   payload.set(topic, 1);
   await write(zmqFrame(payload));
 }
+
 /** A ZeroMQ publisher (server listener). */
 export type ZmqPub = ZmqConn & {
   mode: 'PUB';
   kill: Fn<[]>;
   send (...msgs: Bytes[]): Promise<void>;
 };
+
 /** Launch a ZeroMQ publisher. */
 export function zmqPub (at: number|string|URL, handler: Fn<[TcpConn]>) {
   return reflect(`ZeroMQ PUB ${at}`,
     async function zmqPublisher (_: unknown): Promise<ZmqPub> {
-      let stopped = false;
-      const socket = tcpListen(at);
-      const handshake = zmqPubShake();
-      return asyncIter(zmqPubs)(Object.assign(socket, {
-        mode: 'PUB',
-        socket,
-        write,
-        kill: () => { stopped = true },
-      }));
+      let stopped  = false;
+      const kill   = () => { stopped = true; };
+      const socket = await tcpListen(at);
+      const shake  = zmqPubShake();
+      const props  = { mode: 'PUB', socket, write, kill, };
+      return asyncIter(zmqPubs)(Object.assign(socket, props));
       async function * zmqPubs () {
         for await (const connection of socket) {
-          await handshake(connection);
+          await shake(connection);
           yield connection;
           if (stopped) break;
         }
       }
     }, { at, handler })
 }
+
 /** The publisher's side of the ZeroMQ handshake. */
-export const zmqPubShake = (metadata = []) => sequence(
-  reflect('Write hello', zmqWriteGreet({ pub: true })),
-  reflect('Read hello',  zmqReadGreet),
-  reflect('Write ready', zmqWriteFrame({ command: zmqReady, metadata })),
-  reflect('Read ready',  zmqReadFrame));
+export const zmqPubShake = (metadata = []) =>
+  reflect('ZMQ PUB shake', sequence(
+    reflect('Write hello', zmqWriteGreet({ pub: true })),
+    reflect('Read hello',  zmqReadGreet),
+    reflect('Write ready', zmqWriteFrame({ command: zmqReady, metadata })),
+    reflect('Read ready',  zmqReadFrame)));
+
 ///** Send messages over pubsub channel. */
 //async function zmqPubSend (write: Write, ...msgs: Bytes[]): Promise<void> {
   //await write(zmqEmptyMore);
@@ -166,7 +179,8 @@ export type ZmqSec = 'NULL'|'PLAIN'|'CURVE';
 /** Buffer size for greet packet. */
 export const zmqGreetSize = 64;
 /** Read and decode a ZeroMQ greet. */
-export const zmqReadGreet = pipe(readBytes({ max: 64 }), zmqGreet) as Fn<[Read], Async<ZmqFrame>>;
+export const zmqReadGreet = pipe(readBytes({ max: 64 }), zmqGreet) as
+  Fn<[Read], Async<ZmqFrame>>;
 /** Encode and write a ZeroMQ greet. */
 export const zmqWriteGreet = call(pipe(zmqGreet, write));
 /** Produce a valid ZeroMQ `GREET`.

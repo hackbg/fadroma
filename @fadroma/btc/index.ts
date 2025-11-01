@@ -20,9 +20,6 @@ export type BtcLocalnetConfig = {
   onZmq:      Fn
 };
 
-const merge = <T> (fragments: Partial<T>[]): T =>
-  call(Object.assign, ...fragments)() as T;
-
 /** Spawn BTC localnet in regression test mode with indexer and API.
  *
  * Slimmed-down reimplementation of https://github.com/bitcoinjs/regtest-server */
