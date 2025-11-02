@@ -8,7 +8,6 @@ export function concatBytes (chunks: Uint8Array[]): Uint8Array {
   const output = new Uint8Array(length || 0);
   let cursor = 0;
   for (const chunk of chunks) {
-    console.log({chunk});
     if (!chunk) continue;
     output.set(chunk, cursor);
     cursor += chunk.length;

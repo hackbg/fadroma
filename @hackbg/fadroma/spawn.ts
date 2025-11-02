@@ -59,7 +59,6 @@ export const spawn = (arg0: string, ...opts: (Step<Invoke>|string)[]) =>
 /** Define a command invocation. */
 export const exec = (arg0: string, ...opts: (Step<Invoke>|string)[]) =>
   reflect(arg0, async function executeInvoke (ctx: Pids = spawnContext()) {
-    console.log({ctx});
     const result = await ctx.exec(await invoke(arg0, opts));
     if (!result) throw new Error('ctx.exec returned nothing')
     const { stdout = '', stderr = '' } = result || {};

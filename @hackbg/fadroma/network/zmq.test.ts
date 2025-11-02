@@ -1,113 +1,99 @@
-import { ok, expect, call, testSuite, equal, todo, must, ditto } from '../tester.ts';
-import { reflect } from '../index.ts';
-import {
-  zmqFlag, zmqFrame, zmqGreet, zmqReadGreet, zmqWriteGreet, zmqPub, zmqSub,
-  zmqPubShake, zmqSubShake
-} from './zmq.ts';
+import ZeroMQ from './zmq.ts';
+import $ from '../tester.ts';
+const { ditto, suite, expect: the, must: { be: is, have: has } } = $;
 import { tcpWait } from './tcp.ts';
 
-const _ = undefined;
+export default suite(import.meta, 'ZeroMQ',
 
-const mockCallback = (value = undefined) => {
+  the('Greet', () => ZeroMQ.greet(),
+    has('pub', false),
+    has('sec', 'NULL'),
+    has('ver', { maj: 3, min: 0 }),
+    the('Read', async () => {
+      const reader = mockReader(new Uint8Array(ZeroMQ.greet()));
+      console.log({reader});
+    }),
+    the('Write', async () => {
+      const writer = mockWriter();
+      const greet  = ZeroMQ.greet.write({ pub: true });
+      await greet(writer);
+    })),
+
+  the('Frame', () => ZeroMQ.frame(),
+    has('flag', 0), has('more', false), has('long', false),
+    has('command',  null),
+    has('payload',  null), has('payloadLength', 0),
+    has('metadata', null), has('metadataLength'),
+    the('Ready', () => ZeroMQ.frame({ command: "READY" }),
+      has('flag', 4), has('command', "READY")),
+    the('Shake', async function testZmqShake () {
+      const socket = {
+        ...mockReader(ZeroMQ.frame({ command: 'READY' })),
+        ...mockWriter(),
+      };
+      console.log({socket});
+      console.log(await ZeroMQ.shake.sub()(socket));
+      console.log(await ZeroMQ.shake.pub()(socket));
+    })),
+
+  the('Connect',
+    the('Pub',
+      () => ZeroMQ.pub(32123, mockCallback()),
+      is('function'), has('name', `ZeroMQ PUB 32123`),
+      ditto(),
+      is('object'), has('write'), has('kill'),
+      the('Sub',
+        () => ZeroMQ.sub(32123, mockCallback()),
+        is('function'), has('name', `ZeroMQ SUB 32123`),
+        ditto(),
+        is('object'), async function testZmqClose ({ returned: subscription }) {
+          await tcpWait({ port: 32123 })();
+          await subscription.close()
+        }))));
+
+function mockCallback (value = undefined) {
   const calls = []
-  return Object.assign(mockCallback, { calls });
+  Object.assign(mockCallback, { calls });
+  Object.setPrototypeOf(mockCallback, { toString: () => 'mockCallback' });
+  return mockCallback
   function mockCallback (...args) {
     calls.push(args);
     return value
   }
 }
 
-const mockReader = (...reads) => {
+function mockReader (...reads) {
   return {
     reads,
     read: async () => ((reads.length > 0) ? { value: reads.shift() } : { done: true })
   }
 }
 
-const mockWriter = (...writes) => {
+function mockWriter (...writes) {
   return {
     writes,
     write: async (...args) => writes.push(args)
   }
 }
 
-const testZmqGreet = expect('Greet',
-  call(zmqGreet, _),
-  must.have('pub', false),
-  must.have('sec', 'NULL'),
-  must.have('ver', { maj: 3, min: 0 }),
-  expect('Read', async () => {
-    const reader = mockReader(new Uint8Array(zmqGreet()));
-  }),
-  expect('Write', async () => {
-    const writer = mockWriter();
-    const greet  = zmqWriteGreet({ pub: true });
-    await greet(writer);
-  }));
-
-const testZmqFrame = expect('Frame',
-  call(zmqFrame, _),
-  must.have('flag',           0),
-  must.have('more',           false),
-  must.have('long',           false),
-  must.have('command',        null),
-  must.have('payload',        null),
-  must.have('payloadLength',  0),
-  must.have('metadata',       null),
-  must.have('metadataLength'),
-  expect('Ready',
-    call(zmqFrame, { command: "READY" }),
-    must.have('flag',    4),
-    must.have('command', "READY")));
-
-const testZmqShake = expect('Shake', async function testZmqShake () {
-  const socket = { ...mockReader(), ...mockWriter() };
-  console.log(await zmqPubShake(socket), await zmqSubShake(socket), socket);
-  process.exit(123);
-});
-
-const testZmqConnect = expect('Connect',
-  expect('Pub', call(zmqPub, 32123, mockCallback()),
-    must.be('function'),
-    must.have('name', `ZeroMQ PUB 32123`),
-    ({ returned: publish }) => publish(),
-    must.be('object'),
-    must.have('write'),
-    must.have('kill'),
-    expect('Sub', call(zmqSub, 32123, mockCallback()),
-      must.be('function'),
-      must.have('name', `ZeroMQ SUB 32123`),
-      ({ returned: subscribe }) => subscribe(),
-      must.be('object'), 
-      async function testZmqClose ({ returned: subscription }) {
-        await tcpWait({ port: 32123 })();
-        await subscription.close()
-      })));
-
-export default testSuite(import.meta, 'ZeroMQ',
-  testZmqGreet,
-  testZmqFrame,
-  testZmqShake,
-  testZmqConnect);
-
-//const testZmqCodec = expect('Codec',
-  //expect('Greet',   testCall(zmqGreet)),
-  //expect('Frame',   testCall(zmqFrame)),
-  //expect('Command', testCall(zmqFrame, { command: 'READY', metadata: [] })));
+//const testZmqCodec = the('Codec',
+  //the('Greet',   testCall(zmqGreet)),
+  //the('Frame',   testCall(ZeroMQ.frame)),
+  //the('Command', testCall(ZeroMQ.frame, { command: 'READY', metadata: [] })));
 //async function testZmqFrameCmd (_) {
   //const b = new Uint8Array(64);
   //b[0] |= zmqFlag.cmd.mask;
-  //equal(zmqFrame(b), b);
+  //equal(ZeroMQ.frame(b), b);
 //}
 //async function testZmqFrameCmdReady (_) {
-  //equal([...zmqFrame({ command: 'READY' })], [ 4, 6, 5, 82, 69, 65, 68, 89 ]);
-  //throws(call(zmqFrame));
-  //throws(call(zmqFrame, null));
+  //equal([...ZeroMQ.frame({ command: 'READY' })], [ 4, 6, 5, 82, 69, 65, 68, 89 ]);
+  //throws(call(ZeroMQ.frame));
+  //throws(call(ZeroMQ.frame, null));
   //const b = new Uint8Array(64);
-  //throws(()=>zmqFrame(b));
+  //throws(()=>ZeroMQ.frame(b));
   //b[0] |= zmqFlag.cmd.mask;
-  //throws(()=>zmqFrame(b));
-  //Object.assign(b, { name: zmqFrame });
-  //equal(zmqFrame(b)[0], zmqFlag.cmd.mask);
-  //todo(call(equal, zmqFrame(b).metadata, []));
+  //throws(()=>ZeroMQ.frame(b));
+  //Object.assign(b, { name: ZeroMQ.frame });
+  //equal(ZeroMQ.frame(b)[0], zmqFlag.cmd.mask);
+  //todo(call(equal, ZeroMQ.frame(b).metadata, []));
 //}

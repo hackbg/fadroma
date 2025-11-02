@@ -1,6 +1,6 @@
 //export { Buffer as StreamBuffer } from '@std/streams';
+export { ok, throws, rejects, deepStrictEqual as equal } from 'node:assert';
 export type { Buffer } from 'node:buffer';
-export { ok, deepStrictEqual as equal, throws, rejects } from 'node:assert';
 export { setImmediate, } from 'node:timers';
 export { tmpdir } from 'node:os';
 export { stdout, argv, env, cwd as getCwd, exit } from 'node:process';

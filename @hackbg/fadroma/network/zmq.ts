@@ -44,13 +44,12 @@ export function zmqSub (to: number|string|URL, handler: Fn<[ZmqSub]>) {
   return reflect(`ZeroMQ SUB ${to}`, async function zmqSubscriber (_: unknown): Promise<ZmqSub> {
     let   stopped   = false;
     const socket    = await tcpConnect(to);
-    const shake     = zmqSubShake();
     const subscribe = (t: string) => zmqSubAddTopic(socket, t);
     const receive   = () => zmqSubReceive(socket);
     const close     = () => { stopped = true; socket.close() };
     Object.assign(socket, { subscribe, receive, close });
-    console.log({shake});
-    await shake(socket);
+    const shook = await zmqSubShake()(socket);
+    console.log({shook});
     const subscription = asyncIter(zmqSubIterator)(socket);
     setImmediate(zmqSubIterate);
     return subscription;
@@ -83,9 +82,23 @@ export const zmqSubShake = () => reflect('ZMQ SUB shake', sequence(
   reflect("Read hello",  zmqReadGreet),
   reflect("Read ready",  zmqReadReady),
   reflect("Write ready", zmqWriteReady)));
+/** The publisher's side of the ZeroMQ handshake. */
+export const zmqPubShake = (metadata = []) =>
+  reflect('ZMQ PUB shake', sequence(
+    reflect('Write hello', zmqWriteGreet({ pub: true })),
+    reflect('Read hello',  zmqReadGreet),
+    reflect('Write ready', zmqWriteFrame({ command: zmqReady, metadata })),
+    reflect('Read ready',  zmqReadFrame)));
+/** Read and decode a ZeroMQ greet. */
+export const zmqReadGreet = pipe(readBytes({ max: 64 }), zmqGreet) as
+  Fn<[Read], Async<ZmqFrame>>;
+/** Encode and write a ZeroMQ greet. */
+export const zmqWriteGreet = call(pipe(zmqGreet, write));
 
 async function zmqReadReady <R extends Reader> (s: R) {
-  const { command, metadata } = await zmqReadFrame(s.read) as ZmqFrame;
+  const frame = await zmqReadFrame(s.read) as ZmqFrame;
+  console.log({frame});
+  const { command, metadata } = frame;
   if (command !== zmqReady) throw new Error('not a READY frame');
   Object.assign(s, { metadata }) as R & { metadata: string[] };
 }
@@ -135,26 +148,17 @@ export function zmqPub (at: number|string|URL, handler: Fn<[TcpConn]>) {
       let stopped  = false;
       const kill   = () => { stopped = true; };
       const socket = await tcpListen(at);
-      const shake  = zmqPubShake();
       const props  = { mode: 'PUB', socket, write, kill, };
       return asyncIter(zmqPubs)(Object.assign(socket, props));
       async function * zmqPubs () {
         for await (const connection of socket) {
-          await shake(connection);
+          await zmqPubShake()(connection);
           yield connection;
           if (stopped) break;
         }
       }
     }, { at, handler })
 }
-
-/** The publisher's side of the ZeroMQ handshake. */
-export const zmqPubShake = (metadata = []) =>
-  reflect('ZMQ PUB shake', sequence(
-    reflect('Write hello', zmqWriteGreet({ pub: true })),
-    reflect('Read hello',  zmqReadGreet),
-    reflect('Write ready', zmqWriteFrame({ command: zmqReady, metadata })),
-    reflect('Read ready',  zmqReadFrame)));
 
 ///** Send messages over pubsub channel. */
 //async function zmqPubSend (write: Write, ...msgs: Bytes[]): Promise<void> {
@@ -178,11 +182,6 @@ export type ZmqVer = { maj: number, min: number };
 export type ZmqSec = 'NULL'|'PLAIN'|'CURVE';
 /** Buffer size for greet packet. */
 export const zmqGreetSize = 64;
-/** Read and decode a ZeroMQ greet. */
-export const zmqReadGreet = pipe(readBytes({ max: 64 }), zmqGreet) as
-  Fn<[Read], Async<ZmqFrame>>;
-/** Encode and write a ZeroMQ greet. */
-export const zmqWriteGreet = call(pipe(zmqGreet, write));
 /** Produce a valid ZeroMQ `GREET`.
   * When passed array-like, tries to parse as byte buffer.
   * When passed nothing or object, generates byte buffer. */
@@ -229,8 +228,7 @@ export const zmqReady: ZmqCommand = 'READY';
 export const zmqReadFrame = pipe(
   readUntilDone, zmqFrame) as Fn<[Read], Async<ZmqFrame>>;
 /** Encode and write a ZeroMQ frame. */
-export const zmqWriteFrame = call(
-  pipe(zmqFrame, write)) as Fn<[ZmqFrame], Fn<[Write]>>;
+export const zmqWriteFrame = (frame: ZmqFrame) => ({ write }) => write(zmqFrame(frame));
 /** Produce a valid ZeroMQ `GREET`.
   * When passed array-like, tries to parse as byte buffer.
   * When passed nothing or object, generates byte buffer. */
@@ -274,7 +272,7 @@ export function zmqFrame (input?: unknown): ZmqFrame & Bytes {
   let flag = 0;
   if (more) flag |= zmqFlag.more.mask;
   if (command) flag |= zmqFlag.cmd.mask;
-  const metadataLength = metadata => metadata
+  const metadataLength = metadata => (!!metadata) ? 0 : metadata
     .map((v: { length: number }, i: number) => v.length + (i % 2 === 0 ? 1 : 4))
     .reduce((a: number, b: number) => a + b, 0);
   const payloadLength = 0
@@ -300,7 +298,7 @@ export function zmqFrame (input?: unknown): ZmqFrame & Bytes {
     u8(command.length);
     str(command);
     if (command === zmqReady) {
-      (metadata||[]).forEach((it: string, i: number) => {
+      metadata && metadata.forEach((it: string, i: number) => {
         ((i % 2 === 0) ? u8 : u32)(it.length);
         str(it);
       });
@@ -311,4 +309,18 @@ export function zmqFrame (input?: unknown): ZmqFrame & Bytes {
     metadata, metadataLength,
     payload, payloadLength,
   }) as ZmqFrame & Bytes;
+}
+
+export default {
+  greet: Object.assign(zmqGreet, {
+    read:  zmqReadGreet,
+    write: zmqWriteGreet,
+  }),
+  shake: {
+    sub: zmqSubShake,
+    pub: zmqPubShake,
+  },
+  frame: zmqFrame,
+  pub: zmqPub,
+  sub: zmqSub,
 }

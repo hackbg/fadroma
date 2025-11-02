@@ -19,6 +19,7 @@
 export * from './call.ts';
 export * from './client.ts';
 export * from './codegen.ts';
+export * from './error.ts';
 export * from './format.ts';
 export * from './logger.ts';
 export * from './network.ts';

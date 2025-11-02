@@ -28,13 +28,6 @@ export type Steps<T = unknown, U = T> =
 /** A function that composes multiple steps and adds an annotation. */
 export type StepsWith<X = unknown, T = unknown, U = T> =
   (_: X, ...steps: Step<T>[]) => Step<T, U>;
-/** Start time and duration. */
-export type Timed = {
-  /** Starting time in milliseconds. */
-  t0?: number,
-  /** Duration in milliseconds. */
-  tD?: number,
-};
 
 /** Slice off the 1st arg of every function */
 export type ToApi<I> = {
@@ -74,7 +67,7 @@ export const identity = <T>(x: T): T => x;
 
 export const nop = (..._: unknown[]) => identity;
 
-export const merge = <T> (fragments: Partial<T>[]): T =>
+export const merge = <T> (...fragments: Partial<T>[]): T =>
   curry(Object.assign, ...fragments)() as T;
 
 /** Partial application of a function.

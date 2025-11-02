@@ -6,4 +6,4 @@ import testNetwork from './network.test.ts';
 import testService from './service.test.ts';
 import testCodegen from './codegen.test.ts';
 export default testSuite(import.meta, 'Fadroma',
-  testTester, testSpawn, testNetwork, testCodegen);
+  testTester, testSpawn, testService, testCodegen, testNetwork);

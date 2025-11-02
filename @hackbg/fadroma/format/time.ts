@@ -12,3 +12,11 @@ export const msec = (t: number) =>
 
 export const dT = (t0: number) =>
   performance.now() - t0;
+
+/** Start time and duration. */
+export type Timed = {
+  /** Starting time in milliseconds. */
+  t0?: number,
+  /** Duration in milliseconds. */
+  tD?: number,
+};

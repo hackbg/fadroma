@@ -1,34 +1,45 @@
-import { testContext, testSuite, expect, forbid, matrix, must }  from "./tester.ts";
-import { call } from './index.ts';
+import $ from "./tester.ts";
 import { ok, equal } from './deps.ts';
 const _ = undefined;
-export default testSuite(import.meta, 'Tester',
-  expect('Context',
-    call(testContext, _),
-    must.be('object'),
-    must.have('pass')),
+const { must: { be: is, have: has } } = $;
+export default $.suite(import.meta, 'Tester',
 
-  expect('Suite',
-    call(testSuite, null, 'Suite', _),
-    must.be('function'),
-    must.have('name', 'Suite'),
-    must.have('steps')),
+  $.expect('Context', ()=>$.context(), is('object'),
+    has('pass'), has('fail'), has('todo')),
 
-  expect('Expect',
-    call(expect, 'Something', _),
-    call(call(expect, 'Something'), testContext()),
-    expect('Chaining', testChaining)),
+  $.expect('Suite',
+    $.expect('Empty', () => $.suite(null, 'Suite1'),
+      is('function'), has('name', 'Suite1')),
+    $.expect('One step',
+      () => $.suite(null, 'Suite2', $.expect('Step')),
+      is('function'), has('name', 'Suite2'), has('steps'),
+      ({ returned: { steps: { length } } })=>equal(length, 1)),
+    $.expect('Two steps',
+      () => $.suite(null, 'Suite', $.expect('Step1'), $.expect('Step2')),
+      is('function'), has('name', 'Suite'),
+      ({ returned: { steps: { length } } })=>equal(length, 2))),
 
-  expect('Forbid',
-    call(forbid, 'Something', () => {}),
-    call(call(forbid, 'Something', () => {}), testContext())),
+  $.expect('Expect',
+    $.expect('Empty',
+      () => $.expect('Expect0'),
+      is('function'), has('name', 'Expect0')),
+    $.expect('One step',
+      () => $.expect('Expect1', () => {}),
+      is('function'), has('name', 'Expect1'), has('steps'),
+      ({ returned: { steps: { length } } })=>equal(length, 1)),
+    $.expect('Two steps',
+      () => $.expect('Expect2', () => {}, () => {}),
+      is('function'), has('name', 'Expect2'), has('steps'),
+      ({ returned: { steps: { length } } })=>equal(length, 2)),
 
-  expect('Matrix',
-    call(matrix, 'Something', [])));
+    $.expect('Chaining', async function testChaining () {
+      const returned = Symbol();
+      const step     = $.expect('', () => { ok(true); return returned });
+      const result   = await step($.context());
+      equal(result.returned, returned); }),
 
-async function testChaining () {
-  const returned = Symbol();
-  const step     = expect('', () => { ok(true); return returned });
-  const result   = await step(testContext());
-  equal(result.returned, returned);
-}
+    $.expect('RFC2119')),
+
+  $.expect('Forbid'),
+
+  $.expect('Matrix'));
