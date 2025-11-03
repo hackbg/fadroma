@@ -296,10 +296,13 @@ export const withCatcher =
   *       expect('Manual todo with more info', todo('the more info')));
   *
   **/
-export const todo = (...info: string[]) => reflect(info.join(' '),
+export const todo = (...info: string[]) => reflect(
+  info.join(' '),
   function trackTodo <T extends Testing> (_context: T) {
     throw Object.assign(new Error(info.join(' ')), { todo: true })
-  }, { info });
+  }, {
+    info, todo: true, skip: true
+  });
 
 export const required = <T>(...info: string[]): T => {
   throw new Error('Missing required value: ' + info.join(' '));

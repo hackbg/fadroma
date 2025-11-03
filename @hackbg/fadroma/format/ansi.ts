@@ -5,15 +5,15 @@ import { env } from '../deps.ts';
 export const NO_COLOR = env.NO_COLOR === '1'                                                                                                                                                                                   
 export const ifColor = x => NO_COLOR ? '' : x;
 
-export const escaped = x => `\x1b[${x}m`;
+export const escaped = x => `\x1b[${x}`;
 
-export const RESET  = NO_COLOR ? '' : escaped('0'); // `\x1b[0m`
+export const RESET  = NO_COLOR ? '' : escaped('0m'); // `\x1b[0m`
 export const reset = (...args: unknown[]) => [...args, RESET].join('');
 
-export const FG255 = (x: number) => escaped(`38;5;${x}`);
+export const FG255 = (x: number) => escaped(`38;5;${x}m`);
 export const fg255 = (x: number) => (text: string) => `\x1b[38;5;${x}m`+`${text}${RESET}`;
 
-export const BG255 = (x: number) => escaped(`48;5;${x}`);
+export const BG255 = (x: number) => escaped(`48;5;${x}m`);
 export const bg255 = (x: number) => (text: string) => `\x1b[48;5;${x}m`+`${text}${RESET}`;
 
 const BOLD = ifColor('\x1b[1m');

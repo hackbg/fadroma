@@ -15,12 +15,19 @@ export type Log = {
 export const logger = reflect(null, function logger <T extends Log> ({
   output = stdout,
   format = (args: unknown[]) => joined(' ', args.map(x=>(typeof x === 'string') ? x : inspect(x, { depth: 10, colors: true }))),
-  log    = (...args: unknown[]) => output.write(format(args)+'\n'),
-  error  = (...args: unknown[]) => output.write(red(format(args)+'\n')),
-  warn   = (...args: unknown[]) => output.write(yellow(format(args)+'\n')),
-  debug  = (...args: unknown[]) => output.write(dim(format(args)+'\n')),
+  log    = (...args: unknown[]) => output.write('\n'+format(args)),
+  error  = (...args: unknown[]) => output.write('\n'+red(format(args))),
+  warn   = (...args: unknown[]) => output.write('\n'+yellow(format(args))),
+  debug  = (...args: unknown[]) => output.write('\n'+dim(format(args))),
   trace  = (...args: unknown[]) => console.trace(gray(5, format(args)+'\n')),
   ...rest
 } = {}): T {
-  return { log, error, warn, debug, trace, ...rest } as T
+  return {
+    log,
+    error,
+    warn,
+    debug,
+    trace,
+    ...rest
+  } as T
 });

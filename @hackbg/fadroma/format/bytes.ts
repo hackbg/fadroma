@@ -28,7 +28,7 @@ export const parse = (b: Bytes, {
   i64 = (off = 0): bigint => view().getBigUint64(off),
 } = {}) => ({ u8, u64, u32, u16, i64, i32, i16, buf, str });
 /** Concatenate values of various types into a buffer. */
-export function writeAdvance (bytes: Bytes, {
+export function writeBytes (bytes: Bytes, {
   cursor = 0,
   done = () => (cursor === bytes.length) ? bytes : bytes.subarray(0, cursor),
   buf = (value: Uint8Array) => { bytes.set(value, cursor); cursor += value.length; },

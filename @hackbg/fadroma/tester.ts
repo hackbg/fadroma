@@ -87,7 +87,7 @@ export function expect <T extends Testing> (
   async function expectOne (context: T): Promise<TestResult> {
     const [step] = steps;
     const t0 = performance.now();
-    context.log('@'+msec(t0), '🏁', name);
+    //if (!step.skip) context.log('@'+msec(t0), '🏁', name);
     try {
       const returned = await step(context);
       return context.pass({ name, tD: dT(t0), returned });
@@ -334,12 +334,9 @@ export function testReport ({
   }
   return details
 }
+
 export default {
   context: testContext,
   suite:   testSuite,
-  reflect,
-  expect,
-  must,
-  call,
-  ditto,
+  reflect, expect, must, call, ditto,
 }
