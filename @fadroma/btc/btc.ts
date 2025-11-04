@@ -10,7 +10,7 @@ export {
   btcClient   as client,
 }
 
-export type BtcLocalnetConfig = {
+export type LocalnetConfig = {
   regTest:    boolean
   btcPort:    number
   zmqPort:    number
@@ -30,7 +30,7 @@ export type BtcLocalnetConfig = {
 /** Spawn BTC localnet in regression test mode with indexer and API.
  *
  * Slimmed-down reimplementation of https://github.com/bitcoinjs/regtest-server */
-function btcLocalnet (...config: Partial<BtcLocalnetConfig>[]) {
+function btcLocalnet (...config: Partial<LocalnetConfig>[]) {
 
   let {
     regTest    = true,
@@ -47,7 +47,7 @@ function btcLocalnet (...config: Partial<BtcLocalnetConfig>[]) {
     bitcoinCli = btcClient({ regTest, dataDir }),
     bitcoind   = btcDaemon({ regTest, dataDir, btcPort, zmqPort }),
     elementsd  = (...arg) => spawn('elementsd', ...arg), // TODO
-  }: BtcLocalnetConfig = merge(config);
+  }: LocalnetConfig = merge(config);
 
   if (typeof bitcoind === 'string') {
     bitcoind = btcDaemon({ bitcoind, regTest, dataDir, btcPort, zmqPort })

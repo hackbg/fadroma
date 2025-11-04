@@ -193,7 +193,7 @@ function testThe <T extends Context> (
       const t0 = performance.now();
       const stepName = [name, step.name].filter(Boolean).join(': ') || ANSI.gray(7, '(unnamed)');
       context.stack.push({ index, name: stepName, t0 });
-      context.info('@'+msec(t0), '⏳', index, stepName);
+      context.info('@'+msec(t0), '⏳', stepName);
       try {
         returned = await step(returned, context);
         state ||= 'pass';

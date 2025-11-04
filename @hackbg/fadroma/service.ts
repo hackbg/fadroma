@@ -12,7 +12,11 @@ export const serviceContext = pipe(
 /** Define a service. */
 export const service = (name: string, ...services: Fn<[ServiceContext]>[]) => reflect(name,
   async function spawnGroup (ctx = serviceContext() as ServiceContext) {
-    for (const service of services) await service(ctx);
+    for (const service of services) {
+      console.log('Starting', service);
+      const instance = await service(ctx);
+      console.log('Started', service);
+    }
     const kill = () => Promise.all(Object.values(ctx.pids).map(proc=>proc.kill()));
     return { name, kill }
   }, { services });

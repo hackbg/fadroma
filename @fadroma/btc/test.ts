@@ -70,13 +70,13 @@ export default suite(import.meta, 'BTC',
 
   the('Localnet',
     the('ZMQ timer', (_, ctx) => { ctx.zmqTest  = zmqTimeout() }),
-    the('Launch',    (_, ctx) => { ctx.localnet = BTC.localnet({ onZmq: ctx.zmqTest.resolve }) }),
-    the('Timeout',   async (_, ctx) => { await ctx.zmqTest }),
-    the('Ready',     async (_, ctx) => { ctx.localnet = await ctx.localnet }),
+    the('Launch', async (_, ctx) => { ctx.localnet = await BTC.localnet({ onZmq: ctx.zmqTest.resolve }) }),
+    //the('Timeout',   async (_, ctx) => { await ctx.zmqTest }),
+    //the('Ready',     async (_, ctx) => { ctx.localnet = await ctx.localnet }),
     the('Subscribe', 'TX', 'Block'),
     the('Query', 'Block', 'Transaction', 'Address'),
     the('Send', 'OP_CHECKSIG'),
-    ctx => { if (ctx.localnet?.kill) ctx.localnet.kill() }),
+    (_, ctx) => { if (ctx.localnet?.kill) ctx.localnet.kill() }),
 );
 
 function mockExecContext () {

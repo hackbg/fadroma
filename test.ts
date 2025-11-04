@@ -9,6 +9,7 @@ import testSimf from "./@fadroma/simf/test.ts";
 //import testTm      from "./@fadroma/tm/test.ts";
 //import testCw      from "./@fadroma/cw/test.ts";
 //import testNamada  from "./@fadroma/namada/test.ts";
+console.log = console.trace;
 export default suite(import.meta, 'Fadroma (full)',
   testFadroma,
   testBtc,
