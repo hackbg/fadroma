@@ -3,13 +3,13 @@ export { ok, throws, rejects, deepStrictEqual as equal } from 'node:assert';
 export type { Buffer } from 'node:buffer';
 export { setImmediate, } from 'node:timers';
 export { tmpdir } from 'node:os';
-export { stdout, argv, env, cwd as getCwd, exit } from 'node:process';
+export { stdout, stderr, argv, env, cwd as getCwd, exit } from 'node:process';
 export { fileURLToPath } from 'node:url';
 export { join as joinPath, resolve as resolvePath } from 'node:path';
 export { realpathSync } from 'node:fs';
 export { writeFile, mkdir, mkdtemp } from 'node:fs/promises';
-export { Server as HttpServer } from 'node:http';
-export { Server as TcpServer, createConnection } from 'node:net';
+export { Server as HttpServer, createServer as createHttpServer } from 'node:http';
+export { Server as TcpServer, createServer as createTcpServer, createConnection } from 'node:net';
 export type { Socket } from 'node:net';
 export { inspect, stripVTControlCharacters } from 'node:util';
 export { spawn as spawnImpl } from 'node:child_process';
@@ -19,6 +19,7 @@ export { webcrypto } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 export const execImpl = promisify(execFile);
+export { execFile };
 
 export const {
   connect: denoConnect,
@@ -30,6 +31,7 @@ export type TcpConn = Deno.TcpConn;
 
 export { base16, base64, bech32, bech32m } from '@scure/base'
 export { default as Case } from 'case';
+export { default as logUpdate } from 'log-update';
 
 //export { sha256 } from '@noble/hashes/sha2.js'
 //export { ripemd160 } from '@noble/hashes/legacy.js'

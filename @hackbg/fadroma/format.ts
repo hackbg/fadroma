@@ -5,5 +5,8 @@ export * from './format/hash.ts';
 export * from './format/number.ts';
 export * from './format/string.ts';
 export * from './format/time.ts';
-export * as ANSI from './format/ansi.ts';
+
+export * as ANSI  from './format/ansi.ts';
 export * as Borsh from './format/borsh.ts';
+export * as DOM   from './format/dom.ts';
+export * as TUI   from './format/tui.ts';

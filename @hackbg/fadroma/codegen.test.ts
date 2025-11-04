@@ -1,13 +1,16 @@
 #!/usr/bin/env -S deno run --coverage --allow-env --allow-net --allow-run
-import { testSuite, expect }  from "./tester.ts";
-export default testSuite(import.meta, 'Codegen',
-  expect('Generator', '.gitignore', 'README',
-    expect('ES',
-      expect('node/npm/pnpm'),
-      expect('tsc'),
-      expect('deno'),
-      expect('eslint')),
-    expect('Rust',
-      expect('cargo', 'workspace'),
-      expect('bacon'),
-      expect('mold'))));
+import { suite, the }  from "./tester.ts";
+export default suite(import.meta, 'Codegen',
+  '.gitignore',
+  'README',
+
+  the('ES',
+    the('node/npm/pnpm'),
+    the('tsc'),
+    the('deno'),
+    the('eslint')),
+
+  the('Rust',
+    the('cargo', 'workspace'),
+    the('bacon'),
+    the('mold')));

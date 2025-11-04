@@ -1,45 +1,53 @@
-import $ from "./tester.ts";
+import { suite, the, context, is, has } from "./tester.ts";
 import { ok, equal } from './deps.ts';
-const _ = undefined;
-const { must: { be: is, have: has } } = $;
-export default $.suite(import.meta, 'Tester',
+export default suite(import.meta, 'Tester',
 
-  $.expect('Context', ()=>$.context(), is('object'),
+  the('Context', context, is('object'),
     has('pass'), has('fail'), has('todo')),
 
-  $.expect('Suite',
-    $.expect('Empty', () => $.suite(null, 'Suite1'),
+  the('Suite',
+
+    the('Empty', () => suite(null, 'Suite1'),
       is('function'), has('name', 'Suite1')),
-    $.expect('One step',
-      () => $.suite(null, 'Suite2', $.expect('Step')),
+
+    the('One step',
+      () => suite(null, 'Suite2', the('Step')),
       is('function'), has('name', 'Suite2'), has('steps'),
-      ({ returned: { steps: { length } } })=>equal(length, 1)),
-    $.expect('Two steps',
-      () => $.suite(null, 'Suite', $.expect('Step1'), $.expect('Step2')),
+      ({ steps: { length } })=>equal(length, 1)),
+
+    the('Two steps',
+      () => suite(null, 'Suite', the('Step1'), the('Step2')),
       is('function'), has('name', 'Suite'),
-      ({ returned: { steps: { length } } })=>equal(length, 2))),
+      ({ steps: { length } })=>equal(length, 2)),
 
-  $.expect('Expect',
-    $.expect('Empty',
-      () => $.expect('Expect0'),
+    the('Nested',
+      () => suite(null, 'Suite', the('Step1'), the('Step2', the('Step3'))),
+      is('function'), has('name', 'Suite'),
+      ({ steps: { length } })=>equal(length, 2))),
+
+  the('Step',
+
+    the('Empty',
+      () => the('Expect0'),
       is('function'), has('name', 'Expect0')),
-    $.expect('One step',
-      () => $.expect('Expect1', () => {}),
+
+    the('One step',
+      () => the('Expect1', () => {}),
       is('function'), has('name', 'Expect1'), has('steps'),
-      ({ returned: { steps: { length } } })=>equal(length, 1)),
-    $.expect('Two steps',
-      () => $.expect('Expect2', () => {}, () => {}),
+      ({ steps: { length } })=>equal(length, 1)),
+
+    the('Two steps',
+      () => the('Expect2', () => {}, () => {}),
       is('function'), has('name', 'Expect2'), has('steps'),
-      ({ returned: { steps: { length } } })=>equal(length, 2)),
+      ({ steps: { length } })=>equal(length, 2)),
 
-    $.expect('Chaining', async function testChaining () {
-      const returned = Symbol();
-      const step     = $.expect('', () => { ok(true); return returned });
-      const result   = await step($.context());
-      equal(result.returned, returned); }),
+    the('Nested',
+      () => the('Expect3', () => {}, the('Expect4', () => {})),
+      is('function'), has('name', 'Expect3'), has('steps'),
+      ({ steps: { length } })=>equal(length, 2))),
 
-    $.expect('RFC2119')),
+  the('RFC2119'),
 
-  $.expect('Forbid'),
+  the('Forbid'),
 
-  $.expect('Matrix'));
+  the('Matrix'));

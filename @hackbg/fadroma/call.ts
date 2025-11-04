@@ -1,30 +1,42 @@
-import type { Falsy, Testing } from './index.ts';
+import type { Falsy } from './index.ts';
+
 /** Used to recognize entrypoint. */
 export type Meta = Partial<ImportMeta>;
+
 /** A program's entrypoint. */
 export type Main = Fn;
+
 /** Either `T` or `Promise<T>`; both cases handled asynchronously. */
 export type Async<T = unknown> = T|Promise<T>;
+
 /** Function arguments. */
 export type Takes<T extends unknown[]> = (...args: T) => unknown;
+
 /** Function return type. */
 export type Returns<T> = (...args: unknown[]) => T;
+
 /** Annotations added by [reflect]. */
 export type Reflects<F extends Fn[] = Fn[]> = { stack?: string[], steps?: F };
+
 /** Procedure. Mutates context and returns void or new context. */
 export type Op<T> = Takes<[T]> & Returns<Async<T|void>>;
+
 /** Gradually elaboratable function type. */
 export type Fn<Inputs extends unknown[] = unknown[], Output = unknown> =
   & Takes<Inputs> & Returns<Output>;
+
 /** A sequence of functions. */
 export type Pipe<Output, Inputs extends []> = 
   Reflects & Fn<Inputs, Async<Output>>;
+
 /** Part of a [Pipe]. */
 export type Step<T = unknown, U = T> =
   Reflects & Takes<[T]> & Returns<Async<U>>;
+
 /** A function that composes multiple steps into one step. */
 export type Steps<T = unknown, U = T> =
   (...steps: Step<T>[])  => Step<T, U>;
+
 /** A function that composes multiple steps and adds an annotation. */
 export type StepsWith<X = unknown, T = unknown, U = T> =
   (_: X, ...steps: Step<T>[]) => Step<T, U>;
@@ -67,8 +79,13 @@ export const identity = <T>(x: T): T => x;
 
 export const nop = (..._: unknown[]) => identity;
 
-export const merge = <T> (...fragments: Partial<T>[]): T =>
-  curry(Object.assign, ...fragments)() as T;
+export function merge <T> (t: T): T;
+export function merge <T, U> (t: T, u: U): T & U;
+export function merge <T, U, V> (t: T, u: U, v: V): T & U & V;
+export function merge <T, U, V, W> (t: T, u: U, v: V, w: W): T & U & V & W;
+export function merge <T> (...fragments: Partial<T>[]): T {
+  return Object.assign(...fragments as [object]) as T;
+}
 
 /** Partial application of a function.
   * Use this to prepare a function with arguments for testing.
@@ -298,7 +315,7 @@ export const withCatcher =
   **/
 export const todo = (...info: string[]) => reflect(
   info.join(' '),
-  function trackTodo <T extends Testing> (_context: T) {
+  function trackTodo (_context: unknown) {
     throw Object.assign(new Error(info.join(' ')), { todo: true })
   }, {
     info, todo: true, skip: true

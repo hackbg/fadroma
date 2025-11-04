@@ -1,6 +1,6 @@
-import type { Bytes, Step } from '../index.ts';
-import { reflect, pipe, identity } from '../call.ts';
-import { concatBytes } from '../format/bytes.ts';
+import type { Bytes, Step } from './index.ts';
+import { reflect, pipe, identity } from './call.ts';
+import { concatBytes } from './format/bytes.ts';
 
 /** Connection to `Read & Write` pair. */
 export type RW<T = Bytes> = Reader<T> & Writer<T> & { close?: () => unknown };
@@ -66,11 +66,11 @@ export const write = <T>(...data: T[]) =>
 /** Read between `min` and `max` bytes. */
 export const readBytes = ({ min = 0, max = 256 } = {}) =>
   reflect(`read between ${min} and ${max} bytes`,
-    async function readSomeBytes ({ read }: Reader<Bytes>) {
+    async function readSomeBytes (reader: Reader<Bytes>) {
       let total = 0;
       const chunks = []
       while (true) {
-        const { done, value } = await read();
+        const { done, value } = await reader.read() || { done: true };
         chunks.push(value);
         total += value?.length ?? 0;
         if (done || (total >= max)) break;
@@ -78,10 +78,10 @@ export const readBytes = ({ min = 0, max = 256 } = {}) =>
       return concatBytes(chunks)
     }, { min, max });
 /** Read whole stream. */
-export async function readUntilDone ({ read }: Reader<Bytes>): Promise<Bytes|null> {
+export async function readUntilDone (reader: Reader<Bytes>): Promise<Bytes|null> {
   const chunks = [];
   while (true) {
-    const { done, value } = await read()
+    const { done, value } = await reader.read() || { done: true };
     chunks.push(value);
     if (done) break;
   }
@@ -89,3 +89,4 @@ export async function readUntilDone ({ read }: Reader<Bytes>): Promise<Bytes|nul
   const result = concatBytes(chunks)
   return result
 }
+

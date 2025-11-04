@@ -2,6 +2,7 @@ import type { Fn, Step, Async } from './index.ts';
 import { execImpl, spawnImpl } from './deps.ts';
 import type { ChildProcess } from './deps.ts';
 import { reflect } from './call.ts';
+
 /** Process management context. */
 export type Pids = {
   stdout: string,
@@ -15,13 +16,16 @@ export type Pids = {
   /** Kill any running process by pid. */
   kill (id: number): Async
 };
+
 /** A command invocation. */
 export type Invoke = {
   argv: string[],
   opts?: { env?: Record<string, string> }
 };
+
 /** A background process. */
 export type SpawnResult = ChildProcess;
+
 /** The result of an invocation. */
 export type ExecResult = {
   pid:    number,
@@ -32,6 +36,7 @@ export type ExecResult = {
   signal: string|null,
   error?: Error
 }
+
 /** Define process management context. */
 export const spawnContext = <T extends Pids>({
   pids  = {},
@@ -46,6 +51,7 @@ export const spawnContext = <T extends Pids>({
 }: Partial<T> = {}): T => ({
   pids, exec, spawn, kill, stdout, stderr, ...rest
 } as T);
+
 /** Define a background task. */
 export const spawn = (arg0: string, ...opts: (Step<Invoke>|string)[]) =>
   reflect(arg0, async function spawnDaemon (ctx: Pids = spawnContext()) {
@@ -56,6 +62,7 @@ export const spawn = (arg0: string, ...opts: (Step<Invoke>|string)[]) =>
     }
     return ctx
   }, { arg0, opts });
+
 /** Define a command invocation. */
 export const exec = (arg0: string, ...opts: (Step<Invoke>|string)[]) =>
   reflect(arg0, async function executeInvoke (ctx: Pids = spawnContext()) {
@@ -66,6 +73,7 @@ export const exec = (arg0: string, ...opts: (Step<Invoke>|string)[]) =>
     ctx.stderr += stderr;
     return ctx;
   }, { arg0, opts });
+
 /** Compose a command invocation from opts. */
 export const invoke = async (arg0: string, opts: (Step<Invoke>|string)[]) => {
   let command = { argv: [arg0], opts: {} } as Invoke;
@@ -81,6 +89,7 @@ export const invoke = async (arg0: string, opts: (Step<Invoke>|string)[]) => {
   }
   return command;
 }
+
 /** Set an environment variable for a command invocation */
 export const setEnv = (name: string, value: string|null) =>
   reflect(name, function setEnvironmentVariable (cmd: Invoke) {
@@ -88,6 +97,7 @@ export const setEnv = (name: string, value: string|null) =>
     cmd.opts.env ??= {};
     cmd.opts.env[name] = value;
   }, { name, value });
+
 /** Append command-line arguments to a command invocation. */
 export const addArgs = (...fragments: string[]) =>
   reflect(fragments[0], function addArgument (cmd: Invoke) {

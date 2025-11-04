@@ -1,7 +1,7 @@
 import type { Fn, StepsWith, Tcp, Log, FS, Pids } from './index.ts';
 import { pipe, reflect } from './call.ts';
 import { logger } from './logger.ts';
-import { tcpContext } from './network.ts';
+import { tcpContext } from './tcp.ts';
 import { fsContext } from './codegen.ts';
 import { spawnContext } from './spawn.ts';
 /** Service context. */

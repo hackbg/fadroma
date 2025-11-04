@@ -1,5 +1,5 @@
-import type { Meta, Main } from '../call.ts';
-import { setImmediate, argv, exit, fileURLToPath } from '../deps.ts';
+import type { Meta, Main } from './index.ts';
+import { setImmediate, argv, exit, fileURLToPath } from './deps.ts';
 
 /** If the current module is the program entrypoint,
   * runs the given main function as a separate task.
