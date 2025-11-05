@@ -1,6 +1,6 @@
-import type { Fn, Returns, Async, Bytes, Step } from './index.ts';
-import { tmpdir, mkdtemp, writeFile, resolvePath, mkdir, getCwd } from './deps.ts';
-import { pipe, reflect } from './call.ts';
+import type { Fn, Returns, Async, Bytes, Step } from '../index.ts';
+import { tmpdir, mkdtemp, writeFile, resolvePath, mkdir, getCwd } from '../deps.ts';
+import { pipe, reflect } from '../format/function.ts';
 /** Context for executing filesystem operations. */
 export type FS = {
   /** Current working directory */

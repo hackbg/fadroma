@@ -1,12 +1,10 @@
 import type { Fn, Meta } from './index.ts';
 import type { ChildProcess } from './deps.ts';
-import { entrypoint as entry } from './command.ts';
-import { call } from './call.ts';
+import { entrypoint as entry } from './context/command.ts';
+import { call, wordWrap, msec } from './format.ts';
 import { orange, bold, gray, blue } from './format/ansi.ts';
-import { wordWrap } from './format/string.ts';
-import { msec } from './format/time.ts';
 import { getCwd, resolvePath, realpathSync, stdout, stderr, watchFs,
-  execFile, stripVTControlCharacters, execImpl } from './deps.ts';
+  execFile, stripVTControlCharacters, execImpl, env } from './deps.ts';
 
 const RE = /(TS\d+)(.+)\n[\s\S]+? at (file:\/\/\/.+\n)/gm;
 
@@ -59,7 +57,10 @@ export const typecheck = async function watchTypecheck (
     }
     console.log(` ${checks} check(s) to go`);
   } finally {
-    console.log(' '+msec(performance.now() - t0));
+    stdout.write(
+      "\x1b[?25l" +
+      `\x1b[${stdout.rows||1};${Math.max(0, stdout.columns - 10)}H` +
+      blue(msec(performance.now() - t0)));
   }
 }
 
@@ -81,41 +82,47 @@ export const test = async function watchTest (_kind: string, _paths: string[]) {
   } catch (e) {
     console.error(e);
   } finally {
-    console.log(` ${msec(performance.now() - t0)}`);
+    stdout.write(
+      `\x1b[${stdout.rows||1};1H` +
+      `\x1b[${Math.max(0, stdout.columns - 10)}G` +
+      blue(msec(performance.now() - t0)));
   }
 };
 
+const toRealPath = x => { try { return realpathSync(x) } catch (e) { if (e.code!=='ENOENT') throw e } };
+const toRelativePath = cwd => x => resolvePath(x).replace(cwd, '.');
 export async function watch (callback: Fn<[string, string[]]>, _argv: unknown) {
+  // todo: make configurable
   const cwd = getCwd();
+  // debounce timer
   let timer = null;
+  // debounce interval
   const interval = 100;
+  // initial run
   await update({ force: true });
-  for await (const event of watchFs(".")) {
-    await update(event);
-  }
-  async function update ({ force = false, kind = null, paths = [] } = {}) {
+  // update on every event
+  for await (const event of watchFs(".")) await update(event);
+  // main update function
+  async function update ({
+    force = false, kind = null, paths = [],
+    filter = x => !(
+      x.endsWith('~')||x.includes('/.git/')||x.includes('/toolbox/')||
+      x.includes('/.deno.lock')||x.includes('/node_modules/.deno/')
+    ),
+  } = {}) {
+    // non-forced updates go through the debounce
     if (!force) {
+      // ignore access events; todo: configurable
       if (kind === 'access') return;
-      //paths = paths.map(x=>(typeof x === 'string')?x.replace(cwd, '.'):x);
-      paths = paths
-        .filter(x=>!x.endsWith('~'))
-        .filter(x=>!x.includes('/.git/'))
-        .filter(x=>!x.includes('/toolbox/'))
-        .filter(x=>!x.includes('/.deno.lock'));
+      // ignore paths we don't care about
+      paths = paths.filter(filter);
+      // skip if only ignored paths were updated
       if (paths.length === 0) return;
-      paths = paths
-        .map(x=>{ try { return realpathSync(x) } catch (e) { if (e.code!=='ENOENT') throw e } })
-        .filter(Boolean)
-        .map(x=>resolvePath(x).replace(cwd, '.'))
-        .filter(x=>!x.includes('/node_modules/.deno/'));
-      if (paths.length === 0) return;
-      stdout.write(''
-        + `\x1b[${stdout.rows||1};1H`
-        + `\x1b[0K`
-        + blue(''
-            + bold(kind)
-            + ' '
-            + paths.join(', ').slice(0, stdout.columns-10)));
+      // convert paths to relative and filter again
+      paths = paths.map(toRealPath).filter(Boolean).map(toRelativePath(cwd));
+      // log update at bottom left corner
+      stdout.write(`\x1b[${stdout.rows||1};1H` + `\x1b[0K`
+        + blue(bold(kind) + ' ' + paths.join(', ').slice(0, stdout.columns)));
     }
     if (timer) clearTimeout(timer);
     timer = setTimeout(call(callback, kind, paths), force ? 0 : interval);

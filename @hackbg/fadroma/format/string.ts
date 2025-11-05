@@ -1,7 +1,7 @@
-import type { Falsy, Bytes } from '../format.ts';
-import { Case } from '../deps.ts';
+import type { Falsy, Bytes } from '../index.ts';
+import { Case, stdout } from '../deps.ts';
 import { NO_COLOR } from './ansi.ts';
-import { call, identity } from '../call.ts';
+import { call, identity } from './function.ts';
 
 /** String, or something with a `toString` method. */
 export type Stringy = string|{ toString(): string };
@@ -89,24 +89,27 @@ export const camelize = <T extends object>(object: T) => {
  * Copyright (c) 2014-2023, Jon Schlinkert.
  * Released under the MIT License. */
 export function wordWrap (str: string, {
-  width = 50,
-  indent = '  ',
+  width   = stdout.columns,
+  indent  = '  ',
   newline = '\n' + indent,
-  escape = identity,
-  cut = false,
-  trim = false
+  escape  = identity,
+  cut     = false,
+  trim    = false
 } = {}) {
   if (str == null) return str;
   let regexString = '.{1,' + width + '}';
   if (cut !== true) regexString += '([\\s\u200B]+|$)|[^\\s\u200B]+?([\\s\u200B]+|$)';
   const re = new RegExp(regexString, 'g');
   const lines = str.match(re) || [];
-  let result = indent + lines.map(function(line: string) {
-    if (line.slice(-1) === '\n') line = line.slice(0, line.length - 1);
-    return escape(line);
-  }).join(newline);
+  let result = indent + lines.map(escapeLine).join(newline);
   if (trim === true) result = trimTabAndSpaces(result);
   return result;
+
+  function escapeLine (line: string) {
+    if (line.slice(-1) === '\n') line = line.slice(0, line.length - 1);
+    return escape(line);
+  }
+
   function trimEnd (str: string) {
     let lastCharPos = str.length - 1;
     let lastChar = str[lastCharPos];
@@ -115,9 +118,45 @@ export function wordWrap (str: string, {
     }
     return str.substring(0, lastCharPos + 1);
   }
+
   function trimTabAndSpaces (str: string) {
     const lines = str.split('\n');
     const trimmedLines = lines.map((line) => trimEnd(line));
     return trimmedLines.join('\n');
   }
+
 };
+
+/** Define the `toString` method on an object's prototype.
+  *
+  * This allows a custom string representation to be provided for data objects,
+  * which is excellent for debugging - similar to Rust's `Debug` and `Display`.
+  *
+  * Replace `string` with a function that takes `object` to get dynamic
+  * behavior (i.e. complete parity with `Display`/`Debug`).
+  *
+  * Also an example of how to do mixins in JavaScript without using classes.
+  *
+  * Mixins are a very useful pattern from languages with multiple inheritance.
+  * They make OOP quite tolerable in e.g. Python.
+  *
+  * Making TypeScript correctly recognize these left as exercise to reader. 
+  *
+  * */
+export function toString <T> (stringOrToString: (string|((_:T)=>string))) {
+  return (object: T): T => {
+    const proto = Object.getPrototypeOf(object);
+    const mixin =
+      (typeof stringOrToString === 'function') ?
+        { toString () { return stringOrToString(object) } } :
+      (typeof stringOrToString === 'string') ?
+        { toString () { return stringOrToString } } :
+      null;
+    if (!mixin) {
+      throw new Error(`toString: need string or function, got: ${stringOrToString}`);
+    }
+    Object.setPrototypeOf(mixin, proto);
+    Object.setPrototypeOf(object, mixin);
+    return object;
+  }
+}

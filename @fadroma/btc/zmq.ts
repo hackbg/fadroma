@@ -1,7 +1,6 @@
-import type { Fn, Flag, AsyncIter, Log, Bytes, Reader, TcpConn } from './deps.ts';
-import { UTF8, toU8A, flag, parse, concatBytes, setImmediate, readBytes,
-  readUntilDone, write, toRW, tcpConnect, tcpListen, merge, call, sequence,
-  pipe, reflect, asyncIter } from './deps.ts';
+import type { Fn, Flag, AsyncIter, Log, Bytes, Reader } from './deps.ts';
+import { UTF8, toU8A, flag, byteParse, readBytes, readUntilDone, write, pipe,
+  tcpConnect, tcpListen, merge, call, sequence, reflect } from './deps.ts';
 /** A ZeroMQ connection. */
 export type Conn = (AsyncIter<Frame> & ConnOpts) | { socket?: unknown };
 /** Options for creating a ZeroMQ connection. */
@@ -70,8 +69,7 @@ export const Sub = merge(async function zmqSub (to: number|string|URL, handler: 
   return reflect(`ZMQ SUB ${to}`, async function zmqSubscriber (
     _: unknown
   ): Promise<Sub> {
-    const socket    = await tcpConnect(to);
-    //const shake     = ZMQ.sub.shake();
+    const socket = await tcpConnect(to);
     await writeCb(socket, Hello({ pub: false }));
     await socket.read();
     await writeCb(socket, Frame.ready());
@@ -83,7 +81,7 @@ export const Sub = merge(async function zmqSub (to: number|string|URL, handler: 
       payload.set(topic, 1);
       await writeCb(socket, zmqFrame(payload));
     };
-    const receive   = async () => {
+    const receive = async () => {
       const res = [];
       for (let frame: Frame;
         (frame = await sockFrame.read(socket))?.more;
@@ -153,7 +151,7 @@ export const Frame = merge(zmqFrame, {
   write: (frame: Frame) => writable => write(zmqFrame(frame)),
   empty: new Uint8Array([1, 0]),
   payload: (frame: Frame & Bytes, offset = 1): Uint8Array => {
-    const { buf, u8, u64 } = parse(frame);
+    const { buf, u8, u64 } = byteParse(frame);
     const n = frame.long ? Number(u64(offset)) : u8(offset);
     offset += frame.long ? 4 : 1;
     return buf(n, offset);
@@ -172,7 +170,7 @@ export function zmqFrame (input?: unknown): Frame & Bytes {
     const bytes  = toU8A(input);
     const long   = Flags.long(bytes);
     if (long) throw new Error("long frames not supported yet");
-    const size   = Number(parse(bytes)[long ? 'u64' : 'u8'](1));
+    const size   = Number(byteParse(bytes)[long ? 'u64' : 'u8'](1));
     const more   = Flags.more(bytes);
     const cmd    = Flags.cmd(bytes);
     merge(bytes, { size, more, long, cmd });

@@ -9,7 +9,14 @@ import testSimf from "./@fadroma/simf/test.ts";
 //import testTm      from "./@fadroma/tm/test.ts";
 //import testCw      from "./@fadroma/cw/test.ts";
 //import testNamada  from "./@fadroma/namada/test.ts";
-console.log = console.trace;
+import { stdout, inspect } from './@hackbg/fadroma/deps.ts';
+import { ANSI, stackTrace } from './@hackbg/fadroma/index.ts';
+console.log = (...args) => {
+  const trace = stackTrace();
+  stdout.write(
+    ANSI.yellow('console.log')+' '+args.map(x=>inspect(x)).join(' ')+'\n '+
+    ANSI.gray(8, trace.join('\n ')));
+};
 export default suite(import.meta, 'Fadroma (full)',
   testFadroma,
   testBtc,

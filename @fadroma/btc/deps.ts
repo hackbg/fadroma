@@ -18,7 +18,7 @@ export {
   service, interval, exec, spawn, setEnv, addArgs, tcpWait, dir,
   serveHttp, route, param, guard, get, post,
   joined, call, reflect,
-  UTF8, toU8A, flag, parse, concatBytes, readBytes,
+  UTF8, toU8A, flag, byteParse, byteConcat, readBytes,
   readUntilDone, write, toRW, tcpConnect, tcpListen, merge, sequence,
   pipe, asyncIter,
   Test,

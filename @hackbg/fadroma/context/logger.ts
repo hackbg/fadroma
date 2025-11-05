@@ -1,6 +1,5 @@
-import { inspect, stdout, logUpdate } from './deps.ts';
-import { joined, ANSI } from './format.ts';
-import { reflect } from './call.ts';
+import { env, stdout, createLogUpdate, inspect } from '../deps.ts';
+import { reflect, joined, ANSI } from '../format.ts';
 const { red, yellow, dim, gray } = ANSI;
 
 /** Logging interface. */
@@ -20,11 +19,13 @@ export const logger = reflect(null, function logger <T extends Log> ({
     (x && (typeof x === 'object') && (x instanceof Error)) ? x.message :
     inspect(x, { depth: 10, colors: true }),
   format = (args: unknown[]) => joined(' ', args.map(formatOne)),
-  info   = (...args: unknown[]) => logUpdate(format(args)),
-  log    = (...args: unknown[]) => logUpdate.persist(format(args)),
-  error  = (...args: unknown[]) => logUpdate.persist(red(format(args))),
-  warn   = (...args: unknown[]) => logUpdate.persist(yellow(format(args))),
-  debug  = (...args: unknown[]) => logUpdate.persist(dim(format(args))),
+  //size   = stdout.getWindowSize() || [Number(env.COLUMNS)||80, Number(env.ROWS)||25],
+  update = createLogUpdate(stdout, { defaultWidth: Infinity }),
+  info   = (...args: unknown[]) => update(format(args)),
+  log    = (...args: unknown[]) => update.persist(format(args)),
+  error  = (...args: unknown[]) => update.persist(red(format(args))),
+  warn   = (...args: unknown[]) => update.persist(yellow(format(args))),
+  debug  = (...args: unknown[]) => update.persist(dim(format(args))),
   trace  = (...args: unknown[]) => console.trace(gray(5, format(args)+'\n')),
   ...rest
 } = {}): T {

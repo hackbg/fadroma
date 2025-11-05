@@ -1,4 +1,4 @@
-import type { Falsy } from './index.ts';
+import type { Falsy } from '../index.ts';
 
 /** Used to recognize entrypoint. */
 export type Meta = Partial<ImportMeta>;
@@ -68,9 +68,10 @@ export const renamed = <N extends { name: string }> (name: string|Falsy, fn: N):
 }
 
 /** Rename a function and add metadata. */
-export const reflect = <T>(name: string, fn, props?: T) =>
-  Object.defineProperties(renamed(name, fn),
-    props ? Object.getOwnPropertyDescriptors(props) : {});
+export function reflect <T>(name: string, fn, props?: T) {
+  const descriptors = props ? Object.getOwnPropertyDescriptors(props) : {};
+  return Object.defineProperties(renamed(name, fn), descriptors);
+}
 
 /** The identity function.
   *

@@ -1,5 +1,3 @@
-import { yellow } from './ansi.ts';
-
 export function timestamp (d = new Date()) {
   return d.toISOString()
     .replace(/[-:\.Z]/g, '')
@@ -8,7 +6,7 @@ export function timestamp (d = new Date()) {
 }
 
 export const msec = (t: number) =>
-  yellow((t.toFixed(0)+'ms').padEnd(10));
+  (t/1000).toFixed(0)+'.'+((t%1000).toFixed(0).padStart(3, '0')+'s')
 
 export const dT = (t0: number) =>
   performance.now() - t0;

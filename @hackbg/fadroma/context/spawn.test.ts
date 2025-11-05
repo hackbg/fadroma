@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --coverage --allow-env --allow-net --allow-run
 import { suite, the, has }  from "./tester.ts";
-import { spawnContext, exec, spawn } from './index.ts';
-import { ok, equal } from './deps.ts';
+import { spawnContext, exec, spawn } from '../index.ts';
+import { ok, equal } from '../deps.ts';
 export default suite(import.meta, 'Process',
 
   the('Context', spawnContext, has('pids')),

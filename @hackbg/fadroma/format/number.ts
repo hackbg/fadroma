@@ -1,4 +1,4 @@
-import type { Bytes } from './bytes.ts';
+import type { Bytes } from './byte.ts';
 import { webcrypto, base16, base64, bech32, bech32m } from '../deps.ts';
 
 export type Num = number|string|bigint;
@@ -15,10 +15,21 @@ export type Decimal64<P extends Num>  = Decimal<P, 64>;  // deprecated
 export type Decimal128<P extends Num> = Decimal<P, 128>; // deprecated
 export type Decimal256<P extends Num> = Decimal<P, 256>; // deprecated
 
+export { base16, base64, bech32, bech32m }
 export type Base<B extends number> = {
   __base: B,
-  encode: (_: Num) => Bytes,
-  decode: (_: Bytes) => Num,
+  encode: (_: Bytes) => string,
+  decode: (_: string) => Bytes,
+}
+
+export const Base64: Base<64> = { __base: 64,
+  encode: base64.encode,
+  decode: base64.decode,
+}
+
+export const Base16: Base<16> = { __base: 16,
+  encode: base16.encode,
+  decode: base64.decode,
 }
 
 const numbersWithoutZero =

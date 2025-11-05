@@ -1,6 +1,6 @@
-import type { Fn, Tcp, Endpoint, Step } from './index.ts';
-import { HttpServer } from './deps.ts';
-import { pipe, reflect } from './call.ts';
+import type { Fn, Tcp, Endpoint, Step } from '../index.ts';
+import { HttpServer } from '../deps.ts';
+import { pipe, reflect } from '../format.ts';
 import { tcpContext, tcpAddr } from './tcp.ts';
 
 /** HTTP context. */

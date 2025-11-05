@@ -31,7 +31,7 @@ export type TcpConn = Deno.TcpConn;
 
 export { base16, base64, bech32, bech32m } from '@scure/base'
 export { default as Case } from 'case';
-export { default as logUpdate } from 'log-update';
+export { createLogUpdate } from 'log-update';
 
 //export { sha256 } from '@noble/hashes/sha2.js'
 //export { ripemd160 } from '@noble/hashes/legacy.js'

@@ -3,6 +3,7 @@ import { Test, pipe, tmp, fsContext, spawnContext } from '@hackbg/fadroma';
 import { simfInit, simfBuild } from './index.ts';
 import { resolvePath, fileURLToPath } from './deps.ts';
 const { the } = Test;
+const cwd = resolvePath(fileURLToPath(import.meta.url), '..');
 export default Test.suite(import.meta, 'Simplicity',
   the('Deploy'),
   the('Invoke'),
@@ -11,7 +12,6 @@ export default Test.suite(import.meta, 'Simplicity',
     Test.equal(result.length, 221);
   }),
   the('Build', async (_, { log }) => {
-    const cwd     = resolvePath(fileURLToPath(import.meta.url), '..');
     const context = pipe(spawnContext, fsContext)({ cwd });
     const result  = await simfBuild({ name: 'example' })(context);
     log(result);

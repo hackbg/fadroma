@@ -1,3 +1,6 @@
 [submodule "lib/toolbox"]
 	path = .misc/toolbox
 	url = git@github.com:hackbg/toolbox.git
+[submodule "@fadroma/simf/SimplicityHL"]
+	path = @fadroma/simf/SimplicityHL
+	url = https://github.com/BlockstreamResearch/SimplicityHL

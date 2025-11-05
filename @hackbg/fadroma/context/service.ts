@@ -1,5 +1,5 @@
-import type { Fn, StepsWith, Tcp, Log, FS, Pids } from './index.ts';
-import { pipe, reflect } from './call.ts';
+import type { Fn, StepsWith, Tcp, Log, FS, Pids } from '../index.ts';
+import { pipe, reflect } from '../format.ts';
 import { logger } from './logger.ts';
 import { tcpContext } from './tcp.ts';
 import { fsContext } from './codegen.ts';
@@ -9,17 +9,30 @@ export type ServiceContext = Tcp & Pids & FS & Log;
 /** Create a service context. */
 export const serviceContext = pipe(
   logger, spawnContext, fsContext, tcpContext);
+
+/** Mixin. */
+const toString = string => object => {
+  const proto = Object.getPrototypeOf(object);
+  const mixin = { toString () { return string } };
+  Object.setPrototypeOf(mixin, proto);
+  Object.setPrototypeOf(object, mixin);
+  return object;
+}
+
 /** Define a service. */
-export const service = (name: string, ...services: Fn<[ServiceContext]>[]) => reflect(name,
-  async function spawnGroup (ctx = serviceContext() as ServiceContext) {
+export function service (name: string, ...services: Fn<[ServiceContext]>[]) {
+  const info = `[Service (${services.length}): ${name}]`;
+  return toString(info)(reflect(name, runService, { services }));
+  async function runService (ctx = serviceContext() as ServiceContext) {
     for (const service of services) {
-      console.log('Starting', service);
-      const instance = await service(ctx);
-      console.log('Started', service);
+      ctx.info('Starting', service);
+      const _instance = await service(ctx);
+      ctx.log('Started', service);
     }
     const kill = () => Promise.all(Object.values(ctx.pids).map(proc=>proc.kill()));
     return { name, kill }
-  }, { services });
+  }
+}
 /** A service. */
 export type Service = Pick<ServiceContext, 'pids'|'ports'> &
   { name: string, kill (): Promise<void> };

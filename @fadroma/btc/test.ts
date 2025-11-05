@@ -1,83 +1,82 @@
 #!/usr/bin/env -S deno run --allow-env --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443 --allow-net=127.0.0.1
 import * as BTC from './btc.ts';
 import { Pub, Sub, Hello, Frame } from './zmq.ts';
-import { tcpWait } from './deps.ts';
-import { Test, defer } from '@hackbg/fadroma';
-const { the, suite, is, has, equal, equals } = Test;
+import { Test, defer, reflect } from '@hackbg/fadroma';
+const { the, suite, is, has, equal, includes, equals } = Test;
 export type TestContext = Test.Context & { localnet: unknown };
-const _ = undefined;
 export default suite(import.meta, 'BTC',
 
-  the('Client',
-    the('Template', BTC.client, is('function'), has('name', 'exec bitcoin-cli'),
-      the('Constructor', x => x(), is('function'), has('name', 'bitcoin-cli'),
-        the('Instance', x => x(mockExecContext()), is('object'), has('mock', [
-          { argv: [ 'bitcoin-cli', '-rpcpassword=fadroma', '-regtest', '-rpcport=18443' ]
-          , opts: {} }
-        ]))))),
+  the('CLI',
+    the('Template', () => { return BTC.client() },
+      is('function', 'exec bitcoin-cli'),
+      has('args', has(0, 'bitcoin-cli'), includes('-regtest')),
+      has('stack', is('object', 'Array')),
+      the('Constructor', (client) => { return client() },
+        is('function', 'bitcoin-cli'),
+        the('Instance', (start) => { return start(mockExecContext()) },
+          is('object'), has('mock', has('0',
+            has('opts'),
+            has('argv', has(0, 'bitcoin-cli'), includes('-regtest')))))))),
 
-  the('Daemon',
-    the('Template', BTC.daemon, is('function'), has('name', 'spawn bitcoind'),
-      the('Constructor', x => x(), is('function'), has('name', 'bitcoind'),
-        the('Instance', x => x(mockSpawnContext()), has('mock', [
-          { argv: [ 'bitcoind', '-rpcpassword=fadroma', '-regtest', '-server', '-txindex', '-rpcworkqueue=32', '-rpcport=18443' ]
-          , opts: {} }
-        ]))))),
+  the('Node',
+    the('Template', () => { return BTC.daemon() },
+      is('function'), has('name', 'spawn bitcoind'),
+      the('Constructor', (client) => { return client() },
+        is('function'), has('name', 'bitcoind'),
+        the('Instance', (start) => { return start(mockSpawnContext()) },
+          is('object'), has('mock', has('0',
+            has('opts'),
+            has('argv', has(0, 'bitcoind'), includes('-regtest')))))))),
 
-  the('ZeroMQ',
-    the('Hello packet',
-      the('Construct',
-        () => Hello(),
-        has({ pub: false, sec: 'NULL', ver: { maj: 3, min: 0 } })),
-      the('Read from socket',
-        () => Hello.read(mockReader(new Uint8Array(Hello()))),
-        has({ pub: false, sec: 'NULL', ver:  { maj: 3, min: 0 } })),
-      the('Write to socket',
-        () => Hello.write({ pub: true })(mockWriter()),
-        ({ writes })=>equal(writes.length, 1))),
-
-    the('Frame packet',
-      the('Empty frame',
-        () => Frame(),
-        has({ flag: 0, more: false, long: false, command: null })),
-      the('Ready frame',
-        () => Frame({ command: "READY" }),
-        has({ flag: 4, more: false, long: false, command: 'READY' })),
-      the('Decoding',
-        () => Frame.read(mockReader(new Uint8Array(Frame({ command: 'TEST' as any })))),
-        has('command', 'TEST')),
-      the('Encoding')),
-
-    the('Handshake',
-      the('Subscriber side', async () => {
-        const socket = mockSocket(Hello(), Frame.ready());
-        const { writes } = await Sub.shake()(socket);
-        equal(writes.length, 2);
-      }),
-      the('Publisher side', async () => {
-        const socket = mockSocket(Hello(), Frame.ready());
-        const { writes } = await Pub.shake()(socket);
-        equal(writes.length, 2);
-      })),
-
-    the('Connect',
-      the('Pub', () => Pub(32123, mockCallback()),
-        is('function'), has('name', `ZMQ PUB 32123`),
-        x => x(), is('object'), has('close'), has('send'),
-        the('Sub', () => Sub(32123, mockCallback()),
-          is('function'), has('name', `ZMQ SUB 32123`),
-          x => x(), is('object'))))),
-
-  the('Localnet',
-    the('ZMQ timer', (_, ctx) => { ctx.zmqTest  = zmqTimeout() }),
-    the('Launch', async (_, ctx) => { ctx.localnet = await BTC.localnet({ onZmq: ctx.zmqTest.resolve }) }),
-    //the('Timeout',   async (_, ctx) => { await ctx.zmqTest }),
-    //the('Ready',     async (_, ctx) => { ctx.localnet = await ctx.localnet }),
-    the('Subscribe', 'TX', 'Block'),
-    the('Query', 'Block', 'Transaction', 'Address'),
+  the('Localnet', BTC.localnet,
     the('Send', 'OP_CHECKSIG'),
-    (_, ctx) => { if (ctx.localnet?.kill) ctx.localnet.kill() }),
-);
+    the('Subscribe',
+      the('ZeroMQ',
+        the('Hello packet', () => Hello(),
+          has({ pub: false, sec: 'NULL', ver: { maj: 3, min: 0 } })),
+          the('Read from socket', () => Hello.read(mockReader(new Uint8Array(Hello()))),
+            has({ pub: false, sec: 'NULL', ver: { maj: 3, min: 0 } })),
+          the('Write to socket', () => Hello.write({ pub: true })(mockWriter()),
+            ({ writes })=>equal(writes.length, 1)),
+        the('Frame packet',
+          the('Empty frame', () => Frame(),
+            has({ flag: 0, more: false, long: false, command: null })),
+          the('Ready frame', () => Frame({ command: "READY" }),
+            has({ flag: 4, more: false, long: false, command: 'READY' })),
+          the('Decoding',    () => Frame.read(mockReader(new Uint8Array(Frame({ command: 'TEST' as any })))),
+            has('command', is('string', 'TEST'))),
+          the('Encoding')),
+        the('Handshake',
+          the('Subscriber side', async () => {
+            const socket = mockSocket(Hello(), Frame.ready());
+            const { writes } = await Sub.shake()(socket);
+            equal(writes.length, 2);
+          }),
+          the('Publisher side', async () => {
+            const socket = mockSocket(Hello(), Frame.ready());
+            const { writes } = await Pub.shake()(socket);
+            equal(writes.length, 2);
+          })),
+        the('Pub', () => Pub(32123, mockCallback()),
+          is('function', `ZMQ PUB 32123`),
+          the('Publish', x => x(),
+            is('object'),
+            has('close', is('function')),
+            has('send',  is('function')),
+            the('Sub', () => Sub(32123, mockCallback()),
+              is('function', `ZMQ SUB 32123`),
+              the('Subscribe', x => x(),
+                is('object')))))),
+      'TX',
+      'Block')),
+
+    the('Query', 'Block', 'Transaction', 'Address'),
+
+    cleanup);
+
+function cleanup (_, ctx) {
+  if (ctx.localnet?.kill) ctx.localnet.kill()
+}
 
 function mockExecContext () {
   return { exec  (...args) { this.mock = args; return {} } }

@@ -1,7 +1,7 @@
-import type { Fn, Step, Async } from './index.ts';
-import { execImpl, spawnImpl } from './deps.ts';
-import type { ChildProcess } from './deps.ts';
-import { reflect } from './call.ts';
+import type { Fn, Step, Async } from '../index.ts';
+import { execImpl, spawnImpl } from '../deps.ts';
+import type { ChildProcess } from '../deps.ts';
+import { reflect } from '../format.ts';
 
 /** Process management context. */
 export type Pids = {

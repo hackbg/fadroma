@@ -1,9 +1,9 @@
 #!/usr/bin/env -S deno run --coverage --allow-env --allow-net --allow-run
-import { suite }  from "./tester.ts";
-import testTester  from './tester.test.ts';
-import testSpawn   from './spawn.test.ts';
-import testService from './service.test.ts';
-import testCodegen from './codegen.test.ts';
+import { suite }  from "./context/tester.ts";
+import testTester  from './context/tester.test.ts';
+import testSpawn   from './context/spawn.test.ts';
+import testService from './context/service.test.ts';
+import testCodegen from './context/codegen.test.ts';
 export default suite(import.meta, 'Fadroma',
   testTester,
   testSpawn,

@@ -2,42 +2,31 @@
 import type { Stringy } from '../index.ts';
 import { env } from '../deps.ts';
 
+export const ifColor  = x => NO_COLOR ? '' : x;
+export const escaped  = x => `\x1b[${x}`;
 export const NO_COLOR = env.NO_COLOR === '1'                                                                                                                                                                                   
-export const ifColor = x => NO_COLOR ? '' : x;
+export const RESET    = NO_COLOR ? '' : escaped('0m'); // `\x1b[0m`
+export const FG255    = (x: number) => escaped(`38;5;${x}m`);
+export const BG255    = (x: number) => escaped(`48;5;${x}m`);
+export const BOLD     = ifColor(escaped('1m'));
+export const DIM      = ifColor(escaped('38;5;245m'));
+export const RED      = ifColor(escaped(`31m`));
+export const GREEN    = ifColor(escaped(`32m`));
+export const YELLOW   = ifColor(escaped(`33m`));
+export const BLUE     = ifColor(escaped(`34m`));
+export const PURPLE   = ifColor(escaped(`35m`));
+export const ORANGE   = ifColor(escaped(`38;5;208m`));
 
-export const escaped = x => `\x1b[${x}`;
-
-export const RESET  = NO_COLOR ? '' : escaped('0m'); // `\x1b[0m`
-export const reset = (...args: unknown[]) => [...args, RESET].join('');
-
-export const FG255 = (x: number) => escaped(`38;5;${x}m`);
-export const fg255 = (x: number) => (text: string) => `\x1b[38;5;${x}m`+`${text}${RESET}`;
-
-export const BG255 = (x: number) => escaped(`48;5;${x}m`);
-export const bg255 = (x: number) => (text: string) => `\x1b[48;5;${x}m`+`${text}${RESET}`;
-
-const BOLD = ifColor('\x1b[1m');
-export const bold = (...x: Stringy[]) => reset(BOLD, ...x);
-
-const DIM = ifColor('\x1b[38;5;245m');
-export const dim = (...x: Stringy[]) => reset(DIM, ...x);
-
-const RED = ifColor(`\x1b[0;31m`);
-export const red = (...x: Stringy[]) => reset(RED, ...x);
-
-const GREEN = ifColor(`\x1b[0;32m`);
+export const reset  = (...args: unknown[]) => [...args, RESET].join('');
+export const fg255  = (x: number) => (text: string) => `\x1b[38;5;${x}m`+`${text}${RESET}`;
+export const bg255  = (x: number) => (text: string) => `\x1b[48;5;${x}m`+`${text}${RESET}`;
+export const bold   = (...x: Stringy[]) => reset(BOLD, ...x);
+export const dim    = (...x: Stringy[]) => reset(DIM, ...x);
+export const red    = (...x: Stringy[]) => reset(RED, ...x);
 export const green  = (...x: Stringy[]) => reset(GREEN, ...x);
-
-const YELLOW = ifColor(`\x1b[0;33m`);
 export const yellow = (...x: Stringy[]) => reset(YELLOW, ...x);
-
-const BLUE = ifColor(`\x1b[0;34m`);
-export const blue = (...x: Stringy[]) => reset(BLUE, ...x);
-
-const PURPLE = ifColor(`\x1b[0;35m`);
+export const blue   = (...x: Stringy[]) => reset(BLUE, ...x);
 export const purple = (...x: Stringy[]) => reset(PURPLE, ...x);
-
-const ORANGE = ifColor(`\x1b[38;5;208m`);
 export const orange = (...x: Stringy[]) => reset(ORANGE, ...x); // FIXME
 
 export const gray = (depth: number, x: Stringy) => reset(GRAY(depth), x);

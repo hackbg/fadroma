@@ -1,12 +1,12 @@
-export * from './format/bits.ts';
-export * from './format/bytes.ts';
-export * from './format/dump.ts';
+export * from './format/bit.ts';
+export * from './format/byte.ts';
+export * from './format/error.ts';
+export * from './format/function.ts';
 export * from './format/hash.ts';
 export * from './format/number.ts';
+export * from './format/stream.ts';
 export * from './format/string.ts';
 export * from './format/time.ts';
 
 export * as ANSI  from './format/ansi.ts';
 export * as Borsh from './format/borsh.ts';
-export * as DOM   from './format/dom.ts';
-export * as TUI   from './format/tui.ts';

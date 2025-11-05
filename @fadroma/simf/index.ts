@@ -1,4 +1,4 @@
-import { pipe, dir, text, data, exec, resolvePath, fileURLToPath } from './deps.ts';
+import { pipe, dir, text, data, exec, resolvePath, fileURLToPath, Base64, Base16 } from './deps.ts';
 import type { FS, Pids } from './deps.ts';
 
 export function simfInit ({
@@ -26,7 +26,7 @@ export function simfBuild ({
 }) {
   return pipe(
     (ctx: FS) => exec(simc, resolvePath(ctx.cwd, simf))(ctx),
-    (ctx: Pids) => ctx.stdout.split('\n')[1],
+    (ctx: Pids) => Base16.encode(Base64.decode(ctx.stdout.split('\n')[1])),
   )
 }
 
