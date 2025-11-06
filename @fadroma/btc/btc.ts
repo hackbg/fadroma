@@ -1,114 +1,95 @@
-import type { Fn } from './deps.ts';
 import { Sub } from './zmq.ts';
-import { joined, call, reflect, service, dir, exec, spawn, interval, tcpWait,
+import { Service, joined, call, reflect, Dir, Exec, Spawn, Port, interval,
   serveHttp, route, param, guard, get, post, merge,
   BTCJS, Indexd, DB, isHex64 } from './deps.ts';
 
-export {
-  btcLocalnet as localnet,
-  btcDaemon   as daemon,
-  btcClient   as client,
-}
-
-export type LocalnetConfig = {
-  regTest:    boolean
-  btcPort:    number
-  zmqPort:    number
-  httpPort:   number
-  dataRoot:   string
-  dataDir:    string
-  walletDir:  string
-  bitcoinCli: unknown
-  bitcoind:   unknown
-  elementsd:  unknown
-  rpc:        unknown
-  indexd:     unknown
-  db:         DB,
-  onZmq:      Fn
+export type BtcOptions = {
+  cli:       string,
+  node:      string,
+  regTest:   boolean,
+  dataRoot:  string,
+  dataDir:   string,
+  walletDir: string,
+  httpPort:  number,
+  zmqPort:   number,
+  rpcPort:   number,
+  rpcUser:   string,
+  rpcPass:   string,
+  rpcQueue:  number,
+  txIndex:   boolean,
 };
 
-/** Spawn BTC localnet in regression test mode with indexer and API.
- *
- * Slimmed-down reimplementation of https://github.com/bitcoinjs/regtest-server */
-function btcLocalnet (...config: Partial<LocalnetConfig>[]) {
+export type Btc = BtcOptions & {
+  /** Spawn Bitcoin daemon. */
+  spawnNode: Function,
+  /** Call Bitcoin CLI. */
+  execCli:   Function,
+  /** Call Bitcoin RPC. */
+  rpc:       Function,
+  /** Run Bitcoin Indexd. */
+  indexer:   Function,
+  /** Subscribe to Bitcoin note via ZeroMQ. */
+  subscribe,
 
-  let {
-    regTest    = true,
-    btcPort    = regTest ? 18443 : 8443,
-    zmqPort    = 48485,
-    httpPort   = 48484,
-    dataRoot   = '/tmp/fadroma/test/btc/',
-    dataDir    = joined('', dataRoot, 'data',   +new Date()),
-    walletDir  = joined('', dataRoot, 'wallet', +new Date()),
-    rpc        = stubRpc,
-    onZmq      = stubZmq,
-    db         = new DB('indexd'),
-    indexd     = new Indexd(db, rpc),
-    bitcoinCli = btcClient({ regTest, dataDir }),
-    bitcoind   = btcDaemon({ regTest, dataDir, btcPort, zmqPort }),
-    elementsd  = (...arg) => spawn('elementsd', ...arg), // TODO
-  }: LocalnetConfig = merge(config);
+  localnet,
+};
 
-  if (typeof bitcoind === 'string') {
-    bitcoind = btcDaemon({ bitcoind, regTest, dataDir, btcPort, zmqPort })
-  }
-  if (typeof bitcoinCli === 'string') {
-    bitcoinCli = btcClient({ bitcoinCli, regTest, dataDir })
-  }
+export function Btc (...options: Partial<BtcOptions>[]): Btc {
+  const {
+    cli       = 'bitcoin-cli',
+    node      = 'bitcoind', // elementsd
+    regTest   = true,
+    rpcPort   = regTest ? 18443 : 8443,
+    rpcUser   = 'fadroma',
+    rpcPass   = 'fadroma',
+    rpcQueue  = 32,
+    dataRoot  = '/tmp/fadroma/test/btc/',
+    dataDir   = joined('', dataRoot, 'data',   +new Date()),
+    walletDir = joined('', dataRoot, 'wallet', +new Date()),
+    zmqPort   = 48485,
+    txIndex   = false,
+  } = merge(...options);
 
-  return service('BTC Localnet',
-    (_)=>db.open(),
-    dir(dataDir),
-    bitcoind(),
-    tcpWait({ port: zmqPort }),
-    async context => context.zmq = await Sub(zmqPort, onZmq),
-    dir(walletDir),
-    tcpWait({ port: btcPort }),
-    bitcoinCli('createwallet', walletDir),
-    bitcoinCli(`-rpcwallet=${walletDir}`, '-generate'),
-    interval(60000, () => indexd.tryResync()),
-    serveHttp(httpPort, txApi({ rpc, indexd }),
-                        bxApi({ rpc, indexd }),
-                        rxApi({ rpc }),
-                        axApi({ indexd, rpc })));
-}
-
-/** Call Bitcoin CLI. */
-function btcClient ({
-  bitcoinCli = 'bitcoin-cli',
-  dataDir = null,
-  regTest = true,
-  btcPort = regTest ? 18443 : 8443,
-  rpcPw   = 'fadroma',
-} = {}) {
-  return reflect(`exec ${bitcoinCli}`, call(exec, bitcoinCli,
-    rpcPw   && `-rpcpassword=${rpcPw}`,
-    dataDir && `-datadir=${dataDir}`,
+  const btcArgs = [
+    rpcPort && ('-rpcport=' + rpcPort),
+    rpcUser && `-rpcuser=fadroma`,
+    rpcPass && `-rpcpassword=${rpcPass}`,
+    dataDir && `-dataDir=${dataDir}`,
     regTest && '-regtest',
-    btcPort && ('-rpcport=' + btcPort)));
-}
+  ].filter(Boolean);
 
-/** Spawn Bitcoin daemon. */
-function btcDaemon ({
-  bitcoind = 'bitcoind',
-  dataDir = null,
-  regTest = true,
-  btcPort = regTest ? 18443 : 8443,
-  zmqPort = null,
-  txIndex = true,
-  rpcPw   = 'fadroma',
-  rpcWq   = 32,
-} = {}) {
-  return reflect(`spawn ${bitcoind}`, call(spawn, bitcoind,
-    rpcPw   && `-rpcpassword=${rpcPw}`,
-    dataDir && `-datadir=${dataDir}`,
-    regTest && '-regtest',
-    '-server',
-    txIndex && '-txindex',
-    zmqPort && ('-zmqpubhashblock=tcp:/' + '/127.0.0.1:' + zmqPort),
-    zmqPort && ('-zmqpubhashtx=tcp:/'    + '/127.0.0.1:' + zmqPort),
-    rpcWq   && ('-rpcworkqueue=' + rpcWq),
-    btcPort && ('-rpcport=' + btcPort)));
+  const spawnNode = Service('BTC node',
+    Port(rpcPort, Dir(dataDir, Spawn(node, ...btcArgs, '-server',
+      txIndex && '-txindex',
+      zmqPort && ('-zmqpubhashblock=tcp:/' + '/127.0.0.1:' + zmqPort),
+      zmqPort && ('-zmqpubhashtx=tcp:/'    + '/127.0.0.1:' + zmqPort),
+      rpcQueue && ('-rpcworkqueue=' + rpcQueue)))));
+
+  const execCli = Exec(cli, ...btcArgs);
+
+  const localnet = Service('BTC Localnet',
+    Port(rpcPort, spawnNode),
+    Dir(walletDir),
+    call(execCli, 'createwallet', walletDir),
+    call(execCli, `-rpcwallet=${walletDir}`, '-generate'));
+
+  return { name: 'Btc', localnet, spawnNode, execCli, subscribe, indexer }
+
+  async function subscribe (onZmq) {
+    await portWait({ port: zmqPort });
+    return Sub(zmqPort, onZmq);
+  }
+
+  async function indexer (httpPort, db = new DB('indexd')) {
+    await db.open();
+    const indexd = new Indexd(db, rpc);
+    return reflect('Indexd API',
+      interval(60000, () => indexd.tryResync()),
+      serveHttp(httpPort, txApi({ rpc, indexd }),
+        bxApi({ rpc, indexd }),
+        rxApi({ rpc }),
+        axApi({ indexd, rpc })));
+  }
 }
 
 const stubRpc = (...args: unknown[]) => console.debug('TODO:', ...args);

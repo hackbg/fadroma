@@ -15,11 +15,11 @@ export * as BTCJS from 'bitcoinjs-lib';
 export { setImmediate } from 'node:timers';
 export type * from '@hackbg/fadroma';
 export {
-  service, interval, exec, spawn, setEnv, addArgs, tcpWait, dir,
+  interval, Env, Arg, portWait,
   serveHttp, route, param, guard, get, post,
   joined, call, reflect,
-  UTF8, toU8A, flag, byteParse, byteConcat, readBytes,
+  toU8A, flag, byteParse, byteConcat, readBytes,
   readUntilDone, write, toRW, tcpConnect, tcpListen, merge, sequence,
-  pipe, asyncIter,
-  Test,
+  pipe,
+  Test, Service, Exec, Spawn, Dir, Port, UTF8,
 } from '@hackbg/fadroma';

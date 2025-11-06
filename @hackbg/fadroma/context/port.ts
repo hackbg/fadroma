@@ -1,9 +1,50 @@
+import type { Step } from '../index.ts';
+import { reflect, pipe } from '../format.ts';
+import { Socket } from '../deps.ts';
+
 export type Ports = {
   ports: Record<number, Endpoint>
 };
+
 export type Endpoint = {
   url: URL
 };
+
+/** Run a service and wait for it to provide a port. */
+export function Port <T> (port: number, ...steps: Step<T>[]) {
+  return reflect(`Port(${port})`, async function bindPort (context = { ports: {} }) {
+    context.ports[port] = await pipe(...steps)(context);
+    return context;
+  }, { port, steps })
+}
+
+/** Define function that will wait for given port to open. */
+export function portWait <T> ({
+  port,
+  host     = '127.0.0.1',
+  retries  = 30,
+  interval = 300
+}) {
+  return reflect(`TCP(Wait for ${host}:${port})`, async function waitForPort (_?: T) {
+    while (retries-- > 0) {
+      try {
+        const socket = new Socket();
+        await new Promise((resolve, reject)=>{
+          socket.on('connect', ok);
+          socket.on('error', fail);
+          function ok () { resolve(null); socket.off('error', fail); }
+          function fail (e) { reject(e); socket.off('conenct', ok); }
+          socket.connect(port, host);
+        });
+        socket.destroy();
+        break
+      } catch (e) {
+        console.error(e.message);
+        await new Promise(resolve=>setTimeout(resolve, interval));
+      }
+    }
+  }, { port });
+}
 
 //import * as net from 'net'
 //import { Console } from '@hackbg/logs'

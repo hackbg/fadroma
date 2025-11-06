@@ -5,7 +5,6 @@ export * from './context/http.ts';
 export * from './context/logger.ts';
 export * from './context/port.ts';
 export * from './context/service.ts';
-export * from './context/spawn.ts';
 export * from './context/tcp.ts';
 export * as Test from './context/tester.ts';
 export * as DOM from './context/dom.ts';

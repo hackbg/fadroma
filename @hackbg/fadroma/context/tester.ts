@@ -20,18 +20,78 @@ export {
   call, ok, equal, throws, rejects, todo,
 };
 
-/** Test step. */
-export type Step <C extends Context = Context, A = unknown, B = A> =
-  Reflects & ((_: A, __?: C) => Async<B>) & { skip?: boolean };
-
 /** Test stack and context. Passed to eacgh step as second argument. */
 export type Context = Frame[] & Log & Result & Options & Record<State, Category>;
+
+/** Create empty test context. */
+function testContext <T extends Context> (...options: Partial<T>[]): T {
+  const context: T = [] as T;
+  const config = merge({}, ...options as [object]) as T;
+  const args = config?.args || [];
+  return merge(context, logger(), {
+    args,
+    only:   args.filter(x=>(!x.startsWith('--'))&&(x[2]!=='!')),
+    except: args.filter(x=>x.startsWith('--!')),
+    //failFast: args.includes('--fail-fast'),
+    //failTodo: args.includes('--fail-todo'),
+    pass: testCategory('pass', `🟢`, ANSI.green,  'passed'  ),
+    fail: testCategory('fail', `🔴`, ANSI.red,    'failed'  ),
+    todo: testCategory('todo', `🟠`, ANSI.orange, 'tasks'   ),
+    warn: testCategory('warn', `🟡`, ANSI.yellow, 'warnings'),
+    skip: testCategory('skip', `🟣`, ANSI.purple, 'skipped' ),
+    idea: testCategory('idea', `🔵`, ANSI.blue,   'ideas'   ),
+    note: testCategory('note', `⚫️`, ANSI.dim,    'notes'   ),
+  } as Partial<T>, config);
+
+  function testCategory (
+    state: State,
+    icon:  string,
+    color: Fn<[string], string>,
+    label: string = state
+  ): Category {
+    const props = {
+      state, icon, label, color, results: [],
+      get count () { return props.results.length }
+    };
+    const info = () => `[Category: ${icon} ${color(state)} (${props.results.length})]`;
+    return toString(info)(reflect(state, function categorize (result: Partial<Result>): Result {
+      result = { ...result, state, stack: [...context] };
+      props.results.push(result);
+      return result as Result;
+    }, props));
+  }
+}
+/** Print a summary of test results. */
+function testReport ({ context, details = [], indent = '', root = true }) {
+  let line = '';
+  for (const name of categories) {
+    const category = context[name];
+    const { icon, color, label } = category;
+    line = line + spaced(` ${icon}`, color(`${context[name].count} ${label}`), '');
+  }
+  details.push(line);
+  for (const {index, name, threw, stack} of context.fail.results) {
+    const label = [testIndex(stack), testNames(stack)].join(' ');
+    details.push([
+      ['\n 🔴', ANSI.red(label), threw.message].join(' '),
+      threw.stack.replace(threw.message, '')
+    ].join('\n'));
+  }
+  return details
+}
 
 /** Test stack frame. */
 export type Frame = { t0: number, index: number, name: string };
 
-/** Test category. */
+/** Test category name. */
 export type State = 'pass'|'fail'|'todo'|'idea'|'warn'|'skip'|'note';
+
+/** Test category names. */
+const categories: State[] = ['pass', 'fail', 'todo', 'idea', 'warn', 'skip', 'note'];
+
+/** Test step. */
+export type Step <C extends Context = Context, A = unknown, B = A> =
+  Reflects & ((_: A, __?: C) => Async<B>) & { skip?: boolean };
 
 /** Test filters. */
 export type Filters = { only?: string[], except?: string[] };
@@ -46,11 +106,12 @@ export type Category = Fn<[Step], Result> & {
 
 /** Result of test step. */
 export type Result = {
-  tD: number,
-  state: State,
+  tD:        number,
+  state:     State,
+  stack:     Frame[],
   substeps?: Result[],
   returned?: unknown,
-  threw?: { todo?: boolean }
+  threw?:  { todo?: boolean },
 };
 
 /** Test entrypoint. When a test module is run standalone,
@@ -78,40 +139,6 @@ function testSuite (meta: Meta, name: string, ...steps: (Step|string)[]) {
   return suite as Step;
 };
 
-/** Create empty test context. */
-function testContext <T extends Context> (...options: Partial<T>[]): T {
-  const context: T = [] as T;
-  const config = merge({}, ...options as [object]) as T;
-  const args = config?.args || [];
-  return merge(context, logger(), {
-    args,
-    only:   args.filter(x=>(!x.startsWith('--'))&&(x[2]!=='!')),
-    except: args.filter(x=>x.startsWith('--!')),
-    //failFast: args.includes('--fail-fast'),
-    //failTodo: args.includes('--fail-todo'),
-    pass: testCategory('pass', `🟢`, ANSI.green,  'passed'  ),
-    fail: testCategory('fail', `🔴`, ANSI.red,    'failed'  ),
-    todo: testCategory('todo', `🟠`, ANSI.orange, 'tasks'   ),
-    warn: testCategory('warn', `🟡`, ANSI.yellow, 'warnings'),
-    skip: testCategory('skip', `🟣`, ANSI.purple, 'skipped' ),
-    idea: testCategory('idea', `🔵`, ANSI.blue,   'ideas'   ),
-    note: testCategory('note', `⚫️`, ANSI.dim,    'notes'   ),
-  } as Partial<T>, config);
-
-  function testCategory (
-    state: State, icon: string, color: Fn<[string], string>, label: string = state
-  ): Category {
-    const props = { state, icon, label, color, results: [], get count () { return props.results.length } };
-    const info = () => `[Category: ${icon} ${color(state)} (${props.results.length})]`;
-    return toString(info)(reflect(state, function categorize (result: Partial<Result>): Result {
-      result = { ...result, state };
-      props.results.push(result);
-      //if ('threw' in result && !!result.threw && !result.threw?.todo) context.error(result.threw);
-      return result as Result;
-    }, props));
-  }
-}
-
 /** Run a single test step and exit the interpreter. */
 async function testAndExit (test: Step, ...args: string[]) {
   const { context, result } = await testRun(test, args);
@@ -125,22 +152,6 @@ async function testRun <T extends Context> (
 ): Promise<{ context: Context, result: Result }> {
   if (typeof test !== 'function') test = todo(test);
   return { context, result: await withInfiniteStack(test, undefined, context) };
-}
-
-const categories = ['pass', 'fail', 'todo', 'idea', 'warn', 'skip', 'note']
-/** Print a summary of test results. */
-function testReport ({ context, details = [], indent = '', root = true }) {
-  let line = '';
-  for (const name of categories) {
-    const category = context[name];
-    const { icon, color, label } = category;
-    line = line + spaced(` ${icon}`, color(`${context[name].count} ${label}`), '');
-  }
-  for (const result of context.fail.results) {
-    context.error(result);
-  }
-  details.push(line);
-  return details
 }
 
 /** A test case, consisting of a name and zero or more test steps.
@@ -187,7 +198,7 @@ function testThe <T extends Context> (
         testIndex(context).padEnd(20),
         testNames(context).padEnd(40)
       ].join(' │ ');
-      context.info('@ '+msec(t0), '⏳');
+      context.info(msec(t0).padStart(8), '⏳');
       try {
         returned = await step(returned, context);
         state ||= 'pass';
@@ -200,7 +211,11 @@ function testThe <T extends Context> (
         const tD = t1 - t0;
         state ||= 'todo';
         const { icon, color } = context[state];
-        context.log(color('@ '+msec(t1)), ANSI.gray(4, '+'+msec(tD)), icon, color(label));
+        context.log(
+          color(msec(t1).padStart(8)),
+          ANSI.gray(6+2*Math.max(0, Math.log10(tD)), '+'+msec(tD)),
+          icon, color(label)
+        );
         context[state]({ index, name: step.name, t0, t1, tD, returned, threw });
         context.pop();
       }

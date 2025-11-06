@@ -29,39 +29,6 @@ export function tcpAddr (to: number|string|URL): URL {
   return to as URL
 }
 
-/** Define function that will wait for given port to open. */
-export function tcpWait <T> ({
-  port,
-  host     = '127.0.0.1',
-  retries  = 20,
-  interval = 250
-}) {
-  return reflect(`Wait for ${host}:${port}`, function waitForPort (_?: T) {
-    let timer: ReturnType<typeof setTimeout>|null = null;
-    let socket: Socket|null = null;
-    return new Promise<void>((resolve, reject)=>{
-      retry();
-      function retry () {
-        clear();
-        if (--retries < 0) { reject(new Error('out of retries')); }
-        socket = createConnection(port, host, () => { clear(); if (retries > 0) resolve() });
-        timer = setTimeout(() => { retry(); }, interval);
-        socket.on('error', () => { clear(); setTimeout(retry, interval) });
-      }
-      function clear () {
-        if (timer) {
-          clearTimeout(timer);
-          timer = null;
-        }
-        if (socket) {
-          socket.destroy();
-          socket = null;
-        }
-      }
-    })
-  }, { port });
-}
-
 /** Connect to a listener. */
 export async function tcpConnect (
   to: number|string|URL,
@@ -100,7 +67,7 @@ export async function tcpListen (
 
 /** Define TCP service. */
 export function tcpServe (port: number, handler: Fn<[Socket]>) {
-  return reflect(`TCP ${port}`, async function runTcpServer (
+  return reflect(`TCP(Serve ${port})`, async function runTcpServer (
     ctx: Tcp = Tcp()
   ): Promise<TcpEndpoint> {
     if (port in ctx.ports) throw new Error(`port ${port}: occupied`);

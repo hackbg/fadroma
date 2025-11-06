@@ -163,11 +163,14 @@ export function toString <T> (stringOrToString: (string|((_:T)=>string))) {
 }
 
 export function chunked (separator: string = '') {
-  return function unchunk (chunks: unknown[]): string {
+  return function unchunk (...chunks: unknown[]): string {
     let buffer = '';
+    let first = true;
     for (let chunk of chunks) {
-      if (typeof chunk !== 'string') chunk = unchunk(chunk as unknown[]);
-      buffer += separator + chunk;
+      if (!chunk) continue;
+      if (typeof chunk !== 'string') chunk = unchunk(...chunk as unknown[]);
+      if (first) { first = false } else { buffer += separator; }
+      buffer += chunk;
     }
     return buffer
   }

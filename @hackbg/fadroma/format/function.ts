@@ -85,7 +85,7 @@ export function merge <T, U> (t: T, u: U): T & U;
 export function merge <T, U, V> (t: T, u: U, v: V): T & U & V;
 export function merge <T, U, V, W> (t: T, u: U, v: V, w: W): T & U & V & W;
 export function merge <T> (...fragments: Partial<T>[]): T {
-  return Object.assign(...fragments as [object]) as T;
+  return Object.assign(...fragments.filter(Boolean) as [object], {}) as T;
 }
 
 /** Partial application of a function.
@@ -137,6 +137,7 @@ export { curry as call }
   *   function f3 (p) { ... }
   **/
 export function pipe (...steps: Fn[]): Fn;
+export function pipe <T> (...steps: Step<T>[]): T;
 export function pipe <A, B> (
   f0: Fn<[A], B>
 ): Fn<[A], B>;
@@ -151,11 +152,11 @@ export function pipe <A, B, C, D, E> (
 ): Fn<[A], E>;
 export function pipe (...steps: Fn[]): Fn {
   return reflect(
-    `pipe ${steps.length}`,
+    `Pipe${steps.length}(${steps.map(x=>x?.name||'unnamed').join('|')})`,
     function pipe (value: Parameters<typeof steps[0]>[0]) {
       let state: unknown = value;
       for (const step of steps) {
-        state = resolveSync(state, step);
+        state = sync(state, step);
       }
       return state
     }, { steps }
@@ -179,7 +180,7 @@ export const sequence = <T>(...steps: Fn<[T]>[]) => reflect(null,
   *
   * Works by checking if the return value
   * of the previous step is `then`able. */
-export const resolveSync = <X, F extends (_: unknown)=>unknown> (
+export const sync = <X, F extends (_: unknown)=>unknown> (
   x: X | { then?: (f: F)=>Promise<unknown> }, f: F
 ) => isThenable(x)
   ? (x as unknown as { then: (_:F)=>Promise<unknown> }).then(f)
