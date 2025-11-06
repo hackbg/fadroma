@@ -1,5 +1,5 @@
 import type { Step } from '../index.ts';
-import { reflect, pipe } from '../format.ts';
+import { Named, pipe } from '../format.ts';
 import { Socket } from '../deps.ts';
 
 export type Ports = {
@@ -12,7 +12,7 @@ export type Endpoint = {
 
 /** Run a service and wait for it to provide a port. */
 export function Port <T> (port: number, ...steps: Step<T>[]) {
-  return reflect(`Port(${port})`, async function bindPort (context = { ports: {} }) {
+  return Named(`Port(${port})`, async function bindPort (context = { ports: {} }) {
     context.ports[port] = await pipe(...steps)(context);
     return context;
   }, { port, steps })
@@ -25,7 +25,7 @@ export function portWait <T> ({
   retries  = 30,
   interval = 300
 }) {
-  return reflect(`TCP(Wait for ${host}:${port})`, async function waitForPort (_?: T) {
+  return Named(`TCP(Wait for ${host}:${port})`, async function waitForPort (_?: T) {
     while (retries-- > 0) {
       try {
         const socket = new Socket();
@@ -37,12 +37,13 @@ export function portWait <T> ({
           socket.connect(port, host);
         });
         socket.destroy();
-        break
+        return
       } catch (e) {
-        console.error(e.message);
+        //console.error(e.message);
         await new Promise(resolve=>setTimeout(resolve, interval));
       }
     }
+    throw new Error(`${port}: timed out after ${retries*interval}msec`)
   }, { port });
 }
 

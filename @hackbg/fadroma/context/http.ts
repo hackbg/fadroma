@@ -1,6 +1,6 @@
 import type { Fn, Endpoint, Step } from '../index.ts';
 import { HttpServer } from '../deps.ts';
-import { pipe, reflect } from '../format.ts';
+import { pipe, Named } from '../format.ts';
 import { Tcp, tcpAddr } from './tcp.ts';
 
 /** HTTP context. */
@@ -23,7 +23,7 @@ export type Handler = Step<Router>;
 /** Define HTTP server. */
 export const serveHttp = (at: number|string|URL, ...routes: Handler[]) => {
   at = tcpAddr(at);
-  return reflect(`HTTP ${at.toString()}`,
+  return Named(`HTTP ${at.toString()}`,
     function runHttpServer (ctx: Tcp = Tcp()): HttpServer {
       const { port, hostname = '127.0.0.1' } = at;
       const server = new HttpServer();
@@ -35,7 +35,7 @@ export const serveHttp = (at: number|string|URL, ...routes: Handler[]) => {
 }
 
 /** Define URL route. */
-export const route = (path, ...routes) => reflect(path,
+export const route = (path, ...routes) => Named(path,
   async function routeRequest (context: Request) {
     if (matchRoute(path)(context.url)) return pipe(...routes)(context)
   }, { routes });
@@ -44,7 +44,7 @@ export const route = (path, ...routes) => reflect(path,
 export const matchRoute = (expected) => (actual) => false; // TODO
 
 /** Only handle if HTTP method matches. */
-export const method = (method, ...routes: Route[]) => reflect(method,
+export const method = (method, ...routes: Route[]) => Named(method,
   async function onMethod (context: Router) {
     if (context.method === method) return pipe(...routes)(context);
   }, { method, routes });

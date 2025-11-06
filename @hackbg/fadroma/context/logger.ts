@@ -1,5 +1,5 @@
 import { env, stdout, createLogUpdate, inspect } from '../deps.ts';
-import { reflect, joined, ANSI, stackTrace } from '../format.ts';
+import { Named, joined, ANSI, stackTrace } from '../format.ts';
 const { red, yellow, dim, gray } = ANSI;
 
 /** Logging interface. */
@@ -12,7 +12,7 @@ export type Log = {
   trace (...args: unknown[]): unknown;
 };
 
-export const logger = reflect(null, function logger <T extends Log> ({
+export const logger = Named(null, function logger <T extends Log> ({
   formatError = e => e.stack,
   formatOne = x =>
     (typeof x === 'string') ? x :

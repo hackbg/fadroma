@@ -1,4 +1,26 @@
-import type { Falsy } from '../index.ts';
+/** The identity function. */
+export const identity = <T>(x: T): T => x;
+
+/** Return the identity function. */
+export const nop = (..._: unknown[]) => identity;
+
+/** Something that may have a `name`. */
+export type Named = { name: string };
+/** Set the name of something. Optionally, assign metadata.
+  *
+  * * By default, the `name` property of functions is read-only,
+  *   so this is accomplished using [Object.defineProperty].
+  *
+  * * Metadata added by this function is coped by descriptor,
+  *   which means getters and setters will work as defined. */ 
+export function Named <T, U> (name: string, named: T, props?: U): T & Named {
+  // Rename function via property
+  if (typeof name === 'string') named =
+    Object.defineProperty(named, 'name', { configurable: true, value: name })
+  // Copy properties via descriptors
+  return Object.defineProperties(named,
+    props ? Object.getOwnPropertyDescriptors(props) : {}) as T & Named;
+}
 
 /** Used to recognize entrypoint. */
 export type Meta = Partial<ImportMeta>;
@@ -15,7 +37,7 @@ export type Takes<T extends unknown[]> = (...args: T) => unknown;
 /** Function return type. */
 export type Returns<T> = (...args: unknown[]) => T;
 
-/** Annotations added by [reflect]. */
+/** Annotations added by [Named]. */
 export type Reflects<F extends Fn[] = Fn[]> = { stack?: string[], steps?: F };
 
 /** Procedure. Mutates context and returns void or new context. */
@@ -57,29 +79,6 @@ export type Impl<Api, Context> = {
     ? ((context: Context, ...args: R) => T)
     : never };
 
-/** Rename a function.
-  *
-  * By default, the `name` property of functions is read-only,
-  * so this is accomplished using [Object.defineProperty]. */
-export const renamed = <N extends { name: string }> (name: string|Falsy, fn: N): N => {
-  if (!name) return fn
-  if (typeof name === 'string') return Object.defineProperty(fn, 'name', { configurable: true, value: name })
-  throw new Error(`not a name: ${typeof name} ${name}`)
-}
-
-/** Rename a function and add metadata. */
-export function reflect <T>(name: string, fn, props?: T) {
-  const descriptors = props ? Object.getOwnPropertyDescriptors(props) : {};
-  return Object.defineProperties(renamed(name, fn), descriptors);
-}
-
-/** The identity function.
-  *
-  * Works great as a NOP when you need one. */
-export const identity = <T>(x: T): T => x;
-
-export const nop = (..._: unknown[]) => identity;
-
 export function merge <T> (t: T): T;
 export function merge <T, U> (t: T, u: U): T & U;
 export function merge <T, U, V> (t: T, u: U, v: V): T & U & V;
@@ -107,18 +106,16 @@ export function merge <T> (...fragments: Partial<T>[]): T {
   *       curry(fn, arg1, arg2),
   *       check)
   */
-export const curry = <F extends ((..._:unknown[])=>unknown)>(
+export function Fn <F extends ((..._:unknown[])=>unknown)> (
   fn: F, ...args: Partial<Parameters<F>>
-) => reflect(`${fn.name}(${curriedArgs(args)})`, fn.bind(null, ...args), {
-  fn, args, stack: new Error().stack?.split('\n').slice(3)
-});
+) {
+  return Named(`${fn.name}(${curriedArgs(args)})`, fn.bind(null, ...args), {
+    fn, args, stack: new Error().stack?.split('\n').slice(3)
+  });
+}
 
-const curriedArgs = args => args
-  .map(String)
-  .map((x: string) => x==='undefined'?'_':x)
-  .join(', ');
-
-export { curry as call }
+const curriedArgs = (args: unknown[]) => args.map(String)
+  .map((x: string) => x==='undefined'?'_':x).join(', ');
 
 /** Combine functions, where the return value of each step
   * is passed as first argument to the next one.
@@ -151,7 +148,7 @@ export function pipe <A, B, C, D, E> (
   f0: Fn<[A], B>, f1: Fn<[B], C>, f2: Fn<[C], D>, f3: Fn<[D], E>
 ): Fn<[A], E>;
 export function pipe (...steps: Fn[]): Fn {
-  return reflect(
+  return Named(
     `Pipe${steps.length}(${steps.map(x=>x?.name||'unnamed').join('|')})`,
     function pipe (value: Parameters<typeof steps[0]>[0]) {
       let state: unknown = value;
@@ -167,7 +164,7 @@ export function pipe (...steps: Fn[]): Fn {
  *
   * Return values are ignored; to pass state or
   * collect results, mutate the context. */
-export const sequence = <T>(...steps: Fn<[T]>[]) => reflect(null,
+export const sequence = <T>(...steps: Fn<[T]>[]) => Named(null,
   async function runSequentially (context: T) {
     for (const step of steps) {
       if (!step) continue;
@@ -281,7 +278,7 @@ export const defer = (callback?) => {
 
 export const interval =
   (msec: number, ...steps: Step[]) =>
-    reflect(null, async function interval (..._: unknown[]) {
+    Named(null, async function interval (..._: unknown[]) {
       return setInterval(() => {
         pipe(...steps)(performance.now())
       }, msec);
@@ -315,7 +312,7 @@ export const withCatcher =
   *       expect('Manual todo with more info', todo('the more info')));
   *
   **/
-export const todo = (...info: string[]) => reflect(
+export const todo = (...info: string[]) => Named(
   info.join(' '),
   function trackTodo (_context: unknown) {
     throw Object.assign(new Error(info.join(' ')), { todo: true })
@@ -324,7 +321,7 @@ export const todo = (...info: string[]) => reflect(
   });
 
 export const setProp = <T extends object>(key: keyof T, ...fns: Fn[]) =>
-  reflect(`set ${String(key)}`, async function setProperty (context) {
+  Named(`set ${String(key)}`, async function setProperty (context) {
     return Object.assign(context, { [key]: await pipe(...fns)(context) });
   }, { key, fns });
 

@@ -3,8 +3,8 @@ import { UTF8 } from './string.ts';
 
 /** Alias for various buffer types. */
 export type Bytes = Uint8Array|Buffer;
-
-export function toU8A <T>(x: T): Uint8Array {
+/** Convert a buffer to `Uint8Array` if it isn't already one. */
+export function Bytes <T>(x: T): Uint8Array {
   return (x instanceof Uint8Array) ? x : new Uint8Array(x as any);
 }
 

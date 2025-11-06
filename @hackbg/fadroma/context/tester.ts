@@ -1,7 +1,7 @@
 import type { Fn, Log, Reflects, Async, Prototype, Meta } from '../index.ts';
 import { ok, equal, throws, rejects, stdout, exit, argv,
   setImmediate, inspect } from '../deps.ts';
-import { ANSI, spaced, lines, msec, toString, merge, call, reflect, todo,
+import { ANSI, spaced, lines, msec, toString, merge, Named, todo,
   Error, addStepStack, withInfiniteStack } from '../format.ts';
 import { isEntrypoint } from './command.ts';
 import { logger } from './logger.ts';
@@ -17,7 +17,7 @@ export {
   testEquals   as equals,
   testIncludes as includes,
   testForbid   as forbid, 
-  call, ok, equal, throws, rejects, todo,
+  ok, equal, throws, rejects, todo,
 };
 
 /** Test stack and context. Passed to eacgh step as second argument. */
@@ -54,13 +54,14 @@ function testContext <T extends Context> (...options: Partial<T>[]): T {
       get count () { return props.results.length }
     };
     const info = () => `[Category: ${icon} ${color(state)} (${props.results.length})]`;
-    return toString(info)(reflect(state, function categorize (result: Partial<Result>): Result {
+    return toString(info)(Named(state, function categorize (result: Partial<Result>): Result {
       result = { ...result, state, stack: [...context] };
       props.results.push(result);
       return result as Result;
-    }, props));
+    }, props)) as Category;
   }
 }
+
 /** Print a summary of test results. */
 function testReport ({ context, details = [], indent = '', root = true }) {
   let line = '';
@@ -70,12 +71,15 @@ function testReport ({ context, details = [], indent = '', root = true }) {
     line = line + spaced(` ${icon}`, color(`${context[name].count} ${label}`), '');
   }
   details.push(line);
-  for (const {index, name, threw, stack} of context.fail.results) {
-    const label = [testIndex(stack), testNames(stack)].join(' ');
-    details.push([
-      ['\n 🔴', ANSI.red(label), threw.message].join(' '),
-      threw.stack.replace(threw.message, '')
-    ].join('\n'));
+  const thrown = new Set();
+  for (const {threw, stack: origin} of context.fail.results) {
+    const label = [testIndex(origin), testNames(origin)].join(' ');
+    const { message, stack = '', ..._info } = threw || {};
+    details.push(['\n 🔴', ANSI.red(label), message].join(' '));
+    if (!thrown.has(threw)) {
+      thrown.add(threw);
+      details.push(stack.replace(message));
+    }
   }
   return details
 }
@@ -141,9 +145,13 @@ function testSuite (meta: Meta, name: string, ...steps: (Step|string)[]) {
 
 /** Run a single test step and exit the interpreter. */
 async function testAndExit (test: Step, ...args: string[]) {
-  const { context, result } = await testRun(test, args);
-  stdout.write('\n' + lines(testReport({ context })) + '\n');
-  exit(0); //exit(('pass' in result) ? 0 : 1); // FIXME result propagation
+  const context = testContext({ args });
+  try {
+    await testRun(test, args, context);
+  } finally {
+    stdout.write('\n' + lines(testReport({ context })) + '\n');
+    exit(0); //exit(('pass' in result) ? 0 : 1); // FIXME result propagation
+  }
 }
 
 /** Run a test suite, collecting the results into a test report. */
@@ -180,16 +188,16 @@ function testThe <T extends Context> (
 ): Step<T, void> {
   if (steps.length === 0) return todo(name);
   const substeps: Step<T>[] = steps.map(toStep);
-  return reflect(name, testStep, { steps });
+  return Named(name, testStep, { steps });
   async function testStep (returned: unknown, context: T): Promise<void> {
     let state: State = null, threw: Error;
     if (substeps.length === 0)
       context.todo({ index: 1, name, t0: performance.now() });
     if (substeps.length === 1)
-      await reflect(substeps[0].name, runStep)(substeps[0]);
+      await Named(substeps[0].name, runStep)(substeps[0]);
     for (let index = 1; index <= substeps.length; index++) { 
       const step = substeps[index - 1];
-      await reflect(substepName(name, step), runStep)(step, index);
+      await Named(substepName(name, step), runStep)(step, index);
     }
     async function runStep (step: Step<T>, index = 1) {
       const t0 = performance.now();
@@ -213,7 +221,7 @@ function testThe <T extends Context> (
         const { icon, color } = context[state];
         context.log(
           color(msec(t1).padStart(8)),
-          ANSI.gray(6+2*Math.max(0, Math.log10(tD)), '+'+msec(tD)),
+          ANSI.gray(6+2*Math.max(0, Math.log10(tD)), '+'+msec(tD).padStart(8)),
           icon, color(label)
         );
         context[state]({ index, name: step.name, t0, t1, tD, returned, threw });
@@ -239,9 +247,10 @@ function testCompare <T extends Context> (type: 'function', expectedName?: strin
 function testCompare <T extends Context> (type: 'object',   expectedConstructorName?: string): Step<T, unknown>;
 function testCompare <T extends Context> (type: 'object',   expectedPrototype?: { [Symbol.hasInstance] (_) }): Step<T, unknown>;
 function testCompare <T extends Context> (type: string, ...args: unknown[]): Step<T, unknown> {
+  // TODO: refactor: early dispatch
   const name = `MUST be ${type}`;
   // call the returned function to assert
-  return toString(`[${name}]`)(reflect(name, function mustBe (value: unknown) {
+  return toString(`[${name}]`)(Named(name, function mustBe (value: unknown) {
     // type check
     ok(typeof value === type, `not ${type}: ${inspect(value)}`);
     // value check
@@ -258,14 +267,14 @@ function testCompare <T extends Context> (type: string, ...args: unknown[]): Ste
           typeof arg[Symbol.hasInstance] === 'function'
         ) {
           // using the `instanceof` operator:
-          ok(value instanceof arg);
+          ok(value instanceof (arg as Prototype));
         } else {
           throw new Error('unsupported object predicate');
         }
       } else if (type === 'function') {
         // function name check
         if (typeof arg === 'string') {
-          equal(arg, value.name);
+          equal(arg, (value as Fn).name);
         } else {
           throw new Error('unsupported function predicate');
         }
@@ -276,11 +285,11 @@ function testCompare <T extends Context> (type: string, ...args: unknown[]): Ste
       }
     }
     return value;
-  }));
+  })) as Step<T, unknown>;
 }
 
 function testEquals <T extends Context, V> (value: V, info?: string|Error): Step<T, unknown> {
-  return reflect(`MUST equal ${inspect(value)}`, function mustEqual (last: unknown) {
+  return Named(`MUST equal ${inspect(value)}`, function mustEqual (last: unknown) {
     equal(value, last, info);
     return last;
   }, { value, info });
@@ -294,37 +303,40 @@ function testHas <T extends Context, X> (...args: unknown[]):
   Step<T, unknown>
 {
   const arg0Type = typeof args[0];
-  if (['string','number','symbol'].includes(arg0Type)) {
-    // check for one key
-    const key    = args[0] as keyof X;
-    const checks = args.slice(1);
-    const name   = `MUST have "${key}"`
-    const info   = `[${name}]`;
-    return toString(info)(reflect(name, async function testHasProperty (object: X, context: T) {
-      ok(key in object, `${String(key)} missing in ${inspect(object)}`);
-      for (const check of checks) {
-        if (typeof check !== 'function') {
-          context.warn('not a function:', check);
-          continue
+  switch (true) {
+    case (['string','number','symbol'].includes(arg0Type)): {
+      // check for one key
+      const key    = args[0] as keyof X;
+      const checks = args.slice(1);
+      const name   = `MUST have "${String(key)}"`
+      const info   = `[${name}]`;
+      return toString(info)(Named(name, async function testHasProperty (object: X, context: T) {
+        ok(key in (object as object),
+          `${String(key)} missing in ${inspect(object)}`);
+        for (const check of checks) {
+          if (typeof check !== 'function') {
+            context.warn('check is not a function, ignoring:', check);
+            continue
+          }
+          await check(object[key as keyof typeof object], context);
         }
-        await check(object[key as keyof typeof object], context);
-      }
-      return object;
-    }));
-  } else if (args[0] && typeof args[0] === 'object') {
-    // partial equal
-    const name = `MUST match "${inspect(args[0])}"`;
-    return toString(`[${name}]`)(reflect(name, function testHasProperties (object: object) {
-      for (const [k, expected] of Object.entries(args[0])) equal(object[k], expected, `not equal: k`);
-      return object;
-    }));
-  } else {
-    throw new Error('testHas: invalid argument', { args });
+        return object;
+      })) as Step<T, unknown>;
+    };
+    case (args[0] && typeof args[0] === 'object'): {
+      // partial equal
+      const name = `MUST match "${inspect(args[0])}"`;
+      return toString(`[${name}]`)(Named(name, function testHasProperties (object: object) {
+        for (const [k, expected] of Object.entries(args[0])) equal(object[k], expected, `not equal: k`);
+        return object;
+      })) as Step<T, unknown>;
+    };
+    default: throw new Error('testHas: invalid argument', { args });
   }
 }
 
 function testIncludes <T extends Context, X> (item: X) {
-  return reflect(`MUST include ${inspect(item)}`,
+  return Named(`MUST include ${inspect(item)}`,
     function mustInclude (object: { includes (_: X): boolean }, _: T) {
       ok(object && typeof object === 'object', 'non-object');
       ok(typeof object['includes'] === 'function', 'no includes method');
@@ -338,7 +350,7 @@ function testForbid (
   name: string, failure: Step, ...steps: Array<(_: Error)=>unknown>
 ) {
   name = [`Forbid`, name].filter(Boolean).join(': ');
-  return reflect(name, forbidRun, { failure, steps });
+  return Named(name, forbidRun, { failure, steps });
   function forbidRun (context: Context) {
     throw Error.TODO('forbid')
     async function forbidRunTracked () {

@@ -1,30 +1,33 @@
 #!/usr/bin/env -S deno run --allow-read --allow-env --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443 --allow-net=127.0.0.1:18443
-import { Test, pipe, Temp, FS, chunked, portWait } from '@hackbg/fadroma';
-import { simfInit, simfBuild, simfRun } from './index.ts';
-import { resolvePath, fileURLToPath, Btc } from './deps.ts';
+import { Test, Temp, portWait } from '@hackbg/fadroma';
+import { Simplicity } from './index.ts';
+import { Btc, pipe } from './deps.ts';
 import { execImpl, spawnImpl } from '../../@hackbg/fadroma/deps.ts';
 const { the } = Test;
-const cwd = resolvePath(fileURLToPath(import.meta.url), '..');
-const name = 'Simplicity Test Project';
-export default Test.suite(import.meta, 'Simplicity', testSimplicity);
-async function testSimplicity () {
-  const project = Temp('test-simf', simfInit({ name, simf: Simf0() }));
-  const [written] = await project(FS());
-  Test.ok(written[0].includes(name));
-  Test.ok(written[1].includes('u4, u4'));
-  Test.equal(written[2], undefined);
-  const context = { cwd, exec: execImpl, spawn: spawnImpl, ports: {} };
-  const program = await simfBuild({ name: 'example' })(context);
-  console.log({context});
-  const btcd = await Btc().spawnNode(context);
-  console.log({btcd});
-  await portWait({ port: '18443' })();
-  console.log('ready');
-  const result  = await simfRun({ program })(context);
-  console.log({ program, btcd, result });
-}
-function Simf0 () {
-  return [
+
+//const cwd = resolvePath(fileURLToPath(import.meta.url), '..');
+const name = 'Hello';
+
+export default Test.suite(import.meta, 'Simplicity',
+  async function testSimplicity (_, { log }) {
+    const source = Examples[1]();
+    const context = { exec: execImpl, spawn: spawnImpl, ports: {} };
+    const project = Simplicity(await Temp('test-simf')(), { name, source });
+    const {cwd, paths} = await project.init();
+    Test.ok(paths[`${cwd}/README.md`].includes(name));
+    Test.ok(paths[`${cwd}/${name}.simf`].includes(source));
+    Test.equal(paths[`${cwd}/${name}.wit`], undefined);
+    const program = await project.build();
+    const btcd = await Btc().spawnNode(context);
+    await portWait({ port: '18443' })();
+    const run = project.run();
+    const result = await run();
+    log({ program, btcd, result });
+  });
+
+export const Examples = {
+
+  1: () => [
     `fn main() {`,
     `  let ab: u16 = <(u8, u8)>::into((0x10, 0x01));`,
     `  let c: u16 = 0x1001;`,
@@ -33,5 +36,6 @@ function Simf0 () {
     `  let c: u8 = 0b10111101;`,
     `  assert!(jet::eq_8(ab, c));`,
     `}`
-  ];
+  ].join('\n')
+
 }

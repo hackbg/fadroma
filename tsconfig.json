@@ -6,6 +6,7 @@
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedParameters": false,
+    "isolatedModules": false
   }
 }

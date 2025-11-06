@@ -13,13 +13,13 @@ export const isHex64 = Typeforce.HexN(64);
 export * as BTCJS from 'bitcoinjs-lib';
 
 export { setImmediate } from 'node:timers';
-export type * from '@hackbg/fadroma';
 export {
-  interval, Env, Arg, portWait,
+  interval, portWait,
   serveHttp, route, param, guard, get, post,
-  joined, call, reflect,
-  toU8A, flag, byteParse, byteConcat, readBytes,
+  joined,
+  flag, byteParse, byteConcat, readBytes,
   readUntilDone, write, toRW, tcpConnect, tcpListen, merge, sequence,
   pipe,
-  Test, Service, Exec, Spawn, Dir, Port, UTF8,
+  Bytes, Named, Test, Service, Exec, Spawn, Env, Arg, Dir, Port, UTF8, Fn,
 } from '@hackbg/fadroma';
+export type * from '@hackbg/fadroma';

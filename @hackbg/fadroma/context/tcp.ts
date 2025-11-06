@@ -1,7 +1,7 @@
 import type { Fn, RW, AsyncIter, Ports, Endpoint } from '../index.ts';
 import type { Socket, TcpServer } from '../deps.ts';
 import { createTcpServer, createConnection, denoConnect } from '../deps.ts';
-import { reflect, asyncIter, toRW } from '../format.ts';
+import { Named, asyncIter, toRW } from '../format.ts';
 
 /** TCP context. */
 export type Tcp = Ports & {
@@ -67,7 +67,7 @@ export async function tcpListen (
 
 /** Define TCP service. */
 export function tcpServe (port: number, handler: Fn<[Socket]>) {
-  return reflect(`TCP(Serve ${port})`, async function runTcpServer (
+  return Named(`TCP(Serve ${port})`, async function runTcpServer (
     ctx: Tcp = Tcp()
   ): Promise<TcpEndpoint> {
     if (port in ctx.ports) throw new Error(`port ${port}: occupied`);

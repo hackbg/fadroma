@@ -1,10 +1,11 @@
 import type { Fn, Step, Async } from '../index.ts';
 import type { ChildProcess } from '../deps.ts';
-import { execImpl, spawnImpl } from '../deps.ts';
-import { Error, pipe, reflect, toString } from '../format.ts';
+import { execImpl, spawnImpl, inspect } from '../deps.ts';
+import { Error, pipe, Named, toString } from '../format.ts';
+import { FS } from './fs.ts';
 
 /** A collection of processes and network endpoints provided by them. */
-export type Service = {
+export type Service = FS & {
   /** Processes comprising the service, by PID. */
   pids: Record<number, { pid: number, kill (): Async }>,
   /** Mapping of port to PID that provides it. */
@@ -16,19 +17,23 @@ export type Service = {
 /** Define a service. */
 export function Service <S extends Service> (name: string, ...services: Fn<[S]>[]) {
   const info = `[Service (${services.length}): ${name}]`;
-  return toString(info)(reflect(name, runService, { services }));
-  async function runService (ctx: Partial<S> = { pids: {}, ports: {} } as S): Promise<S> {
+  return toString(info)(Named(name, runService, { services }));
+  async function runService (ctx = FS({ pids: {}, ports: {} } as Partial<S>)): Promise<S> {
     for (const service of services) await service(ctx);
     const kill = () => Promise.all(Object.values(ctx.pids).map(proc=>proc.kill()));
     return Object.assign(ctx, { kill, }) as unknown as S;
   }
 }
 
-/** A command invocation. */
-export type Run = {
-  argv:    string[],
-  opts?:   { env?: Record<string, string> },
-  handle?: ChildProcess
+/** Run a command and wait for result. */
+export const Exec = (command: string, ...options: (Step<Run>|string)[]): Exec =>
+  Named(`Exec(${command})`, async function exec (context = { exec: execImpl }) {
+    const { argv, env } = Run(command, ...options);
+    const [ cmd, ...args ] = argv;
+    return { argv, env, ...await (context.exec??execImpl)(cmd, args, { env }) };
+  }, Run(command, ...options));
+/** Command invocation that returns a result. */
+export type Exec = Fn<[{ exec?: typeof execImpl }], Async<Run & {
   pid?:    number,
   output?: unknown[],
   stdout?: string|unknown,
@@ -36,42 +41,47 @@ export type Run = {
   status?: number|null,
   signal?: string|null,
   error?:  Error,
-};
-
-/** Run a command and wait for result. */
-export const Exec = (command: string, ...options: (Step<Run>|string)[]) =>
-  reflect(`Exec(${command})`, async function exec (context = { exec: execImpl }): Promise<Run> {
-    const { argv, opts } = Run(command, ...options);
-    return { argv, opts, ...await context.exec(argv[0], argv.slice(1), opts) };
-  });
+}>>;
 
 /** Run a background service. */
-export const Spawn = (daemon: string, ...options: (Step<Run>|string)[]) =>
-  reflect(`Spawn(${daemon})`, async function spawn (context = { spawn: spawnImpl }): Promise<Run> {
-    const { argv, opts } = Run(daemon, ...options);
-    return { argv, opts, handle: await context.spawn(argv[0], argv.slice(1), opts) };
-  });
+export const Spawn = (daemon: string, ...options: (Step<Run>|string)[]): Spawn =>
+  Named(`Spawn(${daemon})`, async function spawn (context = { spawn: spawnImpl }) {
+    const { argv, env } = Run(daemon, ...options);
+    const [ cmd, ...args ] = argv;
+    return { argv, env, handle: await (context.spawn??spawnImpl)(cmd, args, { env }) };
+  }, Run(daemon, ...options));
+/** Command invocation that spawns a background process. */
+export type Spawn = Fn<[{ exec?: typeof execImpl }], Async<Run & {
+  handle?: ChildProcess
+}>>;
 
 /** Compose command invocation from options. */
 export const Run = (path: string, ...opts: (Step<Run>|string)[]) =>
-  pipe(...opts.filter(Boolean).map(toOpt))({ argv: [path], opts: {} }) as Run;
+  pipe(...opts.filter(Boolean).map(toOpt))({ argv: [path], env: {} }) as Run;
+/** Command invocation. */
+export type Run = { argv: string[], env?: Record<string, string> };
+
 const toOpt = (opt: string|Step<Run>): Step<Run> =>
   (typeof opt === 'function') ? opt :
-  (typeof opt === 'string') ? pushArg(opt) :
-  Error.required('string or function');
-const pushArg = (opt: string) =>
-  reflect(opt, (run: Run) => { run.argv.push(opt); return run });
+  (typeof opt === 'string')   ? pushArg(opt) :
+  (typeof opt === 'object')   ? context=>Object.assign(context, opt) :
+  Error.required(`string or function, got: ${inspect(opt)}`);
 
-/** Set an environment variable for a command invocation */
+const pushArg = (opt: string) =>
+  Named(opt, (run: Run) => { run.argv.push(opt); return run });
+
+/** Set environment variable in run config. */
 export const Env = (name: string, value: string|null) =>
-  reflect(name, function setEnvironmentVariable (run: Run) {
-    run.opts ??= {};
-    run.opts.env ??= {};
-    run.opts.env[name] = value;
+  Named(`Env(${name}=${value})`, function setEnv (context: Partial<Run> = {}) {
+    context.env ??= {};
+    context.env[name] = value;
+    return context
   }, { name, value });
 
 /** Append command-line arguments to a command invocation. */
-export const Arg = (...parts: string[]) => reflect(`Arg: parts[0]`,
-  function addArgument (run: Run) {
-    return Object.assign(run, { argv: [...run.argv || [], parts.join(' ')] })
+export const Arg = (...parts: string[]) =>
+  Named(`Arg(${parts[0]})`, function addArgument (context: Partial<Run> = {}) {
+    context.argv ??= []
+    context.argv.push(parts.join(' '))
+    return context
   }, { parts });

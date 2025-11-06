@@ -1,6 +1,6 @@
-import type { Fn, Flag, AsyncIter, Log, Bytes, Reader } from './deps.ts';
-import { UTF8, toU8A, flag, byteParse, readBytes, readUntilDone, write, pipe,
-  tcpConnect, tcpListen, merge, call, sequence, reflect } from './deps.ts';
+import type { Flag, AsyncIter, Log, Reader } from './deps.ts';
+import { UTF8, Bytes, flag, byteParse, readBytes, readUntilDone, write, pipe,
+  tcpConnect, tcpListen, merge, Fn, sequence, Named } from './deps.ts';
 /** A ZeroMQ connection. */
 export type Conn = (AsyncIter<Frame> & ConnOpts) | { socket?: unknown };
 /** Options for creating a ZeroMQ connection. */
@@ -36,7 +36,7 @@ const writeCb = (writable, data) => new Promise((resolve, reject)=>{
 /** A ZeroMQ publisher (server listener). */
 export type Pub = Conn & { mode: 'PUB', kill: Fn<[]>, send (...msgs: Bytes[]): Promise<void>; };
 export const Pub = merge(function zmqPub (at: number|string|URL, handler: Fn<[TcpConn]>) {
-  return reflect(`ZMQ PUB ${at}`, async function zmqPublisher (
+  return Named(`ZMQ PUB ${at}`, async function zmqPublisher (
     _: unknown
   ): Promise<Pub> {
     let stopped  = false;
@@ -54,7 +54,7 @@ export const Pub = merge(function zmqPub (at: number|string|URL, handler: Fn<[Tc
     return { mode: 'PUB', socket, send, close };
   }, { at, handler })
 }, {
-  shake: (_payload = []) => reflect('ZMQ PUB shake', sequence(
+  shake: (_payload = []) => Named('ZMQ PUB shake', sequence(
     Hello.write({ pub: true }),
     Hello.read,
     Frame.ready.write,
@@ -66,7 +66,7 @@ export const Pub = merge(function zmqPub (at: number|string|URL, handler: Fn<[Tc
 export type Sub = Conn & {
   mode: 'SUB'; subscribe (topic: string): Promise<void>; receive (): Promise<Frame[]>; };
 export const Sub = merge(async function zmqSub (to: number|string|URL, handler: Fn<[Sub]>) {
-  return reflect(`ZMQ SUB ${to}`, async function zmqSubscriber (
+  return Named(`ZMQ SUB ${to}`, async function zmqSubscriber (
     _: unknown
   ): Promise<Sub> {
     const socket = await tcpConnect(to);
@@ -92,7 +92,7 @@ export const Sub = merge(async function zmqSub (to: number|string|URL, handler: 
     return { socket, subscribe, receive, close };
   }, { to, handler });
 }, {
-  shake: () => reflect('ZMQ SUB shake', sequence(
+  shake: () => Named('ZMQ SUB shake', sequence(
     Hello.write({ pub: false }),
     Hello.read,
     Frame.ready.read,
@@ -105,14 +105,14 @@ export const Sub = merge(async function zmqSub (to: number|string|URL, handler: 
 export type Hello = { sig: Bytes, sec: ZmqSec, ver: ZmqVer, pub: boolean };
 export const Hello = merge(zmqHello, {
   size: 64,
-  read:  reflect('Hello', pipe(readBytes({ max: 64 }), zmqHello)),
-  write: reflect('Hello', call(pipe(zmqHello, write))),
+  read:  Named('Hello', pipe(readBytes({ max: 64 }), zmqHello)),
+  write: Named('Hello', Fn(pipe(zmqHello, write))),
 });
 function zmqHello (input?: Bytes): Hello & Bytes;
 function zmqHello (input?: Partial<Hello>): Hello & Bytes;
 function zmqHello (input?: unknown): Hello & Bytes {
   if (input && input[0]) {
-    const bytes    = toU8A(input);
+    const bytes    = Bytes(input);
     const secBytes = bytes.subarray(12, 12+6);
     const sec      = UTF8.decode(secBytes.slice(0, secBytes.indexOf(0)||Infinity));
     const sig      = bytes.subarray(0, 10);
@@ -156,10 +156,10 @@ export const Frame = merge(zmqFrame, {
     offset += frame.long ? 4 : 1;
     return buf(n, offset);
   },
-  ready: merge(call(zmqFrame, { command: 'READY' }), {
+  ready: merge(Fn(zmqFrame, { command: 'READY' }), {
     id:    'READY',
-    read:  reflect('ZMQ>ready', pipe(readUntilDone, zmqFrame, zmqExpectCommand('READY'))),
-    write: reflect('ZMQ<ready', writable => writable.write(Frame.ready())),
+    read:  Named('ZMQ>ready', pipe(readUntilDone, zmqFrame, zmqExpectCommand('READY'))),
+    write: Named('ZMQ<ready', writable => writable.write(Frame.ready())),
   })
 });
 export function zmqFrame (input?: Bytes): Frame & Bytes;
@@ -167,7 +167,7 @@ export function zmqFrame (input?: Partial<Frame>): Frame & Bytes;
 export function zmqFrame (input?: unknown): Frame & Bytes {
   if (input && typeof input === 'object' && Symbol.iterator in input) {
     if (input.length === 0) throw new Error('empty frame');
-    const bytes  = toU8A(input);
+    const bytes  = Bytes(input);
     const long   = Flags.long(bytes);
     if (long) throw new Error("long frames not supported yet");
     const size   = Number(byteParse(bytes)[long ? 'u64' : 'u8'](1));

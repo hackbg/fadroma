@@ -10,7 +10,7 @@ export type TX = InstanceType<typeof web3.Transaction>;
 import { env } from './deps.ts';
 env.ANCHOR_PROVIDER_URL ??= 'http://localhost:8899';
 env.ANCHOR_WALLET ??= resolve(homedir(), '.config/solana/id.json'); // FIXME use XDG
-import { ok, equal, expect, forbid, call, reflect,
+import { ok, equal, expect, forbid, Fn, Named,
   Case, resolve, homedir,
   Anchor, Program, workspace,
   ACCOUNT_SIZE, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID,
@@ -374,11 +374,11 @@ function tokenProgramApi (programId: PK): {
 }
 
 export const testAx = (name, address, ...validators) =>
-  expect(name, call(exists, address, name), ...validators)
+  expect(name, Fn(exists, address, name), ...validators)
 export const testTx = (name, signers, ...args) =>
-  expect(name, call(sendIxs, signers, ...args))
+  expect(name, Fn(sendIxs, signers, ...args))
 export const forbidTx = (signers, name, ...args) =>
-  forbid(name, call(sendIxs, signers, ...args))
+  forbid(name, Fn(sendIxs, signers, ...args))
 export const logMustContain = (text) =>
   reflect(`must log ${text}`, function logMustContainRun (tx) {
     return tx
