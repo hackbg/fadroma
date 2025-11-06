@@ -9,11 +9,8 @@ export type Tcp = Ports & {
   connect (to: number|string|URL): Promise<RW>
 };
 
-/** A network endpoint. */
-export type TcpEndpoint = Endpoint & TcpServer & AsyncIter<Socket>;
-
 /** Define network context. */
-export function tcpContext <T extends Tcp>({
+export function Tcp <T extends Tcp>({
   ports   = {},
   connect = tcpConnect,
   listen  = tcpListen as any,
@@ -21,6 +18,9 @@ export function tcpContext <T extends Tcp>({
 }: Partial<T> = {}): T {
   return { ports, connect, listen, ...rest } as T
 }
+
+/** A network endpoint. */
+export type TcpEndpoint = Endpoint & TcpServer & AsyncIter<Socket>;
 
 /** Resolve TCP address. */
 export function tcpAddr (to: number|string|URL): URL {
@@ -101,7 +101,7 @@ export async function tcpListen (
 /** Define TCP service. */
 export function tcpServe (port: number, handler: Fn<[Socket]>) {
   return reflect(`TCP ${port}`, async function runTcpServer (
-    ctx: Tcp = tcpContext()
+    ctx: Tcp = Tcp()
   ): Promise<TcpEndpoint> {
     if (port in ctx.ports) throw new Error(`port ${port}: occupied`);
     const endpoint = await tcpListen(port, handler);

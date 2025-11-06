@@ -17,6 +17,21 @@ export type Pids = {
   kill (id: number): Async
 };
 
+/** Define process management context. */
+export const Pids = <T extends Pids>({
+  pids  = {},
+  exec  = (async ({ argv, opts }: Invoke) => {
+    return await execImpl(argv[0],  argv.slice(1), opts);
+  }) as T["exec"],
+  spawn = ({ argv, opts }: Invoke) => spawnImpl(argv[0], argv.slice(1), opts),
+  kill  = (_pid?: number) => { throw new Error('TODO') },
+  stdout = '',
+  stderr = '',
+  ...rest
+}: Partial<T> = {}): T => ({
+  pids, exec, spawn, kill, stdout, stderr, ...rest
+} as T);
+
 /** A command invocation. */
 export type Invoke = {
   argv: string[],
@@ -37,24 +52,10 @@ export type ExecResult = {
   error?: Error
 }
 
-/** Define process management context. */
-export const spawnContext = <T extends Pids>({
-  pids  = {},
-  exec  = (async ({ argv, opts }: Invoke) => {
-    return await execImpl(argv[0],  argv.slice(1), opts);
-  }) as T["exec"],
-  spawn = ({ argv, opts }: Invoke) => spawnImpl(argv[0], argv.slice(1), opts),
-  kill  = (_pid?: number) => { throw new Error('TODO') },
-  stdout = '',
-  stderr = '',
-  ...rest
-}: Partial<T> = {}): T => ({
-  pids, exec, spawn, kill, stdout, stderr, ...rest
-} as T);
 
 /** Define a background task. */
 export const spawn = (arg0: string, ...opts: (Step<Invoke>|string)[]) =>
-  reflect(arg0, async function spawnDaemon (ctx: Pids = spawnContext()) {
+  reflect(arg0, async function spawnDaemon (ctx: Pids = Pids()) {
     const child = await ctx.spawn(await invoke(arg0, opts));
     if (child.pid) {
       ctx.pids[child.pid] = child;
@@ -65,7 +66,7 @@ export const spawn = (arg0: string, ...opts: (Step<Invoke>|string)[]) =>
 
 /** Define a command invocation. */
 export const exec = (arg0: string, ...opts: (Step<Invoke>|string)[]) =>
-  reflect(arg0, async function executeInvoke (ctx: Pids = spawnContext()) {
+  reflect(arg0, async function executeInvoke (ctx: Pids = Pids()) {
     const result = await ctx.exec(await invoke(arg0, opts));
     if (!result) throw new Error('ctx.exec returned nothing')
     const { stdout = '', stderr = '' } = result || {};

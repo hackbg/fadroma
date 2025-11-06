@@ -27,6 +27,14 @@ class Oops extends Error {
     throw new this(info as string, { todo: true })
   }
 
+  static required = <T>(...info: string[]): T => {
+    throw new Error('Missing required value: ' + info.join(' '));
+  }
+
+  static requiredLate = (...info: string[]) => () => {
+    throw new Error('Missing required value: ' + info.join(' '));
+  }
+
   /** Define an error subclass. */
   static define <T extends unknown[]> (
     /** Name of error class. Prepended to parent. */

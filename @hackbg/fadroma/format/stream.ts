@@ -57,12 +57,14 @@ export const writeTo = <T>(output: Writer<T>, ...prefix: T[]) =>
     for (const datum of prefix) await output.write(datum);
     for (const datum of data) await output.write(datum);
   };
+
 /** Specify write operation. */
 export const write = <T>(...data: T[]) =>
   async (writer: Writer<T>) => {
     for (const datum of data) await writer.write(datum);
     return writer
   }
+
 /** Read between `min` and `max` bytes. */
 export const readBytes = ({ min = 0, max = 256 } = {}) =>
   reflect(`read between ${min} and ${max} bytes`,
@@ -77,6 +79,7 @@ export const readBytes = ({ min = 0, max = 256 } = {}) =>
       }
       return byteConcat(chunks)
     }, { min, max });
+
 /** Read whole stream. */
 export async function readUntilDone (reader: Reader<Bytes>): Promise<Bytes|null> {
   const chunks = [];

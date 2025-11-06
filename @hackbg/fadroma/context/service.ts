@@ -1,23 +1,13 @@
-import type { Fn, StepsWith, Tcp, Log, FS, Pids } from '../index.ts';
-import { pipe, reflect } from '../format.ts';
+import type { Fn, StepsWith, Log } from '../index.ts';
+import { pipe, reflect, toString } from '../format.ts';
 import { logger } from './logger.ts';
-import { tcpContext } from './tcp.ts';
-import { fsContext } from './codegen.ts';
-import { spawnContext } from './spawn.ts';
+import { Tcp } from './tcp.ts';
+import { FS } from './fs.ts';
+import { Pids } from './spawn.ts';
 /** Service context. */
 export type ServiceContext = Tcp & Pids & FS & Log;
 /** Create a service context. */
-export const serviceContext = pipe(
-  logger, spawnContext, fsContext, tcpContext);
-
-/** Mixin. */
-const toString = string => object => {
-  const proto = Object.getPrototypeOf(object);
-  const mixin = { toString () { return string } };
-  Object.setPrototypeOf(mixin, proto);
-  Object.setPrototypeOf(object, mixin);
-  return object;
-}
+export const serviceContext = pipe(logger, Pids, FS, Tcp);
 
 /** Define a service. */
 export function service (name: string, ...services: Fn<[ServiceContext]>[]) {

@@ -1,5 +1,4 @@
 import { suite, the, context, is, has } from "./tester.ts";
-import { equal } from '../deps.ts';
 
 export default suite(import.meta, 'Tester',
 

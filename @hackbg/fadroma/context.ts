@@ -1,5 +1,6 @@
 export * from './context/codegen.ts';
 export * from './context/command.ts';
+export * from './context/fs.ts';
 export * from './context/http.ts';
 export * from './context/logger.ts';
 export * from './context/port.ts';

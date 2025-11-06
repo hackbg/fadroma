@@ -1,10 +1,10 @@
 #!/usr/bin/env -S deno run --coverage --allow-env --allow-net --allow-run
 import { suite, the, has }  from "./tester.ts";
-import { spawnContext, exec, spawn } from '../index.ts';
+import { Pids, exec, spawn } from '../index.ts';
 import { ok, equal } from '../deps.ts';
-export default suite(import.meta, 'Process',
+export default suite(import.meta, 'Spawn',
 
-  the('Context', spawnContext, has('pids')),
+  the('Context', () => Pids(), has('pids')),
 
   the('Args',
     () => equal({ ...spawn('true', 'foo', 'bar', 'baz') }, { arg0: 'true', opts: ['foo', 'bar', 'baz'] }),
@@ -13,12 +13,12 @@ export default suite(import.meta, 'Process',
   the('Exec', async () => {
     const run = exec('true');
     equal({ ...run }, { arg0: 'true', opts: [] });
-    const context = spawnContext();
+    const context = Pids();
     equal(await run(context), context);
   }),
 
   the('Spawn', async () => {
-    const context = spawnContext();
+    const context = Pids();
     const start = spawn('true');
     equal({ ...start }, { arg0: 'true', opts: [] });
     equal(await start(context), context);

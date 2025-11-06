@@ -281,11 +281,12 @@ function testHas <T extends Context, X> (...args: unknown[]):
   const arg0Type = typeof args[0];
   if (['string','number','symbol'].includes(arg0Type)) {
     // check for one key
-    const key = args[0] as keyof X;
+    const key    = args[0] as keyof X;
     const checks = args.slice(1);
-    const name = `MUST have "${key}"`
-    return toString(`[${name}]`)(reflect(name, async function testHasProperty (object: X, context: T) {
-      ok(key in object, `${key} missing in ${inspect(object)}`);
+    const name   = `MUST have "${key}"`
+    const info   = `[${name}]`;
+    return toString(info)(reflect(name, async function testHasProperty (object: X, context: T) {
+      ok(key in object, `${String(key)} missing in ${inspect(object)}`);
       for (const check of checks) {
         if (typeof check !== 'function') {
           context.warn('not a function:', check);

@@ -31,6 +31,7 @@ export const str = (...strs: Array<Falsy|Stringy|Array<Falsy|Stringy>>) =>
 
 export const joined = (joiner: string, ...strs: Array<Falsy|Stringy|Array<Falsy|Stringy>>) =>
   chunks(...strs).join(joiner);
+
 export const glued  = call(joined, '');
 export const spaced = call(joined, ' ');
 export const lines  = call(joined, '\n');
@@ -158,5 +159,16 @@ export function toString <T> (stringOrToString: (string|((_:T)=>string))) {
     Object.setPrototypeOf(mixin, proto);
     Object.setPrototypeOf(object, mixin);
     return object;
+  }
+}
+
+export function chunked (separator: string = '') {
+  return function unchunk (chunks: unknown[]): string {
+    let buffer = '';
+    for (let chunk of chunks) {
+      if (typeof chunk !== 'string') chunk = unchunk(chunk as unknown[]);
+      buffer += separator + chunk;
+    }
+    return buffer
   }
 }

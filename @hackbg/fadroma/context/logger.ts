@@ -1,5 +1,5 @@
 import { env, stdout, createLogUpdate, inspect } from '../deps.ts';
-import { reflect, joined, ANSI } from '../format.ts';
+import { reflect, joined, ANSI, stackTrace } from '../format.ts';
 const { red, yellow, dim, gray } = ANSI;
 
 /** Logging interface. */
@@ -39,3 +39,15 @@ export const logger = reflect(null, function logger <T extends Log> ({
     ...rest
   } as T
 });
+
+export function discourageConsole () {
+  globalThis.console.log =
+  globalThis.console.info =
+  globalThis.console.warn =
+  globalThis.console.error = (...args: unknown[]) => {
+    const trace = stackTrace();
+    stdout.write('\n'+
+      ANSI.yellow('console.log')+' '+args.map(x=>inspect(x)).join(' ')+'\n '+
+      ANSI.gray(8, trace.join('\n ')));
+  };
+}

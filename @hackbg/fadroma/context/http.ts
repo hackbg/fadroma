@@ -1,7 +1,7 @@
-import type { Fn, Tcp, Endpoint, Step } from '../index.ts';
+import type { Fn, Endpoint, Step } from '../index.ts';
 import { HttpServer } from '../deps.ts';
 import { pipe, reflect } from '../format.ts';
-import { tcpContext, tcpAddr } from './tcp.ts';
+import { Tcp, tcpAddr } from './tcp.ts';
 
 /** HTTP context. */
 export type Http = Tcp & {
@@ -24,7 +24,7 @@ export type Handler = Step<Router>;
 export const serveHttp = (at: number|string|URL, ...routes: Handler[]) => {
   at = tcpAddr(at);
   return reflect(`HTTP ${at.toString()}`,
-    function runHttpServer (ctx: Tcp = tcpContext()): HttpServer {
+    function runHttpServer (ctx: Tcp = Tcp()): HttpServer {
       const { port, hostname = '127.0.0.1' } = at;
       const server = new HttpServer();
       server.listen(`${hostname}:${port}`);

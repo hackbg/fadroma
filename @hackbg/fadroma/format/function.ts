@@ -322,15 +322,6 @@ export const todo = (...info: string[]) => reflect(
     info, todo: true, skip: true
   });
 
-export const required = <T>(...info: string[]): T => {
-  throw new Error('Missing required value: ' + info.join(' '));
-}
-
-export const requiredLate = (...info: string[]) => () => {
-  throw new Error('Missing required value: ' + info.join(' '));
-}
-
-
 export const setProp = <T extends object>(key: keyof T, ...fns: Fn[]) =>
   reflect(`set ${String(key)}`, async function setProperty (context) {
     return Object.assign(context, { [key]: await pipe(...fns)(context) });
