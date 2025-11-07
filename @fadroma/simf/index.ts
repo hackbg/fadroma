@@ -11,7 +11,7 @@ export function Simplicity (...options: Partial<Simplicity>[]): Simplicity {
   context.source   ??= null as (string|string[]);
   context.witPath  ??= resolvePath(context.cwd, `${context.name}.wit`);
   context.witness  ??= null as Bytes;
-  context.btc      ??= Btc().execCli;
+  context.btc      ??= Btc().execCli as Exec;
   context.program  ??= null;
   return {
     ...context as Simplicity,
@@ -23,10 +23,10 @@ export function Simplicity (...options: Partial<Simplicity>[]): Simplicity {
 
     build: Named(`Simf(Build ${context.name})`, pipe(
       Exec(context.simc, context.srcPath),
-      ({ stdout }) => stdout.split('\n')[1], Base64.decode)),
+      ({ stdout }) => context.program = stdout.split('\n')[1], Base64.decode)),
 
     run: (program = context?.program||[]) => Named(`Simf(Run ${context.name})`,
-      context.btc('sendrawtransaction', Base16.encode([0xAC, ...program]))),
+      context.btc('signrawtransactionwithwallet', Base16.encode(program))),
   };
 }
 

@@ -18,9 +18,10 @@ export default Test.suite(import.meta, 'Simplicity',
     Test.ok(paths[`${cwd}/${name}.simf`].includes(source));
     Test.equal(paths[`${cwd}/${name}.wit`], undefined);
     const program = await project.build();
-    const btcd = await Btc().spawnNode(context);
+    const btcd = await Btc().spawnNode()(context);
     await portWait({ port: '18443' })();
-    const run = project.run();
+    await Btc().execCli('createwallet', 'foobarz')();
+    const run = project.run(program);
     const result = await run();
     log({ program, btcd, result });
   });

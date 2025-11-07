@@ -1,5 +1,5 @@
 import type { Step } from '../index.ts';
-import { Named, pipe } from '../format.ts';
+import { Error, Named, pipe } from '../format.ts';
 import { Socket } from '../deps.ts';
 
 export type Ports = {
@@ -43,7 +43,7 @@ export function portWait <T> ({
         await new Promise(resolve=>setTimeout(resolve, interval));
       }
     }
-    throw new Error(`${port}: timed out after ${retries*interval}msec`)
+    throw new Error(`${port}: timed out`)
   }, { port });
 }
 
