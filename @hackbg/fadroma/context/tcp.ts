@@ -9,6 +9,10 @@ export type Tcp = Ports & {
   connect (to: number|string|URL): Promise<RW>
 };
 
+export type Listen = {};
+
+export type Connect = {};
+
 /** Define network context. */
 export function Tcp <T extends Tcp>({
   ports   = {},
@@ -30,10 +34,7 @@ export function tcpAddr (to: number|string|URL): URL {
 }
 
 /** Connect to a listener. */
-export async function tcpConnect (
-  to: number|string|URL,
-  debug = false
-): Promise<Socket> {
+export async function tcpConnect (to: number|string|URL): Promise<Socket> {
   const { port, hostname } = tcpAddr(to);
   return createConnection(port, hostname);
   //if (denoConnect) {

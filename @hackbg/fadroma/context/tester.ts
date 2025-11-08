@@ -65,12 +65,6 @@ function testContext <T extends Context> (...options: Partial<T>[]): T {
 /** Print a summary of test results. */
 function testReport ({ context, details = [], indent = '', root = true }) {
   let line = '';
-  for (const name of categories) {
-    const category = context[name];
-    const { icon, color, label } = category;
-    line = line + spaced(` ${icon}`, color(`${context[name].count} ${label}`), '');
-  }
-  details.push(line);
   const thrown = new Set();
   for (const {threw, stack: origin} of context.fail.results) {
     const label = [testIndex(origin), testNames(origin)].join(' ');
@@ -81,6 +75,12 @@ function testReport ({ context, details = [], indent = '', root = true }) {
       details.push(stack.replace(message));
     }
   }
+  for (const name of categories) {
+    const category = context[name];
+    const { icon, color, label } = category;
+    line = line + spaced(` ${icon}`, color(`${context[name].count} ${label}`), '');
+  }
+  details.push(line);
   return details
 }
 
@@ -194,7 +194,7 @@ function testThe <T extends Context> (
     if (substeps.length === 0)
       context.todo({ index: 1, name, t0: performance.now() });
     if (substeps.length === 1)
-      await Named(substeps[0].name, runStep)(substeps[0]);
+      await runStep(Named(substeps[0].name||name, substeps[0]));
     for (let index = 1; index <= substeps.length; index++) { 
       const step = substeps[index - 1];
       await Named(substepName(name, step), runStep)(step, index);
@@ -261,7 +261,7 @@ function testCompare <T extends Context> (type: string, ...args: unknown[]): Ste
         // object prototype check
         if (typeof arg === 'string') {
           // by constructor name as string:
-          equal(arg, Object.getPrototypeOf(value).constructor.name);
+          equal(Object.getPrototypeOf(value).constructor.name, arg);
         } else if (
           typeof arg === 'object' &&
           typeof arg[Symbol.hasInstance] === 'function'
@@ -274,12 +274,12 @@ function testCompare <T extends Context> (type: string, ...args: unknown[]): Ste
       } else if (type === 'function') {
         // function name check
         if (typeof arg === 'string') {
-          equal(arg, (value as Fn).name);
+          equal((value as Fn).name, arg);
         } else {
           throw new Error('unsupported function predicate');
         }
       } else if (type === 'string' || type === 'number' || type === 'bigint' || type === 'symbol') {
-        equal(arg, value);
+        equal(value, arg);
       } else {
         throw new Error(`unsupported type predicate: ${type} ${arg}`);
       }

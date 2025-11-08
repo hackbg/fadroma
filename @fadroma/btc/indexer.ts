@@ -1,9 +1,9 @@
-import { route, param, guard, get, post, BTCJS, isHex64, Named, pipe, interval, serveHttp, Indexd } from './deps.ts';
+import { route, param, guard, get, post, BTCJS, isHex64, Named, Pipe, interval, serveHttp, Indexd } from './deps.ts';
 
 export async function indexer (httpPort, rpc, db = new DB('indexd')) {
   await db.open();
   const indexd = new Indexd(db, rpc);
-  return Named('Indexd API', pipe(
+  return Named('Indexd API', Pipe(
     interval(60000, () => indexd.tryResync()),
     serveHttp(httpPort, txApi({ rpc, indexd }),
       bxApi({ rpc, indexd }),

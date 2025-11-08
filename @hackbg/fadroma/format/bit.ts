@@ -15,7 +15,7 @@ export type Flag = ReturnType<typeof flag>;
 /** Specify a flag. */
 export const flag = (name: string, bit: number) =>
   Named(`bit ${bit}: ${name}`, function testFlag (
-    value: number|[number] = null
+    value: number|[number]|Uint8Array = null
   ) {
     if (value === null) return value;
     if (value[0]) value = value[0] as number;

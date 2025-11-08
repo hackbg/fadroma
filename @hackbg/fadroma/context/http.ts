@@ -1,6 +1,6 @@
 import type { Fn, Endpoint, Step } from '../index.ts';
 import { HttpServer } from '../deps.ts';
-import { pipe, Named } from '../format.ts';
+import { Pipe, Named } from '../format.ts';
 import { Tcp, tcpAddr } from './tcp.ts';
 
 /** HTTP context. */
@@ -37,7 +37,7 @@ export const serveHttp = (at: number|string|URL, ...routes: Handler[]) => {
 /** Define URL route. */
 export const route = (path, ...routes) => Named(path,
   async function routeRequest (context: Request) {
-    if (matchRoute(path)(context.url)) return pipe(...routes)(context)
+    if (matchRoute(path)(context.url)) return Pipe(...routes)(context)
   }, { routes });
 
 /** Match URL from request against route patterns. */
@@ -46,7 +46,7 @@ export const matchRoute = (expected) => (actual) => false; // TODO
 /** Only handle if HTTP method matches. */
 export const method = (method, ...routes: Route[]) => Named(method,
   async function onMethod (context: Router) {
-    if (context.method === method) return pipe(...routes)(context);
+    if (context.method === method) return Pipe(...routes)(context);
   }, { method, routes });
 
 /** Only handle if HTTP method is GET. */
@@ -63,7 +63,7 @@ export const param = (name: string, fn) =>
 /** If condition doesn't match, return with specified code. */
 export const guard = (code: number, ...handlers: Handler[]) =>
   async (req: Request & { params: Record<string, unknown> }) => {
-    if (!await (pipe(...handlers)(req))) return code };
+    if (!await (Pipe(...handlers)(req))) return code };
 
 // TODO: construct API client from method set
 // like `Endpoint` in old `@hackbg/port`

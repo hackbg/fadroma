@@ -5,11 +5,17 @@ export { setImmediate, } from 'node:timers';
 export { tmpdir } from 'node:os';
 export { stdout, stderr, argv, env, cwd as getCwd, exit } from 'node:process';
 export { fileURLToPath } from 'node:url';
-export { join as joinPath, resolve as resolvePath } from 'node:path';
+export { join as joinPath
+       , resolve as resolvePath
+       , relative as relativePath } from 'node:path';
 export { realpathSync } from 'node:fs';
 export { writeFile, mkdir, mkdtemp } from 'node:fs/promises';
-export { Server as HttpServer, createServer as createHttpServer } from 'node:http';
-export { Server as TcpServer, Socket, createServer as createTcpServer, createConnection } from 'node:net';
+export { Server as HttpServer
+       , createServer as createHttpServer } from 'node:http';
+export { Server as TcpServer
+       , Socket
+       , createServer as createTcpServer
+       , createConnection } from 'node:net';
 export { inspect, stripVTControlCharacters } from 'node:util';
 export { spawn as spawnImpl } from 'node:child_process';
 export type { ChildProcess } from 'node:child_process';

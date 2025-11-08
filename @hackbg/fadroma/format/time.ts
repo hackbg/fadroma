@@ -1,3 +1,6 @@
+import type { Step } from '../index.ts';
+import { Named, Pipe } from './function.ts';
+
 export function timestamp (d = new Date()) {
   return d.toISOString()
     .replace(/[-:\.Z]/g, '')
@@ -18,3 +21,8 @@ export type Timed = {
   /** Duration in milliseconds. */
   tD?: number,
 };
+
+export const interval = (msec: number, ...steps: Step[]) =>
+  Named(null, async function interval (..._: unknown[]) {
+    return setInterval(() => { Pipe(...steps)(performance.now()); }, msec);
+  }, { msec });

@@ -1,8 +1,7 @@
 import { Sub } from './zmq.ts';
 import { Fn, Service, joined, Dir, Exec, Spawn, Port, merge } from './deps.ts';
 
-export function Btc (...options: Partial<BtcOptions>[]): Btc {
-  const context = {};
+export function Btc (...options: Partial<Btc>[]): Btc {
   const {
     cli       = 'bitcoin-cli',
     node      = 'bitcoind', // elementsd
@@ -16,7 +15,7 @@ export function Btc (...options: Partial<BtcOptions>[]): Btc {
     walletDir = joined('', dataRoot, 'wallet', +new Date()),
     zmqPort   = 48485,
     txIndex   = false,
-  } = merge(context, ...options);
+  } = merge(...options);
 
   const btcArgs = [
     rpcPort && ('-rpcport=' + rpcPort),
@@ -27,34 +26,32 @@ export function Btc (...options: Partial<BtcOptions>[]): Btc {
   ].filter(Boolean);
 
   const spawnNode = (...args: string[]) => Service(`Spawn(${node})`,
-    Dir(dataDir),
-    Port(rpcPort, Spawn(node, ...btcArgs, '-server',
+    Dir(dataDir), Port(rpcPort, Spawn(node, ...btcArgs, '-server',
       txIndex  && '-txindex',
       zmqPort  && ('-zmqpubhashblock=tcp:/' + '/127.0.0.1:' + zmqPort),
       zmqPort  && ('-zmqpubhashtx=tcp:/'    + '/127.0.0.1:' + zmqPort),
-      rpcQueue && ('-rpcworkqueue=' + rpcQueue))));
+      rpcQueue && ('-rpcworkqueue=' + rpcQueue),
+      ...args))) as Spawn;
 
   const execCli = (...args: string[]) => Service(`Exec(${cli})`,
-    Dir(dataDir),
-    Exec(cli, ...btcArgs, ...args)) as Exec;
+    Dir(dataDir), Exec(cli, ...btcArgs, ...args)) as Exec;
 
   return {
     spawnNode,
     execCli,
     localnet: Service('BTC Localnet',
-      Port(rpcPort, spawnNode),
-      Dir(walletDir),
-      Fn(execCli, 'createwallet', walletDir),
-      Fn(execCli, `-rpcwallet=${walletDir}`, '-generate')),
+      spawnNode(),
+      Dir(walletDir,
+        Fn(execCli, 'createwallet', walletDir),
+        Fn(execCli, `-rpcwallet=${walletDir}`, '-generate'))),
     async subscribe (onZmq) {
-      await portWait({ port: zmqPort });
+      //await portWait({ port: zmqPort });
       return Sub(zmqPort, onZmq);
     }
   }
-
 }
 
-export type BtcOptions = {
+export type Btc = {
   cli:       string,
   node:      string,
   regTest:   boolean,
@@ -68,17 +65,14 @@ export type BtcOptions = {
   rpcPass:   string,
   rpcQueue:  number,
   txIndex:   boolean,
-};
-
-export type Btc = BtcOptions & {
   /** Spawn Bitcoin daemon. */
-  spawnNode: Spawn,
+  spawnNode: (..._: string[]) => Spawn,
   /** Call Bitcoin CLI. */
-  execCli:   Exec,
+  execCli:   (..._: string[]) => Exec,
   /** Call Bitcoin RPC. */
-  rpc:       Function,
+  rpc:       Fn,
   /** Subscribe to Bitcoin note via ZeroMQ. */
-  subscribe,
-
-  localnet,
+  subscribe: Fn<[Fn]>,
+  /** Run Bitcoin localnet. */
+  localnet:  (_: unknown) => Service,
 };

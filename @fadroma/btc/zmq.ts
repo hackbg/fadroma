@@ -1,5 +1,5 @@
 import type { Flag, AsyncIter, Log, Reader } from './deps.ts';
-import { UTF8, Bytes, flag, byteParse, readBytes, readUntilDone, write, pipe,
+import { UTF8, Bytes, flag, byteParse, readBytes, readUntilDone, write, Pipe,
   tcpConnect, tcpListen, merge, Fn, sequence, Named } from './deps.ts';
 /** A ZeroMQ connection. */
 export type Conn = (AsyncIter<Frame> & ConnOpts) | { socket?: unknown };
@@ -21,17 +21,21 @@ export type ZmqFlags = {
 /** Known ZeroMQ command strings. */
 export type ZmqCommand = 'READY';
 
-const writeCb = (writable, data) => new Promise((resolve, reject)=>{
-  const error = e => { reject(e); writable.off('error', error); };
-  writable.once('error', error);
-  try {
-    writable.write(data, () => { resolve() });
-    writable.off('error', error);
-  } catch (e) {
-    reject(e)
-    writable.off('error', error);
-  }
-});
+const writeCb = (writable, data): Promise<void> =>
+  new Promise((resolve, reject)=>{
+    writable.once('error', error);
+    try {
+      writable.write(data, () => { resolve() });
+      writable.off('error', error);
+    } catch (e) {
+      reject(e)
+      writable.off('error', error);
+    }
+    function error (e: unknown) {
+      reject(e);
+      writable.off('error', error);
+    };
+  });
 
 /** A ZeroMQ publisher (server listener). */
 export type Pub = Conn & { mode: 'PUB', kill: Fn<[]>, send (...msgs: Bytes[]): Promise<void>; };
@@ -105,8 +109,8 @@ export const Sub = merge(async function zmqSub (to: number|string|URL, handler: 
 export type Hello = { sig: Bytes, sec: ZmqSec, ver: ZmqVer, pub: boolean };
 export const Hello = merge(zmqHello, {
   size: 64,
-  read:  Named('Hello', pipe(readBytes({ max: 64 }), zmqHello)),
-  write: Named('Hello', Fn(pipe(zmqHello, write))),
+  read:  Named('Hello', Pipe(readBytes({ max: 64 }), zmqHello)),
+  write: Named('Hello', Fn(Pipe(zmqHello, write))),
 });
 function zmqHello (input?: Bytes): Hello & Bytes;
 function zmqHello (input?: Partial<Hello>): Hello & Bytes;
@@ -147,7 +151,7 @@ export type Frame = Flags & { size: number, command?: ZmqCommand, offset?: numbe
 export type Flags = { more: Flag, long: Flag, cmd: Flag, };
 export const Flags = { cmd: flag('CMD', 2), long: flag('LONG', 1), more: flag('MORE', 0), };
 export const Frame = merge(zmqFrame, {
-  read:  pipe(readUntilDone, zmqFrame) as Fn<[Reader], Frame>,
+  read:  Pipe(readUntilDone, zmqFrame) as Fn<[Reader], Frame>,
   write: (frame: Frame) => writable => write(zmqFrame(frame)),
   empty: new Uint8Array([1, 0]),
   payload: (frame: Frame & Bytes, offset = 1): Uint8Array => {
@@ -158,7 +162,7 @@ export const Frame = merge(zmqFrame, {
   },
   ready: merge(Fn(zmqFrame, { command: 'READY' }), {
     id:    'READY',
-    read:  Named('ZMQ>ready', pipe(readUntilDone, zmqFrame, zmqExpectCommand('READY'))),
+    read:  Named('ZMQ>ready', Pipe(readUntilDone, zmqFrame, zmqExpectCommand('READY'))),
     write: Named('ZMQ<ready', writable => writable.write(Frame.ready())),
   })
 });
@@ -166,7 +170,7 @@ export function zmqFrame (input?: Bytes): Frame & Bytes;
 export function zmqFrame (input?: Partial<Frame>): Frame & Bytes;
 export function zmqFrame (input?: unknown): Frame & Bytes {
   if (input && typeof input === 'object' && Symbol.iterator in input) {
-    if (input.length === 0) throw new Error('empty frame');
+    if ((input as []).length === 0) throw new Error('empty frame');
     const bytes  = Bytes(input);
     const long   = Flags.long(bytes);
     if (long) throw new Error("long frames not supported yet");

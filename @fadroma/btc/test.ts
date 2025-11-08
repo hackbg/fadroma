@@ -4,7 +4,7 @@ import { Test, merge } from '@hackbg/fadroma';
 const { the, suite, is, has } = Test;
 export type TestContext = Test.Context & { localnet: unknown };
 export default suite(import.meta, 'Btc',
-  the('CLI', btc => Btc().execCli(),
+  the('CLI', () => Btc().execCli,
     is('function', 'Exec(bitcoin-cli)'),
     cli => cli(mockExecContext()),
     is('object', 'Array'),

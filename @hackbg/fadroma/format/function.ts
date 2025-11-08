@@ -22,6 +22,26 @@ export function Named <T, U> (name: string, named: T, props?: U): T & Named {
     props ? Object.getOwnPropertyDescriptors(props) : {}) as T & Named;
 }
 
+/** Stub test step. When reached, terminates without passing or failing,
+  * and adds a task to the test report.
+  *
+  * Example:
+  *
+  *     import { testSuite, expect, todo } from '@hackbg/fadroma';
+  *     export default testSuite(import.meta,
+  *       expect('Auto todo'),
+  *       expect('Manual todo', todo()),
+  *       expect('Manual todo with more info', todo('the more info')));
+  *
+  **/
+export const todo = (...info: string[]) => Named(
+  info.join(' '),
+  function trackTodo (_context: unknown) {
+    throw Object.assign(new Error(info.join(' ')), { todo: true })
+  }, {
+    info, todo: true, skip: true
+  });
+
 /** Used to recognize entrypoint. */
 export type Meta = Partial<ImportMeta>;
 
@@ -80,6 +100,7 @@ export type Impl<Api, Context> = {
     : never };
 
 export function merge <T> (t: T): T;
+export function merge <T> (..._: Partial<T>[]): T;
 export function merge <T, U> (t: T, u: U): T & U;
 export function merge <T, U, V> (t: T, u: U, v: V): T & U & V;
 export function merge <T, U, V, W> (t: T, u: U, v: V, w: W): T & U & V & W;
@@ -125,40 +146,49 @@ const curriedArgs = (args: unknown[]) => args.map(String)
   *
   * Example:
   *   const param = "hello"
-  *   const op = pipe(f1, f2, f3);
+  *   const op = Pipe(f1, f2, f3);
   *
   *   equal(await op(p), f3(await f2(f1(p))));
   *
   *   function f1 (p) { ... }
   *   async function f2 (p) { ... }
   *   function f3 (p) { ... }
+  *
+  * TODO: Use conditional typing to support passing non-function
+  *       as first argument, resulting in immediate evaluation.
   **/
-export function pipe (...steps: Fn[]): Fn;
-export function pipe <T> (...steps: Step<T>[]): T;
-export function pipe <A, B> (
-  f0: Fn<[A], B>
-): Fn<[A], B>;
-export function pipe <A, B, C> (
-  f0: Fn<[A], B>, f1: Fn<[B], C>
-): Fn<[A], C>;
-export function pipe <A, B, C, D> (
-  f0: Fn<[A], B>, f1: Fn<[B], C>, f2: Fn<[C], D>
-): Fn<[A], D>;
-export function pipe <A, B, C, D, E> (
-  f0: Fn<[A], B>, f1: Fn<[B], C>, f2: Fn<[C], D>, f3: Fn<[D], E>
-): Fn<[A], E>;
-export function pipe (...steps: Fn[]): Fn {
-  return Named(
-    `Pipe${steps.length}(${steps.map(x=>x?.name||'unnamed').join('|')})`,
-    function pipe (value: Parameters<typeof steps[0]>[0]) {
-      let state: unknown = value;
+export function Pipe <Z> (z: Z): Z;
+export function Pipe <Y, Z> (y: Y, z: Z):
+  Z extends (_: infer B) => infer C ?
+  Y extends (_: infer A) => B ? Fn<[A], C> : C : never;
+export function Pipe <X, Y, Z> (x: X, y: Y, z: Z):
+  Z extends (_: infer C) => infer D ?
+  Y extends (_: infer B) => C ?
+  X extends (_: infer A) => B ? Fn<[A], D> : D : never : never;
+export function Pipe <W, X, Y, Z> (w: W, x: X, y: Y, z: Z):
+  Z extends (_: infer D) => infer E ?
+  Y extends (_: infer C) => D ?
+  X extends (_: infer B) => C ?
+  W extends (_: infer A) => B ? Fn<[A], E> : E : never : never : never;
+export function Pipe (...steps: Fn[]): Fn;
+export function Pipe (...steps: unknown[]) {
+  if (typeof steps[0] === 'function') {
+    return Named(pipeName(steps as Fn[]), function pipeline (value: unknown) {
       for (const step of steps) {
-        state = sync(state, step);
+        if (!step) continue;
+        if (typeof step === 'function') value = sync(value, step as Fn);
       }
-      return state
-    }, { steps }
-  );
+      return value
+    }, { steps });
+  }
+  let value = steps.shift();
+  for (const step of steps) {
+    if (!step) continue;
+    if (typeof step === 'function') value = sync(value, step as Fn);
+  }
 }
+const pipeName = (steps: Fn[]): string =>
+  `Pipe${steps.length}(${steps.map(x=>x?.name||'unnamed').join('|')})`
 
 /** Run functions sequentially in the same context.
  *
@@ -205,11 +235,13 @@ export const isFn = isType('function')
 export const pick = <T, K extends keyof T>(
   keys: Array<K>, ...steps: Fn<[T[K], T]>[]
 ) => Object.assign(async function pickKeys (data: T) {
-  const pipeline = pipe(...steps);
+  const pipeline = Pipe(...steps);
   const result: Partial<Pick<T, K>> = {};
   for (const key of keys) result[key] = await pipeline(data[key], data) as T[K];
   return result as Pick<T, K>;
 }, { keys, steps });
+
+export const omit = todo();
 
 /** Pick named methods from an object, ensuring `this` bindings. */
 export const pickMethods = <T, K extends keyof T>(
@@ -242,7 +274,7 @@ export const mapEntries = <T extends object> (
 
 /** Specify a binary condition. */
 export const when = (condition: boolean, ...fns: Step<unknown>[]) =>
-  either(condition, pipe(...fns));
+  either(condition, Pipe(...fns));
 
 /** Specify a ternary condition. */
 export const either = <C> (
@@ -276,14 +308,6 @@ export const defer = (callback?) => {
   return promise
 }
 
-export const interval =
-  (msec: number, ...steps: Step[]) =>
-    Named(null, async function interval (..._: unknown[]) {
-      return setInterval(() => {
-        pipe(...steps)(performance.now())
-      }, msec);
-    }, { msec });
-
 export type AsyncIter<T> = {
   [Symbol.asyncIterator](): AsyncIterableIterator<T>
 };
@@ -300,29 +324,9 @@ export const withCatcher =
   (...args: T): Async<W> =>
     Promise.resolve(f(...args)).catch(catcher) as Async<W>;
 
-/** Stub test step. When reached, terminates without passing or failing,
-  * and adds a task to the test report.
-  *
-  * Example:
-  *
-  *     import { testSuite, expect, todo } from '@hackbg/fadroma';
-  *     export default testSuite(import.meta,
-  *       expect('Auto todo'),
-  *       expect('Manual todo', todo()),
-  *       expect('Manual todo with more info', todo('the more info')));
-  *
-  **/
-export const todo = (...info: string[]) => Named(
-  info.join(' '),
-  function trackTodo (_context: unknown) {
-    throw Object.assign(new Error(info.join(' ')), { todo: true })
-  }, {
-    info, todo: true, skip: true
-  });
-
 export const setProp = <T extends object>(key: keyof T, ...fns: Fn[]) =>
   Named(`set ${String(key)}`, async function setProperty (context) {
-    return Object.assign(context, { [key]: await pipe(...fns)(context) });
+    return Object.assign(context, { [key]: await Pipe(...fns)(context) });
   }, { key, fns });
 
 //type Method<T> = (_: T, ...__: unknown[]) => unknown[]
