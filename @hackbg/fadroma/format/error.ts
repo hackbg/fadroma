@@ -1,40 +1,74 @@
-import type { Stringy } from '../index.ts';
+import type { Fn, Stringy } from '../index.ts';
 import { getCwd } from '../deps.ts';
 import { bold, gray } from './ansi.ts';
 
-export const formatError = (e: Error, name?: Stringy) => {
-  const [head, ...tail] = (e?.stack||'').split('\n')
+export function formatError (e: Error, name?: Stringy) {
+  const [head, ...tail] = (e?.stack||'').split('\n');
   const stack = tail.map(x=>x
     .replace('('+getCwd()+'/', '(')
-    .replace('./node_modules/.pnpm/', ''))
-  e.message = e.message.split('Logs:')[0].trim()
-  if (name) e.message = name + ': ' + e.message
-  e.stack = [head, name?`    ${name}`:null, ...stack].filter(Boolean).join('\n')
-  return e
-};
+    .replace('./node_modules/.pnpm/', ''));
+  e.message = e.message.split('Logs:')[0].trim();
+  if (name) e.message = name + ': ' + e.message;
+  name = name ? `    ${name}` : null;
+  e.stack = [head, name, ...stack].filter(Boolean).join('\n');
+  return e;
+}
+/** Add originating test step to stack trace.
+  *
+  * Since there is a degree of indirection when composing curried functions
+  * (the code is defined from one place but executed from another),
+  * without this helper the real stack gets lost. */
+export function addStepStack (
+  step: { name?: string, stack?: string[] }, error: Error
+) {
+  if (typeof error !== 'object') error = new Error(error);
+  error.stack ||= ''
+  if (step.stack) error.stack += '\n  From:\n' + step.stack.join('\n')
+  return error
+}
+/** Set `Error.stackTraceLimit` to `Infinity`,
+  * run a function, then restore its previous value. */
+export async function withInfiniteStack <F extends Fn> (
+  fn: F, ...args: Parameters<F>
+): Promise<ReturnType<F>> {
+  const stackTraceLimit = Error.stackTraceLimit;
+  Error.stackTraceLimit = Infinity;
+  const result = await fn(...args);
+  Error.stackTraceLimit = stackTraceLimit;
+  return result as ReturnType<F>;
+}
+/** Generate a stack trace. */
+export function stackTrace (slice = 3, length?: number): string[] {
+  return new Error().stack.split('\n')
+    .slice(slice, length).map(x=>alignTrace(x.trim()));
+}
+/** Relativize paths in stack trace, colorize, and reduce indent. */
+export function alignTrace (line: string) {
+  line = line.replace('file://'+getCwd(), '.');
+  line = line.replace(getCwd(), '.');
+  const format = (x: string, i: number) => (i===0)
+    ? bold(gray(2, x.padEnd(32))) : gray(4, x);
+  line = line.split(' (').map(format).join(gray(4, ' ('));
+  return line
+}
 
 class Oops extends Error {
   // Todos are handled differently by the tester.
   todo?: boolean
-
   constructor (message: string, args?: object) {
     super(message);
     args && Object.assign(this, args);
   }
-
   // Throw a TODO.
   static TODO (info: unknown) {
     throw new this(info as string, { todo: true })
   }
-
   static required = <T>(...info: string[]): T => {
     throw new Error('Missing required value: ' + info.join(' '));
   }
-
   static requiredLate = (...info: string[]) => () => {
     throw new Error('Missing required value: ' + info.join(' '));
   }
-
   /** Define an error subclass. */
   static define <T extends unknown[]> (
     /** Name of error class. Prepended to parent. */
@@ -57,39 +91,3 @@ class Oops extends Error {
 }
 
 export { Oops as Error }
-
-/** Format the test summary. */
-export const alignTrace = (line: string) => {
-  line = line.replace('file://'+getCwd(), '.');
-  line = line.replace(getCwd(), '.');
-  line = line.split(' (')
-    .map((x,i)=>(i===0)?bold(gray(2, x.padEnd(32))):gray(3, x))
-    .join(gray(3, ' ('));
-  return line
-}
-
-/** Add originating test step to stack trace.
-  *
-  * Since there is a degree of indirection when composing curried functions
-  * (the code is defined from one place but executed from another),
-  * without this helper the real stack gets lost. */
-export const addStepStack = (
-  step: { name?: string, stack?: string[] }, error: Error
-) => {
-  if (typeof error !== 'object') error = new Error(error);
-  error.stack ||= ''
-  if (step.stack) error.stack += '\n  From:\n' + step.stack.join('\n')
-  return error
-}
-
-export const withInfiniteStack = async (fn, ...args) => {
-  const stackTraceLimit = Error.stackTraceLimit;
-  Error.stackTraceLimit = Infinity;
-  const result = await fn(...args);
-  Error.stackTraceLimit = stackTraceLimit;
-  return result;
-}
-
-export function stackTrace (slice = 3): string[] {
-  return new Error().stack.split('\n').slice(slice).map(x=>alignTrace(x.trim()));
-}

@@ -1,10 +1,9 @@
-import type { Meta } from './index.ts';
-import type { ChildProcess } from './deps.ts';
-import { entrypoint as entry } from './context/command.ts';
-import { Fn, wordWrap, msec } from './format.ts';
-import { orange, bold, gray, blue } from './format/ansi.ts';
+import type { Meta } from '../index.ts';
+import type { ChildProcess } from '../deps.ts';
+import { Fn, wordWrap, msec, entrypoint as entry } from '../format.ts';
+import { orange, bold, gray, blue } from '../format/ansi.ts';
 import { getCwd, resolvePath, realpathSync, stdout, stderr, watchFs,
-  execFile, stripVTControlCharacters, execImpl } from './deps.ts';
+  execFile, stripVTControlCharacters, execImpl } from '../deps.ts';
 
 const RE = /(TS\d+)(.+)\n[\s\S]+? at (file:\/\/\/.+\n)/gm;
 
@@ -12,15 +11,17 @@ const decoder = new TextDecoder();
 
 /** Entrypoint that reruns on file change. */
 export const entrypoint = function watchEntrypoint (
-  meta: Meta, main: Fn<[string, string[]]>
+  meta: Meta,
+  mode: Fn<[string, string[]]>,
+  ...options: unknown[]
 ) {
-  return entry(meta, Fn(watch, main))
+  return entry(meta, Fn(watch, mode, ...options||[]))
 };
 
-const toRealPath = x => { try { return realpathSync(x) } catch (e) { if (e.code!=='ENOENT') throw e } };
-const toRelativePath = cwd => x => resolvePath(x).replace(cwd, '.');
+const toRealPath = (x: string) => { try { return realpathSync(x) } catch (e) { if (e.code!=='ENOENT') throw e } };
+const toRelativePath = (cwd: string) => (x: string) => resolvePath(x).replace(cwd, '.');
 
-export async function watch (callback: Fn<[string, string[]]>, _argv: unknown) {
+export async function watch (callback: Fn<[string, string[]]>, options: unknown[]) {
   // todo: make configurable
   const cwd = getCwd();
   // debounce timer
@@ -34,9 +35,13 @@ export async function watch (callback: Fn<[string, string[]]>, _argv: unknown) {
   // main update function
   async function update ({
     force = false, kind = null, paths = [],
-    filter = x => !(
-      x.endsWith('~')||x.includes('/.git/')||x.includes('/toolbox/')||
-      x.includes('/.deno.lock')||x.includes('/node_modules/.deno/')
+    filter = (x: string) => !(
+      x.endsWith('~')||
+      x.includes('/.git/')||
+      x.includes('/toolbox/')||
+      x.includes('/coverage/')||
+      x.includes('/.deno.lock')||
+      x.includes('/node_modules/.deno/')
     ),
   } = {}) {
     // non-forced updates go through the debounce
@@ -57,7 +62,7 @@ export async function watch (callback: Fn<[string, string[]]>, _argv: unknown) {
     timer = setTimeout(async () => {
       const t0 = performance.now();
       try {
-        await callback(kind, paths)
+        await callback(kind, paths, ...options)
       } finally {
         stdout.write(
           `\x1b[${stdout.rows||1};${1}H` + blue('waiting for changes') +
@@ -70,7 +75,8 @@ export async function watch (callback: Fn<[string, string[]]>, _argv: unknown) {
 }
 
 /** Run a typecheck on file update. */
-export async function typecheck (kind: string, paths: string[]) {
+export async function typecheck (kind: string, paths: string[], options: unknown[]) {
+  if (args.length === 0) args[0] = 'index.ts';
   try {
     const ran = await execImpl('deno', ["check", "index.ts"]);
     console.clear();
@@ -92,12 +98,14 @@ export async function typecheck (kind: string, paths: string[]) {
       if (files[file].length > 0) {
         console.log(orange(bold(file)), `(${files[file].length})`);
         for (const { code, error, line, column } of files[file]) {
-          const line0 = error.trim().split('\n')[0];
-          const msg = wordWrap('                '+line0, {
-            width: stdout.columns-10,
-            indent: '         '
-          }).trim();
-          console.log(`${bold(String(line).padStart(4, '0'))}:${column.trim().padStart(3, '0')} ${orange(code.trim())} ${gray(4, msg.trim().replace('[ERROR]: ', ''))}`);
+          const line0   = error.trim().split('\n')[0];
+          const space   = '                ';
+          const indent  = '         ';
+          const options = { indent, width: stdout.columns - 10 };
+          const msg     = wordWrap(space + line0, options).trim();
+          console.log(`${bold(String(line).padStart(4, '0'))}:` +
+            `${column.trim().padStart(3, '0')} ${orange(code.trim())} ` +
+            `${gray(4, msg.trim().replace('[ERROR]: ', ''))}`);
           checks++;
         }
         console.log()
@@ -108,15 +116,19 @@ export async function typecheck (kind: string, paths: string[]) {
 }
 
 /** Run a test suite on file update. */
-export async function test (_kind: string, _paths: string[]) {
+export async function test (_kind: string, _paths: string[], ...args: unknown[]) {
+  console.log({args});
+  if (args.length === 0) args[0] = './test.ts';
   try {
     const run: ChildProcess = await new Promise((resolve, reject)=>{
-      const run = execFile('./test.ts');
-      run.once('error', reject)
-      run.stdout.pipe(stdout);
-      run.stderr.pipe(stderr);
-      run.once('spawn', () => { resolve(run); run.off('error', reject); });
-    })
+      const run = execFile(args[0] as string);
+      run.once('error', reject);
+      run.once('spawn', () => {
+        run.stdout.pipe(stdout);
+        run.stderr.pipe(stderr);
+        resolve(run); run.off('error', reject);
+      });
+    });
     await new Promise((resolve, reject)=>{
       run.once('error', reject);
       run.once('close', () => { resolve(null); run.off('error', reject); });

@@ -1,8 +1,8 @@
-import { suite, the, context, is, has } from "./tester.ts";
+import { Testing, suite, the, is, has } from "./tester.ts";
 
 export default suite(import.meta, 'Tester',
 
-  the('Context', () => { return context() },
+  the('Context', () => { return Testing() },
     is('object'),
     has('pass', is('function')),
     has('fail', is('function')),

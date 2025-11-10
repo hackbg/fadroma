@@ -1,3 +1,5 @@
+import { setImmediate, argv, exit, fileURLToPath } from '../deps.ts';
+
 /** The identity function. */
 export const identity = <T>(x: T): T => x;
 
@@ -47,6 +49,49 @@ export type Meta = Partial<ImportMeta>;
 
 /** A program's entrypoint. */
 export type Main = Fn;
+
+/** If the current module is the program entrypoint,
+  * runs the given main function as a separate task.
+  *
+  * If the task throws, the error is logged and the process exits.
+  * The exit code can be specified by the `exitCode` field of the
+  * thrown exception. If not specified, it defaults to 1.
+  *
+  * Example:
+  *
+  *   export default entrypoint(import.meta.main || import.meta.url, main)
+  *   async function main (...args: string[]) {
+  *     console.log('Program arguments:', ...args)
+  *   }
+  *
+  * */
+export function entrypoint <M extends Main> (meta: Meta, main: M): M;
+export function entrypoint <N> (meta: Meta, main: Main, alt: N): N;
+export function entrypoint (
+  meta: Partial<ImportMeta> = {},
+  main: (args: string[])=>unknown,
+  alt?: unknown
+) {
+  const [_, argv1, ...args] = argv
+  if (isEntrypoint(meta || {}, argv1)) setImmediate(async ()=>{
+    try {
+      await Promise.resolve(main(args));
+      exit(0);
+    } catch (e) {
+      const error = e as Error & { exitCode?: number };
+      console.error(error);
+      exit(error.exitCode ?? 1);
+    }
+  })
+  if (alt) return alt
+  return main
+}
+
+export const isEntrypoint = (meta: boolean|Partial<ImportMeta>, argv1: string) =>
+  (!(meta === false)) && (false
+    || (meta === true)
+    || (!!meta?.main)
+    || (meta?.url && fileURLToPath(meta?.url) == argv1));
 
 /** Either `T` or `Promise<T>`; both cases handled asynchronously. */
 export type Async<T = unknown> = T|Promise<T>;
@@ -99,12 +144,12 @@ export type Impl<Api, Context> = {
     ? ((context: Context, ...args: R) => T)
     : never };
 
-export function merge <T> (t: T): T;
-export function merge <T> (..._: Partial<T>[]): T;
-export function merge <T, U> (t: T, u: U): T & U;
-export function merge <T, U, V> (t: T, u: U, v: V): T & U & V;
-export function merge <T, U, V, W> (t: T, u: U, v: V, w: W): T & U & V & W;
-export function merge <T> (...fragments: Partial<T>[]): T {
+export function merged <T> (t: T): T;
+export function merged <T> (..._: Partial<T>[]): T;
+export function merged <T, U> (t: T, u: U): T & U;
+export function merged <T, U, V> (t: T, u: U, v: V): T & U & V;
+export function merged <T, U, V, W> (t: T, u: U, v: V, w: W): T & U & V & W;
+export function merged <T> (...fragments: Partial<T>[]): T {
   return Object.assign(...fragments.filter(Boolean) as [object], {}) as T;
 }
 
@@ -193,18 +238,17 @@ export function Pipe (...steps: unknown[]) {
 const pipeName = (steps: Fn[]): string =>
   `Pipe${steps.length}(${steps.map(x=>x?.name||'unnamed').join('|')})`
 
-/** Run functions sequentially in the same context.
- *
-  * Return values are ignored; to pass state or
-  * collect results, mutate the context. */
-export const sequence = <T>(...steps: Fn<[T]>[]) => Name(null,
-  async function runSequentially (context: T) {
-    for (const step of steps) {
-      if (!step) continue;
-      await step(context)
+/** Run functions sequentially in the same context,
+  * ignoring return values. */
+export function Seq (...steps: Async<Fn>[]) {
+  return Name(null, async function runSequentially (context: unknown) {
+    for (let i = 0; i < steps.length; i++) {
+      const step = await steps[i];
+      if (typeof step === 'function') await step(context);
     }
     return context;
   }, { steps });
+}
 
 /** Universal color-blind combinator.
   *
@@ -216,23 +260,19 @@ export const sync = <X, F extends (_: unknown)=>unknown> (
   ? (x as unknown as { then: (_:F)=>Promise<unknown> }).then(f)
   : f(x);
 
-export const toThenable = <T extends Async>(x: T): Promise<T> =>
-  (typeof (x as { then?: Function })?.then === 'function')
-    ? x as Promise<T>
-    : Promise.resolve(x);
-
-export const isThenable = (x: unknown) => !!x
+const isThenable = (x: unknown) => !!x
   && (typeof x === 'object')
   && ('then' in x)
   && (typeof x.then === 'function');
 
 /** Check the `typeof` a JS value. */
-export const isType = (type: string) => Object.assign(function isType (value: any) {
-  return type === typeof value
-}, { type });
+const isType = (type: string) =>
+  Object.assign(function isType (value: any) {
+    return type as typeof value === typeof value
+  }, { type });
 
 /** Check if the `typeof` a JS value is a function. */
-export const isFn = isType('function')
+const isFn = isType('function')
 
 /** Pick named keys from an object. */
 export const pick = <T, K extends keyof T>(

@@ -1,16 +1,24 @@
 #!/usr/bin/env -S deno run --allow-read --allow-env --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443 --allow-net=127.0.0.1:18443
-import { Test, Temp, joined } from '@hackbg/fadroma';
+import { Test, Temp, joined, Log, } from '@hackbg/fadroma';
 import { Simplicity } from './simf.ts';
 import { Btc } from './deps.ts';
 const { the, is, has, includes, equals, } = Test;
 const name = 'Hello';
 const mock = () => { const mocked = []; return { path: '/mock/', mocked, mkdir: mock, writeFile: mock }; };
 const config = { name, source: Example() };
+const log = x => y => Log(x)(y);
 export default Test.suite(import.meta, 'Simplicity',
-  the('Project', () => Simplicity(config),
+  the('Project', () => {
+    return Simplicity(config)
+  },
     is('object'),
     has('write', 'function'),
-    the('Write', (p: Simplicity) => p.write(mock()),
+    the('Write', async (p: Simplicity) => {
+      console.log(0, p.write);
+      console.log(1, await p.write());
+      console.log(2, await p.write(mock()));
+      return p.write(mock())
+    },
       is('object'),
       has('path'),
       has('paths',
@@ -22,6 +30,7 @@ export default Test.suite(import.meta, 'Simplicity',
     has('build'),
     the('Build', (p: Simplicity) => p.build())),
   the('Run'));
+
     //the('Run',   (p: Simplicity) => Btc(p.run)()))));
 export function Example () {
   return joined('\n', [
@@ -35,20 +44,3 @@ export function Example () {
     `}`
   ])
 }
-//const cwd = resolvePath(fileURLToPath(import.meta.url), '..');
-//export default Test.suite(import.meta, 'Simplicity',
-  //async () => Simplicity(await Temp('test-simf')(), { name, source: Examples[1]() }),
-  //the('Init', project => project.write(), has('cwd'), has('paths'), ({ cwd, paths }) => {
-    //Test.ok(paths[`${cwd}/README.md`].includes(name));
-    //Test.ok(paths[`${cwd}/${name}.simf`].includes(Examples[1]()));
-    //Test.equal(paths[`${cwd}/${name}.wit`], undefined);
-  //}),
-  //the('Build', project => project.build(), is('object', 'Uint8Array')),
-  //the('Run', async () => {
-    //const btcd = await Btc().spawnNode()();
-    //await portWait({ port: '18443' })();
-    //await Btc().execCli('createwallet', 'foobarz')();
-    //const run = project.run(program);
-    //const result = await run();
-    //log({ program, btcd, result });
-  //}));

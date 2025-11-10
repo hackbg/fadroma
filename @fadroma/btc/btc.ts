@@ -1,5 +1,5 @@
 import { Sub } from './zmq.ts';
-import { Fn, Service, joined, Dir, Exec, Spawn, Port, Name, merge } from './deps.ts';
+import { Fn, Service, joined, Dir, Exec, Spawn, Port, Name, merged } from './deps.ts';
 
 export function Btc (...options: Partial<Btc>[]): Btc {
   const {
@@ -16,7 +16,7 @@ export function Btc (...options: Partial<Btc>[]): Btc {
     zmqPort   = 48485,
     txIndex   = false,
     ...rest
-  } = merge(...options);
+  } = merged(...options);
 
   const context = {
     node, spawnNode,
@@ -38,20 +38,21 @@ export function Btc (...options: Partial<Btc>[]): Btc {
         rpcPass && `-rpcpassword=${rpcPass}`,
         dataDir && `-datadir=${dataDir}`,
         regTest && '-regtest',
-        txIndex  && '-txindex',
-        zmqPort  && ('-zmqpubhashblock=tcp:/' + '/127.0.0.1:' + zmqPort),
-        zmqPort  && ('-zmqpubhashtx=tcp:/'    + '/127.0.0.1:' + zmqPort),
+        txIndex && '-txindex',
+        zmqPort && ('-zmqpubhashblock=tcp:/' + '/127.0.0.1:' + zmqPort),
+        zmqPort && ('-zmqpubhashtx=tcp:/'    + '/127.0.0.1:' + zmqPort),
         rpcQueue && ('-rpcworkqueue=' + rpcQueue),
         ...args)))) as Spawn;
   }
 
-  function execCli (...args) {
+  function execCli (...args: string[]): Fn<[Dir]> {
     return Dir(dataDir, Exec(cli, 
       rpcPort && ('-rpcport=' + rpcPort),
       rpcUser && `-rpcuser=fadroma`,
       rpcPass && `-rpcpassword=${rpcPass}`,
       dataDir && `-datadir=${dataDir}`,
-      regTest && '-regtest',...args)) as Exec;
+      regTest && '-regtest',
+      ...args));
   }
 
   function subscribe (onZmq) {

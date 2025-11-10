@@ -1,125 +1,18 @@
-import type { Fn, Log, Reflects, Async, Prototype, Meta } from '../index.ts';
+import type { Fn, Reflects, Async, Prototype, Meta } from '../index.ts';
+import { Log } from './log.ts';
 import { ok, equal, throws, rejects, stdout, exit, argv,
   setImmediate, inspect } from '../deps.ts';
-import { ANSI, spaced, lines, msec, toString, merge, Name, todo,
-  Error, addStepStack, withInfiniteStack, alignTrace } from '../format.ts';
-import { isEntrypoint } from './command.ts';
-import { logger } from './logger.ts';
-
-export {
-  testContext  as context,
-  testRun      as run,
-  testSuite    as suite,
-  testReport   as report,
-  testHas      as has,
-  testCompare  as is,
-  testEquals   as equals,
-  testForbid   as forbid, 
-  ok, equal, throws, rejects, todo,
-};
-
-/** Test stack and context. Passed to eacgh step as second argument. */
-export type Context = Frame[] & Log & Result & Options & Record<State, Category>;
-
-/** Create empty test context. */
-function testContext <T extends Context> (...options: Partial<T>[]): T {
-  const context: T = [] as T;
-  const config = merge({}, ...options as [object]) as T;
-  const args = config?.args || [];
-  return merge(context, logger(), {
-    args,
-    only:   args.filter(x=>(!x.startsWith('--'))&&(x[2]!=='!')),
-    except: args.filter(x=>x.startsWith('--!')),
-    //failFast: args.includes('--fail-fast'),
-    //failTodo: args.includes('--fail-todo'),
-    pass: Category('pass', `🟢`, ANSI.green,  'passed'  ),
-    fail: Category('fail', `🔴`, ANSI.red,    'failed'  ),
-    todo: Category('todo', `🟠`, ANSI.orange, 'tasks'   ),
-    warn: Category('warn', `🟡`, ANSI.yellow, 'warnings'),
-    skip: Category('skip', `🟣`, ANSI.purple, 'skipped' ),
-    idea: Category('idea', `🔵`, ANSI.blue,   'ideas'   ),
-    note: Category('note', `⚫️`, ANSI.dim,    'notes'   ),
-  } as Partial<T>, config);
-
-  function Category (
-    state: State,
-    icon:  string,
-    color: Fn<[string], string>,
-    label: string = state
-  ): Category {
-    const props = {
-      state, icon, label, color, results: [],
-      get count () { return props.results.length }
-    };
-    const info = () => `[Category: ${icon} ${color(state)} (${props.results.length})]`;
-    return toString(info)(Name(state, function categorize (result: Partial<Result>): Result {
-      result = { ...result, state, stack: [...context] };
-      props.results.push(result);
-      return result as Result;
-    }, props)) as Category;
-  }
-}
-
-/** Print a summary of test results. */
-function testReport ({ context, details = [], indent = '', root = true }) {
-  let line = '';
-  const thrown = new Set();
-  for (const {threw, stack: origin} of context.fail.results) {
-    const label = [testIndex(origin), testNames(origin)].join(' ');
-    const { message, stack = '', ..._info } = threw || {};
-    if (!thrown.has(threw)) {
-      details.push(['\n 🔴', ANSI.red(label), message].join(' '));
-      thrown.add(threw);
-      details.push(stack.replace(message).split('\n').map(x=>x.trim()).map(alignTrace).join('\n '));
-    }
-  }
-  for (const name of categories) {
-    const category = context[name];
-    const { icon, color, label } = category;
-    line = line + spaced(` ${icon}`, color(`${context[name].count} ${label}`), '');
-  }
-  details.push(line);
-  return details
-}
-
-/** Test stack frame. */
-export type Frame = { t0: number, index: number, name: string };
-
-/** Test category name. */
-export type State = 'pass'|'fail'|'todo'|'idea'|'warn'|'skip'|'note';
-
-/** Test category names. */
-const categories: State[] = ['pass', 'fail', 'todo', 'idea', 'warn', 'skip', 'note'];
-
-/** Test step. */
-export type Step <C extends Context = Context, A = unknown, B = A> =
-  Reflects & ((_: A, __?: C) => Async<B>) & { skip?: boolean };
-
-/** Test filters. */
-export type Filters = { only?: string[], except?: string[] };
-
-/** Test options. */
-export type Options = { args?: string[] } & Filters;
-
-/** Collects test results. */
-export type Category = Fn<[Step], Result> & {
-  icon: string, label: string, color: Fn<[string], string>, results: Result[]
-};
-
-/** Result of test step. */
-export type Result = {
-  tD:        number,
-  state:     State,
-  stack:     Frame[],
-  substeps?: Result[],
-  returned?: unknown,
-  threw?:  { todo?: boolean },
-};
-
-/** Test entrypoint. When a test module is run standalone,
-  * tests contained in a `testSuite` run automatically.
+import { ANSI, Error, Name, Seq, spaced, lines, msec, toString, merged, isEntrypoint,
+  todo, addStepStack, withInfiniteStack, alignTrace } from '../format.ts';
+/** Test entrypoint. When test module is run (not imported),
+  * tests in the `suite` run, and a report is printed.
   *
-  * Use helpers like [the] and [forbid] to define test steps.
+  * Uncaught errors fail the test, unless they have the `todo` property set.
+  * Use `todo('...description...')` to scaffold future test cases and specify
+  * the expected shape of your project.
+  *
+  * To define your tests: [the], [has], [is], [equals], [includes];
+  * or pass functions which take `(lastValue, context)`.
   *
   * Example:
   *
@@ -134,33 +27,149 @@ export type Result = {
   *         })));
   *
   **/
-function testSuite (meta: Meta, name: string, ...steps: (Step|string)[]) {
+export function suite (meta: Meta, name: string, ...steps: (Step|string)[]) {
   const suite = the(name, ...steps);
   const enter = isEntrypoint(meta, argv[1]);
-  if (enter) setImmediate(()=>testAndExit(suite, ...argv.slice(2)));
+  if (enter) setImmediate(()=>testAndExit(suite, argv.slice(2)));
   return suite as Step;
 };
-
-/** Run a single test step and exit the interpreter. */
-async function testAndExit (test: Step, ...args: string[]) {
-  const context = testContext({ args });
+/** Run single test step, then exit interpreter. */
+async function testAndExit (test: Step, args: string[]) {
+  const context = await Testing({ args });
   try {
     await testRun(test, args, context);
   } finally {
     stdout.write('\n' + lines(testReport({ context })) + '\n');
-    exit(0); //exit(('pass' in result) ? 0 : 1); // FIXME result propagation
   }
 }
-
-/** Run a test suite, collecting the results into a test report. */
-async function testRun <T extends Context> (
-  test: Step<T>, args: string[], context = testContext({ args }),
-): Promise<{ context: Context, result: Result }> {
-  if (typeof test !== 'function') test = todo(test);
-  return { context, result: await withInfiniteStack(test, undefined, context) };
+/** Run test suite, collecting results into test report. */
+const testRun = async <T extends Testing> (
+  test: Step<T>, _args?: string[], context?: Async<T>
+): Promise<{ context: Testing, result: Result }> => ({
+  context: (context = await (context || Testing())) as T,
+  result:  await withInfiniteStack(Step(test), undefined, context) as T
+});
+/** Test stack and context. Passed to eacgh step as second argument. */
+export type Testing = Stack & Log & Result & Options & Categories;
+/** Create empty test context. */
+export const Testing = <T extends Testing> (...contexts: Partial<T>[]) =>
+  Seq(Log, Options, Categories, Stack)(merged(...contexts)) as Promise<T>;
+/** Test options. */
+export type Options = { args?: string[], only?: string[], except?: string[] };
+/** Parse test filters. */
+function Options (context: Partial<Options> = {}) {
+  context.args ??= [];
+  context.only ??= context.args.filter(x=>(!x.startsWith('--'))&&(x[2]!=='!'));
+  context.except ??= context.args?.filter(x=>x.startsWith('--!'));
+  return context;
 }
-
-/** A test case, consisting of a name and zero or more test steps.
+/** Test category name. */
+export type State = 'pass'|'fail'|'todo'|'idea'|'warn'|'skip'|'note';
+/** Test category names. */
+const categories: State[] = ['pass', 'fail', 'todo', 'idea', 'warn', 'skip', 'note'];
+/** Test results by category.. */
+export type Categories = Record<State, Category>;
+/** Define result categories. */
+function Categories (context: Partial<Testing> = {}) {
+  context.pass = Category(context.stack, 'pass', `🟢`, ANSI.green,  'passed'  );
+  context.fail = Category(context.stack, 'fail', `🔴`, ANSI.red,    'failed'  );
+  context.todo = Category(context.stack, 'todo', `🟠`, ANSI.orange, 'tasks'   );
+  context.warn = Category(context.stack, 'warn', `🟡`, ANSI.yellow, 'warnings');
+  context.skip = Category(context.stack, 'skip', `🟣`, ANSI.purple, 'skipped' );
+  context.idea = Category(context.stack, 'idea', `🔵`, ANSI.blue,   'ideas'   );
+  context.note = Category(context.stack, 'note', `⚫️`, ANSI.dim,    'notes'   );
+  return context;
+}
+/** Keeps track of nested steps. */
+export type Stack = {
+  stack: Frame[];
+  begin (index: number, step: Name): number;
+  end (index: number, step: Name, t0: number, t1: number,
+       state: State, returned: unknown, threw: unknown): void;
+};
+/** Define test stack. */
+function Stack (context: Partial<Log & Categories & Stack> = {}) {
+  context.stack ??= [];
+  context.begin ??= (index, step) => {
+    const t0 = performance.now();
+    context.stack.push({ index, name: step.name, t0 });
+    context.info(msec(t0).padStart(8), '⏳');
+    return t0;
+  };
+  context.end ??= (index, step, t0, t1, state, returned, threw) => {
+    const tD = t1 - t0;
+    const label = testLabel(context.stack);
+    const { icon, color } = context[state];
+    context.log(color(msec(t1).padStart(8)),
+      ANSI.gray(6+2*Math.max(0, Math.log10(tD)), '+'+msec(tD).padStart(8)),
+      icon, color(label));
+    const result = { index, name: step.name, t0, t1, tD, returned, threw };
+    context[state](result);
+    context.stack.pop();
+  };
+  return context;
+}
+/** Collects test results. */
+export type Category = Fn<[Step], Result> & {
+  icon: string, label: string, color: Fn<[string], string>, results: Result[]
+};
+/** Define result category. */
+function Category (
+  stack: Frame[], state: State, icon: string, color: Fn<[string], string>,
+  label: string = state
+): Category {
+  const props = { state, icon, label, color, results: [],
+    get count () { return props.results.length } };
+  const info = () => `[Category: ${icon} ${color(state)} (${props.results.length})]`;
+  return toString(info)(Name(state, function categorize (result: Partial<Result>): Result {
+    result = { ...result, state, stack: [...stack||[]] };
+    props.results.push(result);
+    return result as Result;
+  }, props)) as Category;
+}
+/** Collect summary of test results. */
+function testReport ({ context, details = [] }) {
+  let line = '';
+  const thrown = new Set();
+  for (const {threw, stack: origin} of context.fail.results) {
+    const label = [testIndex(origin), testNames(origin)].join(' ');
+    const { message, stack = '' } = threw || {};
+    if (!thrown.has(threw)) {
+      details.push(['\n 🔴', ANSI.red(label), message].join(' '));
+      thrown.add(threw);
+      details.push(stack.replace(message).split('\n')
+        .map((x: string)=>x.trim()).map(alignTrace).join('\n '));
+    }
+  }
+  for (const name of categories) {
+    const category = context[name];
+    const { icon, color, label } = category;
+    line = line + spaced(` ${icon}`, color(`${context[name].count} ${label}`), '');
+  }
+  details.push(line);
+  return details;
+}
+/** Test stack frame. */
+export type Frame = Name & { t0: number, index: number };
+/** Test step. */
+export type Step <C extends Testing = Testing, A = unknown, B = A> =
+  Reflects & ((_: A, __?: C) => Async<B>) & { skip?: boolean };
+/** Ensure test step is function. */
+function Step <T extends Testing>(step: Step<T>|string) {
+  if (typeof step === 'string') return todo(step);
+  if (typeof step === 'function') return step;
+  if (step) throw new Error(`invalid step: ${step}`);
+}
+/** Result of test step. */
+export type Result = {
+  tD:        number,
+  state:     State,
+  stack:     Frame[],
+  substeps?: Result[],
+  returned?: unknown,
+  threw?:  { todo?: boolean },
+};
+/** Test case. Consists of name and zero or more test steps.
   *
   *   1. Steps run in sequence. If no step throws, the case passes.
   *   2. **Empty case** like `the('empty')`
@@ -171,40 +180,41 @@ async function testRun <T extends Context> (
   *
   * Example:
   *
-  *     import { testSuite, the, ok, equal } from '@hackbg/fadroma';
-  *     export const test1 = the('Thing', _ => ok(1 == 1));
-  *     export const test2 = the('Things',
-  *       _ => ok(1 === 1),               // unnamed substep
-  *       the('Other', _ => equal(1, 1)), // named substep
-  *       the('Third thing', test1)       // renamed substep
+  *     import { suite, the, ok, equal } from '@hackbg/fadroma';
+  *
+  *     export const test1 = the('Thing',
+  *       _ => ok(1 == 1)                       // unnamed step (sync)
+  *       async _ => ok(await something() != 5) // unnamed step (async)
   *     );
-  *     export default testSuite(import.meta, 'Test suite', test2);
+  *
+  *     export const test2 = the('Other',
+  *       test1,                                // include defined substep
+  *       the('named step', _ => equal(1, 1)),  // define named substep in place
+  *       the('renamed step', test1)            // rename defined substep
+  *     );
+  *
+  *     export default suite(import.meta, 'Test suite', test2);
   *
   **/
-export function the <T extends Context> (
+export function the <T extends Testing> (
   name: string|null, ...steps: (Step<T>|string)[]
 ): Step<T, void> {
   if (steps.length === 0) return todo(name);
-  const substeps: Step<T>[] = steps.map(toStep);
+  const substeps: Step<T>[] = steps.map(Step);
   return Name(name, testStep, { steps });
-  async function testStep (returned: unknown, context: T): Promise<void> {
-    let state: State = null, threw: Error;
+  async function testStep (last: unknown, context: T): Promise<void> {
+    let state: State = null, threw: Error, returned = last;
     if (substeps.length === 0)
       context.todo({ index: 1, name, t0: performance.now() });
     if (substeps.length === 1)
       await runStep(Name(substeps[0].name||name, substeps[0]));
     for (let index = 1; index <= substeps.length; index++) { 
       const step = substeps[index - 1];
-      await Name(substepName(name, step), runStep)(step, index);
+      const stepName = substepName(name, step as { name?: string });
+      await Name(stepName, runStep)(step, index);
     }
     async function runStep (step: Step<T>, index = 1) {
-      const t0 = performance.now();
-      context.push({ index, name: step.name, t0 });
-      const label = [
-        testIndex(context).padEnd(20),
-        testNames(context).padEnd(40)
-      ].join(' │ ');
-      context.info(msec(t0).padStart(8), '⏳');
+      const t0 = context.begin(index, step);
       try {
         returned = await step(returned, context);
         state ||= 'pass';
@@ -216,36 +226,32 @@ export function the <T extends Context> (
         const t1 = performance.now();
         const tD = t1 - t0;
         state ||= 'todo';
-        const { icon, color } = context[state];
-        context.log(
-          color(msec(t1).padStart(8)),
-          ANSI.gray(6+2*Math.max(0, Math.log10(tD)), '+'+msec(tD).padStart(8)),
-          icon, color(label)
-        );
-        context[state]({ index, name: step.name, t0, t1, tD, returned, threw });
-        context.pop();
+        context.end(index, step, t0, t1, state, returned, threw);
       }
     }
   }
 }
-const toStep = <T extends Context>(step: Step<T>|string) => (typeof step === 'string') ? todo(step) : step;
 const testIndex = (stack: Frame[]) => stack.map(s=>s.index).join('.')+'.';
 const testNames = (stack: Frame[]) => stack.map(s=>s.name).join(': ');
-const substepName = (name, step) => [name, step.name].filter(Boolean).join(': ') || ANSI.gray(7, '(unnamed)');
-
-/** Compare the value returned by the previous step with a JavaScript type;
-  * and, optionally, a type-specific predicate. */
-function testCompare <T extends Context> (type: null|undefined): Step<T, unknown>;
-function testCompare <T extends Context> (type: 'string',   expected?: string): Step<T, unknown>;
-function testCompare <T extends Context> (type: 'number',   expected?: number): Step<T, unknown>;
-function testCompare <T extends Context> (type: 'bigint',   expected?: bigint): Step<T, unknown>;
-function testCompare <T extends Context> (type: 'boolean',  expected?: string): Step<T, unknown>;
-function testCompare <T extends Context> (type: 'symbol',   expected?: Symbol): Step<T, unknown>;
-function testCompare <T extends Context> (type: 'function', expectedName?: string): Step<T, unknown>;
-function testCompare <T extends Context> (type: 'object',   expectedConstructorName?: string): Step<T, unknown>;
-function testCompare <T extends Context> (type: 'object',   ...steps: Step<T, unknown>[]): Step<T, unknown>;
-function testCompare <T extends Context> (prototype: { [Symbol.hasInstance] (_: unknown): boolean }): Step<T, unknown>;
-function testCompare <T extends Context> (type: string|object, ...args: unknown[]): Step<T, unknown> {
+const testLabel = (stack: Frame[], col1 = 20, col2 = 40) => [
+  testIndex(stack).padEnd(20),
+  testNames(stack).padEnd(40)
+].join(' │ ');
+const substepName = (name?: string, step?: { name?: string }) =>
+  [name, step?.name].filter(Boolean).join(': ') || ANSI.gray(7, '(unnamed)');
+/** Confirm that value returned by previous test step is of given type.
+  * Optionally, confirms other predicates about the value. */
+export function is <T extends Testing> (t: null|undefined): Step<T, unknown>;
+export function is <T extends Testing> (t: 'string', expected?: string): Step<T, unknown>;
+export function is <T extends Testing> (t: 'number', expected?: number): Step<T, unknown>;
+export function is <T extends Testing> (t: 'bigint', expected?: bigint): Step<T, unknown>;
+export function is <T extends Testing> (t: 'boolean', expected?: string): Step<T, unknown>;
+export function is <T extends Testing> (t: 'symbol', expected?: symbol): Step<T, unknown>;
+export function is <T extends Testing> (t: 'function', expectedName?: string): Step<T, unknown>;
+export function is <T extends Testing> (t: 'object', expectedConstructorName?: string): Step<T, unknown>;
+export function is <T extends Testing> (t: 'object', ...steps: Step<T, unknown>[]): Step<T, unknown>;
+export function is <T extends Testing> (proto: { [Symbol.hasInstance] (_: unknown): boolean }): Step<T, unknown>;
+export function is <T extends Testing> (type: string|object, ...args: unknown[]): Step<T, unknown> {
   // TODO: refactor: early dispatch
   const name = `MUST be ${type}`;
   // call the returned function to assert
@@ -286,19 +292,41 @@ function testCompare <T extends Context> (type: string|object, ...args: unknown[
     return value;
   })) as Step<T, unknown>;
 }
-
-function testEquals <T extends Context, V> (value: V, info?: string|Error): Step<T, unknown> {
+/** Confirm that return value of previous test step
+  * is deeply, strictly equal to expected value. */
+export function equals <T extends Testing, V> (value: V, info?: string|Error): Step<T, unknown> {
   return Name(`MUST equal ${inspect(value)}`, function mustEqual (last: unknown) {
     equal(value, last, info);
     return last;
   }, { value, info });
 }
-
-function testHas <T extends Context, X> (key: keyof X, ...args: Parameters<typeof testCompare>):
+/** Confirm that object has key.
+  * Optionally, confirm predicates about the value of that key. */
+export function has <T extends Testing, X> (
+  k: keyof X, value?: boolean|number|bigint|symbol|null|undefined): Step<T, unknown>;
+export function has <T extends Testing, X> (
+  k: keyof X, type: 'boolean', value?: boolean): Step<T, unknown>;
+export function has <T extends Testing, X> (
+  k: keyof X, type: 'number', value?: number): Step<T, unknown>;
+export function has <T extends Testing, X> (
+  k: keyof X, type: 'bigint', value?: bigint): Step<T, unknown>;
+export function has <T extends Testing, X> (
+  k: keyof X, type: 'symbol', value?: symbol): Step<T, unknown>;
+export function has <T extends Testing, X> (
+  k: keyof X, type: 'string', value?: string): Step<T, unknown>;
+export function has <T extends Testing, X> (
+  k: keyof X, type: 'function', name?: string): Step<T, unknown>;
+export function has <T extends Testing, X> (
+  k: keyof X, type: 'object', ctor?: string): Step<T, unknown>;
+export function has <T extends Testing, X> (
+  k: keyof X, type: 'object', ...check: Step<T, unknown>[]): Step<T, unknown>;
+export function has <T extends Testing, X> (
+  k: keyof X, proto: { [Symbol.hasInstance] (_: unknown): boolean }): Step<T, unknown>;
+export function has <T extends Testing, X> (k: keyof X, ...args: Parameters<typeof has>):
   Step<T, unknown>;
-function testHas <T extends Context, X> (props: Partial<X>):
+export function has <T extends Testing, X> (props: Partial<X>):
   Step<T, unknown>;
-function testHas <T extends Context, X> (...args: unknown[]):
+export function has <T extends Testing, X> (...args: unknown[]):
   Step<T, unknown>
 {
   const arg0Type = typeof args[0];
@@ -330,11 +358,11 @@ function testHas <T extends Context, X> (...args: unknown[]):
         return object;
       })) as Step<T, unknown>;
     };
-    default: throw new Error('testHas: invalid argument', { args });
+    default: throw new Error('has: invalid argument', { args });
   }
 }
-
-export function includes <T extends Context, X> (item: X) {
+/** Confirm that string or array includes an expected value. */
+export function includes <T extends Testing, X> (item: X) {
   return Name(`MUST include ${inspect(item)}`,
     function mustInclude (object: { includes (_: X): boolean }, _: T) {
       ok(object && ((typeof object === 'string') ||
@@ -345,25 +373,5 @@ export function includes <T extends Context, X> (item: X) {
       return object;
     }, { item })
 }
-
-/** FIXME: A test case which expects an exception to be threw. */
-function testForbid (
-  name: string, failure: Step, ...steps: Array<(_: Error)=>unknown>
-) {
-  name = [`Forbid`, name].filter(Boolean).join(': ');
-  return Name(name, forbidRun, { failure, steps });
-  function forbidRun (context: Context) {
-    throw Error.TODO('forbid')
-    async function forbidRunTracked () {
-      let result: unknown;
-      let error:  unknown;
-      try {
-        result = await failure(context);
-        error = new Error(`${name}: missing expected failure, got: ${result}`);
-      } catch (e) {
-        return e;
-      }
-      throw Object.assign(error, { name, result });
-    }
-  }
-}
+// Reexport some default assertions:
+export { ok, equal, throws, rejects, todo };
