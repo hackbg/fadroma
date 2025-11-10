@@ -9,7 +9,7 @@ export { join as joinPath
        , resolve as resolvePath
        , relative as relativePath } from 'node:path';
 export { realpathSync } from 'node:fs';
-export { writeFile, mkdir, mkdtemp } from 'node:fs/promises';
+export { writeFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
 export { Server as HttpServer
        , createServer as createHttpServer } from 'node:http';
 export { Server as TcpServer

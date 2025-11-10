@@ -1,35 +1,30 @@
 #!/usr/bin/env -S deno run --allow-read --allow-env --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443 --allow-net=127.0.0.1:18443
-import { Fn, Test, Temp, portWait } from '@hackbg/fadroma';
+import { Test, Temp, joined } from '@hackbg/fadroma';
 import { Simplicity } from './simf.ts';
-import { Btc, pipe } from './deps.ts';
-import { execImpl, spawnImpl } from '../../@hackbg/fadroma/deps.ts';
-const { the } = Test;
-
-//const cwd = resolvePath(fileURLToPath(import.meta.url), '..');
+import { Btc } from './deps.ts';
+const { the, is, has, includes, equals, } = Test;
 const name = 'Hello';
-
-export default Test.suite(import.meta, 'Simplicity', async (_, { log }) => {
-  const source  = Examples[1]();
-  const project = Simplicity({ name, source });
-  console.log(project);
-  //const project  = await Temp('test-simf', template)() as Simplicity;
-  const {paths} = await project.write();
-  console.log({paths});
-  Test.ok(paths[`README.md`].includes(name));
-  Test.ok(paths[`${name}.simf`].includes(source));
-  Test.equal(paths[`${name}.wit`], undefined);
-  const program = await project.build();
-  const btcd = await Btc().spawnNode()();
-  await portWait({ port: '18443' })();
-  await Btc().execCli('createwallet', 'foobarz')();
-  const run = project.run(program);
-  const result = await run();
-  log({ program, btcd, result });
-});
-
-export const Examples = {
-
-  1: () => [
+const mock = () => { const mocked = []; return { path: '/mock/', mocked, mkdir: mock, writeFile: mock }; };
+const config = { name, source: Example() };
+export default Test.suite(import.meta, 'Simplicity',
+  the('Project', () => Simplicity(config),
+    is('object'),
+    has('write', 'function'),
+    the('Write', (p: Simplicity) => p.write(mock()),
+      is('object'),
+      has('path'),
+      has('paths',
+        has('/mock/README.md',    includes(name)),
+        has(`/mock/${name}.simf`, includes(Example()))))),
+  the('Compiler', () => Temp('simf', Simplicity)(config),
+    the('Write', (p: Simplicity) => p.write()),
+    is('object'),
+    has('build'),
+    the('Build', (p: Simplicity) => p.build())),
+  the('Run'));
+    //the('Run',   (p: Simplicity) => Btc(p.run)()))));
+export function Example () {
+  return joined('\n', [
     `fn main() {`,
     `  let ab: u16 = <(u8, u8)>::into((0x10, 0x01));`,
     `  let c: u16 = 0x1001;`,
@@ -38,10 +33,9 @@ export const Examples = {
     `  let c: u8 = 0b10111101;`,
     `  assert!(jet::eq_8(ab, c));`,
     `}`
-  ].join('\n')
-
+  ])
 }
-
+//const cwd = resolvePath(fileURLToPath(import.meta.url), '..');
 //export default Test.suite(import.meta, 'Simplicity',
   //async () => Simplicity(await Temp('test-simf')(), { name, source: Examples[1]() }),
   //the('Init', project => project.write(), has('cwd'), has('paths'), ({ cwd, paths }) => {

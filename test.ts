@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --coverage --allow-env --allow-net --allow-run --allow-import --allow-write
+#!/usr/bin/env -S deno run --coverage --allow-env --allow-net --allow-run --allow-import --allow-read --allow-write=/tmp/fadroma
 import { Test, discourageConsole } from "./@hackbg/fadroma/index.ts";
 import testFadroma from "./@hackbg/fadroma/test.ts";
 import testBtc from "./@fadroma/btc/test.ts";

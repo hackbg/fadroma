@@ -19,6 +19,6 @@ export {
   joined,
   flag, byteParse, byteConcat, readBytes,
   readUntilDone, write, toRW, tcpConnect, tcpListen, merge, sequence,
-  Pipe, Bytes, Named, Test, Service, Exec, Spawn, Env, Arg, Dir, Port, UTF8, Fn,
+  Pipe, Bytes, Name, Test, Service, Exec, Spawn, Env, Arg, Dir, Port, UTF8, Fn,
 } from '@hackbg/fadroma';
 export type * from '@hackbg/fadroma';

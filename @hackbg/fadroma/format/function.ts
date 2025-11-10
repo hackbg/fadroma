@@ -5,7 +5,7 @@ export const identity = <T>(x: T): T => x;
 export const nop = (..._: unknown[]) => identity;
 
 /** Something that may have a `name`. */
-export type Named = { name: string };
+export type Name = { name: string };
 /** Set the name of something. Optionally, assign metadata.
   *
   * * By default, the `name` property of functions is read-only,
@@ -13,13 +13,13 @@ export type Named = { name: string };
   *
   * * Metadata added by this function is coped by descriptor,
   *   which means getters and setters will work as defined. */ 
-export function Named <T, U> (name: string, named: T, props?: U): T & Named {
+export function Name <T, U> (name: string, named: T, props?: U): T & Name {
   // Rename function via property
   if (typeof name === 'string') named =
     Object.defineProperty(named, 'name', { configurable: true, value: name })
   // Copy properties via descriptors
   return Object.defineProperties(named,
-    props ? Object.getOwnPropertyDescriptors(props) : {}) as T & Named;
+    props ? Object.getOwnPropertyDescriptors(props) : {}) as T & Name;
 }
 
 /** Stub test step. When reached, terminates without passing or failing,
@@ -34,7 +34,7 @@ export function Named <T, U> (name: string, named: T, props?: U): T & Named {
   *       expect('Manual todo with more info', todo('the more info')));
   *
   **/
-export const todo = (...info: string[]) => Named(
+export const todo = (...info: string[]) => Name(
   info.join(' '),
   function trackTodo (_context: unknown) {
     throw Object.assign(new Error(info.join(' ')), { todo: true })
@@ -57,7 +57,7 @@ export type Takes<T extends unknown[]> = (...args: T) => unknown;
 /** Function return type. */
 export type Returns<T> = (...args: unknown[]) => T;
 
-/** Annotations added by [Named]. */
+/** Annotations added by [Name]. */
 export type Reflects<F extends Fn[] = Fn[]> = { stack?: string[], steps?: F };
 
 /** Procedure. Mutates context and returns void or new context. */
@@ -130,7 +130,7 @@ export function merge <T> (...fragments: Partial<T>[]): T {
 export function Fn <F extends ((..._:unknown[])=>unknown)> (
   fn: F, ...args: Partial<Parameters<F>>
 ) {
-  return Named(`${fn.name}(${curriedArgs(args)})`, fn.bind(null, ...args), {
+  return Name(`${fn.name}(${curriedArgs(args)})`, fn.bind(null, ...args), {
     fn, args, stack: new Error().stack?.split('\n').slice(3)
   });
 }
@@ -157,6 +157,7 @@ const curriedArgs = (args: unknown[]) => args.map(String)
   * TODO: Use conditional typing to support passing non-function
   *       as first argument, resulting in immediate evaluation.
   **/
+export function Pipe (): typeof identity;
 export function Pipe <Z> (z: Z): Z;
 export function Pipe <Y, Z> (y: Y, z: Z):
   Z extends (_: infer B) => infer C ?
@@ -172,8 +173,9 @@ export function Pipe <W, X, Y, Z> (w: W, x: X, y: Y, z: Z):
   W extends (_: infer A) => B ? Fn<[A], E> : E : never : never : never;
 export function Pipe (...steps: Fn[]): Fn;
 export function Pipe (...steps: unknown[]) {
+  if (steps.length === 0) return Name('Pipe0', identity);
   if (typeof steps[0] === 'function') {
-    return Named(pipeName(steps as Fn[]), function pipeline (value: unknown) {
+    return Name(pipeName(steps as Fn[]), function pipeline (value: unknown) {
       for (const step of steps) {
         if (!step) continue;
         if (typeof step === 'function') value = sync(value, step as Fn);
@@ -186,6 +188,7 @@ export function Pipe (...steps: unknown[]) {
     if (!step) continue;
     if (typeof step === 'function') value = sync(value, step as Fn);
   }
+  return value
 }
 const pipeName = (steps: Fn[]): string =>
   `Pipe${steps.length}(${steps.map(x=>x?.name||'unnamed').join('|')})`
@@ -194,7 +197,7 @@ const pipeName = (steps: Fn[]): string =>
  *
   * Return values are ignored; to pass state or
   * collect results, mutate the context. */
-export const sequence = <T>(...steps: Fn<[T]>[]) => Named(null,
+export const sequence = <T>(...steps: Fn<[T]>[]) => Name(null,
   async function runSequentially (context: T) {
     for (const step of steps) {
       if (!step) continue;
@@ -325,7 +328,7 @@ export const withCatcher =
     Promise.resolve(f(...args)).catch(catcher) as Async<W>;
 
 export const setProp = <T extends object>(key: keyof T, ...fns: Fn[]) =>
-  Named(`set ${String(key)}`, async function setProperty (context) {
+  Name(`set ${String(key)}`, async function setProperty (context) {
     return Object.assign(context, { [key]: await Pipe(...fns)(context) });
   }, { key, fns });
 

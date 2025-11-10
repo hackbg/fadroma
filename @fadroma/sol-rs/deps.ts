@@ -4,7 +4,7 @@ export {
 } from '@hackbg/fadroma';
 
 export type {
-  Name, Named, Semver, MaybeAsync,
+  Semver, MaybeAsync,
   ProjectOptions as BaseProjectOptions,
   ESOptions as BaseESOptions,
   CrateOptions,

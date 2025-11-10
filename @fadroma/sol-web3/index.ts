@@ -10,7 +10,7 @@ export type TX = InstanceType<typeof web3.Transaction>;
 import { env } from './deps.ts';
 env.ANCHOR_PROVIDER_URL ??= 'http://localhost:8899';
 env.ANCHOR_WALLET ??= resolve(homedir(), '.config/solana/id.json'); // FIXME use XDG
-import { ok, equal, expect, forbid, Fn, Named,
+import { ok, equal, expect, forbid, Fn, Name,
   Case, resolve, homedir,
   Anchor, Program, workspace,
   ACCOUNT_SIZE, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID,

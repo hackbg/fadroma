@@ -10,4 +10,4 @@ export default suite(import.meta, 'Service',
   the('Spawn', () => Spawn('true', 'foo', Env('ENV', 2)),
     has({ argv: ['true', 'foo'], env: { ENV: 2 } }),
     spawn => spawn({ pids: {}, spawn: spawnImpl }),
-    has('argv'), has('env'), has('handle', has('pid'))));
+    has('argv'), has('env'), has('pid')));

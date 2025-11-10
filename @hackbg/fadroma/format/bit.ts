@@ -1,4 +1,4 @@
-import { Named } from './function.ts';
+import { Name } from './function.ts';
 
 /** False, zero, empty string, null, undefined, zip, nada, zilch. */
 export type Falsy = 0 | '' | false | null | undefined;
@@ -14,7 +14,7 @@ export type Flag = ReturnType<typeof flag>;
 
 /** Specify a flag. */
 export const flag = (name: string, bit: number) =>
-  Named(`bit ${bit}: ${name}`, function testFlag (
+  Name(`bit ${bit}: ${name}`, function testFlag (
     value: number|[number]|Uint8Array = null
   ) {
     if (value === null) return value;

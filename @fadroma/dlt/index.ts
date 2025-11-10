@@ -1,4 +1,4 @@
-import type { Id, Identified, Named } from './deps.ts';
+import type { Id, Identified, Name } from './deps.ts';
 /** An address on a chain. */
 export type Address = string;
 /** A chain's unique ID. */

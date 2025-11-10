@@ -1,6 +1,6 @@
 import type { Flag, AsyncIter, Log, Reader } from './deps.ts';
 import { UTF8, Bytes, flag, byteParse, readBytes, readUntilDone, write, Pipe,
-  tcpConnect, tcpListen, merge, Fn, sequence, Named } from './deps.ts';
+  tcpConnect, tcpListen, merge, Fn, sequence, Name } from './deps.ts';
 /** A ZeroMQ connection. */
 export type Conn = (AsyncIter<Frame> & ConnOpts) | { socket?: unknown };
 /** Options for creating a ZeroMQ connection. */
@@ -40,7 +40,7 @@ const writeCb = (writable, data): Promise<void> =>
 /** A ZeroMQ publisher (server listener). */
 export type Pub = Conn & { mode: 'PUB', kill: Fn<[]>, send (...msgs: Bytes[]): Promise<void>; };
 export const Pub = merge(function zmqPub (at: number|string|URL, handler: Fn<[TcpConn]>) {
-  return Named(`ZMQ PUB ${at}`, async function zmqPublisher (
+  return Name(`ZMQ PUB ${at}`, async function zmqPublisher (
     _: unknown
   ): Promise<Pub> {
     let stopped  = false;
@@ -58,7 +58,7 @@ export const Pub = merge(function zmqPub (at: number|string|URL, handler: Fn<[Tc
     return { mode: 'PUB', socket, send, close };
   }, { at, handler })
 }, {
-  shake: (_payload = []) => Named('ZMQ PUB shake', sequence(
+  shake: (_payload = []) => Name('ZMQ PUB shake', sequence(
     Hello.write({ pub: true }),
     Hello.read,
     Frame.ready.write,
@@ -70,7 +70,7 @@ export const Pub = merge(function zmqPub (at: number|string|URL, handler: Fn<[Tc
 export type Sub = Conn & {
   mode: 'SUB'; subscribe (topic: string): Promise<void>; receive (): Promise<Frame[]>; };
 export const Sub = merge(async function zmqSub (to: number|string|URL, handler: Fn<[Sub]>) {
-  return Named(`ZMQ SUB ${to}`, async function zmqSubscriber (
+  return Name(`ZMQ SUB ${to}`, async function zmqSubscriber (
     _: unknown
   ): Promise<Sub> {
     const socket = await tcpConnect(to);
@@ -96,7 +96,7 @@ export const Sub = merge(async function zmqSub (to: number|string|URL, handler: 
     return { socket, subscribe, receive, close };
   }, { to, handler });
 }, {
-  shake: () => Named('ZMQ SUB shake', sequence(
+  shake: () => Name('ZMQ SUB shake', sequence(
     Hello.write({ pub: false }),
     Hello.read,
     Frame.ready.read,
@@ -109,8 +109,8 @@ export const Sub = merge(async function zmqSub (to: number|string|URL, handler: 
 export type Hello = { sig: Bytes, sec: ZmqSec, ver: ZmqVer, pub: boolean };
 export const Hello = merge(zmqHello, {
   size: 64,
-  read:  Named('Hello', Pipe(readBytes({ max: 64 }), zmqHello)),
-  write: Named('Hello', Fn(Pipe(zmqHello, write))),
+  read:  Name('Hello', Pipe(readBytes({ max: 64 }), zmqHello)),
+  write: Name('Hello', Fn(Pipe(zmqHello, write))),
 });
 function zmqHello (input?: Bytes): Hello & Bytes;
 function zmqHello (input?: Partial<Hello>): Hello & Bytes;
@@ -162,8 +162,8 @@ export const Frame = merge(zmqFrame, {
   },
   ready: merge(Fn(zmqFrame, { command: 'READY' }), {
     id:    'READY',
-    read:  Named('ZMQ>ready', Pipe(readUntilDone, zmqFrame, zmqExpectCommand('READY'))),
-    write: Named('ZMQ<ready', writable => writable.write(Frame.ready())),
+    read:  Name('ZMQ>ready', Pipe(readUntilDone, zmqFrame, zmqExpectCommand('READY'))),
+    write: Name('ZMQ<ready', writable => writable.write(Frame.ready())),
   })
 });
 export function zmqFrame (input?: Bytes): Frame & Bytes;

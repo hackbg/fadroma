@@ -1,7 +1,7 @@
 import type { Fn, Step, Async, Ports } from '../index.ts';
 import type { ChildProcess } from '../deps.ts';
 import { execImpl, spawnImpl, inspect, getCwd } from '../deps.ts';
-import { Error, Pipe, Named, toString } from '../format.ts';
+import { Error, Pipe, Name, toString } from '../format.ts';
 import { Dir } from './fs.ts';
 /** A collection of processes and network endpoints provided by them. */
 export type Service = Dir & Ports<number> & {
@@ -30,7 +30,7 @@ export function Service <S extends Service> (
   name: string, ...services: Fn<[S]>[]
 ) {
   const info = `[Service (${services.length}): ${name}]`;
-  return toString(info)(Named(name, runService, { services }));
+  return toString(info)(Name(name, runService, { services }));
   async function runService (
     ctx = { ...Dir(), pids: {}, ports: {} } as Partial<S>
   ): Promise<S> {
@@ -43,7 +43,7 @@ export function Service <S extends Service> (
 export function Exec (
   command: string, ...options: (Step<Run>|string)[]
 ): Exec {
-  return Named(`Exec(${command})`, async function exec (context?: {
+  return Name(`Exec(${command})`, async function exec (context?: {
     dir?: string, exec?: typeof execImpl,
   }) {
     context ??= {};
@@ -57,7 +57,7 @@ export function Exec (
 }
 /** Run a background service. */
 export function Spawn (daemon: string, ...options: (Step<Run>|string)[]): Spawn {
-  return Named(`Spawn(${daemon})`, async function spawn (context?: {
+  return Name(`Spawn(${daemon})`, async function spawn (context?: {
     dir?: string, spawn?: typeof spawnImpl
   }) {
     context ??= {};
@@ -71,7 +71,7 @@ export function Spawn (daemon: string, ...options: (Step<Run>|string)[]): Spawn 
 }
 /** Set environment variable in run config. */
 export function Env (name: string, value: string|null) {
-  return Named(`Env(${name}=${value})`, function setEnv (context: Partial<Run> = {}) {
+  return Name(`Env(${name}=${value})`, function setEnv (context: Partial<Run> = {}) {
     context.env ??= {};
     context.env[name] = value;
     return context
@@ -79,7 +79,7 @@ export function Env (name: string, value: string|null) {
 }
 /** Append command-line arguments to a command invocation. */
 export function Arg (...parts: string[]) {
-  return Named(`Arg(${parts[0]})`, function addArgument (context: Partial<Run> = {}) {
+  return Name(`Arg(${parts[0]})`, function addArgument (context: Partial<Run> = {}) {
     context.argv ??= []
     context.argv.push(parts.join(' '))
     return context
@@ -95,4 +95,4 @@ const toOpt = (opt: string|Step<Run>): Step<Run> =>
   (typeof opt === 'object')   ? context=>Object.assign(context, opt) :
   Error.required(`string or function, got: ${inspect(opt)}`);
 const pushArg = (opt: string) =>
-  Named(opt, (run: Run) => { run.argv.push(opt); return run });
+  Name(opt, (run: Run) => { run.argv.push(opt); return run });

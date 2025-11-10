@@ -1,21 +1,19 @@
 import type { Fn, Log, Reflects, Async, Prototype, Meta } from '../index.ts';
 import { ok, equal, throws, rejects, stdout, exit, argv,
   setImmediate, inspect } from '../deps.ts';
-import { ANSI, spaced, lines, msec, toString, merge, Named, todo,
-  Error, addStepStack, withInfiniteStack } from '../format.ts';
+import { ANSI, spaced, lines, msec, toString, merge, Name, todo,
+  Error, addStepStack, withInfiniteStack, alignTrace } from '../format.ts';
 import { isEntrypoint } from './command.ts';
 import { logger } from './logger.ts';
 
 export {
   testContext  as context,
   testRun      as run,
-  testThe      as the,
   testSuite    as suite,
   testReport   as report,
   testHas      as has,
   testCompare  as is,
   testEquals   as equals,
-  testIncludes as includes,
   testForbid   as forbid, 
   ok, equal, throws, rejects, todo,
 };
@@ -34,16 +32,16 @@ function testContext <T extends Context> (...options: Partial<T>[]): T {
     except: args.filter(x=>x.startsWith('--!')),
     //failFast: args.includes('--fail-fast'),
     //failTodo: args.includes('--fail-todo'),
-    pass: testCategory('pass', `🟢`, ANSI.green,  'passed'  ),
-    fail: testCategory('fail', `🔴`, ANSI.red,    'failed'  ),
-    todo: testCategory('todo', `🟠`, ANSI.orange, 'tasks'   ),
-    warn: testCategory('warn', `🟡`, ANSI.yellow, 'warnings'),
-    skip: testCategory('skip', `🟣`, ANSI.purple, 'skipped' ),
-    idea: testCategory('idea', `🔵`, ANSI.blue,   'ideas'   ),
-    note: testCategory('note', `⚫️`, ANSI.dim,    'notes'   ),
+    pass: Category('pass', `🟢`, ANSI.green,  'passed'  ),
+    fail: Category('fail', `🔴`, ANSI.red,    'failed'  ),
+    todo: Category('todo', `🟠`, ANSI.orange, 'tasks'   ),
+    warn: Category('warn', `🟡`, ANSI.yellow, 'warnings'),
+    skip: Category('skip', `🟣`, ANSI.purple, 'skipped' ),
+    idea: Category('idea', `🔵`, ANSI.blue,   'ideas'   ),
+    note: Category('note', `⚫️`, ANSI.dim,    'notes'   ),
   } as Partial<T>, config);
 
-  function testCategory (
+  function Category (
     state: State,
     icon:  string,
     color: Fn<[string], string>,
@@ -54,7 +52,7 @@ function testContext <T extends Context> (...options: Partial<T>[]): T {
       get count () { return props.results.length }
     };
     const info = () => `[Category: ${icon} ${color(state)} (${props.results.length})]`;
-    return toString(info)(Named(state, function categorize (result: Partial<Result>): Result {
+    return toString(info)(Name(state, function categorize (result: Partial<Result>): Result {
       result = { ...result, state, stack: [...context] };
       props.results.push(result);
       return result as Result;
@@ -69,10 +67,10 @@ function testReport ({ context, details = [], indent = '', root = true }) {
   for (const {threw, stack: origin} of context.fail.results) {
     const label = [testIndex(origin), testNames(origin)].join(' ');
     const { message, stack = '', ..._info } = threw || {};
-    details.push(['\n 🔴', ANSI.red(label), message].join(' '));
     if (!thrown.has(threw)) {
+      details.push(['\n 🔴', ANSI.red(label), message].join(' '));
       thrown.add(threw);
-      details.push(stack.replace(message));
+      details.push(stack.replace(message).split('\n').map(x=>x.trim()).map(alignTrace).join('\n '));
     }
   }
   for (const name of categories) {
@@ -128,16 +126,16 @@ export type Result = {
   *     import { suite, the, todo, ok, equal } from '@hackbg/fadroma';
   *     export default suite(import.meta, 'my module',
   *       'strings are TODOs',
-  *       testThe('empty tests are TODOs'),
-  *       testThe('substeps do not throw',
+  *       the('empty tests are TODOs'),
+  *       the('substeps do not throw',
   *         context => { ok(true, "unary assertion") },
-  *         testThe('tests can nest', context => {
+  *         the('tests can nest', context => {
   *           equal(1, 1, "binary assertion")
   *         })));
   *
   **/
 function testSuite (meta: Meta, name: string, ...steps: (Step|string)[]) {
-  const suite = testThe(name, ...steps);
+  const suite = the(name, ...steps);
   const enter = isEntrypoint(meta, argv[1]);
   if (enter) setImmediate(()=>testAndExit(suite, ...argv.slice(2)));
   return suite as Step;
@@ -183,21 +181,21 @@ async function testRun <T extends Context> (
   *     export default testSuite(import.meta, 'Test suite', test2);
   *
   **/
-function testThe <T extends Context> (
+export function the <T extends Context> (
   name: string|null, ...steps: (Step<T>|string)[]
 ): Step<T, void> {
   if (steps.length === 0) return todo(name);
   const substeps: Step<T>[] = steps.map(toStep);
-  return Named(name, testStep, { steps });
+  return Name(name, testStep, { steps });
   async function testStep (returned: unknown, context: T): Promise<void> {
     let state: State = null, threw: Error;
     if (substeps.length === 0)
       context.todo({ index: 1, name, t0: performance.now() });
     if (substeps.length === 1)
-      await runStep(Named(substeps[0].name||name, substeps[0]));
+      await runStep(Name(substeps[0].name||name, substeps[0]));
     for (let index = 1; index <= substeps.length; index++) { 
       const step = substeps[index - 1];
-      await Named(substepName(name, step), runStep)(step, index);
+      await Name(substepName(name, step), runStep)(step, index);
     }
     async function runStep (step: Step<T>, index = 1) {
       const t0 = performance.now();
@@ -245,14 +243,15 @@ function testCompare <T extends Context> (type: 'boolean',  expected?: string): 
 function testCompare <T extends Context> (type: 'symbol',   expected?: Symbol): Step<T, unknown>;
 function testCompare <T extends Context> (type: 'function', expectedName?: string): Step<T, unknown>;
 function testCompare <T extends Context> (type: 'object',   expectedConstructorName?: string): Step<T, unknown>;
-function testCompare <T extends Context> (type: 'object',   expectedPrototype?: { [Symbol.hasInstance] (_) }): Step<T, unknown>;
-function testCompare <T extends Context> (type: string, ...args: unknown[]): Step<T, unknown> {
+function testCompare <T extends Context> (type: 'object',   ...steps: Step<T, unknown>[]): Step<T, unknown>;
+function testCompare <T extends Context> (prototype: { [Symbol.hasInstance] (_: unknown): boolean }): Step<T, unknown>;
+function testCompare <T extends Context> (type: string|object, ...args: unknown[]): Step<T, unknown> {
   // TODO: refactor: early dispatch
   const name = `MUST be ${type}`;
   // call the returned function to assert
-  return toString(`[${name}]`)(Named(name, function mustBe (value: unknown) {
+  return toString(`[${name}]`)(Name(name, function mustBe (value: unknown) {
     // type check
-    ok(typeof value === type, `not ${type}: ${inspect(value)}`);
+    ok(typeof value === type, `not ${type}: ${inspect(value, { depth: 4 })}`);
     // value check
     if (args.length >= 1) {
       // 1st arg after type is type-specific predicate
@@ -289,7 +288,7 @@ function testCompare <T extends Context> (type: string, ...args: unknown[]): Ste
 }
 
 function testEquals <T extends Context, V> (value: V, info?: string|Error): Step<T, unknown> {
-  return Named(`MUST equal ${inspect(value)}`, function mustEqual (last: unknown) {
+  return Name(`MUST equal ${inspect(value)}`, function mustEqual (last: unknown) {
     equal(value, last, info);
     return last;
   }, { value, info });
@@ -310,7 +309,7 @@ function testHas <T extends Context, X> (...args: unknown[]):
       const checks = args.slice(1);
       const name   = `MUST have "${String(key)}"`
       const info   = `[${name}]`;
-      return toString(info)(Named(name, async function testHasProperty (object: X, context: T) {
+      return toString(info)(Name(name, async function testHasProperty (object: X, context: T) {
         ok(key in (object as object),
           `${String(key)} missing in ${inspect(object)}`);
         for (const check of checks) {
@@ -326,7 +325,7 @@ function testHas <T extends Context, X> (...args: unknown[]):
     case (args[0] && typeof args[0] === 'object'): {
       // partial equal
       const name = `MUST match "${inspect(args[0])}"`;
-      return toString(`[${name}]`)(Named(name, function testHasProperties (object: object) {
+      return toString(`[${name}]`)(Name(name, function testHasProperties (object: object) {
         for (const [k, expected] of Object.entries(args[0])) equal(object[k], expected, `not equal: k`);
         return object;
       })) as Step<T, unknown>;
@@ -335,12 +334,14 @@ function testHas <T extends Context, X> (...args: unknown[]):
   }
 }
 
-function testIncludes <T extends Context, X> (item: X) {
-  return Named(`MUST include ${inspect(item)}`,
+export function includes <T extends Context, X> (item: X) {
+  return Name(`MUST include ${inspect(item)}`,
     function mustInclude (object: { includes (_: X): boolean }, _: T) {
-      ok(object && typeof object === 'object', 'non-object');
-      ok(typeof object['includes'] === 'function', 'no includes method');
-      ok(object.includes(item), `doesn't include ${item}`)
+      ok(object && ((typeof object === 'string') ||
+        ((typeof object === 'object') && (typeof object['includes'] === 'function'))),
+        `no "includes" method in ${inspect(object)}`);
+      ok(object.includes(item),
+        `${inspect(item)} not included in ${inspect(object)}`)
       return object;
     }, { item })
 }
@@ -350,7 +351,7 @@ function testForbid (
   name: string, failure: Step, ...steps: Array<(_: Error)=>unknown>
 ) {
   name = [`Forbid`, name].filter(Boolean).join(': ');
-  return Named(name, forbidRun, { failure, steps });
+  return Name(name, forbidRun, { failure, steps });
   function forbidRun (context: Context) {
     throw Error.TODO('forbid')
     async function forbidRunTracked () {

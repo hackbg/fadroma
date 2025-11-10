@@ -1,5 +1,5 @@
 import { Sub } from './zmq.ts';
-import { Fn, Service, joined, Dir, Exec, Spawn, Port, merge } from './deps.ts';
+import { Fn, Service, joined, Dir, Exec, Spawn, Port, Name, merge } from './deps.ts';
 
 export function Btc (...options: Partial<Btc>[]): Btc {
   const {
@@ -15,40 +15,51 @@ export function Btc (...options: Partial<Btc>[]): Btc {
     walletDir = joined('', dataRoot, 'wallet', +new Date()),
     zmqPort   = 48485,
     txIndex   = false,
+    ...rest
   } = merge(...options);
 
-  const btcArgs = [
-    rpcPort && ('-rpcport=' + rpcPort),
-    rpcUser && `-rpcuser=fadroma`,
-    rpcPass && `-rpcpassword=${rpcPass}`,
-    dataDir && `-datadir=${dataDir}`,
-    regTest && '-regtest',
-  ].filter(Boolean);
+  const context = {
+    node, spawnNode,
+    cli, execCli,
+    regTest, rpcPort, rpcUser, rpcPass, rpcQueue,
+    dataRoot, dataDir, walletDir, zmqPort, txIndex,
+    localnet: Service('BTC Localnet', spawnNode,
+      Dir(walletDir, execCli('createwallet', walletDir),
+        execCli(`-rpcwallet=${walletDir}`, '-generate'))),
+    subscribe,
+    ...rest
+  };
 
-  const spawnNode = (...args: string[]) => Service(`Spawn(${node})`,
-    Dir(dataDir), Port(rpcPort, Spawn(node, ...btcArgs, '-server',
-      txIndex  && '-txindex',
-      zmqPort  && ('-zmqpubhashblock=tcp:/' + '/127.0.0.1:' + zmqPort),
-      zmqPort  && ('-zmqpubhashtx=tcp:/'    + '/127.0.0.1:' + zmqPort),
-      rpcQueue && ('-rpcworkqueue=' + rpcQueue),
-      ...args))) as Spawn;
-
-  const execCli = (...args: string[]) => Service(`Exec(${cli})`,
-    Dir(dataDir), Exec(cli, ...btcArgs, ...args)) as Exec;
-
-  return {
-    spawnNode,
-    execCli,
-    localnet: Service('BTC Localnet',
-      spawnNode(),
-      Dir(walletDir,
-        Fn(execCli, 'createwallet', walletDir),
-        Fn(execCli, `-rpcwallet=${walletDir}`, '-generate'))),
-    async subscribe (onZmq) {
-      //await portWait({ port: zmqPort });
-      return Sub(zmqPort, onZmq);
-    }
+  function spawnNode (...args: string[]) {
+    return Service(`Spawn(${node})`, Port(rpcPort, Dir(dataDir, 
+      Spawn(node, '-server',
+        rpcPort && ('-rpcport=' + rpcPort),
+        rpcUser && `-rpcuser=fadroma`,
+        rpcPass && `-rpcpassword=${rpcPass}`,
+        dataDir && `-datadir=${dataDir}`,
+        regTest && '-regtest',
+        txIndex  && '-txindex',
+        zmqPort  && ('-zmqpubhashblock=tcp:/' + '/127.0.0.1:' + zmqPort),
+        zmqPort  && ('-zmqpubhashtx=tcp:/'    + '/127.0.0.1:' + zmqPort),
+        rpcQueue && ('-rpcworkqueue=' + rpcQueue),
+        ...args)))) as Spawn;
   }
+
+  function execCli (...args) {
+    return Dir(dataDir, Exec(cli, 
+      rpcPort && ('-rpcport=' + rpcPort),
+      rpcUser && `-rpcuser=fadroma`,
+      rpcPass && `-rpcpassword=${rpcPass}`,
+      dataDir && `-datadir=${dataDir}`,
+      regTest && '-regtest',...args)) as Exec;
+  }
+
+  function subscribe (onZmq) {
+    //await portWait({ port: zmqPort });
+    return Sub(zmqPort, onZmq);
+  }
+
+  return context
 }
 
 export type Btc = {
@@ -74,5 +85,5 @@ export type Btc = {
   /** Subscribe to Bitcoin note via ZeroMQ. */
   subscribe: Fn<[Fn]>,
   /** Run Bitcoin localnet. */
-  localnet:  (_: unknown) => Service,
+  localnet:  Service,
 };
