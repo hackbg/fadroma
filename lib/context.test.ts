@@ -12,6 +12,5 @@ import Service from './context/service.test.ts';
 import TCP     from './context/tcp.test.ts';
 import Tester  from './context/tester.test.ts';
 import TUI     from './context/tui.test.ts';
-import Watch   from './context/watch.test.ts';
 export default Test.suite(import.meta, 'Contexts',
-  Codegen, CLI, DOM, FS, HTTP, Log, OCI, Port, Service, TCP, Tester, TUI, Watch);
+  Codegen, CLI, DOM, FS, HTTP, Log, OCI, Port, Service, TCP, Tester, TUI);

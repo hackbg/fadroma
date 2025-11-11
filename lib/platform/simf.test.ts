@@ -1,16 +1,13 @@
 #!/usr/bin/env -S deno run --allow-read --allow-env --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443 --allow-net=127.0.0.1:18443
 import { Test, Temp, joined, Log, } from '../index.ts';
 import { Simplicity } from './simf.ts';
-import { Btc } from './btc.ts';
-const { the, is, has, includes, equals, } = Test;
+const { the, is, has, includes, } = Test;
 const name = 'Hello';
 const mock = () => { const mocked = []; return { path: '/mock/', mocked, mkdir: mock, writeFile: mock }; };
 const config = { name, source: Example() };
-const log = x => y => Log(x)(y);
+const log = x => (...y: unknown[]) => Log(x).log(...y);
 export default Test.suite(import.meta, 'Simplicity',
-  the('Project', () => {
-    return Simplicity(config)
-  },
+  the('Project', () => { return Simplicity(config) },
     is('object'),
     has('write', 'function'),
     the('Write', async (p: Simplicity) => {

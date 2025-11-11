@@ -307,23 +307,23 @@ export function equals <T extends Testing, V> (value: V, info?: string|Error): S
 export function has <T extends Testing, X> (
   k: keyof X, value?: boolean|number|bigint|symbol|null|undefined): Step<T, unknown>;
 export function has <T extends Testing, X> (
-  k: keyof X, type: 'boolean', value?: boolean): Step<T, unknown>;
-export function has <T extends Testing, X> (
-  k: keyof X, type: 'number', value?: number): Step<T, unknown>;
-export function has <T extends Testing, X> (
-  k: keyof X, type: 'bigint', value?: bigint): Step<T, unknown>;
-export function has <T extends Testing, X> (
-  k: keyof X, type: 'symbol', value?: symbol): Step<T, unknown>;
-export function has <T extends Testing, X> (
-  k: keyof X, type: 'string', value?: string): Step<T, unknown>;
-export function has <T extends Testing, X> (
-  k: keyof X, type: 'function', name?: string): Step<T, unknown>;
-export function has <T extends Testing, X> (
-  k: keyof X, type: 'object', ctor?: string): Step<T, unknown>;
-export function has <T extends Testing, X> (
-  k: keyof X, type: 'object', ...check: Step<T, unknown>[]): Step<T, unknown>;
-export function has <T extends Testing, X> (
   k: keyof X, proto: { [Symbol.hasInstance] (_: unknown): boolean }): Step<T, unknown>;
+export function has <T extends Testing, X> (
+  k: keyof X, type: 'boolean',  value?: boolean, ...check: Step<T, unknown>[]): Step<T, unknown>;
+export function has <T extends Testing, X> (
+  k: keyof X, type: 'number',   value?: number, ...check: Step<T, unknown>[]): Step<T, unknown>;
+export function has <T extends Testing, X> (
+  k: keyof X, type: 'bigint',   value?: bigint, ...check: Step<T, unknown>[]): Step<T, unknown>;
+export function has <T extends Testing, X> (
+  k: keyof X, type: 'symbol',   value?: symbol, ...check: Step<T, unknown>[]): Step<T, unknown>;
+export function has <T extends Testing, X> (
+  k: keyof X, type: 'string',   value?: string, ...check: Step<T, unknown>[]): Step<T, unknown>;
+export function has <T extends Testing, X> (
+  k: keyof X, type: 'function', name?: string,  ...check: Step<T, unknown>[]): Step<T, unknown>;
+export function has <T extends Testing, X> (
+  k: keyof X, type: 'object',   ctor?: string,  ...check: Step<T, unknown>[]): Step<T, unknown>;
+export function has <T extends Testing, X> (
+  k: keyof X, ...check: Step<T, unknown>[]): Step<T, unknown>;
 export function has <T extends Testing, X> (k: keyof X, ...args: Parameters<typeof has>):
   Step<T, unknown>;
 export function has <T extends Testing, X> (props: Partial<X>):

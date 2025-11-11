@@ -71,7 +71,8 @@ export function Service <S extends Service> (
 }
 /** Set environment variable in run config. */
 export function Env (name: string, value: string|null) {
-  return Name(`Env(${name}=${value})`, function setEnv (context: Partial<Run> = {}) {
+  return Name(`Env(${name}=${value})`, function setEnv (context: Run) {
+    context ??= {} as Run;
     context.env ??= {};
     context.env[name] = value;
     return context
@@ -79,7 +80,8 @@ export function Env (name: string, value: string|null) {
 }
 /** Append command-line arguments to a command invocation. */
 export function Arg (...parts: string[]) {
-  return Name(`Arg(${parts[0]})`, function addArgument (context: Partial<Run> = {}) {
+  return Name(`Arg(${parts[0]})`, function addArgument (context: Run) {
+    context ??= {} as Run;
     context.argv ??= []
     context.argv.push(parts.join(' '))
     return context
