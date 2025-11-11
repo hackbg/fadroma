@@ -18,3 +18,4 @@
 export * from './context.ts';
 export * from './format.ts';
 export * from './platform.ts';
+export * as Watch from './watch.ts';

@@ -40,14 +40,15 @@ export async function withInfiniteStack <F extends Fn> (
 /** Generate a stack trace. */
 export function stackTrace (slice = 3, length?: number): string[] {
   return new Error().stack.split('\n')
-    .slice(slice, length).map(x=>alignTrace(x.trim()));
+    .slice(slice, length)
+    .map(x=>alignTrace(x.trim()));
 }
 /** Relativize paths in stack trace, colorize, and reduce indent. */
 export function alignTrace (line: string) {
   line = line.replace('file://'+getCwd(), '.');
   line = line.replace(getCwd(), '.');
   const format = (x: string, i: number) => (i===0)
-    ? bold(gray(2, x.padEnd(32))) : gray(4, x);
+    ? bold(gray(2, x.padEnd(36))) : gray(4, x);
   line = line.split(' (').map(format).join(gray(4, ' ('));
   return line
 }

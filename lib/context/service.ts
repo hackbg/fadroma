@@ -11,14 +11,15 @@ export type Service = Dir & Ports<number> & {
   kill: Fn<[], Async>;
 };
 /** Command invocation that returns a result. */
-export type Exec = Fn<[Partial<Dir & { exec?: typeof execImpl }>], Async<Run & {
-  pid?:    number,
-  status?: number|null,
-  signal?: string|null,
-  error?:  Error,
-  stdout?: string|unknown,
-  stderr?: string|unknown,
-}>>;
+export type Exec = Fn<[Partial<Dir & { exec?: typeof execImpl }>],
+  Async<Run & {
+    pid?:    number,
+    status?: number|null,
+    signal?: string|null,
+    error?:  Error,
+    stdout?: string|unknown,
+    stderr?: string|unknown,
+  }>>;
 /** Run a command and wait for result. */
 export function Exec (
   command: string, ...options: (Step<Run>|string)[]
@@ -36,7 +37,8 @@ export function Exec (
   }, { command, options });
 }
 /** Command invocation that spawns a background process. */
-export type Spawn = Fn<[Partial<Dir & { spawn?: typeof spawnImpl }>], Async<Run & ChildProcess>>;
+export type Spawn = Fn<[Partial<Dir & { spawn?: typeof spawnImpl }>],
+  Async<Run & ChildProcess>>;
 /** Run a background service. */
 export function Spawn (daemon: string, ...options: (Step<Run>|string)[]): Spawn {
   return Name(`Spawn(${daemon})`, async function spawn (context?: {

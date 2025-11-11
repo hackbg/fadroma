@@ -1,5 +1,5 @@
 #!/usr/bin/env -S deno run --allow-read --allow-env --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443 --allow-net=127.0.0.1:18443
-import { Test, Temp, joined, Log, } from '@hackbg/fadroma';
+import { Test, Temp, joined, Log, } from '../index.ts';
 import { Simplicity } from './simf.ts';
 import { Btc } from './btc.ts';
 const { the, is, has, includes, equals, } = Test;

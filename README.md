@@ -9,8 +9,8 @@ Cross-chain application framework with a vengeance.
 The recommended way to use Fadroma is the project
 configurator at [https://fadroma.tech](https://fadroma.tech).
 
-It will serve you an empty project scaffold
-that will include a snapshot of the Fadroma libraries.
+It will include a snapshot of the Fadroma libraries
+as part of an empty project scaffold.
 
 ### Add to Deno
 

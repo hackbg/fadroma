@@ -9,4 +9,3 @@ export * from './context/tcp.ts';
 export * as DOM from './context/dom.ts';
 export * as TUI from './context/tui.ts';
 export * as Test from './context/tester.ts';
-export * as Watch from './context/watch.ts';

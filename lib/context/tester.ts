@@ -138,7 +138,9 @@ function testReport ({ context, details = [] }) {
       details.push(['\n 🔴', ANSI.red(label), message].join(' '));
       thrown.add(threw);
       details.push(stack.replace(message).split('\n')
-        .map((x: string)=>x.trim()).map(alignTrace).join('\n '));
+        .map((x: string)=>x.trim())
+        .filter((x: string)=>!(x.includes('(ext:')||x.includes(' (node:')))
+        .map(alignTrace).join('\n '));
     }
   }
   for (const name of categories) {
@@ -354,7 +356,10 @@ export function has <T extends Testing, X> (...args: unknown[]):
       // partial equal
       const name = `MUST match "${inspect(args[0])}"`;
       return toString(`[${name}]`)(Name(name, function testHasProperties (object: object) {
-        for (const [k, expected] of Object.entries(args[0])) equal(object[k], expected, `not equal: k`);
+        for (const [k, expected] of Object.entries(args[0])) {
+          const actual = object[k]
+          equal(actual, expected, `${k} = ${inspect(actual)} != ${inspect(expected)}`);
+        }
         return object;
       })) as Step<T, unknown>;
     };

@@ -5,9 +5,9 @@ import { execImpl, spawnImpl } from '../deps.ts';
 export default suite(import.meta, 'Service',
   the('Container', 'Pull', 'Run', 'Kill', 'Build'),
   the('Exec', () => Exec('true', 'foo', Env('ENV', 1)),
-    has({ argv: ['true', 'foo'], env: { ENV: 1 } }),
+    has({ command: 'true', options: ['foo'] }),
     exec => exec({ exec: execImpl })),
   the('Spawn', () => Spawn('true', 'foo', Env('ENV', 2)),
-    has({ argv: ['true', 'foo'], env: { ENV: 2 } }),
+    has({ daemon: 'true', options: ['foo'] }),
     spawn => spawn({ pids: {}, spawn: spawnImpl }),
     has('argv'), has('env'), has('pid')));

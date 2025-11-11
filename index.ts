@@ -1,1 +1,1 @@
-export * from './lib/index.ts';
+export * as Fadroma from './lib/index.ts';
