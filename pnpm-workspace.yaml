@@ -1,5 +1,2 @@
 packages:
   - .
-  - ./@hackbg/fadroma
-  - ./@hackbg/toolbox/borshest
-  - ./@fadroma/*

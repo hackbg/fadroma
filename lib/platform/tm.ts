@@ -1,0 +1,758 @@
+/** Fadroma. Copyright (C) 2023-2025 Hack.bg. License: GNU AGPLv3 or custom.
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>. **/
+import type {
+  Context, Block, Coin, Fee,
+  Fungible, TokenApi, Token, Chain, ChainOptions,
+  Api, TryToParse, BlockResponse, BlockResults, BlockResultsResponse,
+  TokenAmount,
+} from '../index.ts';
+import type { Address, Hash, Uint128, Height, ChainContext, ToApi,
+  BaseApi, BaseBatch, BaseBlock, BaseChain, BaseConnection, BaseTransaction,
+} from '../deps.ts';
+import {
+  randomId, base16, base64, uint32, camelize, baseChain, tryToParse
+} from '../deps.ts';
+const BaseError = globalThis.Error;
+/** A Tendermint error .*/
+export class Error extends BaseError {
+  static TODO = (...args: string[]) => {
+    throw new this(['TODO', ...args].join(' '), { todo: true })
+  }
+  constructor (message: string, ...args: object[]) {
+    super(message);
+    Object.assign(this, ...args);
+  }
+}
+
+/** Describe a Tendermint chain. */
+export const chain = ({ ...options }: Partial<Chain> & ChainOptions, api = impl): Chain =>
+  baseChain(options, api) as Chain;
+
+/** Fetch a block from a Tendermint chain, optionally with block results. */
+export const read = (api: Context, {
+  fetchAndTryToParseBlockResponse =
+    async (api: Context, options?: { height?: Height, hash?: string }):
+      Promise<[string, TryToParse<string, BlockResponse>]> => {
+        if (!api.url) throw new Error("missing connection URL: can't fetch block")
+        const { height, hash } = options || {}
+        if (hash) throw new Error("can't fetch block by hash yet")
+        if (height && isNaN(Number(height))) throw new Error(`invalid height requested: ${height}`)
+        const url = `${api.url}/block?height=${height??''}`
+        const response = await fetch(url).then(r=>r.text())
+        return [url, tryToParse(response)] },
+  fetchAndTryToParseResultsResponse =
+    async (api: Context, options?: { height?: Height }):
+      Promise<[string, TryToParse<string, BlockResultsResponse>]> => {
+        if (!api.url) throw new Error("missing connection URL: can't fetch block results")
+        const { height } = options || {}
+        const url = `${api.url}/block_results?height=${height??''}`
+        const response = await fetch(url).then(r=>r.text())
+        return [url, tryToParse(response)] }
+} = {}) => ({
+
+  async block (options?: {
+    height?: Height, hash?: string, results?: boolean, raw?: boolean
+  }): Promise<Block> {
+    const [
+      [blockUrl,   [blockText,   block,   blockError  ]],
+      [resultsUrl, [resultsText, results, resultsError]]=[undefined, []]
+    ] = await Promise.all((options?.results)
+      ?[fetchAndTryToParseBlockResponse(api, options), fetchAndTryToParseResultsResponse(api, options)]
+      :[fetchAndTryToParseBlockResponse(api, options)])
+    if (blockError) {
+      api.log.error('failed to decode block:', blockError)
+      if (!options?.raw) throw new Error('failed to decode block', { reason: blockError })
+    }
+    if ('error' in block!) {
+      api.log.error('block error:', blockError)
+      if (!options?.raw) throw new Error('fetched block error', { reason: block.error })
+    }
+    if (options?.results) {
+      if (resultsError) {
+        api.log.error('failed to decode block results:', resultsError)
+        if (!options?.raw) throw new Error('failed to decode block results', { reason: resultsError })
+      }
+      if ('error' in results!) {
+        api.log.error('results error:', resultsError)
+        if (!options?.raw) throw new Error('fetched results error', { reason: results.error })
+      }
+    }
+    return {
+      chain:        api.chain(),
+      id:           block!.result!.block_id.hash,
+      height:       block!.result!.block.header.height,
+      header:       block!.result!.block.header,
+      transactions: block!.result!.block.data.txs,
+      results:      options?.results ? camelize(results!.result!) : undefined,
+      responses:    options?.raw     ? {
+        block:   { url: blockUrl,   data: blockText   },
+        results: { url: resultsUrl, data: resultsText },
+      } : undefined
+    } as Block
+  },
+
+
+  /** Fetch just the results of a Tendermint block. */
+  async blockResults (options?: {
+    height?: Height, raw?: boolean
+  }): Promise<BlockResults> {
+    const [_, [resultsText, results, resultsError]] =
+      await fetchAndTryToParseResultsResponse(api, options)
+    if (resultsError) {
+      api.log.error('failed to decode block results:', resultsError)
+      if (!options?.raw) throw new Error('failed to decode block results', { reason: resultsError })
+    }
+    if ('error' in results!) {
+      api.log.error('results error:', resultsError)
+      if (!options?.raw) throw new Error('results error', { reason: results.error })
+    }
+    return Object.assign(camelize(results!.result!) as unknown as BlockResults, {
+      raw: options?.raw ? resultsText : undefined
+    })
+  },
+
+  async abciInfo (_api: Context) { Error.TODO('fetchAbciInfo') },
+
+  async abciQuery (api: Context, path: string, options?: {
+    data?: Uint8Array, height?: Height, prove?: boolean
+  }): Promise<{
+    readonly key:       Uint8Array|null
+    readonly value:     Uint8Array|null
+    readonly codespace: string
+    readonly info:      string
+    readonly proof?:    Array<{ type: string, key: Uint8Array, data: Uint8Array }>
+    readonly height?:   number
+    readonly index?:    number
+    readonly code?:     number // non-falsy for errors
+    readonly log?:      string
+  }> {
+    if (!api.url) throw new Error('fetchAbciQuery: no api url')
+    if (!path) throw new Error('fetchAbciQuery: no path')
+    const data     = options?.data || new Uint8Array()
+    const params   = {path, data: base16.encode(data), prove: options?.prove ?? false, height: options?.height}
+    const message  = {jsonrpc: '2.0', id: randomId(), method: 'abci_query', params}
+    const headers  = {'Content-Type': 'application/json'}
+    const body     = JSON.stringify(message)
+    api.log.debug('fetchAbciQuery:', body)
+    const request  = await fetch(api.url, {method: 'POST', body, headers})
+    const json     = await request.json()
+    const { result: { response }, error } = json
+    if (error) {
+      api.log.error('fetchAbciQuery error:', error)
+      throw new Error('fetchAbciQueryError', { error })
+    }
+    if (typeof response.key   === 'string') response.key   = base64.decode(response.key)
+    if (typeof response.value === 'string') response.value = base64.decode(response.value)
+    return response
+  },
+
+  async blockSearch (_query: string, _parameters: { page?: number, perPage?: number, orderBy?: string }) { return Error.TODO('fetchBlockSearch') },
+  async blockchain (_parameters: { min?: Height, max?: Height }) { return Error.TODO('fetchBlockchain') },
+  async commit (_height: Height) { return Error.TODO('fetchCommit') },
+  async genesis () { return Error.TODO('fetchGenesis') },
+  async health () { return Error.TODO('fetchHealth') },
+  async numUnconfirmedTxs () { return Error.TODO('fetchNumUnconfirmedTxs') },
+  async status () { return Error.TODO('fetchStatus') },
+  async tx () { return Error.TODO('fetchTx') },
+  async txSearch () { return Error.TODO('fetchTxSearch') }
+});
+
+export const subscribe = async (_api: Context, _subscribeTo: 'block'|'header'|{query: string}) =>
+  Error.TODO('subscribe')
+
+export const broadcastTx = async (_api: Context, _method: 'sync'|'async'|'commit', _tx: Uint8Array) =>
+  Error.TODO('broadcastTx')
+
+export const fetchBalance = (...args: unknown[]) =>
+  Error.TODO('tendermint fetch native balance')
+
+export const send = (...args: unknown[]) =>
+  Error.TODO('tendermint native send')
+
+//import type { Address } from '../deps.ts'
+//import { optionallyParallel } from '../deps.ts'
+
+//export function fetchBalance (chain: Chain, ...args: Parameters<Chain["fetchBalance"]>) {
+  //const requests: Record<Address, string[]> = {}
+  //if (args[0] && !(args[0] instanceof Array)) {
+    //args[0] = [args[0]]
+  //}
+  //if (args[0]) {
+    //for (const address of args[0] as Address[]) {
+      //requests[address] ??= []
+      //if (args[1] as any instanceof Array) {
+        //for (const token of args[1]!) {
+          //requests[address].push(token)
+        //}
+      //} else if (args[1]) {
+        //requests[address].push(args[1])
+      //}
+    //}
+  //}
+  //return fetchBalanceImpl(chain.getConnection(), {
+    //addresses: requests
+  //})
+//}
+
+//export async function fetchBalanceImpl (chain: CWConnection, {
+  //parallel = false,
+  //addresses,
+//}: Parameters<Connection["fetchBalanceImpl"]>[0]) {
+  //const queries = []
+  //for (const [address, tokens] of Object.entries(addresses)) {
+    //for (const token of tokens) {
+      //queries.push(()=>chain.api.getBalance(address, token).then(balance=>({
+        //address, token, balance
+      //})))
+    //}
+  //}
+  //const result: Record<Address, Record<string, string>> = {}
+  //const responses = await optionallyParallel(parallel, queries)
+  //for (const { address, token, balance } of responses) {
+    //result[address] ??= {}
+    //result[address][token] = balance.amount
+  //}
+  //return result
+//}
+
+  ////[>* Get balance of current identity in main token. <]
+  ////get balance () {
+    ////if (!chain.identity?.address) {
+      ////throw new Error('not authenticated, use .getBalance(token, address)')
+    ////} else if (!chain.defaultDenom) {
+      ////throw new Error('no default token for chain chain, use .getBalance(token, address)')
+    ////} else {
+      ////return chain.getBalanceOf(chain.identity.address)
+    ////}
+  ////}
+  /** Get the balance in a native token of a given address,
+    * either in chain connection's gas token,
+    * or in another given token. */
+  ////getBalanceOf (address: Address|{ address: Address }, token?: string) {
+    ////if (!address) {
+      ////throw new Error('pass (address, token?) to getBalanceOf')
+    ////}
+    ////token ??= chain.defaultDenom
+    ////if (!token) {
+      ////throw new Error('no token for balance query')
+    ////}
+    ////const addr = (typeof address === 'string') ? address : address.address
+    ////if (addr === chain.identity?.address) {
+      ////chain.log.debug('Querying', bold(token), 'balance')
+    ////} else {
+      ////chain.log.debug('Querying', bold(token), 'balance of', bold(addr))
+    ////}
+    ////return timed(
+      ////chain.doGetBalance.bind(chain, token, addr),
+      ////({ elapsed, result }) => chain.log.debug(
+        ////`Queried in ${elapsed}s: ${bold(address)} has ${bold(result)} ${token}`
+      ////)
+    ////)
+  ////}
+  /** Get the balance in a given native token, of
+    * either chain connection's identity's address,
+    * or of another given address. */
+  ////getBalanceIn (token: string, address?: Address|{ address: Address }) {
+    ////if (!token) {
+      ////throw new Error('pass (token, address?) to getBalanceIn')
+    ////}
+    ////address ??= chain.identity?.address
+    ////if (!address) {
+      ////throw new Error('no address for balance query')
+    ////}
+    ////const addr = (typeof address === 'string') ? address : address.address
+    ////if (addr === chain.identity?.address) {
+      ////chain.log.debug('Querying', bold(token), 'balance')
+    ////} else {
+      ////chain.log.debug('Querying', bold(token), 'balance of', bold(addr))
+    ////}
+    ////return timed(
+      ////chain.doGetBalance.bind(chain, token, addr),
+      ////({ elapsed, result }) => chain.log.debug(
+        ////`Queried in ${elapsed}s: balance of ${bold(address)} is ${bold(result)}`
+      ////)
+    ////)
+  ////}
+  ////[>* Fetch balance of 1 or many addresses in 1 or many native tokens. <]
+  ////fetchBalance (address: Address, token: string):
+    ////Promise<Uint128>
+  ////fetchBalance (address: Address, tokens?: string[]):
+    ////Promise<Record<string, Uint128>>
+  ////fetchBalance (addresses: Address[], token: string):
+    ////Promise<Record<Address, Uint128>>
+  ////fetchBalance (addresses: Address[], tokens?: string):
+    ////Promise<Record<Address, Record<string, Uint128>>>
+  ////async fetchBalance (...args: unknown[]): Promise<unknown> {
+    ////return fetchBalance(this, ...args as Parameters<Chain["fetchBalance"]>)
+  ////}
+////}
+
+  ////abstract fetchBalanceImpl (parameters: {
+    ////addresses: Record<Address, string[]>,
+    ////parallel?: boolean
+  ////}): Promise<Record<Address, Record<string, Uint128>>>
+//import type { Address } from '../deps.ts'
+//import { optionallyParallel } from '../deps.ts'
+
+//[>* Send one or more kinds of native tokens to one or more recipients. <]
+//export async function send (
+  //outputs:  Record<Address, Record<string, Uint128>>,
+  //options?: Omit<Parameters<SigningConnection["sendImpl"]>[0],
+    //'outputs'>
+//): Promise<unknown> {
+  //return send(this, outputs, options)
+//}
+
+
+//export async function send2 (agent: Agent, ...args: Parameters<Agent["send"]>) {
+  //const [outputs, options] = args
+  //for (const [recipient, amounts] of Object.entries(outputs)) {
+    //agent.log.debug(`Sending to ${bold(recipient)}:`)
+    //for (const [token, amount] of Object.entries(amounts)) {
+      //agent.log.debug(`  ${amount} ${token}`)
+    //}
+  //}
+  //return await timed(
+    //()=>sendImpl(agent.getConnection(), {
+      //...options||{},
+      //outputs
+    //}),
+    //({elapsed})=>`Sent in ${bold(elapsed)}`
+  //)
+//}
+
+//export async function sendImpl (agent: CWSigningConnection, {
+  //parallel = false,
+  //outputs,
+  //sendFee,
+  //sendMemo,
+//}: Parameters<SigningConnection["sendImpl"]>[0]) {
+  //const sender = agent.address
+  //const transactions = []
+  //for (const [recipient, amounts] of Object.entries(outputs)) {
+    //transactions.push(()=>agent.api.sendTokens(
+      //sender,
+      //recipient,
+      //Object.entries(amounts).map(([denom, amount])=>({amount, denom})),
+      //sendFee || 'auto',
+      //sendMemo
+    //).then(transaction=>({
+      //sender, recipient, amounts, transaction
+    //})))
+  //}
+  //const result: Record<Address, {
+    //sender:      Address,
+    //recipient:   Address,
+    //amounts:     Record<string, string>
+    //transaction: unknown
+  //}> = {}
+  //const responses = await optionallyParallel(parallel, transactions)
+  //for (const response of responses) {
+    //result[response.recipient] = response
+  //}
+  //return result
+//}
+/** A Namada validator. */
+export interface Validator {
+  address?: Address,
+  publicKey?: Hash,
+  votingPower: bigint,
+  proposerPriority: bigint
+}
+export type FetchValidatorOptions = {
+  height?: Height,
+  details?: boolean,
+  pagination?: [number, number],
+}
+
+export const byVotingPowerDesc = (a: Validator, b: Validator)=>(
+  (a.votingPower < b.votingPower) ?  1 :
+  (a.votingPower > b.votingPower) ? -1 : 0
+)
+
+/** Convert to coin. */
+export const makeCoin = (amount: Uint128, denom: string): Coin => ({ amount: String(amount), denom })
+
+/** Convert to fee. */
+export const makeFee = (gas: Uint128, amount: Coin[]): Fee => ({ gas: String(gas), amount })
+
+export const makeToken = <T extends Token> (t: T): T & TokenApi => {
+  const token: any = { ...t }
+  if ('fungible' in token && token.fungible) {
+    const amount = (x: Uint128) => makeTokenAmount(x, token as unknown as Fungible)
+    const fee    = (x: Uint128) => makeTokenAmount(x, token as unknown as Fungible).asFee(x)
+    Object.assign(token, { amount, fee })
+  }
+  return token as T & TokenApi
+}
+
+export const makeTokenAmount = (a: Uint128, t: Fungible): TokenAmount => {
+  a = String(a)
+  t = makeToken(t)
+  return {
+    get amount () { return a },
+    get token  () { return t },
+    get denom  (): string|undefined { return ('denom' in t) ? t.denom as string : undefined },
+    get asNativeBalance (): Coin[] { return [this.asCoin] },
+    get asCoin (): Coin {
+      if ('denom' in t) return makeCoin(a, t.denom as string)
+      throw new Error('not a native token')
+    },
+    asFee (gas: Uint128): Fee {
+      if ('denom' in t) return makeFee(gas, this.asNativeBalance)
+      throw new Error('not a native token')
+    },
+    toString () { return `${a} ${t.id}` },
+  }
+}
+
+//const writeVarint32 = (val: number, buf: Uint8Array, pos: number) => {
+    //while (val > 127) {
+        //buf[pos++] = val & 127 | 128;
+        //val >>>= 7;
+    //}
+    //buf[pos] = val;
+//}
+
+export async function fetchValidators <V extends Validator> (
+  api: Api & Context, options?: FetchValidatorOptions
+): Promise<[V[], number, number]> {
+  if (!api.url) throw new Error('fetchValidators: no api url')
+  const { height, pagination: [page, per_page] = [], details } = options || {}
+  const params  = {height, page: String(page||1), per_page: String(per_page||10)}
+  const message = {jsonrpc: '2.0', id: randomId(), method: 'validators', params}
+  const headers = {'Content-Type': 'application/json'}
+  const body    = JSON.stringify(message)
+  api.log.debug('fetchValidators:', body)
+  const request = await fetch(api.url, {method: 'POST', body, headers})
+  const json    = await request.json()
+  const { result, error } = json
+  if (error) {
+    api.log.error('fetchValidators error:', error)
+    throw new Error('fetchValidatorsError', { error })
+  }
+  // Sort validators by voting power in descending order.
+  const validators = [...result.validators].sort(byVotingPowerDesc)
+  // Fetch more validator details if requested. TODO parallel.
+  if (details) {
+    // FIXME: Which chains respond to this ABCI query? It's from Stargate
+    for (const validator of validators) {
+      const details = await api.fetchAbciQuery('/cosmos.staking.v1beta1.Query/Validator', { data: new Uint8Array([
+        ...new Uint8Array(uint32.fixedEncoder(10).bytes),
+        ...new Uint8Array(uint32.fixedEncoder(validator.address.length).bytes),
+        ...new TextEncoder().encode(validator.address)
+      ]) })
+      throw {validator, details}
+    }
+  }
+  return [validators, result.count, result.total]
+  //let response
+  //if (pagination && (pagination as Array<number>).length !== 0) {
+    //if (pagination.length !== 2) {
+      //throw new Error("pagination format: [page, per_page]")
+    //}
+    //response = await tendermintClient!.validators({
+      //page:     pagination[0],
+      //per_page: pagination[1],
+    //})
+  //} else {
+    //response = await tendermintClient!.validatorsAll()
+  //}
+}
+
+export * from './types.ts';
+import type { Id, Identified, Name } from './deps.ts';
+/** An address on a chain. */
+export type Address = string;
+/** A chain's unique ID. */
+export type ChainId = string;
+/** Reference to chain by id. */
+export type ChainRef = Identified<ChainId>;
+/** A chain's full representation. */
+export type Chain = ChainRef & Context & Api &
+  { connect: (url?: string|URL)=>Connection };
+/** Represents the backend of a managed chain (such as a devnet). */
+export type ChainBackend = Logger<ChainId, Console> & {
+  connect   ():                 Promise<Chain>
+  connect   (name: string):     Promise<Agent>
+  connect   (identity: Signer): Promise<Agent>
+  getSigner (name: string):     Promise<Signer>
+  /** For providing initial balances. */
+  gasToken: string
+};
+/** Represents an individual remote API endpoint. */
+export type Connection = ChainRef & Context & Api & { url?: string|URL };
+/** Block height. */
+export type Height = number|bigint;
+/** Global unit of event time. Contains zero or more transactions. */
+export type Block = Identified<string> &
+  { chain: ChainRef, height: Height, header: unknown, transactions: Transaction[] };
+/** A transaction in a block on a chain. */
+export type Transaction = Identified<Hash> & { chain: ChainRef, block: Height, data: unknown };
+/** A batch of transactions. */
+export interface Batch {
+  /** Add a transaction to the batch. */
+  add (tx: unknown): this
+  /** Submit the batch. */
+  submit (agent: Agent): Promise<unknown>
+}
+/** Dependencies of chain API methods. */
+export type Context = Logger<ChainId, Console> & {
+  /** The connection URL. */
+  url?: URL|string
+  /** Whether the connection is active. */
+  live: boolean
+  /** Return a descriptior for this chain. */
+  chain (): ChainRef
+}
+/** Chain API methods. */
+export type Api = {
+  /** Fetch defails about a block. */
+  fetchBlock (options?: {
+    /** Fetch by height. Otherwise fetches latest. */
+    height?:  Height,
+    /** Fetch by hash or confirm hash when fetching by height. */
+    hash?:    Hash,
+    /** Fetch block results, too? */
+    results?: boolean
+    /** Keep the raw responses? */
+    raw?: boolean
+  }): Promise<Block>
+  /** Fetch the block data after the height increments. */
+  fetchNextBlock (interval?: number): Promise<Block>
+  /** Fetch the current block height. */
+  fetchHeight (): Promise<Height>
+  /** Fetch the block after it increments. */
+  fetchNextHeight (interval?: number): Promise<Height>
+}
+/** A cryptographic identity. */
+export type Signer = { publicKey?: Hash, sign (_: unknown): unknown };
+/** Binds a `Signer` to a `Chain`, enabling broadcasting of transactions. */
+export type Agent = Signer & AgentApi & Logger<Hash, Console> &
+  { chain: () => ChainRef, batch: () => Batch, address: Address, };
+export type AgentApi =
+  { fetchBalance (): Promise<Record<string, Uint128>> };
+export type Context = unknown;
+type ChainApiOptions = { interval?: number, log?: Console }// = 1000, log = api.log ?? logger() }
+
+/** Describe a chain. */
+export const chain = (id: string, url: string|URL, {
+  live = true,
+  name = id || 'chain',
+  log  = logger({ name }),
+  api  = impl,
+}): Chain => bindMethods(api)({
+  id, live, name, log, api,
+  connect: (to: string|URL = url) => connection(chain, api, to)
+});
+/** Describe a connection to a given `chain` by a given `url` */
+export const connection = <C extends Connection> (
+  chain: Chain, api = impl, url?: string|URL
+): C => bindMethods(api)({
+  ...chain, url, log: logger({ name: `${chain.name}[${url?.toString()||'(disconnected)'}]` })
+});
+//export const impl: Impl<Api, Context & Api> = {
+  //fetchBlock (_, __) { throw new Error('base fetchBlock is not implemented') },
+  //fetchNextBlock,
+  //fetchHeight,
+  //fetchNextHeight,
+//};
+const fetch = (api: Api, options?: ChainApiOptions) => ({
+  height:     () => fetch(api).block().then(({height})=>BigInt(height)),
+  nextHeight: () => fetch(api).nextBlock(options?.interval).then(({height})=>BigInt(height)),
+  nextBlock:  () => fetch(api).height().then((start: number) => {
+    //options?.log?.log.waitingForNextBlock(start, options.interval)
+    //const t0 = performance.now()
+    return new Promise(async (resolve, reject)=>{ try {
+      const connection = api
+      while (connection.live) {
+        const block = await api.fetchBlock()
+        if (block.height > start) {
+          //const t1 = performance.now();
+          //options?.log?.log.waitingForNextBlock(start, options?.interval,
+            //`@${(t1-t0)}ms: ${bold(String(block.height))}, proceeding`)
+          return resolve(block)
+        } else {
+          await new Promise(ok=>setTimeout(ok, options?.interval))
+          //const t2 = performance.now();
+          //options?.log?.log.waitingForNextBlock(start, options?.interval, `+${(t2-t0)}ms`)
+        }
+      }
+      throw new Error('endpoint dead, not waiting for next block')
+    } catch (e) {
+      reject(e)
+    } })
+  }),
+});
+
+/** Dependencies of Tendermint API methods. */
+export type Context        = ChainContext;
+/** Methods available for interacting with Tendermint chains. */
+export type Api            = BaseApi; // & ToApi<typeof impl>;
+/** Chain global configuration pertinent to Tendermint-based chains only. */
+export type ChainOptions   = { bech32Prefix?:   string
+                             , coinType?:       string
+                             , hdAccountIndex?: string };
+/** A Tendermint chain. */
+export type Chain          = BaseChain & Api & ChainOptions;
+/** A Tendermint connection. */
+export type Connection     = BaseConnection & Api & ChainOptions;
+/** A Tendermint transaction. */
+export type Transaction    = BaseTransaction;
+/** A batch of Tendermint transactions. */
+export type Batch          = BaseBatch;
+
+/** A pair of equivalent things. */
+export type Pair<T>        = [T, T];
+/** Reverse a pair. */
+export const reverse       = <T> (pair: Pair<T>): Pair<T> => [pair[1], pair[0]];
+
+/** A Tendermint block. */
+export type Block          = { /** Block header. */
+                               header?:       BlockHeader
+                             , /** Transaction in block. */
+                               transactions?: Transaction[]
+                             , /** Results of block. */
+                               results?:      BlockResults
+                             , /** The raw responses from /block and /block_results. */
+                               responses?:    BlockResponses } & BaseBlock;
+
+/** The results section of a Tendermint block. */
+export type BlockResults   = { height:                string
+                             , beginBlockEvents:      null|unknown[]
+                             , endBlockEvents:        null|EndBlockEvent[]
+                             , validatorUpdates:      null|unknown[]
+                             , consensusParamUpdates: null|unknown[]
+                             , txsResults:            null|Array<TxResult>
+                             , raw?:                  BlockResultsResponse };
+
+/** A Tendermint transaction result. */
+export type TxResult       = { code:       number
+                             , data:       unknown|null
+                             , log:        string
+                             , info:       string
+                             , gas_wanted: string
+                             , gas_used:   string
+                             , events:     unknown[]
+                             , codespace:  string };
+
+/** Events that occur at ends of blocks. */
+export type EndBlockEvent  = { type:       string
+                             , attributes: Array<{ key:   string
+                                                 , value: string
+                                                 , index: boolean, }> };
+
+/** A Tendermint block header. */
+export type BlockHeader    = { version:            object
+                             , chainId:            string
+                             , height:             Height
+                             , time:               string
+                             , lastBlockId:        string
+                             , lastCommitHash:     string
+                             , dataHash:           string
+                             , validatorsHash:     string
+                             , nextValidatorsHash: string
+                             , consensusHash:      string
+                             , appHash:            string
+                             , lastResultsHash:    string
+                             , evidenceHash:       string
+                             , proposerAddress:    string };
+
+/** The raw responses from /block and /block_results. */
+export type BlockResponses = { block?:   JsonRpcResponse
+                             , results?: JsonRpcResponse };
+
+/** A valid JSON-RPC v2 response, which may be a result or an error. */
+export type JsonRpcResponse<R = unknown> =
+                             { jsonrpc: string
+                               , id:      number
+                               , result?: R
+                               , error?:  { data: string } };
+
+/** The parsed response from the /block endpoint. */
+export type BlockResponse  = JsonRpcResponse<
+                             { block_id: BlockId
+                             , block:
+                               { header:      BlockHeader
+                               , data:        { txs: Transaction[] }
+                               , evidence:    { evidence: unknown[] }
+                               , last_commit: { height: string
+                                              , round: number
+                                              , block_id: BlockId
+                                              , signatures: unknown[] } } }>;
+
+/** A Tendermint block ID. */
+export type BlockId        = { hash: Hash, parts?: { total: number, hash: Hash } };
+
+/** The parsed response from the /block_results endpoint. */
+export type BlockResultsResponse = JsonRpcResponse<
+                             { height:                  string
+                             , txs_results:             unknown[]|null
+                             , begin_block_events:      unknown[]|null
+                             , end_block_events:        unknown[]|null
+                             , validator_updated:       unknown[]|null
+                             , consensus_param_updates: unknown[]|null }>;
+
+export type BankApi = { fetchBalance: FetchBalance, send: Send }
+
+/** Represents some amount of native token. */
+export type Coin           = { amount: string, denom: string };
+/** A gas fee, payable in native tokens. */
+export type Fee            = { gas: Uint128, amount: Coin[] };
+/** A mapping of transaction type to default fee in one or more tokens. */
+export type FeeMap<T extends string> = { [key in T]: Fee };
+
+/** A pair of tokens. */
+export type TokenPair      = Pair<Token>;
+export type Token          = { id: string };
+export type NativeToken    = Token & { denom: string };
+export type CustomToken    = Token & { address: Address, codeHash?: string };
+export type Fungible       = Token & { fungible: true };
+export type NonFungible    = Token & { fungible: false };
+export type TokenApi       = { amount: (amount: Uint128) => TokenAmount
+                             , fee:    (gas: Uint128)    => Fee };
+
+/** A swap. */
+export type Swap           = Pair<SwapSide>;
+/** One side of a swap may contain one or more FT amounts or NFTs. */
+export type SwapSide       = TokenAmount|NonFungible|Array<(TokenAmount|NonFungible)>;
+
+/** An amount of a fungible token. */
+export type TokenAmount    = { token:  Fungible
+                             , amount: Uint128
+                             , denom:  string|undefined
+                             , asCoin: Coin
+                             , asNativeBalance: Coin[]
+                             , asFee (gas: Uint128): Fee
+                             , toString (): string };
+
+export type FetchBalance =
+  & ((address: Address, token: string) => Promise<Uint128>)
+  & ((address: Address, tokens?: string[]) => Promise<Record<string, Uint128>>)
+  & ((addresses: Address[], token: string) => Promise<Record<Address, Uint128>>)
+  & ((addresses: Address[], tokens?: string) => Promise<Record<Address, Record<string, Uint128>>>)
+
+export type SendOptions    = { outputs:   Record<Address, Record<string, Uint128>>
+                             , sendFee?:  Fee
+                             , sendMemo?: string
+                             , parallel?: boolean };
+
+export type Send =
+  & ((outputs: Record<Address, Record<string, Uint128>>, options?: SendOptions)=>Promise<unknown>)
+
+/** The current state of a Tendermint governance proposal. */
+export type Prop           = { id:     PropId
+                             , votes:  Vote[]
+                             , result: PropResult };
+/** The number of a Tendermint governance proposal. */
+export type PropId         = bigint;
+/** The result of a Tendermint governance proposal. */
+export type PropResult     = 'Pass'|'Fail';
+/** The value of a Tendermint governance vote. */
+export type VoteValue      = 'Yay'|'Nay'|'Abstain';
+/** A Tendermint governance vote. */
+export type Vote           = { proposal: PropId
+                             , voter:    Address
+                             , power:    bigint
+                             , value:    VoteValue };

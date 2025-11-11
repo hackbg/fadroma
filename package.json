@@ -1,21 +1,31 @@
 {
-  "name": "@hackbg/fadroma-workspace",
-  "private": true,
+  "name": "@hackbg/fadroma",
+  "version": "3.0.0",
+  "type": "module",
+  "main": "index.ts",
   "devDependencies": {
-    "@hackbg/fadroma": "workspace:*",
-    "@fadroma/btc":    "workspace:*",
-    "@fadroma/simf":   "workspace:*",
-
     "@noble/curves":    "^2.0.1",
     "@noble/ed25519":   "^3.0.0",
     "@noble/hashes":    "^2.0.1",
     "@noble/secp256k1": "^3.0.0",
-
-    "@scure/base":  "^2",
-    "@scure/bip32": "^2.0.1",
-    "@scure/bip39": "^2.0.1",
-
-    "@types/deno": "^2.5.0",
-    "typedoc":     "^0.28.14"
+    "@scure/base":      "^2",
+    "@scure/base":      "^2",
+    "@scure/bip32":     "^2.0.1",
+    "@scure/bip39":     "^2.0.1",
+    "@types/deno":      "^2.5.0",
+    "bitcoinjs-lib":    "^7.0.0",
+    "browser-level":    "^3.0.0",
+    "case":             "^1.6.3",
+    "indexd":           "^0.9.1",
+    "log-update":       "^7.0.1",
+    "protobuf-varint":  "^1",
+    "tsx":              "*",
+    "typedoc":          "^0.28.14"
+  },
+  "scripts": {
+    "test":     "tsx ./test.ts",
+    "check":    "deno check",
+    "doc:type": "typedoc --darkHighlightTheme everforest-dark --cleanOutputDir --groupReferencesByType --useFirstParagraphOfCommentAsSummary index.ts",
+    "doc:deno": "deno doc --html index.ts"
   }
 }

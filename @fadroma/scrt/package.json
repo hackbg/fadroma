@@ -1,6 +1,0 @@
-{ "name": "@fadroma/scrt",
-  "type": "module",
-  "main": "index.ts",
-  "dependencies": { "@hackbg/fadroma": "workspace:*" },
-  "peerDependencies": { "@fadroma/tm": "workspace:*"
-                      , "@fadroma/cw": "workspace:*" } }

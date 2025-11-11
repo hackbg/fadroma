@@ -1,3 +1,4 @@
-#!/usr/bin/env -S deno run --allow-read --allow-run --allow-env --allow-import
-import { Watch as $ } from '@hackbg/fadroma';
-export default $.entrypoint(import.meta, $.typecheck);
+#!/usr/bin/env -S deno run --allow-run --allow-env --allow-import --allow-read --allow-write=/tmp/fadroma
+import { Watch } from './lib/index.ts';
+export default Watch.entrypoint(
+  import.meta, Watch.typecheck, 'lib/index.ts');

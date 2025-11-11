@@ -1,4 +1,0 @@
-{ "name": "@fadroma/dlt"
-, "type": "module"
-, "main": "index.ts"
-, "dependencies": { "@hackbg/fadroma": "workspace:*" } }
