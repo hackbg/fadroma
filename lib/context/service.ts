@@ -11,18 +11,46 @@ export type Service = Dir & Ports<number> & {
   kill: Fn<[], Async>;
 };
 /** Command invocation that returns a result. */
-export type Exec =
-  Fn<[Partial<Dir & { exec?: typeof execImpl }>], Async<Run & {
-    pid?:    number,
-    status?: number|null,
-    signal?: string|null,
-    error?:  Error,
-    stdout?: string|unknown,
-    stderr?: string|unknown,
-  }>>;
+export type Exec = Fn<[Partial<Dir & { exec?: typeof execImpl }>], Async<Run & {
+  pid?:    number,
+  status?: number|null,
+  signal?: string|null,
+  error?:  Error,
+  stdout?: string|unknown,
+  stderr?: string|unknown,
+}>>;
+/** Run a command and wait for result. */
+export function Exec (
+  command: string, ...options: (Step<Run>|string)[]
+): Exec {
+  return Name(`Exec(${command})`, async function exec (context?: {
+    dir?: string, exec?: typeof execImpl,
+  }): Promise<Run> {
+    context ??= {};
+    context.dir ??= getCwd();
+    context.exec ??= execImpl;
+    const { argv, env } = Run(command, ...options);
+    const [ cmd, ...args ] = argv;
+    const opts = { env, cwd: context?.dir ?? getCwd() }
+    return { argv, env, ...await context.exec(cmd, args, opts) };
+  }, { command, options });
+}
 /** Command invocation that spawns a background process. */
-export type Spawn =
-  Fn<[Partial<Dir & { exec?: typeof execImpl }>], Async<Run & ChildProcess>>;
+export type Spawn = Fn<[Partial<Dir & { spawn?: typeof spawnImpl }>], Async<Run & ChildProcess>>;
+/** Run a background service. */
+export function Spawn (daemon: string, ...options: (Step<Run>|string)[]): Spawn {
+  return Name(`Spawn(${daemon})`, async function spawn (context?: {
+    dir?: string, spawn?: typeof spawnImpl
+  }): Promise<Run & ChildProcess> {
+    context ??= {};
+    context.dir ??= getCwd();
+    context.spawn ??= spawnImpl;
+    const { argv, env } = Run(daemon, ...options);
+    const [ cmd, ...args ] = argv;
+    const opts = { env, cwd: context?.dir ?? getCwd() }
+    return { argv, env, ...await context.spawn(cmd, args, opts) } as Run & ChildProcess;
+  }, { daemon, options });
+}
 /** Command invocation. */
 export type Run = { argv: string[], env?: Record<string, string> };
 /** Define a service. */
@@ -38,36 +66,6 @@ export function Service <S extends Service> (
     const kill = () => Promise.all(Object.values(ctx.pids).map(proc=>proc.kill()));
     return Object.assign(ctx, { kill, }) as unknown as S;
   }
-}
-/** Run a command and wait for result. */
-export function Exec (
-  command: string, ...options: (Step<Run>|string)[]
-): Exec {
-  return Name(`Exec(${command})`, async function exec (context?: {
-    dir?: string, exec?: typeof execImpl,
-  }) {
-    context ??= {};
-    context.dir ??= getCwd();
-    context.exec ??= execImpl;
-    const { argv, env } = Run(command, ...options);
-    const [ cmd, ...args ] = argv;
-    const opts = { env, cwd: context?.dir ?? getCwd() }
-    return { argv, env, ...await context.exec(cmd, args, opts) };
-  }, Run(command, ...options));
-}
-/** Run a background service. */
-export function Spawn (daemon: string, ...options: (Step<Run>|string)[]): Spawn {
-  return Name(`Spawn(${daemon})`, async function spawn (context?: {
-    dir?: string, spawn?: typeof spawnImpl
-  }) {
-    context ??= {};
-    context.dir ??= getCwd();
-    context.spawn ??= spawnImpl;
-    const { argv, env } = Run(daemon, ...options);
-    const [ cmd, ...args ] = argv;
-    const opts = { env, cwd: context?.dir ?? getCwd() }
-    return { argv, env, ...await context.spawn(cmd, args, opts) };
-  }, Run(daemon, ...options));
 }
 /** Set environment variable in run config. */
 export function Env (name: string, value: string|null) {

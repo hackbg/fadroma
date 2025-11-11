@@ -1,7 +1,7 @@
 import type { Meta } from '../index.ts';
 import type { ChildProcess } from '../deps.ts';
 import { Fn, wordWrap, msec, entrypoint as entry } from '../format.ts';
-import { orange, bold, gray, blue } from '../format/ansi.ts';
+import { orange, bold, gray, blue, yellow } from '../format/ansi.ts';
 import { getCwd, resolvePath, realpathSync, stdout, stderr, watchFs,
   execFile, stripVTControlCharacters, execImpl } from '../deps.ts';
 const RE = /(TS\d+)(.+)\n[\s\S]+? at (file:\/\/\/.+\n)/gm;
@@ -73,10 +73,11 @@ export async function watch (callback: Fn<[string, string[]]>, options: unknown[
 export async function typecheck (kind: string, paths: string[], args: unknown[] = []) {
   if (args.length === 0) args[0] = 'index.ts';
   try {
-    const ran = await execImpl('deno', ["check", "index.ts"]);
+    const ran = await execImpl('deno', ["check", "-I", "index.ts"]);
     console.clear();
-    console.log(kind, ...paths);
-    console.log({ran});
+    console.log(yellow('stdout:'), ran.stdout);
+    console.log(yellow('stderr:'), ran.stderr);
+    console.log('🟢 The types check out.');
   } catch (e) {
     console.clear();
     e.message = stripVTControlCharacters(e.message)
@@ -86,7 +87,6 @@ export async function typecheck (kind: string, paths: string[], args: unknown[] 
       files[file] ??= [];
       files[file].push({ code, error, line, column });
     }
-    let offset = 0;
     let checks = 0;
     const lines = [];
     for (const file of Object.keys(files).sort()) {

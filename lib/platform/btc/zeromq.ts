@@ -1,53 +1,31 @@
-import type { Flag, AsyncIter, Log, Reader } from '../../index.ts';
-import { tcpConnect, tcpListen } from '../../context.ts';
-import { UTF8, Bytes, flag, byteParse, readBytes, readUntilDone, write, Pipe,
-  merged, Fn, Seq, Name } from '../../format.ts';
+import type { Async, AsyncIter, Log, Reader } from '../../index.ts';
+import { Connect, Listen } from '../../context.ts';
+import { UTF8, Bytes, Fn, Name, Pipe, Flag,
+  byteParse, readBytes, readUntilDone, write, merged } from '../../format.ts';
 /** A ZeroMQ connection. */
 export type Conn = (AsyncIter<Frame> & ConnOpts) | { socket?: unknown };
 /** Options for creating a ZeroMQ connection. */
-export type ConnOpts = Log & { close (): void, readable: ReadableStream, writable: WritableStream, };
+export type ConnOpts = Log & {
+  close (): void, readable: ReadableStream, writable: WritableStream, };
 /** ZeroMQ protocol version. */
-export type ZmqVer = { maj: number, min: number };
+export type Ver = { maj: number, min: number };
 /** Known ZeroMQ security mechanisms. */
-export type ZmqSec = 'NULL'|'PLAIN'|'CURVE';
-/** Known ZeroMQ frame flags. */
-export type ZmqFlags = {
-  /** More frames to go. */
-  more: Flag,
-  /** Frame length is u64 as opposed to u8 */
-  long: Flag,
-  /** Frame is a command (such as `READY`) */
-  cmd:  Flag,
-};
+export type Sec = 'NULL'|'PLAIN'|'CURVE';
 /** Known ZeroMQ command strings. */
-export type ZmqCommand = 'READY';
-
-const writeCb = (writable, data): Promise<void> =>
-  new Promise((resolve, reject)=>{
-    writable.once('error', error);
-    try {
-      writable.write(data, () => { resolve() });
-      writable.off('error', error);
-    } catch (e) {
-      reject(e)
-      writable.off('error', error);
-    }
-    function error (e: unknown) {
-      reject(e);
-      writable.off('error', error);
-    };
-  });
-
-/** A ZeroMQ publisher (server listener). */
-export type Pub = Conn & { mode: 'PUB', close: Fn<[]>, send (...msgs: Bytes[]): Promise<void>; };
-export const Pub = merged(function zmqPub (at: number|string|URL, handler: Fn<[unknown]>) {
-  return Name(`ZMQ PUB ${at}`, async function zmqPublisher (
-    _: unknown
-  ): Promise<Pub> {
+export type Cmd = 'READY'|string;
+/** ZeroMQ publisher (server listener). */
+export type Pub = Conn & {
+  mode: 'PUB'; close: Fn<[]>; send (...msgs: Bytes[]): Promise<void>; };
+/** ZeroMQ subscriber (client connection). */
+export type Sub = Conn & {
+  mode: 'SUB'; subscribe (topic: string): Promise<void>; receive (): Promise<Frame[]>; };
+/** Create ZeroMQ publisher. */
+export const Pub = merged(function zmqPub (at: number|string|URL, handler: Fn<[unknown], Async<{ close: Fn }>>) {
+  return Name(`ZMQ PUB ${at}`, async function zmqPublisher (_: unknown): Promise<Pub> {
     let stopped  = false;
     const send   = (..._: unknown[]) => { throw new Error('zmq pub send: not implemented') };
-    const close  = () => { stopped = true; socket.close(); };
-    const socket = await tcpListen(at, async connection => {
+    const close  = () => { stopped = true; (socket as any).close(); };
+    const socket = await Listen(at, async connection => {
       connection.on('error', error => { throw error });
       await Pub.shake(connection);
       return handler(connection);
@@ -62,15 +40,12 @@ export const Pub = merged(function zmqPub (at: number|string|URL, handler: Fn<[u
     await writeCb(connection, Frame.ready());
   })
 });
-
-/** A ZeroMQ subscriber (client connection). */
-export type Sub = Conn & {
-  mode: 'SUB'; subscribe (topic: string): Promise<void>; receive (): Promise<Frame[]>; };
+/** Create ZeroMQ subscriber. */
 export const Sub = merged(async function zmqSub (to: number|string|URL, handler: Fn<[Sub]>) {
   return Name(`ZMQ SUB ${to}`, async function zmqSubscriber (
     _: unknown
   ): Promise<Sub> {
-    const socket = await tcpConnect(to);
+    const socket = await Connect(to);
     await Sub.shake(socket);
     const subscribe = async (topicName: string) => {
       const topic = UTF8.encode(topicName) as Uint8Array;
@@ -81,9 +56,9 @@ export const Sub = merged(async function zmqSub (to: number|string|URL, handler:
     };
     const receive = async () => {
       const res = [];
-      for (let frame: Frame;
-        (frame = await zmqFrame.read(socket))?.more;
-        (frame.size > 0) && res.push(zmqFrame(frame)));
+      for (let f: Frame; (f = await (Frame as any).read(socket))?.more; f.size > 0) {
+        res.push(zmqFrame(f));
+      }
       return res;
     };
     const close = () => { console.log(socket); socket.end() };
@@ -97,12 +72,10 @@ export const Sub = merged(async function zmqSub (to: number|string|URL, handler:
     await socket.read();
   })
 });
-
-
 /** ZeroMQ greeting options. */
-export type Hello = { sig: Bytes, sec: ZmqSec, ver: ZmqVer, pub: boolean };
+export type Hello = { sig: Bytes, sec: Sec, ver: Ver, pub: boolean };
 export const Hello = merged(zmqHello, {
-  size: 64,
+  size:  64,
   read:  Name('Hello', Pipe(readBytes({ max: 64 }), zmqHello)),
   write: Name('Hello', Fn(Pipe(zmqHello, write))),
 });
@@ -140,10 +113,10 @@ function zmqHello (input?: unknown): Hello & Bytes {
 }
 
 /** A ZeroMQ frame packet. */
-export type Frame = Flags & { size: number, command?: ZmqCommand, offset?: number, payload?: Bytes };
+export type Frame = Flags & { size: number, command?: Cmd, offset?: number, payload?: Bytes };
 /** Known ZeroMQ frame flags. */
 export type Flags = { more: Flag, long: Flag, cmd: Flag, };
-export const Flags = { cmd: flag('CMD', 2), long: flag('LONG', 1), more: flag('MORE', 0), };
+export const Flags = { cmd: Flag('CMD', 2), long: Flag('LONG', 1), more: Flag('MORE', 0), };
 export const Frame = merged(zmqFrame, {
   read:  Pipe(readUntilDone, zmqFrame),
   write: (frame: Frame) => w => w.write(zmqFrame(frame)),
@@ -156,21 +129,22 @@ export const Frame = merged(zmqFrame, {
   },
   ready: merged(Fn(zmqFrame, { command: 'READY' }), {
     id:    'READY',
-    read:  Name('ZMQ>ready', Pipe(readUntilDone, zmqFrame, zmqExpectCommand('READY'))),
+    read:  Name('ZMQ>ready', Pipe(readUntilDone, zmqFrame, zmqExpectCmd('READY'))),
     write: Name('ZMQ<ready', writable => writable.write(Frame.ready())),
   })
 });
+
 export function zmqFrame (input?: Bytes): Frame & Bytes;
 export function zmqFrame (input?: Partial<Frame>): Frame & Bytes;
 export function zmqFrame (input?: unknown): Frame & Bytes {
   if (input && typeof input === 'object' && Symbol.iterator in input) {
     if ((input as []).length === 0) throw new Error('empty frame');
-    const bytes  = Bytes(input);
-    const long   = Flags.long(bytes);
+    const bytes = Bytes(input);
+    const long  = Flags.long(bytes);
     if (long) throw new Error("long frames not supported yet");
-    const size   = Number(byteParse(bytes)[long ? 'u64' : 'u8'](1));
-    const more   = Flags.more(bytes);
-    const cmd    = Flags.cmd(bytes);
+    const size = Number(byteParse(bytes)[long ? 'u64' : 'u8'](1));
+    const more = Flags.more(bytes);
+    const cmd  = Flags.cmd(bytes);
     merged(bytes, { size, more, long, cmd });
     if (cmd) {
       const command = UTF8.decode(bytes.subarray(3, 3 + bytes[2]));
@@ -178,7 +152,7 @@ export function zmqFrame (input?: unknown): Frame & Bytes {
     }
     return input as Frame & Bytes
   }
-  const { more = false, command  = null as ZmqCommand|null, ...rest } =
+  const { more = false, command  = null as Cmd|null, ...rest } =
     (input || {}) as Partial<Frame>;
 
   let flag = 0;
@@ -213,10 +187,28 @@ export function zmqFrame (input?: unknown): Frame & Bytes {
     //}
   //}
 }
-function zmqExpectCommand (id: ZmqCommand) {
+
+function zmqExpectCmd (id: Cmd) {
   return (frame: Frame) => {
     if (!frame.command) throw new Error(`not a command frame`);
     if (frame.command !== id) throw new Error(`command not ${id} but ${frame.command}`)
     return frame;
   }
 }
+
+/** FIXME: WTF */
+const writeCb = (writable, data): Promise<void> =>
+  new Promise((resolve, reject)=>{
+    writable.once('error', error);
+    try {
+      writable.write(data, () => { resolve() });
+      writable.off('error', error);
+    } catch (e) {
+      reject(e)
+      writable.off('error', error);
+    }
+    function error (e: unknown) {
+      reject(e);
+      writable.off('error', error);
+    };
+  });

@@ -3,8 +3,9 @@ import { Error, Name, Pipe } from '../format.ts';
 import { Socket } from '../deps.ts';
 
 export type Ports<T = unknown> = { ports: Record<number, T> };
-
-export type Endpoint = { url: URL };
+export function Ports (context = {}, ...fns) {
+  return { ports: {}, ...context }
+}
 
 /** Run a service and wait for it to provide a port. */
 export function Port <T> (port: number, ...steps: Step<T>[]) {

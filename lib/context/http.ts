@@ -1,15 +1,16 @@
-import type { Fn, Endpoint, Step } from '../index.ts';
+import type { Fn, Step } from '../index.ts';
 import { HttpServer } from '../deps.ts';
 import { Pipe, Name } from '../format.ts';
-import { Tcp, tcpAddr } from './tcp.ts';
+import { tcpAddr } from './tcp.ts';
+import { Ports } from './port.ts';
 
 /** HTTP context. */
-export type Http = Tcp & {
+export type Http = Ports & {
   serve (at: number, handler: Fn<[Request]>): Server,
   fetch (url: string|URL): Promise<ReturnType<typeof fetch>>,
 };
 
-export type Server = Endpoint & Router;
+export type Server = { url?: URL } & Router;
 
 /** URL router. */
 export type Router = { url?: string, method?: string, body?: string };
@@ -24,7 +25,7 @@ export type Handler = Step<Router>;
 export const serveHttp = (at: number|string|URL, ...routes: Handler[]) => {
   at = tcpAddr(at);
   return Name(`HTTP ${at.toString()}`,
-    function runHttpServer (ctx: Tcp = Tcp()): HttpServer {
+    function runHttpServer (ctx: Ports = Ports()): HttpServer {
       const { port, hostname = '127.0.0.1' } = at;
       const server = new HttpServer();
       server.listen(`${hostname}:${port}`);

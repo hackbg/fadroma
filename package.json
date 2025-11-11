@@ -19,7 +19,7 @@
     "indexd":           "^0.9.1",
     "log-update":       "^7.0.1",
     "protobuf-varint":  "^1",
-    "tsx":              "*",
+    "tsx":              "4.20.6",
     "typedoc":          "^0.28.14"
   },
   "scripts": {
