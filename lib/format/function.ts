@@ -65,8 +65,8 @@ export type Main = Fn;
   *   }
   *
   * */
-export function entrypoint <M extends Main> (meta: Meta, main: M): M;
-export function entrypoint <N> (meta: Meta, main: Main, alt: N): N;
+export function entrypoint <M extends Fn> (meta: Meta, main: M): M;
+export function entrypoint <M extends Fn, N> (meta: Meta, main: Main, alt: N): N;
 export function entrypoint (
   meta: Partial<ImportMeta> = {},
   main: (args: string[])=>unknown,
@@ -76,11 +76,11 @@ export function entrypoint (
   if (isEntrypoint(meta || {}, argv1)) setImmediate(async ()=>{
     try {
       await Promise.resolve(main(args));
-      exit(0);
+      //exit(0);
     } catch (e) {
       const error = e as Error & { exitCode?: number };
-      console.error(error);
-      exit(error.exitCode ?? 1);
+      console.error('Main threw:', error);
+      //exit(error.exitCode ?? 1);
     }
   })
   if (alt) return alt

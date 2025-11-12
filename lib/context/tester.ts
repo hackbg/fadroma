@@ -340,8 +340,7 @@ export function has <T extends Testing, X> (...args: unknown[]):
       const name   = `MUST have "${String(key)}"`
       const info   = `[${name}]`;
       return toString(info)(Name(name, async function testHasProperty (object: X, context: T) {
-        ok(key in (object as object),
-          `${String(key)} missing in ${inspect(object)}`);
+        ok(key in (object as object), `${String(key)} missing in ${inspect(object)}`);
         for (const check of checks) {
           if (typeof check !== 'function') {
             context.warn('check is not a function, ignoring:', check);
