@@ -1,16 +1,17 @@
-import type { Meta } from '../index.ts';
-import type { ChildProcess } from '../deps.ts';
-import { Fn, wordWrap, msec, entrypoint as entry } from '../format.ts';
-import { orange, bold, gray, blue, yellow } from '../format/ansi.ts';
-import { getCwd, resolvePath, realpathSync, stdout, stderr, watchFs,
-  execFile, stripVTControlCharacters, execImpl } from '../deps.ts';
+import { wordWrap } from '../format.ts';
+import { orange, bold, gray, yellow } from '../format/ansi.ts';
+import { stdout, stripVTControlCharacters, execImpl } from '../deps.ts';
 /** Regular expression to extraxt TS???? errors from TSC output. */
 const RE_TS = /(TS\d+)(.+)\n[\s\S]+? at (file:\/\/\/.+\n)/gm;
 /** Run a typecheck on file update. */
-export async function denoCheck (kind: string, paths: string[], ...args: unknown[]) {
+export async function denoCheck (
+  _event:   string,
+  _touched: string[],
+  ...args:  string[]
+) {
   if (args.length === 0) args = ['index.ts'];
   try {
-    console.log(`deno check -I`, ...args);
+    console.log(`\ndeno check -I`, ...args);
     const ran = await execImpl('deno', ["check", "-I", ...args]);
     console.clear();
     console.log(yellow('stdout:'), ran.stdout);

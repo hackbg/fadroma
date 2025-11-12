@@ -1,5 +1,5 @@
 #!/usr/bin/env -S deno run --allow-env --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443 --allow-net=127.0.0.1
-import { Test } from '@hackbg/fadroma';
+import { Fn, Test } from '../index.ts';
 import { Btc } from './btc.ts';
 const { the, suite, is, has } = Test;
 export default suite(import.meta, 'Btc',
@@ -21,7 +21,7 @@ export default suite(import.meta, 'Btc',
     the('Subscribe', 'TX', 'Block'),
     the('Query', 'Block', 'Transaction', 'Address')));
 
-function cleanup (_, ctx: Test.Context & { localnet?: { kill?: Fn } }) {
+function cleanup (_, ctx: Test.Testing & { localnet?: { kill?: Fn } }) {
   if (ctx.localnet?.kill) ctx.localnet.kill()
 }
 function calledWithMock (fn) {

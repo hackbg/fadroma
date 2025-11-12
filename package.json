@@ -25,7 +25,7 @@
   "scripts": {
     "test":     "tsx ./test.ts",
     "check":    "deno check",
-    "doc:type": "typedoc --darkHighlightTheme everforest-dark --cleanOutputDir --groupReferencesByType --useFirstParagraphOfCommentAsSummary index.ts",
-    "doc:deno": "deno doc --html index.ts"
+    "doc:type": "typedoc --out doc/type --darkHighlightTheme everforest-dark --cleanOutputDir --groupReferencesByType --useFirstParagraphOfCommentAsSummary index.ts",
+    "doc:deno": "deno doc --output doc/deno --html index.ts"
   }
 }

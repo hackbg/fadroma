@@ -27,7 +27,7 @@ export function Simplicity <S extends Simplicity> (...options: Partial<S>[]): S 
   return { name, srcPath, source, witPath, witness, program,
     write, build, run, ...rest as S }
 }
-export type Simplicity = Dir & {
+export type Simplicity = Partial<Dir> & {
   name:     string,
   srcPath:  string,
   source:   string|string[],

@@ -2,8 +2,8 @@ target
 node_modules
 *.wasm
 coverage
-docs
 .docs
 .misc
 .direnv
 .misc/toolbox
+docs/deno
