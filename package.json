@@ -20,9 +20,11 @@
     "log-update":       "^7.0.1",
     "protobuf-varint":  "^1",
     "tsx":              "4.20.6",
-    "typedoc":          "^0.28.14"
+    "typedoc":          "^0.28.14",
+    "vite":             "^7.2.2"
   },
   "scripts": {
+    "dev":      "vite",
     "test":     "tsx ./test.ts",
     "check":    "deno check",
     "doc:type": "typedoc --out doc/type --darkHighlightTheme everforest-dark --cleanOutputDir --groupReferencesByType --useFirstParagraphOfCommentAsSummary index.ts",
