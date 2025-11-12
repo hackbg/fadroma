@@ -1,76 +1,136 @@
-<html style="font-size:24px">
+<html>
   <head>
+    <meta charset="utf8" />
     <title>Fadroma by Hack.bg</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="index.css" />
   </head>
   <body>
-    <div class="logo"></div>
-    <section class="box">
-      <section style="flex-grow:0;gap:0.5rem">
-        <div class="row">
-          <div class="field">
-            <div class="name">Title</div>
-            <div style="display:flex;flex-flow:column">
-              <input type="text" focused placeholder="name your project" style="height:2rem;font-size:1rem" />
-            </div>
-          </div>
-          <div class="field">
-            <div class="name">License</div>
-            <div>
-              <select>
-                <option>AGPL-3.0-or-later</option>
-                <option>AGPL-3.0</option>
-                <option>GPL-3.0-or-later</option>
-                <option>GPL-3.0</option>
-                <option>Closed source (inquire)</option></select>
-            </div>
-          </div>
-        </div>
-        <div class="field">
-          <div class="name">README</div>
-          <div style="display:flex;flex-flow:column">
-            <textarea placeholder="describe your project" style="height:2rem;font-size:1rem;width:30rem;height:8rem"></textarea>
-          </div>
-        </div>
-      </section>
-      <section>
-        <div class="field">
-          <div class="name">Integrations</div>
-          <div class="row">
-            <ul class="features">
-              <li class="feature"><label><input type="checkbox" checked style="width:1rem;height:1rem" /> Bitcoin</label></li>
-              <li class="feature"><label><input type="checkbox" checked style="width:1rem;height:1rem" /> Simplicity</label></li>
-              <li class="feature"><label><input type="checkbox" style="width:1rem;height:1rem" disabled /> Solana</label></li>
-              <li class="feature"><label><input type="checkbox" style="width:1rem;height:1rem" disabled /> Tendermint</label></li>
-              <li class="feature"><label><input type="checkbox" style="width:1rem;height:1rem" disabled /> CosmWasm</label></li>
-            </ul>
-            <ul class="features">
-              <!--<span style="padding-left:1.65rem;font-size:0.8rem;line-height:1rem">@fadroma/btc</span>-->
-              <li class="feature">
-                <label><input type="checkbox" style="width:1rem;height:1rem" /> Node.js</label>
-                <div class="grow"></div>
-                <select><option>Latest</option><option>LTS</option></select>
-              </li>
-              <li class="feature"><label style="margin-top:0.5rem"><input type="checkbox" checked style="width:1rem;height:1rem" /> Deno</label></li>
-              <li class="feature"><label style="margin-top:0.5rem"><input type="checkbox" checked style="width:1rem;height:1rem" /> PNPM</label></li>
-            </ul>
-            <ul class="features">
-              <li class="feature">
-                <label><input type="checkbox" checked style="width:1rem;height:1rem" /> Rust</label>
-                <div class="grow"></div>
-                <select><option>stable</option><option>beta</option><option>nightly</option></select>
-              </li>
-              <li class="feature"><label><input type="checkbox" style="width:1rem;height:1rem" /> Mold</label></li>
-              <li class="feature"><label><input type="checkbox" style="width:1rem;height:1rem" /> Direnv</label></li>
-              <li class="feature"><label><input type="checkbox" style="width:1rem;height:1rem" /> Nix</label></li>
-              <li class="feature"><label style="opacity:0.5"><input type="checkbox" disabled style="width:1rem;height:1rem;margin-top:0.5rem" /> Flake</label></li>
-            </ul>
-          </div>
-        </div>
-      </section>
+    <section class="row nav">
+      <div class="logo"></div>
+      <a href="#">API docs</a>
+      <a href="#">Source</a>
+      <a href="#">Test report</a>
+      <div class="grow"></div>
+      <a class="button" href="https://hack.bg">from Hack.bg</a>
     </section>
-    <div style="margin: 0.5rem">
-      <button style="margin: 0 auto">Download project template</button>
-    </div>
+    <section class="box flex col" style="gap:0.5rem">
+      <div class="row">
+        <div class="field">
+          <div class="name">Title</div>
+          <div style="display:flex;flex-flow:column">
+            <input type="text" focused placeholder="name your project" style="height:2rem;font-size:1rem" />
+          </div>
+        </div>
+        <div class="field">
+          <div class="name">License</div>
+          <div>
+            <select>
+              <option>AGPL-3.0-or-later</option>
+              <option>AGPL-3.0</option>
+              <option>GPL-3.0-or-later</option>
+              <option>GPL-3.0</option>
+              <option>Closed source (inquire)</option></select>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <div class="name">README</div>
+        <div style="display:flex;flex-flow:column">
+          <textarea placeholder="describe your project" style="height:2rem;font-size:1rem;width:30rem;height:4rem"></textarea>
+        </div>
+      </div>
+      <div class="field">
+        <div class="name">Integrations</div>
+        <div class="grow">
+          <ul class="features">
+            <li class="feature">
+              <label><input type="checkbox" checked style="width:1rem;height:1rem" /> Bitcoin</label>
+              <p>Test with local <a href="https://en.bitcoin.it/wiki/Original_Bitcoin_client/API_calls_list">bitcoind</a> in <a href="https://developer.bitcoin.org/examples/testing.html">-regtest</a> mode.</p>
+              <div class="grow"></div>
+              <p><a href="#">API</a></p>
+            </li>
+            <li class="feature">
+              <label><input type="checkbox" checked style="width:1rem;height:1rem" /> Simplicity</label>
+              <p>Compile and run <a target="_blank" href="https://docs.simplicity-lang.org/simplicityhl-reference/">SimplicityHL</a> programs.</p>
+              <div class="grow"></div>
+              <p><a href="#">API</a></p>
+            </li>
+            <div clas="row">
+              <li class="feature">
+                <label class="disabled">⏳️ Solana</label>
+                <p>Testing and deployment toolkit for Solana programs.</p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ CosmWasm</label>
+                <p>Toolchain for CosmWasm deployments.</p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Tendermint</label>
+                <p>RPC client for Tendermint-based chains.</p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Namada</label>
+                <p>RPC client and decoder for <a href="https://github.com/namada-net/namada">Namada</a>.</p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Scrt</label>
+                <p>RPC client and decoder for <a href="https://scrt.network/">Secret</a>.</p>
+              </li>
+            </div>
+          </ul>
+        </div>
+      </div>
+      <div class="field">
+        <div class="name">Glue</div>
+          <ul class="features row">
+            <!--<span style="padding-left:1.65rem;font-size:0.8rem;line-height:1rem">@fadroma/btc</span>-->
+            <li class="feature">
+              <label><input type="checkbox" style="width:1rem;height:1rem" /> Node.js</label>
+              <div class="grow"></div>
+              <select><option>Latest</option><option>LTS</option></select>
+            </li>
+            <li class="feature">
+              <label style="margin-top:0.5rem"><input type="checkbox" checked style="width:1rem;height:1rem" /> Deno</label>
+              <p>Next-gen JS/TS runtime.</p>
+            </li>
+            <li class="feature">
+              <label style="margin-top:0.5rem"><input type="checkbox" checked style="width:1rem;height:1rem" /> PNPM</label>
+              <p>Recommended package manager.</p>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="field">
+        <div class="name">Rust</div>
+        <div class="grow">
+          <ul class="features row">
+            <li class="feature">
+              <label><input type="checkbox" checked style="width:1rem;height:1rem" /> Rust</label>
+              <div class="grow"></div>
+              <select><option>stable</option><option>beta</option><option>nightly</option></select>
+            </li>
+            <li class="feature">
+              <label><input type="checkbox" style="width:1rem;height:1rem" /> Mold</label>
+              <p>Fast linker. Improves build times.</p>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="field">
+        <div class="name">Environment</div>
+        <div class="grow">
+          <ul class="features row">
+            <li class="feature"><label><input type="checkbox" style="width:1rem;height:1rem" /> Direnv</label></li>
+            <li class="feature"><label><input type="checkbox" style="width:1rem;height:1rem" /> Nix</label></li>
+            <li class="feature"><label style="opacity:0.5"><input type="checkbox" disabled style="width:1rem;height:1rem;margin-top:0.5rem" /> Flake</label></li>
+          </ul>
+        </div>
+      </div>
+      <div class="row">
+        <button style="margin: 0 auto">Download project template</button>
+        <button disabled style="margin: 0 auto">Specify project features</button>
+      </div>
+    </section>
+    <script type="module" src="lib/gui.ts"></script>
   </body>
 </html>
