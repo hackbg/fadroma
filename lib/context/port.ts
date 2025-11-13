@@ -1,10 +1,10 @@
-import type { Step } from '../index.ts';
+import type { Step, Fn } from '../index.ts';
 import { Error, Name, Pipe } from '../format.ts';
 import { Socket } from '../deps.ts';
 
 export type Ports<T = unknown> = { ports: Record<number, T> };
-export function Ports (context = {}, ...fns) {
-  return { ports: {}, ...context }
+export function Ports (context = {}, ...fns: Fn[]) {
+  return Pipe(...fns)({ ports: {}, ...context })
 }
 
 /** Run a service and wait for it to provide a port. */

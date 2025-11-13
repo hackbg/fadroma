@@ -55,74 +55,69 @@
               <div class="grow"></div>
               <p><a href="#">API</a></p>
             </li>
-            <div clas="row">
-              <li class="feature">
-                <label class="disabled">⏳️ Solana</label>
-                <p>Testing and deployment toolkit for Solana programs.</p>
-              </li>
-              <li class="feature">
-                <label class="disabled">⏳️ CosmWasm</label>
-                <p>Toolchain for CosmWasm deployments.</p>
-              </li>
-              <li class="feature">
-                <label class="disabled">⏳️ Tendermint</label>
-                <p>RPC client for Tendermint-based chains.</p>
-              </li>
-              <li class="feature">
-                <label class="disabled">⏳️ Namada</label>
-                <p>RPC client and decoder for <a href="https://github.com/namada-net/namada">Namada</a>.</p>
-              </li>
-              <li class="feature">
-                <label class="disabled">⏳️ Scrt</label>
-                <p>RPC client and decoder for <a href="https://scrt.network/">Secret</a>.</p>
-              </li>
-            </div>
-          </ul>
-        </div>
-      </div>
-      <div class="field">
-        <div class="name">Glue</div>
-          <ul class="features row">
-            <!--<span style="padding-left:1.65rem;font-size:0.8rem;line-height:1rem">@fadroma/btc</span>-->
             <li class="feature">
-              <label><input type="checkbox" style="width:1rem;height:1rem" /> Node.js</label>
+              <label class="disabled">⏳️ Solana</label>
+              <p>Build test, and deploy Solana programs.</p>
+            </li>
+            <li class="feature">
+              <label class="disabled">⏳️ CosmWasm</label>
+              <p>Build, test, and deploy CosmWasm contracts.</p>
+            </li>
+            <li class="feature">
+              <label class="disabled">⏳️ Tendermint</label>
+              <p>RPC client for Tendermint/CometBFT and Cosmos/IBC ecosystem.</p>
+            </li>
+            <li class="feature">
+              <label class="disabled">⏳️ Namada</label>
+              <p>RPC client and decoder for <a href="https://github.com/namada-net/namada">Namada</a>.</p>
+            </li>
+            <li class="feature">
+              <label class="disabled">⏳️ Scrt</label>
+              <p>RPC client and decoder for <a href="https://scrt.network/">Secret</a>.</p>
+            </li>
+            <li class="feature">
+              <label><input type="checkbox" checked style="width:1rem;height:1rem" /> Node.js</label>
+              <p>Incumbent JS runtime. Will use tsx and tsc for TypeScript.</p>
               <div class="grow"></div>
               <select><option>Latest</option><option>LTS</option></select>
             </li>
             <li class="feature">
               <label style="margin-top:0.5rem"><input type="checkbox" checked style="width:1rem;height:1rem" /> Deno</label>
-              <p>Next-gen JS/TS runtime.</p>
+              <p>Next-gen TS/JS runtime.</p>
             </li>
             <li class="feature">
               <label style="margin-top:0.5rem"><input type="checkbox" checked style="width:1rem;height:1rem" /> PNPM</label>
               <p>Recommended package manager.</p>
             </li>
-          </ul>
-        </div>
-      </div>
-      <div class="field">
-        <div class="name">Rust</div>
-        <div class="grow">
-          <ul class="features row">
             <li class="feature">
-              <label><input type="checkbox" checked style="width:1rem;height:1rem" /> Rust</label>
+              <label style="margin-top:0.5rem"><input type="checkbox" checked style="width:1rem;height:1rem" /> ESLint</label>
+              <p>Static analyzer.</p>
+            </li>
+            <li class="feature">
+              <label class="disabled">⏳️ Rust</label>
               <div class="grow"></div>
               <select><option>stable</option><option>beta</option><option>nightly</option></select>
             </li>
             <li class="feature">
-              <label><input type="checkbox" style="width:1rem;height:1rem" /> Mold</label>
-              <p>Fast linker. Improves build times.</p>
+              <label class="disabled">⏳️ Mold</label>
+              <p><a href="https://github.com/rui314/mold">Fast linker.</a> Improves Rust build times.</p>
             </li>
-          </ul>
-        </div>
-      </div>
-      <div class="field">
-        <div class="name">Environment</div>
-        <div class="grow">
-          <ul class="features row">
-            <li class="feature"><label><input type="checkbox" style="width:1rem;height:1rem" /> Direnv</label></li>
-            <li class="feature"><label><input type="checkbox" style="width:1rem;height:1rem" /> Nix</label></li>
-            <li class="feature"><label style="opacity:0.5"><input type="checkbox" disabled style="width:1rem;height:1rem;margin-top:0.5rem" /> Flake</label></li>
+            <li class="feature">
+              <label><input type="checkbox" checked style="width:1rem;height:1rem" /> Nix Shell</label>
+              <p>Obtain dependencies from <a href="https://nixos.org/download/">Nix package manager.</a></p>
+            </li>
+            <li class="feature">
+              <label><input type="checkbox" checked style="width:1rem;height:1rem" /> Direnv</label>
+              <p>Automatically load Nix shell when entering project directory.</p>
+            </li>
+            <li class="feature">
+              <label class="disabled">⏳️ Drone</label>
+              <p>Config for self-hosted Drone CI.</p>
+            </li>
+            <li class="feature">
+              <label class="disabled">⏳️ GHA</label>
+              <p>Config for GitHub Actions.</p>
+            </li>
           </ul>
         </div>
       </div>

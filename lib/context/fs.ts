@@ -1,31 +1,25 @@
 import type { Fn, Bytes, Step, Async } from '../index.ts';
-import { joinPath, resolvePath, getCwd, tmpdir, mkdtemp,
-  writeFile, mkdir, rm } from '../deps.ts';
+import { joinPath, tmpdir, mkdtemp, writeFile, mkdir, rm, zipSync } from '../deps.ts';
 import { Pipe, Name } from '../format/function.ts';
+import { Log } from './log.ts';
+/** A function that created an entry in a directory. */
+export type DirEntry<D extends Dir = Dir, U extends unknown[] = unknown[]> =
+  Fn<[D, ...U], Async<D>>;
 /** A directory. */
 export type Dir = {
   path:       string,
-  paths?:     Record<string, unknown>,
+  tree?:      Record<string, unknown>,
   mkdir?:     typeof mkdir,
   mkdtemp?:   typeof mkdtemp,
   writeFile?: typeof writeFile,
   rimraf?:    Fn,
 };
-/** A filesystem operation. Needs current working directory. */
-export type DirEntry<T extends Dir = Dir, U extends unknown[] = unknown[]> =
-  Fn<[T, ...U]>;
 /** Specify a directory.
   *
-  * Form 1 (sync)
-  *   - When called with no arguments, returns `{ cwd }`.
+  * Takes an optional subpath, then one or more callbacks.
   *
-  * Example:
-  *     const { path } = Dir();
-  *
-  * Form 2 (deferred)
-  *   - When called with string, returns async function that creates that path.
-  *   - When called with string and one or more steps, the returned function
-  *     also runs the steps sequentially to populate the created directory.
+  * Returns function which creates directory at specified subpath,
+  * then pipes it through the callbacks.
   *
   * Example:
   *     const makeEmptyDir = Dir('foo');
@@ -36,28 +30,67 @@ export type DirEntry<T extends Dir = Dir, U extends unknown[] = unknown[]> =
   *     await makeDirWithFiles({ cwd: '/path/to/somewhere/' });
   *     // created "/path/to/somewhere/foo/hello.txt" and wrote "world'
   **/
-export function Dir (): Dir
-export function Dir <D extends Dir> (..._: (string|DirEntry<D>)[]): Fn<[D], Async<D>>;
-export function Dir <D extends Dir> (...opts: unknown[]): unknown {
-  // Synchronous form.
-  if (opts.length === 0) return { path: getCwd() };
-  // Build relative path.
+export function Dir <D extends Dir> (...entries: DirEntry<D>[]):
+  DirEntry<D>;
+export function Dir <D extends Dir> (subpath: string, ...entries: DirEntry<D>[]):
+  DirEntry<D>;
+export function Dir <D extends Dir> (...opts: unknown[]):
+  DirEntry<D>
+{
   let path = '';
   while (typeof opts[0] === 'string') path = joinPath(path, opts.shift() as string);
-  // Return function that creates and populates it.
-  const props = { path, contents: opts };
+  const entries = opts as DirEntry<D>[];
+  const props = { path, entries };
   return Name(`Dir(${path}))`, makeDirectory, props) as DirEntry<D>;
-  async function makeDirectory (dir: string|D, ...args: unknown[]): Promise<D> {
-    if (typeof dir !== 'object') dir = {} as D;
-    dir       ??= {} as D;
-    dir.path  ??= getCwd();
-    dir.paths ??= {};
-    dir.paths[resolvePath(dir.path)] = {};
-    (dir.mkdir ??= mkdir)(path, { recursive: true });
-    dir.path = path;
-    return await Pipe(...args as DirEntry<D>[])(dir, args) as D;
-    //await runInDir(path, args as DirEntry<D>[], dir, context);
-    //return dir;
+  async function makeDirectory (dir: string|D = '', ...args: unknown[]): Promise<D> {
+    dir = dirContext(dir, path);
+    await dir.mkdir(path, { recursive: true });
+    const result = await Pipe(...entries)(dir, ...args) as D;
+    return result;
+  }
+}
+function dirContext <D extends Dir>(dir: string|D, path: string = ''): D {
+  dir ??= {} as D;
+  if (typeof dir !== 'object') dir = { path: joinPath(dir, path) } as D;
+  dir.path ??= path;
+  dir.tree ??= {};
+  dir.tree[dir.path] = {};
+
+  dir.mkdir     ??= mkdir;
+  dir.writeFile ??= writeFile;
+  dir.mkdtemp   ??= mkdtemp;
+  dir.rimraf    ??= (sub: string) => rm(
+    joinPath(...[dir.path, sub].filter(Boolean)),
+    { recursive: true }
+  );
+  return dir
+};
+/** Specify a ZIP archive. */
+export function Zip <D extends Dir> (name: string, ...entries: DirEntry<D>[]) {
+  return Name(`Zip(${entries.length})`, async function writeZipFile (dir?: D, ...args: unknown[]) {
+    const context = zipContext();
+    for (const entry of entries) await entry(context, ...args);
+    const data = zipSync(context.tree);
+    if (dir) await dir.writeFile(joinPath(dir.path, name), data);
+    Log().log('Wrote', name)
+    return Object.assign(data, { name, tree: context.tree });
+  }, { entries })
+}
+function zipContext (tree = {}) {
+  return {
+    tree,
+    mkdir: function zipMkdir (path: string) {
+      tree[path] ??= {};
+    },
+    mkdtemp: function zipMkdtemp (..._: unknown[]) {
+      throw new Error('mkdtemp not supported in zip')
+    },
+    writeFile: function zipWrite (path: string, data: unknown) {
+      tree[path] ??= data;
+    },
+    rimraf: function zipRimraf (_: string) {
+      throw new Error('rimraf in zip: not implemented')
+    }
   }
 }
 /** Specify a temporary directory. */
@@ -65,15 +98,11 @@ export function Temp <D extends Dir> (prefix: string = '', ...ops: DirEntry<D>[]
   const props = { prefix, ops };
   const fn = Name(`Temp(${prefix})`, inTemporaryDirectory, props);
   return fn;
-  async function inTemporaryDirectory (dir: D = Dir() as D, ...context: unknown[]): Promise<D> {
-    dir.mkdtemp ??= mkdtemp;
-    const path = await mkdtemp(resolvePath(tmpdir(), `fadroma`, `${prefix}-`));
-    dir.paths ??= {};
-    dir.paths[path] = fn;
-    dir.path = path;
-    dir.rimraf = () => rm(path, { recursive: true });
-    const create = Pipe(...ops as DirEntry<D>[]);
-    const result = await create(dir, context) as D;
+  async function inTemporaryDirectory (dir: string|D, ...context: unknown[]): Promise<D> {
+    dir = dirContext(dir);
+    const path = await mkdtemp(joinPath(tmpdir(), `fadroma`, `${prefix}-`));
+    dir.tree[path] = fn;
+    const result = await Pipe(...ops as DirEntry<D>[])(dir, context) as D;
     await dir.rimraf();
     return result;
   }
@@ -82,28 +111,31 @@ export function Temp <D extends Dir> (prefix: string = '', ...ops: DirEntry<D>[]
 export function Txt <T = string|number|object|null> (
   path: string, value?: T|T[], ...steps: Array<T|Step<T>>
 ): DirEntry {
-  return Name(`Txt(${path})`, async function writeTxt (dir: Dir) {
-    const full = resolvePath(dir.path, path);
+  return Name(`Txt(${path})`, async function writeTxtFile <D extends Dir> (dir: string|D) {
+    dir = dirContext(dir);
+    const full = joinPath(dir.path, path);
     const data = await Pipe(...steps as Fn[])(value||'') || '';
-    dir.paths ??= {};
-    dir.paths[full] ??= null;
+    dir.tree ??= {};
+    dir.tree[full] ??= null;
     dir.writeFile ??= writeFile;
     await dir.writeFile(full, data as string, 'utf8');
-    dir.paths[full] = data;
+    dir.tree[full] = data;
     return dir;
   }, { path, value, steps });
 }
 /** Specify a binary data file. */
-export function Bin (path: string, value?: number|Bytes, ...steps: Step<Bytes>[]) {
-  return Name(`Bin(${path})`, async function writeBinaryData (dir: Dir = Dir()) {
+export function Bin (
+  path: string, value?: number|Bytes, ...steps: Step<Bytes>[]
+): DirEntry {
+  return Name(`Bin(${path})`, async function writeBinFile (dir: Dir) {
     value = (typeof value === 'number') ? new Uint8Array(value) : value
-    const full = resolvePath(dir.path, path);
+    const full = joinPath(dir.path, path);
     const data = await Pipe(...steps as Fn[])(value||'') || '';
-    dir.paths ??= {};
-    dir.paths[full] ??= null;
+    dir.tree ??= {};
+    dir.tree[full] ??= null;
     dir.writeFile ??= writeFile;
     await dir.writeFile(full, data as Bytes);
-    dir.paths[full] = data;
+    dir.tree[full] = data;
     return dir;
   }, { path, value, steps });
 }

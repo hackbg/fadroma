@@ -198,6 +198,9 @@ export type Result = {
   *     export default suite(import.meta, 'Test suite', test2);
   *
   **/
+export function the <T extends Testing, U> (
+  name: string|null, step0?: Fn<unknown[], U>, step1?: Fn<[U, T], unknown>, ...steps: unknown[]
+): Step<T, void>;
 export function the <T extends Testing> (
   name: string|null, ...steps: (Step<T>|string)[]
 ): Step<T, void> {
