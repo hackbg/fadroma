@@ -1,6 +1,6 @@
 import type { Fn } from '../index.ts';
 import { env, stdout, stderr, createLogUpdate, inspect } from '../deps.ts';
-import { Name, joined, ANSI, stackTrace } from '../format.ts';
+import { joined, ANSI, stackTrace } from '../format.ts';
 const { red, yellow, dim, gray } = ANSI;
 /** Logging interface. */
 export type Log = {

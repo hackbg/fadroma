@@ -5,10 +5,12 @@ const { the, suite, is, has } = Test;
 export default suite(import.meta, 'Btc',
 
   the('CLI', () => Btc().execCli(), is('function'),
-    has('contents', is('object', 'Array'),
-      has('0', is('function'),
-        has('argv', is('object', 'Array'),
-          has('0', is('string', 'bitcoin-cli'))))),
+    has('entries',
+      is('object', 'Array'),
+      has('0',
+        is('function'),
+        has('command', 'bitcoin-cli'),
+        has('options', is('object', 'Array')))),
     calledWithMock,
     is('object')),
 

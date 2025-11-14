@@ -3,7 +3,9 @@ export { ok, throws, rejects, deepStrictEqual as equal } from 'node:assert';
 export type { Buffer } from 'node:buffer';
 export { setImmediate, } from 'node:timers';
 export { tmpdir } from 'node:os';
-export { stdout, stderr, argv, env, cwd as getCwd, exit } from 'node:process';
+import process from 'node:process';
+export { process };
+export const { stdout, stderr, argv, env, cwd, exit } = process;
 export { fileURLToPath } from 'node:url';
 export { join as joinPath
        , resolve as resolvePath

@@ -1,6 +1,6 @@
 import type { Fn, Step, Async, Ports } from '../index.ts';
 import type { ChildProcess } from '../deps.ts';
-import { execImpl, spawnImpl, inspect, getCwd } from '../deps.ts';
+import { execImpl, spawnImpl, inspect, cwd } from '../deps.ts';
 import { Error, Pipe, Name, toString } from '../format.ts';
 import { Dir } from './fs.ts';
 /** A collection of processes and network endpoints provided by them. */
@@ -28,11 +28,11 @@ export function Exec (
     dir?: string, exec?: typeof execImpl,
   }): Promise<Run> {
     context ??= {};
-    context.dir ??= getCwd();
+    context.dir ??= cwd();
     context.exec ??= execImpl;
     const { argv, env } = Run(command, ...options);
     const [ cmd, ...args ] = argv;
-    const opts = { env, cwd: context?.dir ?? getCwd() }
+    const opts = { env, cwd: context?.dir ?? cwd() }
     return { argv, env, ...await context.exec(cmd, args, opts) };
   }, { command, options });
 }
@@ -45,11 +45,11 @@ export function Spawn (daemon: string, ...options: (Step<Run>|string)[]): Spawn 
     dir?: string, spawn?: typeof spawnImpl
   }): Promise<Run & ChildProcess> {
     context ??= {};
-    context.dir ??= getCwd();
+    context.dir ??= cwd();
     context.spawn ??= spawnImpl;
     const { argv, env } = Run(daemon, ...options);
     const [ cmd, ...args ] = argv;
-    const opts = { env, cwd: context?.dir ?? getCwd() }
+    const opts = { env, cwd: context?.dir ?? cwd() }
     return { argv, env, ...await context.spawn(cmd, args, opts) } as Run & ChildProcess;
   }, { daemon, options });
 }

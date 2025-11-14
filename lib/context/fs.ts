@@ -55,7 +55,6 @@ function dirContext <D extends Dir>(dir: string|D, path: string = ''): D {
   dir.path ??= path;
   dir.tree ??= {};
   dir.tree[dir.path] = {};
-
   dir.mkdir     ??= mkdir;
   dir.writeFile ??= writeFile;
   dir.mkdtemp   ??= mkdtemp;
@@ -65,9 +64,49 @@ function dirContext <D extends Dir>(dir: string|D, path: string = ''): D {
   );
   return dir
 };
+/** Specify a temporary directory. */
+export function Temp <D extends Dir> (
+  prefix: string = '', ...ops: DirEntry<D>[]
+): DirEntry<D> {
+  const props = { prefix, ops };
+  return Name(`Temp(${prefix})`, inTemporaryDirectory, props);
+  async function inTemporaryDirectory (dir: string|D, ...context: unknown[]): Promise<D> {
+    dir = dirContext(dir, await mkdtemp(joinPath(tmpdir(), `fadroma`, `${prefix}-`)));
+    const result = await Pipe(...ops as DirEntry<D>[])(dir, context) as D;
+    await dir.rimraf();
+    return result;
+  }
+}
+/** Specify a text file. */
+export function Txt <T = string|number|object|null> (
+  path: string, value?: T|T[], ...steps: Array<T|Step<T>>
+): DirEntry {
+  return Name(`Txt(${path})`, async function writeTxtFile <D extends Dir> (dir: string|D) {
+    dir = dirContext(dir);
+    const full = joinPath(dir.path, path);
+    const data = await Pipe(...steps as Fn[])(value||'') || '';
+    await dir.writeFile(full, dir.tree[full] = data as string, 'utf8');
+    return dir;
+  }, { path, value, steps });
+}
+/** Specify a binary data file. */
+export function Bin (
+  path: string, value?: number|Bytes, ...steps: Step<Bytes>[]
+): DirEntry {
+  value = (typeof value === 'number') ? new Uint8Array(value) : value
+  return Name(`Bin(${path})`, async function writeBinFile (dir: Dir) {
+    dir = dirContext(dir);
+    const full = joinPath(dir.path, path);
+    const data = await Pipe(...steps as Fn[])(value||'') || '';
+    await dir.writeFile(full, dir.tree[full] = data as Bytes);
+    return dir;
+  }, { path, value, steps });
+}
 /** Specify a ZIP archive. */
 export function Zip <D extends Dir> (name: string, ...entries: DirEntry<D>[]) {
-  return Name(`Zip(${entries.length})`, async function writeZipFile (dir?: D, ...args: unknown[]) {
+  return Name(`Zip(${entries.length})`, async function writeZipFile (
+    dir?: D, ...args: unknown[]
+  ) {
     const context = zipContext();
     for (const entry of entries) await entry(context, ...args);
     const data = zipSync(context.tree);
@@ -92,50 +131,4 @@ function zipContext (tree = {}) {
       throw new Error('rimraf in zip: not implemented')
     }
   }
-}
-/** Specify a temporary directory. */
-export function Temp <D extends Dir> (prefix: string = '', ...ops: DirEntry<D>[]) {
-  const props = { prefix, ops };
-  const fn = Name(`Temp(${prefix})`, inTemporaryDirectory, props);
-  return fn;
-  async function inTemporaryDirectory (dir: string|D, ...context: unknown[]): Promise<D> {
-    dir = dirContext(dir);
-    const path = await mkdtemp(joinPath(tmpdir(), `fadroma`, `${prefix}-`));
-    dir.tree[path] = fn;
-    const result = await Pipe(...ops as DirEntry<D>[])(dir, context) as D;
-    await dir.rimraf();
-    return result;
-  }
-}
-/** Specify a text file. */
-export function Txt <T = string|number|object|null> (
-  path: string, value?: T|T[], ...steps: Array<T|Step<T>>
-): DirEntry {
-  return Name(`Txt(${path})`, async function writeTxtFile <D extends Dir> (dir: string|D) {
-    dir = dirContext(dir);
-    const full = joinPath(dir.path, path);
-    const data = await Pipe(...steps as Fn[])(value||'') || '';
-    dir.tree ??= {};
-    dir.tree[full] ??= null;
-    dir.writeFile ??= writeFile;
-    await dir.writeFile(full, data as string, 'utf8');
-    dir.tree[full] = data;
-    return dir;
-  }, { path, value, steps });
-}
-/** Specify a binary data file. */
-export function Bin (
-  path: string, value?: number|Bytes, ...steps: Step<Bytes>[]
-): DirEntry {
-  return Name(`Bin(${path})`, async function writeBinFile (dir: Dir) {
-    value = (typeof value === 'number') ? new Uint8Array(value) : value
-    const full = joinPath(dir.path, path);
-    const data = await Pipe(...steps as Fn[])(value||'') || '';
-    dir.tree ??= {};
-    dir.tree[full] ??= null;
-    dir.writeFile ??= writeFile;
-    await dir.writeFile(full, data as Bytes);
-    dir.tree[full] = data;
-    return dir;
-  }, { path, value, steps });
 }

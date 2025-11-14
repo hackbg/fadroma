@@ -1,2 +1,11 @@
 import { defineConfig } from 'vite'
-export default defineConfig({ publicDir: 'var' });
+import { nodePolyfills } from 'vite-plugin-node-polyfills'
+export default defineConfig({
+  publicDir: 'var',
+  plugins: [
+    nodePolyfills({
+      include: ['process'],
+      globals: { global: true, process: true },
+    }),
+  ],
+});

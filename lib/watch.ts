@@ -1,7 +1,7 @@
 import type { Meta } from './index.ts';
 import { Fn, msec, entrypoint as entry } from './format.ts';
 import { bold, blue } from './format/ansi.ts';
-import { getCwd, resolvePath, realpathSync, stdout, watchFs } from './deps.ts';
+import { cwd, resolvePath, realpathSync, stdout, watchFs } from './deps.ts';
 export * from './watch/denoCheck.ts';
 export * from './watch/runTest.ts';
 /** Entrypoint that reruns on file change. */
@@ -15,7 +15,6 @@ const toRelativePath = (cwd: string) => (x: string) => resolvePath(x).replace(cw
 /** Run a watcher function. */
 export async function watch (mode: Fn<[string, string[]]>, options: unknown[]) {
   // todo: make configurable
-  const cwd = getCwd();
   // debounce timer
   let timer = null;
   // debounce interval
@@ -45,7 +44,7 @@ export async function watch (mode: Fn<[string, string[]]>, options: unknown[]) {
       // skip if only ignored paths were updated
       if (paths.length === 0) return;
       // convert paths to relative and filter again
-      paths = paths.map(toRealPath).filter(Boolean).map(toRelativePath(cwd));
+      paths = paths.map(toRealPath).filter(Boolean).map(toRelativePath(cwd()));
       // log update at bottom left corner
       stdout.write(`\x1b[${stdout.rows||1};1H` + `\x1b[0K`
         + blue(bold(kind) + ' ' + paths.join(', ').slice(0, stdout.columns)));

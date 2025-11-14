@@ -21,6 +21,7 @@ h1{margin:0;font-size:1.66rem;font-weight:normal;color:#aaa;}
 button {margin-top:0.25rem;background:#fff;border:1px solid #aaa;background:#4a4;color:#fff;padding:0.5rem 1rem;border:none;border-radius:0.25rem;box-shadow:3px 3px 9px #3333; text-transform:uppercase;letter-spacing:0.1rem;font-size:1rem}
 input, textarea, select { margin-right: 1rem; font-size: 1rem; line-height: 1.33rem; border: none; background: linear-gradient(to top, transparent, #fff8); border-radius:0.25rem; padding: 0.5rem; &::placeholder { text-decoration: underline; }; }
 input, textarea, select, label { &:hover { background: #fff8 }; &:focus { background: #fff; outline:none; } }
+input[type=checkbox] { width:1rem;height:1rem; }
 .flex { display: flex; }
 .row { display: flex; flex-flow: row nowrap }
 .col { display: flex; flex-flow: column nowrap }

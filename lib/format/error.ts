@@ -1,11 +1,11 @@
 import type { Fn, Stringy } from '../index.ts';
-import { getCwd } from '../deps.ts';
+import { cwd } from '../deps.ts';
 import { bold, gray } from './ansi.ts';
 
 export function formatError (e: Error, name?: Stringy) {
   const [head, ...tail] = (e?.stack||'').split('\n');
   const stack = tail.map(x=>x
-    .replace('('+getCwd()+'/', '(')
+    .replace('('+cwd()+'/', '(')
     .replace('./node_modules/.pnpm/', ''));
   e.message = e.message.split('Logs:')[0].trim();
   if (name) e.message = name + ': ' + e.message;
@@ -45,8 +45,8 @@ export function stackTrace (slice = 3, length?: number): string[] {
 }
 /** Relativize paths in stack trace, colorize, and reduce indent. */
 export function alignTrace (line: string) {
-  line = line.replace('file://'+getCwd(), '.');
-  line = line.replace(getCwd(), '.');
+  line = line.replace('file://'+cwd(), '.');
+  line = line.replace(cwd(), '.');
   const format = (x: string, i: number) => (i===0)
     ? bold(gray(2, x.padEnd(36))) : gray(4, x);
   line = line.split(' (').map(format).join(gray(4, ' ('));
