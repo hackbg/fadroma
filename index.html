@@ -6,23 +6,111 @@
   </head>
   <body>
     <section class="row nav">
+      <a class="button" href="https://hack.bg" style="background: rgb(144, 19, 254);">Hack.bg</a>
       <div class="logo"></div>
       <a href="#">API docs</a>
       <a href="#">Source</a>
       <a href="#">Test report</a>
       <div class="grow"></div>
-      <a class="button" href="https://hack.bg">from Hack.bg</a>
     </section>
-    <section class="box flex col" style="gap:0.5rem">
-      <div class="row">
+    <div class="row">
+
+      <section id="toolbar" class="box flex col" style="gap:0.5rem">
         <div class="field">
           <div class="name">Title</div>
-          <div style="display:flex;flex-flow:column">
-            <input type="text" id="title" focused placeholder="name your project" style="height:2rem;font-size:1rem" />
+          <div class="row">
+            <div style="display:flex;flex-flow:column;flex-grow:1">
+              <input type="text" id="title" focused placeholder="name your project" style="height:2rem;font-size:1rem" />
+            </div>
+            <button id="download" class="button">Download</button>
           </div>
         </div>
         <div class="field">
-          <div class="name">License</div>
+          <div class="name">Integrations</div>
+          <div class="grow">
+            <ul id="features" class="features">
+              <li class="feature">
+                <label><input type="checkbox" id="enable-btc" checked /> Bitcoin</label>
+                <p>Test with local <a href="https://en.bitcoin.it/wiki/Original_Bitcoin_client/API_calls_list">bitcoind</a> in <a href="https://developer.bitcoin.org/examples/testing.html">-regtest</a> mode.</p>
+                <div class="grow"></div>
+                <p><a href="#">API</a></p>
+              </li>
+              <li class="feature">
+                <label><input type="checkbox" id="enable-simf" checked /> Simplicity</label>
+                <p>Compile and run <a target="_blank" href="https://docs.simplicity-lang.org/simplicityhl-reference/">SimplicityHL</a> programs.</p>
+                <div class="grow"></div>
+                <p><a href="#">API</a></p>
+              </li>
+              <li class="feature">
+                <label><input type="checkbox" id="enable-node" checked /> Node.js</label>
+                <p>Will use <a href="https://www.npmjs.com/package/tsx">tsx</a> and tsc for TypeScript.</p>
+              </li>
+              <li class="feature">
+                <label><input type="checkbox" id="enable-deno" checked /> Deno</label>
+                <p>Next-gen TS/JS runtime.</p>
+              </li>
+              <li class="feature">
+                <label><input type="checkbox" id="enable-pnpm" checked /> PNPM</label>
+                <p>Recommended package manager.</p>
+              </li>
+              <li class="feature">
+                <label><input type="checkbox" id="enable-eslint" checked /> ESLint</label>
+                <p>Static analyzer.</p>
+              </li>
+              <li class="feature">
+                <label><input type="checkbox" id="enable-nix" checked /> Nix Shell</label>
+                <p>Obtain dependencies from <a href="https://nixos.org/download/">Nix package manager.</a></p>
+              </li>
+              <li class="feature">
+                <label><input type="checkbox" id="enable-direnv" checked /> Direnv</label>
+                <p>Automatically load Nix shell when entering project directory.</p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Solana</label>
+                <p>Build test, and deploy Solana programs.</p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ CosmWasm</label>
+                <p>Build, test, and deploy CosmWasm contracts.</p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Tendermint</label>
+                <p>RPC client for Tendermint/CometBFT and Cosmos/IBC ecosystem.</p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Namada</label>
+                <p>RPC client and decoder for <a href="https://github.com/namada-net/namada">Namada</a>.</p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Scrt</label>
+                <p>RPC client and decoder for <a href="https://scrt.network/">Secret</a>.</p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Rust</label>
+                <div class="grow"></div>
+                <select><option>stable</option><option>beta</option><option>nightly</option></select>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Mold</label>
+                <p><a href="https://github.com/rui314/mold">Fast linker.</a> Improves Rust build times.</p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Drone</label>
+                <p>Config for self-hosted Drone CI.</p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ GHA</label>
+                <p>Config for GitHub Actions.</p>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="editors">
+
+        <div class="field">
+          <div class="name">LICENCE</div>
           <div>
             <select id="license">
               <option>AGPL-3.0-or-later</option>
@@ -32,97 +120,31 @@
               <option>Closed source (inquire)</option></select>
           </div>
         </div>
-      </div>
-      <div class="field">
-        <div class="name">README</div>
-        <div class="flex col">
-          <textarea id="readme" placeholder="describe your project" style="height:2rem;font-size:1rem;width:30rem;height:4rem"></textarea>
+
+        <div class="field file">
+          <div class="name">README</div>
+          <div class="flex col">
+            <textarea id="readme" placeholder="describe your project" style="height:2rem;font-size:1rem;width:30rem;height:4rem"></textarea>
+          </div>
         </div>
-      </div>
-      <div class="field">
-        <div class="name">Integrations</div>
-        <div class="grow">
-          <ul class="features">
-            <li class="feature">
-              <label><input type="checkbox" id="enable-btc" checked /> Bitcoin</label>
-              <p>Test with local <a href="https://en.bitcoin.it/wiki/Original_Bitcoin_client/API_calls_list">bitcoind</a> in <a href="https://developer.bitcoin.org/examples/testing.html">-regtest</a> mode.</p>
-              <div class="grow"></div>
-              <p><a href="#">API</a></p>
-            </li>
-            <li class="feature">
-              <label><input type="checkbox" id="enable-simf" checked /> Simplicity</label>
-              <p>Compile and run <a target="_blank" href="https://docs.simplicity-lang.org/simplicityhl-reference/">SimplicityHL</a> programs.</p>
-              <div class="grow"></div>
-              <p><a href="#">API</a></p>
-            </li>
-            <li class="feature">
-              <label class="disabled">⏳️ Solana</label>
-              <p>Build test, and deploy Solana programs.</p>
-            </li>
-            <li class="feature">
-              <label class="disabled">⏳️ CosmWasm</label>
-              <p>Build, test, and deploy CosmWasm contracts.</p>
-            </li>
-            <li class="feature">
-              <label class="disabled">⏳️ Tendermint</label>
-              <p>RPC client for Tendermint/CometBFT and Cosmos/IBC ecosystem.</p>
-            </li>
-            <li class="feature">
-              <label class="disabled">⏳️ Namada</label>
-              <p>RPC client and decoder for <a href="https://github.com/namada-net/namada">Namada</a>.</p>
-            </li>
-            <li class="feature">
-              <label class="disabled">⏳️ Scrt</label>
-              <p>RPC client and decoder for <a href="https://scrt.network/">Secret</a>.</p>
-            </li>
-            <li class="feature">
-              <label><input type="checkbox" id="enable-node" checked /> Node.js</label>
-              <p>Will use <a href="https://www.npmjs.com/package/tsx">tsx</a> and tsc for TypeScript.</p>
-            </li>
-            <li class="feature">
-              <label><input type="checkbox" id="enable-deno" checked /> Deno</label>
-              <p>Next-gen TS/JS runtime.</p>
-            </li>
-            <li class="feature">
-              <label><input type="checkbox" id="enable-pnpm" checked /> PNPM</label>
-              <p>Recommended package manager.</p>
-            </li>
-            <li class="feature">
-              <label><input type="checkbox" id="enable-eslint" checked /> ESLint</label>
-              <p>Static analyzer.</p>
-            </li>
-            <li class="feature">
-              <label class="disabled">⏳️ Rust</label>
-              <div class="grow"></div>
-              <select><option>stable</option><option>beta</option><option>nightly</option></select>
-            </li>
-            <li class="feature">
-              <label class="disabled">⏳️ Mold</label>
-              <p><a href="https://github.com/rui314/mold">Fast linker.</a> Improves Rust build times.</p>
-            </li>
-            <li class="feature">
-              <label><input type="checkbox" id="enable-nix" checked /> Nix Shell</label>
-              <p>Obtain dependencies from <a href="https://nixos.org/download/">Nix package manager.</a></p>
-            </li>
-            <li class="feature">
-              <label><input type="checkbox" id="enable-direnv" checked /> Direnv</label>
-              <p>Automatically load Nix shell when entering project directory.</p>
-            </li>
-            <li class="feature">
-              <label class="disabled">⏳️ Drone</label>
-              <p>Config for self-hosted Drone CI.</p>
-            </li>
-            <li class="feature">
-              <label class="disabled">⏳️ GHA</label>
-              <p>Config for GitHub Actions.</p>
-            </li>
-          </ul>
+
+        <div class="field text">
+          <div class="name">src/main.simf</div>
+          <div class="flex col">
+            <textarea id="src/main.simf" placeholder="enter simplicity code" style="height:2rem;font-size:1rem;width:30rem;height:4rem"></textarea>
+          </div>
         </div>
-      </div>
-      <div class="row">
-        <button id="download" style="margin: 0 auto">Download project template</button>
-      </div>
-    </section>
+
+        <div class="field bin">
+          <div class="name">src/main.wit</div>
+          <div class="flex col">
+            <textarea id="src/main.wit" placeholder="enter witness data" style="height:2rem;font-size:1rem;width:30rem;height:4rem"></textarea>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
     <script type="module" src="lib/gui.ts"></script>
   </body>
 </html>
