@@ -3,9 +3,10 @@ import { Dir, Txt } from './fs.ts';
 import { chunked, Name } from '../format.ts';
 /** An application project. */
 export type Project = Name & Rust & ECMAScript & {
-  gitignore?: string[],
-  dotenv?: boolean,
-  direnv?: boolean
+  gitignore?: string[]|boolean,
+  dotenv?: string|boolean,
+  direnv?: string|boolean,
+  readme?: string|boolean,
 };
 /** Define a project. */
 export const Project = (name: string, ...ops: DirEntry[]) =>

@@ -1,8 +1,8 @@
-#!/usr/bin/env -S deno run --allow-env --allow-run
+#!/usr/bin/env -S deno run -I --allow-env --allow-run
 import { stdin, stdout } from 'node:process';
-import testSuite from './lib/index.test.ts';
-import { entrypoint, gray, exec, when, fg255, bg255 } from './lib/index.ts';
-import { tuiContext, runInput, runOutput, draw, at } from './lib/context/tui.ts';
+import testSuite from '../lib/index.test.ts';
+import { ANSI, entrypoint, Exec, when } from '../lib/index.ts';
+import { tuiContext, runInput, runOutput, draw, at } from '../lib/context/tui.ts';
 
 export type State = {
   list:     string[],
@@ -16,11 +16,11 @@ export type State = {
   runCheck: () => Promise<unknown>,
 } & TuiState;
 
-export default entrypoint(import.meta, async function main (_args) {
-  await inRawTTY(stdin, cb, args);
+export default entrypoint(import.meta, async function main (...args) {
+  await inRawTTY(stdin, start, ...args);
 });
 
-function inRawTTY (stdin, cb, ...args) {
+async function inRawTTY (stdin, cb, ...args) {
   if (stdin.isTTY && !stdin.isRaw) stdin.setRawMode(true);
   try {
     await cb(...args);
@@ -39,7 +39,7 @@ export const start = (
     runTests: () => Test.run(state.suite),
 
     checks:   [],
-    check:    exec('deno', 'check', 'lib/btc/index.ts'),
+    check:    Exec('deno', 'check', 'lib/btc/index.ts'),
     runCheck: async () => {
       const result = await state.check();
       console.log({result});
@@ -98,13 +98,13 @@ const status = (state: State) => {
       styled('CPU '+((state.tD/state.tF)*100).toFixed(1)+'%')),
     at(Math.max(0, (state.width - size.length - 1) || 0), 0,
       styled(size), '\n '),
-    at(0, state.height - 1, bg255(240)(' Filter: '), ' \x1b[1m'+state.filter)
+    at(0, state.height - 1, ANSI.bg255(240)(' Filter: '), ' \x1b[1m'+state.filter)
   )(state)
 };
 
 const output = draw(title, tests, status);
 
-const styled = (x: String) => '\x1b[1m'+fg255(16)(bg255(208)(x));
+const styled = (x: String) => '\x1b[1m'+ANSI.fg255(16)(ANSI.bg255(208)(x));
 
 export const collectTree = (steps: Test.Step<unknown>[]) => {
   const output = []
@@ -132,8 +132,8 @@ export const collectList = (steps: Test.Step<unknown>[], {
       output.push([
         (subids.join('.')+' ').padEnd(10,'┈')+' ',
         (subids.length < 2) && '\x1b[1m',
-        gray(subids.length, step.name.padEnd(14))+' ',
-        gray(10, 'ready')
+        ANSI.gray(subids.length, step.name.padEnd(14))+' ',
+        ANSI.gray(10, 'ready')
       ].filter(Boolean).join(''));
       if (step.steps) collectSteps(subids, step.steps);
     }

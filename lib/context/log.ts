@@ -1,7 +1,8 @@
 import type { Fn } from '../index.ts';
-import { env, stdout, stderr, createLogUpdate, inspect } from '../deps.ts';
+import { env, stdout, stderr, process, getCreateLogUpdate, inspect } from '../deps.ts';
 import { joined, ANSI, stackTrace } from '../format.ts';
-const { red, yellow, dim, gray } = ANSI;
+const { red, yellow, dim, gray, blue } = ANSI;
+const createLogUpdate = ('stderr' in process) ? await getCreateLogUpdate() : null;
 /** Logging interface. */
 export type Log = {
   prefix:     string,
@@ -15,7 +16,9 @@ export type Log = {
   trace (...args: unknown[]): unknown;
 };
 /** Create logger. */
-export function Log <T extends Log> (context: Partial<T> = {}): T {
+export function Log <T extends Log> (
+  context: Partial<T> = {},
+): T {
   context.prefix ??= '';
   context.format ??= (args: unknown[]) =>
     (context.prefix ? `${context.prefix} ` : '') +
@@ -23,15 +26,24 @@ export function Log <T extends Log> (context: Partial<T> = {}): T {
   context.formatOne ??= (x: unknown) => (typeof x === 'string') ? x :
     (x && (typeof x === 'object') && (x instanceof Error)) ? x.message :
     inspect(x, { depth: 10, colors: true });
-  const logWidth = (stdout.getWindowSize()||[Number(env.COLUMNS)])[0]
-    || Number(env.COLUMNS) || Infinity;
-  const logUpdater = createLogUpdate(stdout, { defaultWidth: logWidth });
-  context.info  = (...args: unknown[]) => logUpdater(context.format(args) as string);
-  context.log   = (...args: unknown[]) => logUpdater.persist(context.format(args) as string);
-  context.error = (...args: unknown[]) => logUpdater.persist(red(context.format(args)));
-  context.warn  = (...args: unknown[]) => logUpdater.persist(yellow(context.format(args)));
-  context.debug = (...args: unknown[]) => logUpdater.persist(dim(context.format(args)));
-  context.trace = (...args: unknown[]) => console.trace(gray(5, context.format(args)+'\n'));
+  if ('stderr' in process) {
+    const logWidth = (stdout.getWindowSize()||[Number(env.COLUMNS)])[0]
+      || Number(env.COLUMNS) || Infinity;
+    const logUpdater = createLogUpdate(stdout, { defaultWidth: logWidth });
+    context.info  = (...args: unknown[]) => logUpdater(context.format(args) as string);
+    context.log   = (...args: unknown[]) => logUpdater.persist(context.format(args) as string);
+    context.error = (...args: unknown[]) => logUpdater.persist(red(context.format(args)));
+    context.warn  = (...args: unknown[]) => logUpdater.persist(yellow(context.format(args)));
+    context.debug = (...args: unknown[]) => logUpdater.persist(dim(context.format(args)));
+    context.trace = (...args: unknown[]) => console.trace(gray(5, context.format(args)+'\n'));
+  } else {
+    context.info  = (...args: unknown[]) => console.info(blue(context.format(args)));
+    context.log   = (...args: unknown[]) => console.log(context.format(args) as string);
+    context.error = (...args: unknown[]) => console.error(red(context.format(args)));
+    context.warn  = (...args: unknown[]) => console.warn(yellow(context.format(args)));
+    context.debug = (...args: unknown[]) => console.debug(dim(context.format(args)));
+    context.trace = (...args: unknown[]) => console.trace(gray(5, context.format(args)+'\n'));
+  }
   return context as T;
 }
 /** Enable tracing for all `console.log` calls,

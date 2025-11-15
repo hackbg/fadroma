@@ -2,7 +2,7 @@ import type { Meta } from '../index.ts';
 import type { ChildProcess } from '../deps.ts';
 import { Fn, wordWrap, msec, entrypoint as entry } from '../format.ts';
 import { orange, bold, gray, blue, yellow } from '../format/ansi.ts';
-import { cwd, resolvePath, realpathSync, stdout, stderr, watchFs,
+import { cwd, resolvePath, stdout, stderr, watchFs,
   execFile, stripVTControlCharacters, execImpl } from '../deps.ts';
 /** Run a test suite on file update. */
 export async function runTest (_kind: string, _paths: string[], ...args: unknown[]) {

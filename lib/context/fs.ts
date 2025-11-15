@@ -1,5 +1,7 @@
 import type { Fn, Bytes, Step, Async } from '../index.ts';
-import { joinPath, tmpdir, mkdtemp, writeFile, mkdir, rm, zipSync } from '../deps.ts';
+import { joinPath, tmpdir, zipSync } from '../deps.ts';
+import { realpathSync } from '../deps.ts';
+import { mkdir, rm, mkdtemp, writeFile, resolvePath, cwd } from '../deps.ts';
 import { Pipe, Name } from '../format/function.ts';
 import { Log } from './log.ts';
 /** A function that created an entry in a directory. */
@@ -9,10 +11,10 @@ export type DirEntry<D extends Dir = Dir, U extends unknown[] = unknown[]> =
 export type Dir = {
   path:       string,
   tree?:      Record<string, unknown>,
-  mkdir?:     typeof mkdir,
-  mkdtemp?:   typeof mkdtemp,
-  writeFile?: typeof writeFile,
-  rimraf?:    Fn,
+  mkdir?:     (_: string) => Promise<unknown>,
+  mkdtemp?:   (_?: string) => Promise<unknown>,
+  rimraf?:    (_?: string) => Promise<unknown>,
+  writeFile?: (_: string, __: string|Bytes, enc?: 'utf8') => Promise<unknown>,
 };
 /** Specify a directory.
   *
@@ -41,29 +43,14 @@ export function Dir <D extends Dir> (...opts: unknown[]):
   while (typeof opts[0] === 'string') path = joinPath(path, opts.shift() as string);
   const entries = opts as DirEntry<D>[];
   const props = { path, entries };
-  return Name(`Dir(${path}))`, makeDirectory, props) as DirEntry<D>;
+  return Name(`Dir(${path})`, makeDirectory, props) as DirEntry<D>;
   async function makeDirectory (dir: string|D = '', ...args: unknown[]): Promise<D> {
-    dir = dirContext(dir, path);
-    await dir.mkdir(path, { recursive: true });
+    dir = LocalFS(dir, path);
+    await dir.mkdir(path);
     const result = await Pipe(...entries)(dir, ...args) as D;
     return result;
   }
 }
-function dirContext <D extends Dir>(dir: string|D, path: string = ''): D {
-  dir ??= {} as D;
-  if (typeof dir !== 'object') dir = { path: joinPath(dir, path) } as D;
-  dir.path ??= path;
-  dir.tree ??= {};
-  dir.tree[dir.path] = {};
-  dir.mkdir     ??= mkdir;
-  dir.writeFile ??= writeFile;
-  dir.mkdtemp   ??= mkdtemp;
-  dir.rimraf    ??= (sub: string) => rm(
-    joinPath(...[dir.path, sub].filter(Boolean)),
-    { recursive: true }
-  );
-  return dir
-};
 /** Specify a temporary directory. */
 export function Temp <D extends Dir> (
   prefix: string = '', ...ops: DirEntry<D>[]
@@ -71,7 +58,8 @@ export function Temp <D extends Dir> (
   const props = { prefix, ops };
   return Name(`Temp(${prefix})`, inTemporaryDirectory, props);
   async function inTemporaryDirectory (dir: string|D, ...context: unknown[]): Promise<D> {
-    dir = dirContext(dir, await mkdtemp(joinPath(tmpdir(), `fadroma`, `${prefix}-`)));
+    dir = LocalFS(dir);
+    dir = LocalFS(dir, await dir.mkdtemp(joinPath(tmpdir(), `fadroma`, `${prefix}-`)));
     const result = await Pipe(...ops as DirEntry<D>[])(dir, context) as D;
     await dir.rimraf();
     return result;
@@ -82,7 +70,7 @@ export function Txt <T = string|number|object|null> (
   path: string, value?: T|T[], ...steps: Array<T|Step<T>>
 ): DirEntry {
   return Name(`Txt(${path})`, async function writeTxtFile <D extends Dir> (dir: string|D) {
-    dir = dirContext(dir);
+    dir = LocalFS(dir);
     const full = joinPath(dir.path, path);
     const data = await Pipe(...steps as Fn[])(value||'') || '';
     await dir.writeFile(full, dir.tree[full] = data as string, 'utf8');
@@ -95,7 +83,7 @@ export function Bin (
 ): DirEntry {
   value = (typeof value === 'number') ? new Uint8Array(value) : value
   return Name(`Bin(${path})`, async function writeBinFile (dir: Dir) {
-    dir = dirContext(dir);
+    dir = LocalFS(dir);
     const full = joinPath(dir.path, path);
     const data = await Pipe(...steps as Fn[])(value||'') || '';
     await dir.writeFile(full, dir.tree[full] = data as Bytes);
@@ -107,7 +95,7 @@ export function Zip <D extends Dir> (name: string, ...entries: DirEntry<D>[]) {
   return Name(`Zip(${entries.length})`, async function writeZipFile (
     dir?: D, ...args: unknown[]
   ) {
-    const context = zipContext();
+    const context = ZippedFS();
     for (const entry of entries) await entry(context, ...args);
     const data = zipSync(context.tree);
     if (dir) await dir.writeFile(joinPath(dir.path, name), data);
@@ -115,7 +103,7 @@ export function Zip <D extends Dir> (name: string, ...entries: DirEntry<D>[]) {
     return Object.assign(data, { name, tree: context.tree });
   }, { entries })
 }
-function zipContext (tree = {}) {
+function ZippedFS (tree = {}) {
   return {
     tree,
     mkdir: function zipMkdir (path: string) {
@@ -132,3 +120,19 @@ function zipContext (tree = {}) {
     }
   }
 }
+function LocalFS <D extends Dir> (dir: string|D, path: string = ''): D {
+  dir ??= {} as D;
+  if (typeof dir !== 'object') dir = { path: joinPath(dir, path) } as D;
+
+  dir.path ??= path;
+  dir.tree ??= {};
+  dir.tree[dir.path] = {};
+
+  const opts = { recursive: true };
+  dir.mkdir ??= async (sub: string) => mkdir(resolvePath(cwd(), sub), opts);
+  dir.rimraf ??= async (sub: string) => rm(joinPath(...[dir.path, sub].filter(Boolean)), opts);
+  dir.mkdtemp ??= async (p) => mkdtemp(p);
+  dir.writeFile ??= async (p, q, r) => writeFile(p, q, r);
+
+  return dir
+};
