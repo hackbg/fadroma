@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["TxAction",""]],"fn":[["get_transfers",""],["get_txs",""],["store_burn",""],["store_deposit",""],["store_mint",""],["store_redeem",""],["store_transfer",""]],"struct":[["RichTx",""],["Tx",""]]});

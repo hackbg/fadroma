@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["AppendStore","A type allowing only reads from an append store. useful in the context_, u8 of queries."],["AppendStoreMut","A type allowing both reads from and writes to the append store at a given storage location."],["Iter","An iterator over the contents of the append store."]]});

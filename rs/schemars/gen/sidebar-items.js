@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["BoolSchemas","Controls whether trivial `Bool` schemas may be generated."]],"struct":[["SchemaGenerator","The main type used to generate JSON Schemas."],["SchemaSettings","Settings to customize how Schemas are generated."]]});

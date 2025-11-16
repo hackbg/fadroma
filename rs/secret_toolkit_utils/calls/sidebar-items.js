@@ -1,1 +1,0 @@
-initSidebarItems({"trait":[["HandleCallback","A trait marking types that define the handle message(s) of a contract"],["InitCallback","A trait marking types that define the instantiation message of a contract"],["Query","A trait marking types that define the query message(s) of a contract"]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Rand32","A PRNG producing a 32-bit output."],["Rand64","A PRNG producing a 64-bit output."]]});

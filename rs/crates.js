@@ -1,1 +1,0 @@
-window.ALL_CRATES = ["cosmwasm_derive","derivative","fadroma_derive_canonize","fadroma_derive_serde","fadroma_dsl","fadroma_proc_auth","proc_macro2","quote","remain","schemars_derive","serde_derive","serde_derive_internals","syn","thiserror_impl","unicode_ident"];

@@ -1,1 +1,0 @@
-initSidebarItems({"attr":[["contract",""],["contract_impl",""],["handle",""],["handle_guard",""],["init",""],["interface",""],["query",""]],"derive":[["DeserializeFlat",""]]});

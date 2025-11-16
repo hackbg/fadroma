@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Error","An enumeration of possible errors."]],"struct":[["Intermediate","SNAFU context selector for the `Error::Intermediate` variant"],["Leaf","SNAFU context selector for the `Error::Leaf` variant"]]});

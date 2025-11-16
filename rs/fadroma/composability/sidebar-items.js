@@ -1,1 +1,0 @@
-initSidebarItems({"mod":[["tester",""]],"trait":[["BaseComposable",""],["Composable",""],["HandleDispatch","Trait for handle messages"],["QueryDispatch","Trait for query messages"]]});

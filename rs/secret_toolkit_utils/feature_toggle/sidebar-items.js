@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["FeatureToggleHandleMsg",""],["FeatureToggleQueryMsg",""],["Status",""]],"struct":[["FeatureStatus",""],["FeatureToggle",""]],"trait":[["FeatureToggleTrait",""]]});

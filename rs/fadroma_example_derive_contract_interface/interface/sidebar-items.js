@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["HandleMsg",""],["QueryMsg",""]],"struct":[["InitMsg",""],["StateResponse",""]],"trait":[["Contract",""]]});

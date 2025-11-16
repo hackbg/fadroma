@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["BurnFromAction",""],["MintAction",""],["SendAction",""],["SendFromAction",""],["TransferAction",""],["TransferFromAction",""]]});

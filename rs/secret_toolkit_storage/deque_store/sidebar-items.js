@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["DequeStore","A type allowing only reads from an deque store. useful in the context_, u8 of queries."],["DequeStoreMut","A type allowing both reads from and writes to the deque store at a given storage location."],["Iter","An iterator over the contents of the deque store."]]});
