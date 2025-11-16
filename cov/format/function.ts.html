@@ -1,0 +1,1920 @@
+<!doctype html>
+      <html lang='en-US'>
+        
+      <head>
+        <meta charset='utf-8'>
+        <title>Coverage report for format/function.ts</title>
+        <style>/* Copyright 2015 the Istanbul contributors. All rights reserved. ISC license. */
+/* Copyright 2018-2023 the Deno authors. All rights reserved. MIT license. */
+
+body,
+html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+body {
+  color-scheme: light dark;
+  font-family:
+    Helvetica Neue,
+    Helvetica,
+    Arial;
+  font-size: 14px;
+  color: light-dark(#333, #ddd);
+  background-color: light-dark(white, #111);
+}
+.small {
+  font-size: 12px;
+}
+*,
+*:after,
+*:before {
+  box-sizing: border-box;
+}
+h1 {
+  font-size: 20px;
+  margin: 0;
+}
+h2 {
+  font-size: 14px;
+}
+pre {
+  font:
+    12px/1.4 Consolas,
+    "Liberation Mono",
+    Menlo,
+    Courier,
+    monospace;
+  margin: 0;
+  padding: 0;
+  tab-size: 2;
+}
+a {
+  color: light-dark(#0074d9, #3ba3ff);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+.strong {
+  font-weight: bold;
+}
+.space-top1 {
+  padding: 10px 0 0 0;
+}
+.pad2y {
+  padding: 20px 0;
+}
+.pad1y {
+  padding: 10px 0;
+}
+.pad2x {
+  padding: 0 20px;
+}
+.pad2 {
+  padding: 20px;
+}
+.pad1 {
+  padding: 10px;
+}
+.space-left2 {
+  padding-left: 55px;
+}
+.space-right2 {
+  padding-right: 20px;
+}
+.center {
+  text-align: center;
+}
+.clearfix {
+  display: block;
+}
+.clearfix:after {
+  content: "";
+  display: block;
+  height: 0;
+  clear: both;
+  visibility: hidden;
+}
+.fl {
+  float: left;
+}
+@media only screen and (max-width: 640px) {
+  .col3 {
+    width: 100%;
+    max-width: 100%;
+  }
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+.quiet {
+  color: light-dark(rgb(0 0 0 / 0.5), rgb(255 255 255 / 0.5));
+}
+.quiet a {
+  opacity: 0.7;
+}
+
+.fraction {
+  font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  font-size: 10px;
+  color: light-dark(#555, #bbb);
+  background: light-dark(#e8e8e8, #171717);
+  padding: 4px 5px;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+div.path a:link,
+div.path a:visited {
+  color: light-dark(#333, #ddd);
+}
+table.coverage {
+  border-collapse: collapse;
+  margin: 10px 0 0 0;
+  padding: 0;
+}
+
+table.coverage td {
+  margin: 0;
+  padding: 0;
+  vertical-align: top;
+}
+table.coverage td.line-count {
+  text-align: right;
+  padding: 0 5px 0 20px;
+}
+table.coverage td.line-coverage {
+  text-align: right;
+  padding-right: 4px;
+  min-width: 20px;
+}
+
+table.coverage td.branch-coverage {
+  text-align: right;
+  padding-right: 3px;
+  min-width: 8px;
+}
+
+table.coverage td span.cline-any {
+  display: inline-block;
+  padding: 0 5px;
+  width: 100%;
+}
+.missing-if-branch {
+  display: inline-block;
+  margin-right: 5px;
+  border-radius: 3px;
+  position: relative;
+  padding: 0 4px;
+  background: light-dark(#333, #ddd);
+  color: light-dark(yellow, #cc0);
+}
+
+.skip-if-branch {
+  display: none;
+  margin-right: 10px;
+  position: relative;
+  padding: 0 4px;
+  background: light-dark(#ccc, #333);
+  color: light-dark(white, black);
+}
+.missing-if-branch .typ,
+.skip-if-branch .typ {
+  color: inherit !important;
+}
+.coverage-summary {
+  border-collapse: collapse;
+  width: 100%;
+}
+.coverage-summary tr {
+  border-bottom: 1px solid light-dark(#bbb, #444);
+}
+.keyline-all {
+  border: 1px solid light-dark(#ddd, #222);
+}
+.coverage-summary td,
+.coverage-summary th {
+  padding: 10px;
+}
+.coverage-summary tbody {
+  border: 1px solid light-dark(#bbb, #444);
+}
+.coverage-summary td {
+  border-right: 1px solid light-dark(#bbb, #444);
+}
+.coverage-summary td:last-child {
+  border-right: none;
+}
+.coverage-summary th {
+  text-align: left;
+  font-weight: normal;
+  white-space: nowrap;
+}
+.coverage-summary th.file {
+  border-right: none !important;
+}
+.coverage-summary th.pic,
+.coverage-summary th.abs,
+.coverage-summary td.pct,
+.coverage-summary td.abs {
+  text-align: right;
+}
+.coverage-summary td.file {
+  white-space: nowrap;
+}
+.coverage-summary td.pic {
+  min-width: 120px !important;
+}
+
+.coverage-summary .sorter {
+  height: 10px;
+  width: 7px;
+  display: inline-block;
+  margin-left: 0.5em;
+  background: url(sort-arrow-sprite.png) no-repeat scroll 0 0 transparent;
+}
+.coverage-summary .sorted .sorter {
+  background-position: 0 -20px;
+}
+.coverage-summary .sorted-desc .sorter {
+  background-position: 0 -10px;
+}
+.status-line {
+  height: 10px;
+}
+/* yellow */
+.cbranch-no {
+  background: light-dark(yellow, #cc0) !important;
+  color: #111;
+}
+/* dark red */
+.red.solid,
+.status-line.low,
+.low .cover-fill {
+  background: light-dark(#c21f39, #a5162e);
+}
+.low .chart {
+  border: 1px solid light-dark(#c21f39, #a5162e);
+}
+.highlighted,
+.highlighted .cstat-no,
+.highlighted .fstat-no,
+.highlighted .cbranch-no {
+  background: light-dark(#c21f39, #a5162e) !important;
+}
+/* medium red */
+.cstat-no,
+.fstat-no,
+.cbranch-no,
+.cbranch-no {
+  background: light-dark(#f6c6ce, #553339);
+}
+/* light red */
+.low,
+.cline-no {
+  background: light-dark(#fce1e5, #2e2023);
+}
+/* light green */
+.high,
+.cline-yes {
+  background: light-dark(#e6f5d0, #25291f);
+}
+/* medium green */
+.cstat-yes {
+  background: light-dark(#a1d76a, #293b18);
+}
+/* dark green */
+.status-line.high,
+.high .cover-fill {
+  background: light-dark(#4d9221, #2a5211);
+}
+.high .chart {
+  border: 1px solid light-dark(#4d9221, #2a5211);
+}
+/* dark yellow (gold) */
+.status-line.medium,
+.medium .cover-fill {
+  background: light-dark(#f9cd0b, #b09107);
+}
+.medium .chart {
+  border: 1px solid light-dark(#f9cd0b, #b09107);
+}
+/* light yellow */
+.medium {
+  background: light-dark(#fff4c2, #4a432a);
+}
+
+.cstat-skip {
+  background: light-dark(#ddd, #222);
+  color: light-dark(#111, #eee);
+}
+.fstat-skip {
+  background: light-dark(#ddd, #222);
+  color: light-dark(#111, #eee) !important;
+}
+.cbranch-skip {
+  background: light-dark(#ddd, #222) !important;
+  color: light-dark(#111, #eee);
+}
+
+span.cline-neutral {
+  background: light-dark(#eaeaea, #141414);
+}
+
+.coverage-summary td.empty {
+  opacity: 0.5;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  line-height: 1;
+  color: light-dark(#888, #999);
+}
+
+.cover-fill,
+.cover-empty {
+  display: inline-block;
+  height: 12px;
+}
+.chart {
+  line-height: 0;
+}
+.cover-empty {
+  background: light-dark(white, black);
+}
+.cover-full {
+  border-right: none !important;
+}
+pre.prettyprint {
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.com {
+  color: light-dark(#999, #666) !important;
+}
+.ignore-none {
+  color: light-dark(#999, #666);
+  font-weight: normal;
+}
+
+.wrapper {
+  min-height: 100%;
+  height: auto !important;
+  height: 100%;
+  margin: 0 auto -48px;
+}
+.footer,
+.push {
+  height: 48px;
+}
+.overflow-auto {
+  overflow: auto;
+}
+</style>
+        <meta name='viewport' content='width=device-width, initial-scale=1'>
+      </head>
+        <body>
+          <div class='wrapper'>
+            
+      <div class='pad1'>
+        <h1><a href='../index.html'>All files</a> / <a href='../format/index.html'>format</a> / function.ts</h1>
+        <div class='clearfix'>
+          <div class='fl pad1y space-right2'>
+            <span class='strong'>84.62%</span>
+            <span class='quiet'>Branches</span>
+            <span class='fraction'>11/13</span>
+          </div>
+          <div class='fl pad1y space-right2'>
+            <span class='strong'>31.41%</span>
+            <span class='quiet'>Lines</span>
+            <span class='fraction'>49/156</span>
+          </div>
+        </div>
+      </div>
+      <div class='status-line low'></div>
+            <div class='pad1 overflow-auto'>
+              <table class='coverage'>
+        <tr>
+          <td class='line-count quiet'><pre><a href='#L1' id='L1'>1</a>
+<a href='#L2' id='L2'>2</a>
+<a href='#L3' id='L3'>3</a>
+<a href='#L4' id='L4'>4</a>
+<a href='#L5' id='L5'>5</a>
+<a href='#L6' id='L6'>6</a>
+<a href='#L7' id='L7'>7</a>
+<a href='#L8' id='L8'>8</a>
+<a href='#L9' id='L9'>9</a>
+<a href='#L10' id='L10'>10</a>
+<a href='#L11' id='L11'>11</a>
+<a href='#L12' id='L12'>12</a>
+<a href='#L13' id='L13'>13</a>
+<a href='#L14' id='L14'>14</a>
+<a href='#L15' id='L15'>15</a>
+<a href='#L16' id='L16'>16</a>
+<a href='#L17' id='L17'>17</a>
+<a href='#L18' id='L18'>18</a>
+<a href='#L19' id='L19'>19</a>
+<a href='#L20' id='L20'>20</a>
+<a href='#L21' id='L21'>21</a>
+<a href='#L22' id='L22'>22</a>
+<a href='#L23' id='L23'>23</a>
+<a href='#L24' id='L24'>24</a>
+<a href='#L25' id='L25'>25</a>
+<a href='#L26' id='L26'>26</a>
+<a href='#L27' id='L27'>27</a>
+<a href='#L28' id='L28'>28</a>
+<a href='#L29' id='L29'>29</a>
+<a href='#L30' id='L30'>30</a>
+<a href='#L31' id='L31'>31</a>
+<a href='#L32' id='L32'>32</a>
+<a href='#L33' id='L33'>33</a>
+<a href='#L34' id='L34'>34</a>
+<a href='#L35' id='L35'>35</a>
+<a href='#L36' id='L36'>36</a>
+<a href='#L37' id='L37'>37</a>
+<a href='#L38' id='L38'>38</a>
+<a href='#L39' id='L39'>39</a>
+<a href='#L40' id='L40'>40</a>
+<a href='#L41' id='L41'>41</a>
+<a href='#L42' id='L42'>42</a>
+<a href='#L43' id='L43'>43</a>
+<a href='#L44' id='L44'>44</a>
+<a href='#L45' id='L45'>45</a>
+<a href='#L46' id='L46'>46</a>
+<a href='#L47' id='L47'>47</a>
+<a href='#L48' id='L48'>48</a>
+<a href='#L49' id='L49'>49</a>
+<a href='#L50' id='L50'>50</a>
+<a href='#L51' id='L51'>51</a>
+<a href='#L52' id='L52'>52</a>
+<a href='#L53' id='L53'>53</a>
+<a href='#L54' id='L54'>54</a>
+<a href='#L55' id='L55'>55</a>
+<a href='#L56' id='L56'>56</a>
+<a href='#L57' id='L57'>57</a>
+<a href='#L58' id='L58'>58</a>
+<a href='#L59' id='L59'>59</a>
+<a href='#L60' id='L60'>60</a>
+<a href='#L61' id='L61'>61</a>
+<a href='#L62' id='L62'>62</a>
+<a href='#L63' id='L63'>63</a>
+<a href='#L64' id='L64'>64</a>
+<a href='#L65' id='L65'>65</a>
+<a href='#L66' id='L66'>66</a>
+<a href='#L67' id='L67'>67</a>
+<a href='#L68' id='L68'>68</a>
+<a href='#L69' id='L69'>69</a>
+<a href='#L70' id='L70'>70</a>
+<a href='#L71' id='L71'>71</a>
+<a href='#L72' id='L72'>72</a>
+<a href='#L73' id='L73'>73</a>
+<a href='#L74' id='L74'>74</a>
+<a href='#L75' id='L75'>75</a>
+<a href='#L76' id='L76'>76</a>
+<a href='#L77' id='L77'>77</a>
+<a href='#L78' id='L78'>78</a>
+<a href='#L79' id='L79'>79</a>
+<a href='#L80' id='L80'>80</a>
+<a href='#L81' id='L81'>81</a>
+<a href='#L82' id='L82'>82</a>
+<a href='#L83' id='L83'>83</a>
+<a href='#L84' id='L84'>84</a>
+<a href='#L85' id='L85'>85</a>
+<a href='#L86' id='L86'>86</a>
+<a href='#L87' id='L87'>87</a>
+<a href='#L88' id='L88'>88</a>
+<a href='#L89' id='L89'>89</a>
+<a href='#L90' id='L90'>90</a>
+<a href='#L91' id='L91'>91</a>
+<a href='#L92' id='L92'>92</a>
+<a href='#L93' id='L93'>93</a>
+<a href='#L94' id='L94'>94</a>
+<a href='#L95' id='L95'>95</a>
+<a href='#L96' id='L96'>96</a>
+<a href='#L97' id='L97'>97</a>
+<a href='#L98' id='L98'>98</a>
+<a href='#L99' id='L99'>99</a>
+<a href='#L100' id='L100'>100</a>
+<a href='#L101' id='L101'>101</a>
+<a href='#L102' id='L102'>102</a>
+<a href='#L103' id='L103'>103</a>
+<a href='#L104' id='L104'>104</a>
+<a href='#L105' id='L105'>105</a>
+<a href='#L106' id='L106'>106</a>
+<a href='#L107' id='L107'>107</a>
+<a href='#L108' id='L108'>108</a>
+<a href='#L109' id='L109'>109</a>
+<a href='#L110' id='L110'>110</a>
+<a href='#L111' id='L111'>111</a>
+<a href='#L112' id='L112'>112</a>
+<a href='#L113' id='L113'>113</a>
+<a href='#L114' id='L114'>114</a>
+<a href='#L115' id='L115'>115</a>
+<a href='#L116' id='L116'>116</a>
+<a href='#L117' id='L117'>117</a>
+<a href='#L118' id='L118'>118</a>
+<a href='#L119' id='L119'>119</a>
+<a href='#L120' id='L120'>120</a>
+<a href='#L121' id='L121'>121</a>
+<a href='#L122' id='L122'>122</a>
+<a href='#L123' id='L123'>123</a>
+<a href='#L124' id='L124'>124</a>
+<a href='#L125' id='L125'>125</a>
+<a href='#L126' id='L126'>126</a>
+<a href='#L127' id='L127'>127</a>
+<a href='#L128' id='L128'>128</a>
+<a href='#L129' id='L129'>129</a>
+<a href='#L130' id='L130'>130</a>
+<a href='#L131' id='L131'>131</a>
+<a href='#L132' id='L132'>132</a>
+<a href='#L133' id='L133'>133</a>
+<a href='#L134' id='L134'>134</a>
+<a href='#L135' id='L135'>135</a>
+<a href='#L136' id='L136'>136</a>
+<a href='#L137' id='L137'>137</a>
+<a href='#L138' id='L138'>138</a>
+<a href='#L139' id='L139'>139</a>
+<a href='#L140' id='L140'>140</a>
+<a href='#L141' id='L141'>141</a>
+<a href='#L142' id='L142'>142</a>
+<a href='#L143' id='L143'>143</a>
+<a href='#L144' id='L144'>144</a>
+<a href='#L145' id='L145'>145</a>
+<a href='#L146' id='L146'>146</a>
+<a href='#L147' id='L147'>147</a>
+<a href='#L148' id='L148'>148</a>
+<a href='#L149' id='L149'>149</a>
+<a href='#L150' id='L150'>150</a>
+<a href='#L151' id='L151'>151</a>
+<a href='#L152' id='L152'>152</a>
+<a href='#L153' id='L153'>153</a>
+<a href='#L154' id='L154'>154</a>
+<a href='#L155' id='L155'>155</a>
+<a href='#L156' id='L156'>156</a>
+<a href='#L157' id='L157'>157</a>
+<a href='#L158' id='L158'>158</a>
+<a href='#L159' id='L159'>159</a>
+<a href='#L160' id='L160'>160</a>
+<a href='#L161' id='L161'>161</a>
+<a href='#L162' id='L162'>162</a>
+<a href='#L163' id='L163'>163</a>
+<a href='#L164' id='L164'>164</a>
+<a href='#L165' id='L165'>165</a>
+<a href='#L166' id='L166'>166</a>
+<a href='#L167' id='L167'>167</a>
+<a href='#L168' id='L168'>168</a>
+<a href='#L169' id='L169'>169</a>
+<a href='#L170' id='L170'>170</a>
+<a href='#L171' id='L171'>171</a>
+<a href='#L172' id='L172'>172</a>
+<a href='#L173' id='L173'>173</a>
+<a href='#L174' id='L174'>174</a>
+<a href='#L175' id='L175'>175</a>
+<a href='#L176' id='L176'>176</a>
+<a href='#L177' id='L177'>177</a>
+<a href='#L178' id='L178'>178</a>
+<a href='#L179' id='L179'>179</a>
+<a href='#L180' id='L180'>180</a>
+<a href='#L181' id='L181'>181</a>
+<a href='#L182' id='L182'>182</a>
+<a href='#L183' id='L183'>183</a>
+<a href='#L184' id='L184'>184</a>
+<a href='#L185' id='L185'>185</a>
+<a href='#L186' id='L186'>186</a>
+<a href='#L187' id='L187'>187</a>
+<a href='#L188' id='L188'>188</a>
+<a href='#L189' id='L189'>189</a>
+<a href='#L190' id='L190'>190</a>
+<a href='#L191' id='L191'>191</a>
+<a href='#L192' id='L192'>192</a>
+<a href='#L193' id='L193'>193</a>
+<a href='#L194' id='L194'>194</a>
+<a href='#L195' id='L195'>195</a>
+<a href='#L196' id='L196'>196</a>
+<a href='#L197' id='L197'>197</a>
+<a href='#L198' id='L198'>198</a>
+<a href='#L199' id='L199'>199</a>
+<a href='#L200' id='L200'>200</a>
+<a href='#L201' id='L201'>201</a>
+<a href='#L202' id='L202'>202</a>
+<a href='#L203' id='L203'>203</a>
+<a href='#L204' id='L204'>204</a>
+<a href='#L205' id='L205'>205</a>
+<a href='#L206' id='L206'>206</a>
+<a href='#L207' id='L207'>207</a>
+<a href='#L208' id='L208'>208</a>
+<a href='#L209' id='L209'>209</a>
+<a href='#L210' id='L210'>210</a>
+<a href='#L211' id='L211'>211</a>
+<a href='#L212' id='L212'>212</a>
+<a href='#L213' id='L213'>213</a>
+<a href='#L214' id='L214'>214</a>
+<a href='#L215' id='L215'>215</a>
+<a href='#L216' id='L216'>216</a>
+<a href='#L217' id='L217'>217</a>
+<a href='#L218' id='L218'>218</a>
+<a href='#L219' id='L219'>219</a>
+<a href='#L220' id='L220'>220</a>
+<a href='#L221' id='L221'>221</a>
+<a href='#L222' id='L222'>222</a>
+<a href='#L223' id='L223'>223</a>
+<a href='#L224' id='L224'>224</a>
+<a href='#L225' id='L225'>225</a>
+<a href='#L226' id='L226'>226</a>
+<a href='#L227' id='L227'>227</a>
+<a href='#L228' id='L228'>228</a>
+<a href='#L229' id='L229'>229</a>
+<a href='#L230' id='L230'>230</a>
+<a href='#L231' id='L231'>231</a>
+<a href='#L232' id='L232'>232</a>
+<a href='#L233' id='L233'>233</a>
+<a href='#L234' id='L234'>234</a>
+<a href='#L235' id='L235'>235</a>
+<a href='#L236' id='L236'>236</a>
+<a href='#L237' id='L237'>237</a>
+<a href='#L238' id='L238'>238</a>
+<a href='#L239' id='L239'>239</a>
+<a href='#L240' id='L240'>240</a>
+<a href='#L241' id='L241'>241</a>
+<a href='#L242' id='L242'>242</a>
+<a href='#L243' id='L243'>243</a>
+<a href='#L244' id='L244'>244</a>
+<a href='#L245' id='L245'>245</a>
+<a href='#L246' id='L246'>246</a>
+<a href='#L247' id='L247'>247</a>
+<a href='#L248' id='L248'>248</a>
+<a href='#L249' id='L249'>249</a>
+<a href='#L250' id='L250'>250</a>
+<a href='#L251' id='L251'>251</a>
+<a href='#L252' id='L252'>252</a>
+<a href='#L253' id='L253'>253</a>
+<a href='#L254' id='L254'>254</a>
+<a href='#L255' id='L255'>255</a>
+<a href='#L256' id='L256'>256</a>
+<a href='#L257' id='L257'>257</a>
+<a href='#L258' id='L258'>258</a>
+<a href='#L259' id='L259'>259</a>
+<a href='#L260' id='L260'>260</a>
+<a href='#L261' id='L261'>261</a>
+<a href='#L262' id='L262'>262</a>
+<a href='#L263' id='L263'>263</a>
+<a href='#L264' id='L264'>264</a>
+<a href='#L265' id='L265'>265</a>
+<a href='#L266' id='L266'>266</a>
+<a href='#L267' id='L267'>267</a>
+<a href='#L268' id='L268'>268</a>
+<a href='#L269' id='L269'>269</a>
+<a href='#L270' id='L270'>270</a>
+<a href='#L271' id='L271'>271</a>
+<a href='#L272' id='L272'>272</a>
+<a href='#L273' id='L273'>273</a>
+<a href='#L274' id='L274'>274</a>
+<a href='#L275' id='L275'>275</a>
+<a href='#L276' id='L276'>276</a>
+<a href='#L277' id='L277'>277</a>
+<a href='#L278' id='L278'>278</a>
+<a href='#L279' id='L279'>279</a>
+<a href='#L280' id='L280'>280</a>
+<a href='#L281' id='L281'>281</a>
+<a href='#L282' id='L282'>282</a>
+<a href='#L283' id='L283'>283</a>
+<a href='#L284' id='L284'>284</a>
+<a href='#L285' id='L285'>285</a>
+<a href='#L286' id='L286'>286</a>
+<a href='#L287' id='L287'>287</a>
+<a href='#L288' id='L288'>288</a>
+<a href='#L289' id='L289'>289</a>
+<a href='#L290' id='L290'>290</a>
+<a href='#L291' id='L291'>291</a>
+<a href='#L292' id='L292'>292</a>
+<a href='#L293' id='L293'>293</a>
+<a href='#L294' id='L294'>294</a>
+<a href='#L295' id='L295'>295</a>
+<a href='#L296' id='L296'>296</a>
+<a href='#L297' id='L297'>297</a>
+<a href='#L298' id='L298'>298</a>
+<a href='#L299' id='L299'>299</a>
+<a href='#L300' id='L300'>300</a>
+<a href='#L301' id='L301'>301</a>
+<a href='#L302' id='L302'>302</a>
+<a href='#L303' id='L303'>303</a>
+<a href='#L304' id='L304'>304</a>
+<a href='#L305' id='L305'>305</a>
+<a href='#L306' id='L306'>306</a>
+<a href='#L307' id='L307'>307</a>
+<a href='#L308' id='L308'>308</a>
+<a href='#L309' id='L309'>309</a>
+<a href='#L310' id='L310'>310</a>
+<a href='#L311' id='L311'>311</a>
+<a href='#L312' id='L312'>312</a>
+<a href='#L313' id='L313'>313</a>
+<a href='#L314' id='L314'>314</a>
+<a href='#L315' id='L315'>315</a>
+<a href='#L316' id='L316'>316</a>
+<a href='#L317' id='L317'>317</a>
+<a href='#L318' id='L318'>318</a>
+<a href='#L319' id='L319'>319</a>
+<a href='#L320' id='L320'>320</a>
+<a href='#L321' id='L321'>321</a>
+<a href='#L322' id='L322'>322</a>
+<a href='#L323' id='L323'>323</a>
+<a href='#L324' id='L324'>324</a>
+<a href='#L325' id='L325'>325</a>
+<a href='#L326' id='L326'>326</a>
+<a href='#L327' id='L327'>327</a>
+<a href='#L328' id='L328'>328</a>
+<a href='#L329' id='L329'>329</a>
+<a href='#L330' id='L330'>330</a>
+<a href='#L331' id='L331'>331</a>
+<a href='#L332' id='L332'>332</a>
+<a href='#L333' id='L333'>333</a>
+<a href='#L334' id='L334'>334</a>
+<a href='#L335' id='L335'>335</a>
+<a href='#L336' id='L336'>336</a>
+<a href='#L337' id='L337'>337</a>
+<a href='#L338' id='L338'>338</a>
+<a href='#L339' id='L339'>339</a>
+<a href='#L340' id='L340'>340</a>
+<a href='#L341' id='L341'>341</a>
+<a href='#L342' id='L342'>342</a>
+<a href='#L343' id='L343'>343</a>
+<a href='#L344' id='L344'>344</a>
+<a href='#L345' id='L345'>345</a>
+<a href='#L346' id='L346'>346</a>
+<a href='#L347' id='L347'>347</a>
+<a href='#L348' id='L348'>348</a>
+<a href='#L349' id='L349'>349</a>
+<a href='#L350' id='L350'>350</a>
+<a href='#L351' id='L351'>351</a>
+<a href='#L352' id='L352'>352</a>
+<a href='#L353' id='L353'>353</a>
+<a href='#L354' id='L354'>354</a>
+<a href='#L355' id='L355'>355</a>
+<a href='#L356' id='L356'>356</a>
+<a href='#L357' id='L357'>357</a>
+<a href='#L358' id='L358'>358</a>
+<a href='#L359' id='L359'>359</a>
+<a href='#L360' id='L360'>360</a>
+<a href='#L361' id='L361'>361</a>
+<a href='#L362' id='L362'>362</a>
+<a href='#L363' id='L363'>363</a>
+<a href='#L364' id='L364'>364</a>
+<a href='#L365' id='L365'>365</a>
+<a href='#L366' id='L366'>366</a>
+<a href='#L367' id='L367'>367</a>
+<a href='#L368' id='L368'>368</a>
+<a href='#L369' id='L369'>369</a>
+<a href='#L370' id='L370'>370</a>
+<a href='#L371' id='L371'>371</a>
+<a href='#L372' id='L372'>372</a>
+<a href='#L373' id='L373'>373</a>
+<a href='#L374' id='L374'>374</a>
+<a href='#L375' id='L375'>375</a>
+<a href='#L376' id='L376'>376</a>
+<a href='#L377' id='L377'>377</a></pre></td>
+          <td class='line-coverage quiet'><pre><span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 393 times'>x393</span>
+<span class='cline-any cline-yes' title='This line is covered 2739 times'>x2739</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 393 times'>x393</span>
+<span class='cline-any cline-yes' title='This line is covered 393 times'>x393</span>
+<span class='cline-any cline-yes' title='This line is covered 393 times'>x393</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-yes' title='This line is covered 306 times'>x306</span>
+<span class='cline-any cline-yes' title='This line is covered 54 times'>x54</span>
+<span class='cline-any cline-yes' title='This line is covered 162 times'>x162</span>
+<span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-yes' title='This line is covered 9 times'>x9</span>
+<span class='cline-any cline-yes' title='This line is covered 9 times'>x9</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 7 times'>x7</span>
+<span class='cline-any cline-yes' title='This line is covered 21 times'>x21</span>
+<span class='cline-any cline-yes' title='This line is covered 7 times'>x7</span>
+<span class='cline-any cline-yes' title='This line is covered 7 times'>x7</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-yes' title='This line is covered 12 times'>x12</span>
+<span class='cline-any cline-yes' title='This line is covered 18 times'>x18</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 36 times'>x36</span>
+<span class='cline-any cline-yes' title='This line is covered 18 times'>x18</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 12 times'>x12</span>
+<span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-yes' title='This line is covered 4 times'>x4</span>
+<span class='cline-any cline-yes' title='This line is covered 6 times'>x6</span>
+<span class='cline-any cline-yes' title='This line is covered 14 times'>x14</span>
+<span class='cline-any cline-yes' title='This line is covered 14 times'>x14</span>
+<span class='cline-any cline-yes' title='This line is covered 14 times'>x14</span>
+<span class='cline-any cline-yes' title='This line is covered 6 times'>x6</span>
+<span class='cline-any cline-yes' title='This line is covered 12 times'>x12</span>
+<span class='cline-any cline-yes' title='This line is covered 4 times'>x4</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 5 times'>x5</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-yes' title='This line is covered 2 times'>x2</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-no'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span>
+<span class='cline-any cline-neutral'>&nbsp;</span></pre></td>
+          <td class='branch-coverage quiet'><pre>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<span class='missing-if-branch' title='branch condition is missed in this line'>I</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<span class='missing-if-branch' title='branch condition is missed in this line'>I</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre></td>
+          <td class='text'><pre class='prettyprint'>import { setImmediate, argv, exit, fileURLToPath } from '../deps.ts';
+
+/** The identity function. */
+export const identity = &lt;T&gt;(x: T): T =&gt; x;
+
+/** Return the identity function. */
+export const nop = (..._: unknown[]) =&gt; identity;
+
+/** Something that may have a `name`. */
+export type Name = { name: string };
+/** Set the name of something. Optionally, assign metadata.
+  *
+  * * By default, the `name` property of functions is read-only,
+  *   so this is accomplished using [Object.defineProperty].
+  *
+  * * Metadata added by this function is coped by descriptor,
+  *   which means getters and setters will work as defined. */ 
+export function Name &lt;T, U&gt; (name: string, named: T, props?: U): T &amp; Name {
+  // Rename function via property
+  if (typeof name === 'string') named =
+    Object.defineProperty(named, 'name', { configurable: true, value: name })
+  // Copy properties via descriptors
+  return Object.defineProperties(named,
+    props ? Object.getOwnPropertyDescriptors(props) : {}) as T &amp; Name;
+}
+
+/** Stub test step. When reached, terminates without passing or failing,
+  * and adds a task to the test report.
+  *
+  * Example:
+  *
+  *     import { testSuite, expect, todo } from '@hackbg/fadroma';
+  *     export default testSuite(import.meta,
+  *       expect('Auto todo'),
+  *       expect('Manual todo', todo()),
+  *       expect('Manual todo with more info', todo('the more info')));
+  *
+  **/
+export const todo = (...info: string[]) =&gt; Name(
+  info.join(' '),
+  function trackTodo (_context: unknown) {
+    throw Object.assign(new Error(info.join(' ')), { todo: true })
+  }, {
+    info, todo: true, skip: true
+  });
+
+/** Used to recognize entrypoint. */
+export type Meta = Partial&lt;ImportMeta&gt;;
+
+/** A program's entrypoint. */
+export type Main = Fn;
+
+/** If the current module is the program entrypoint,
+  * runs the given main function as a separate task.
+  *
+  * If the task throws, the error is logged and the process exits.
+  * The exit code can be specified by the `exitCode` field of the
+  * thrown exception. If not specified, it defaults to 1.
+  *
+  * Example:
+  *
+  *   export default entrypoint(import.meta.main || import.meta.url, main)
+  *   async function main (...args: string[]) {
+  *     console.log('Program arguments:', ...args)
+  *   }
+  *
+  * */
+export function entrypoint &lt;M extends Fn&gt; (meta: Meta, main: M): M;
+export function entrypoint &lt;M extends Fn, N&gt; (meta: Meta, main: Main, alt: N): N;
+export function entrypoint (
+  meta: Partial&lt;ImportMeta&gt; = {},
+  main: (args: string[])=&gt;unknown,
+  alt?: unknown
+) {
+  const [_, argv1, ...args] = argv
+  if (isEntrypoint(meta || {}, argv1)) setImmediate(async ()=&gt;{
+    try {
+      await Promise.resolve(main(args));
+      //exit(0);
+    } catch (e) {
+      const error = e as Error &amp; { exitCode?: number };
+      console.error('Main threw:', error);
+      //exit(error.exitCode ?? 1);
+    }
+  })
+  if (alt) return alt
+  return main
+}
+
+export const isEntrypoint = (meta: boolean|Partial&lt;ImportMeta&gt;, argv1: string) =&gt;
+  (!(meta === false)) &amp;&amp; (false
+    || (meta === true)
+    || (!!meta?.main)
+    || (meta?.url &amp;&amp; fileURLToPath(meta?.url) == argv1));
+
+/** Either `T` or `Promise&lt;T&gt;`; both cases handled asynchronously. */
+export type Async&lt;T = unknown&gt; = T|Promise&lt;T&gt;;
+
+/** Function arguments. */
+export type Takes&lt;T extends unknown[]&gt; = (...args: T) =&gt; unknown;
+
+/** Function return type. */
+export type Returns&lt;T&gt; = (...args: unknown[]) =&gt; T;
+
+/** Annotations added by [Name]. */
+export type Reflects&lt;F extends Fn[] = Fn[]&gt; = { stack?: string[], steps?: F };
+
+/** Procedure. Mutates context and returns void or new context. */
+export type Op&lt;T&gt; = Takes&lt;[T]&gt; &amp; Returns&lt;Async&lt;T|void&gt;&gt;;
+
+/** Gradually elaboratable function type. */
+export type Fn&lt;Inputs extends unknown[] = unknown[], Output = unknown&gt; =
+  &amp; Takes&lt;Inputs&gt; &amp; Returns&lt;Output&gt;;
+
+/** A sequence of functions. */
+export type Pipe&lt;Output, Inputs extends []&gt; = 
+  Reflects &amp; Fn&lt;Inputs, Async&lt;Output&gt;&gt;;
+
+/** Part of a [Pipe]. */
+export type Step&lt;T = unknown, U = T&gt; =
+  Reflects &amp; Takes&lt;[T]&gt; &amp; Returns&lt;Async&lt;U&gt;&gt;;
+
+/** A function that composes multiple steps into one step. */
+export type Steps&lt;T = unknown, U = T&gt; =
+  (...steps: Step&lt;T&gt;[])  =&gt; Step&lt;T, U&gt;;
+
+/** A function that composes multiple steps and adds an annotation. */
+export type StepsWith&lt;X = unknown, T = unknown, U = T&gt; =
+  (_: X, ...steps: Step&lt;T&gt;[]) =&gt; Step&lt;T, U&gt;;
+
+/** Slice off the 1st arg of every function */
+export type ToApi&lt;I&gt; = {
+  [f in keyof I]: I[f] extends (...args: infer _I) =&gt; infer _O ? Method&lt;I[f]&gt; : I[f]
+};
+
+/** Slices first argument of implementation signature
+  * (see https://stackoverflow.com/a/67605309) */
+export type Method&lt;F&gt; = F extends (arg0: never, ...rest: infer R) =&gt;
+  infer T ? ((...args: R) =&gt; T) : never;
+
+/** Type of chain API implementation. */
+export type Impl&lt;Api, Context&gt; = {
+  [f in keyof Api]: Api[f] extends (...args: infer R) =&gt; infer T
+    ? ((context: Context, ...args: R) =&gt; T)
+    : never };
+
+export function merged &lt;T&gt; (t: T): T;
+export function merged &lt;T, U&gt; (t: T, u: U): T &amp; U;
+export function merged &lt;T, U, V&gt; (t: T, u: U, v: V): T &amp; U &amp; V;
+export function merged &lt;T, U, V, W&gt; (t: T, u: U, v: V, w: W): T &amp; U &amp; V &amp; W;
+export function merged &lt;T&gt; (..._: Partial&lt;T&gt;[]): T;
+export function merged &lt;T&gt; (...fragments: Partial&lt;T&gt;[]): T {
+  return Object.assign(...fragments.filter(Boolean) as [object], {}) as T;
+}
+
+/** Partial application of a function.
+  * Use this to prepare a function with arguments for testing.
+  *
+  * See:
+  *   - https://en.wikipedia.org/wiki/Currying
+  *   - https://en.wikipedia.org/wiki/Partial_application
+  * 
+  * Example:
+  *
+  *     // A function with 2 arguments:
+  *     const result = await fn(arg1, arg2)
+  *     const check = result =&gt; ok(result &gt; 0)
+  *     check(result)
+  *
+  *     // Is tested like this:
+  *     expect("description",
+  *       curry(fn, arg1, arg2),
+  *       check)
+  */
+export function Fn &lt;F extends ((..._:unknown[])=&gt;unknown)&gt; (
+  fn: F, ...args: Partial&lt;Parameters&lt;F&gt;&gt;
+) {
+  return Name(`${fn.name}(${curriedArgs(args)})`, fn.bind(null, ...args), {
+    fn, args, stack: new Error().stack?.split('\n').slice(3)
+  });
+}
+
+const curriedArgs = (args: unknown[]) =&gt; args.map(String)
+  .map((x: string) =&gt; x==='undefined'?'_':x).join(', ');
+
+/** Combine functions, where the return value of each step
+  * is passed as first argument to the next one.
+  *
+  * When there's an async step in the pipeline,
+  * the pipeline transparently becomes asynchronous.
+  *
+  * Example:
+  *   const param = "hello"
+  *   const op = Pipe(f1, f2, f3);
+  *
+  *   equal(await op(p), f3(await f2(f1(p))));
+  *
+  *   function f1 (p) { ... }
+  *   async function f2 (p) { ... }
+  *   function f3 (p) { ... }
+  *
+  * TODO: Use conditional typing to support passing non-function
+  *       as first argument, resulting in immediate evaluation.
+  **/
+export function Pipe (): typeof identity;
+export function Pipe &lt;Z&gt; (z: Z): Z;
+export function Pipe &lt;Y, Z&gt; (y: Y, z: Z):
+  Z extends (_: infer B) =&gt; infer C ?
+  Y extends (_: infer A) =&gt; B ? Fn&lt;[A], C&gt; : C : never;
+export function Pipe &lt;X, Y, Z&gt; (x: X, y: Y, z: Z):
+  Z extends (_: infer C) =&gt; infer D ?
+  Y extends (_: infer B) =&gt; C ?
+  X extends (_: infer A) =&gt; B ? Fn&lt;[A], D&gt; : D : never : never;
+export function Pipe &lt;W, X, Y, Z&gt; (w: W, x: X, y: Y, z: Z):
+  Z extends (_: infer D) =&gt; infer E ?
+  Y extends (_: infer C) =&gt; D ?
+  X extends (_: infer B) =&gt; C ?
+  W extends (_: infer A) =&gt; B ? Fn&lt;[A], E&gt; : E : never : never : never;
+export function Pipe (...steps: Fn[]): Fn;
+export function Pipe (...steps: unknown[]) {
+  if (steps.length === 0) return Name('Pipe0', identity);
+  if (typeof steps[0] === 'function') {
+    return Name(pipeName(steps as Fn[]), function pipeline (value: unknown) {
+      for (const step of steps) {
+        if (!step) continue;
+        if (typeof step === 'function') value = sync(value, step as Fn);
+      }
+      return value
+    }, { steps });
+  }
+  let value = steps.shift();
+  for (const step of steps) {
+    if (!step) continue;
+    if (typeof step === 'function') value = sync(value, step as Fn);
+  }
+  return value
+}
+const pipeName = (steps: Fn[]): string =&gt;
+  `Pipe${steps.length}(${steps.map(x=&gt;x?.name||'unnamed').join('|')})`
+
+/** Run functions sequentially in the same context,
+  * ignoring return values. */
+export function Seq (...steps: Async&lt;Fn&gt;[]) {
+  return Name(null, async function runSequentially (context: unknown) {
+    for (let i = 0; i &lt; steps.length; i++) {
+      const step = await steps[i];
+      if (typeof step === 'function') await step(context);
+    }
+    return context;
+  }, { steps });
+}
+
+/** Universal color-blind combinator.
+  *
+  * Works by checking if the return value
+  * of the previous step is `then`able. */
+export const sync = &lt;X, F extends (_: unknown)=&gt;unknown&gt; (
+  x: X | { then?: (f: F)=&gt;Promise&lt;unknown&gt; }, f: F
+) =&gt; isThenable(x)
+  ? (x as unknown as { then: (_:F)=&gt;Promise&lt;unknown&gt; }).then(f)
+  : f(x);
+
+const isThenable = (x: unknown) =&gt; !!x
+  &amp;&amp; (typeof x === 'object')
+  &amp;&amp; ('then' in x)
+  &amp;&amp; (typeof x.then === 'function');
+
+/** Check the `typeof` a JS value. */
+const isType = (type: string) =&gt;
+  Object.assign(function isType (value: any) {
+    return type as typeof value === typeof value
+  }, { type });
+
+/** Check if the `typeof` a JS value is a function. */
+const isFn = isType('function')
+
+/** Pick named keys from an object. */
+export const pick = &lt;T, K extends keyof T&gt;(
+  keys: Array&lt;K&gt;, ...steps: Fn&lt;[T[K], T]&gt;[]
+) =&gt; Object.assign(async function pickKeys (data: T) {
+  const pipeline = Pipe(...steps);
+  const result: Partial&lt;Pick&lt;T, K&gt;&gt; = {};
+  for (const key of keys) result[key] = await pipeline(data[key], data) as T[K];
+  return result as Pick&lt;T, K&gt;;
+}, { keys, steps });
+
+export const omit = todo();
+
+/** Pick named methods from an object, ensuring `this` bindings. */
+export const pickMethods = &lt;T, K extends keyof T&gt;(
+  keys: Array&lt;K&gt;, ...steps: Fn&lt;[K]&gt;[]
+) =&gt; Object.assign(function pickKeys (data: T): Pick&lt;T, K&gt; {
+  const result: Partial&lt;Pick&lt;T, K&gt;&gt; = {};
+  for (const key of keys) result[key] = (data[key] as Function).bind(data);
+  return result as Pick&lt;T, K&gt;;
+}, { keys, steps });
+
+/** Construct a new "static object" (i.e. without prototypes)
+  * out of method collections and base object. */
+export const bindMethods = &lt;T extends object&gt; (
+  ...apis: Array&lt;Record&lt;string, Method&lt;T&gt;&gt;&gt;
+) =&gt; Object.assign(function bindMethodsTo (state: T) {
+  return Object.assign(state, ...apis.map(api=&gt;mapApi(state)(api)))
+}, { apis });
+
+/** Bind methods from an API object to a state. */
+export const mapApi = &lt;T&gt; (state: T) =&gt;
+  mapEntries((name, method: Method&lt;T&gt;)=&gt;[
+    name, (...args: unknown[]) =&gt; method(state, ...args)]);
+
+/** Transform an object using a function
+  * `(key, value, index) =&gt; newValue`. */
+export const mapEntries = &lt;T extends object&gt; (
+  fn: (k: keyof T, v: T[typeof k], i: number) =&gt; unknown
+) =&gt; (obj: T) =&gt; Object.fromEntries(Object.entries(obj)
+  .map(([k, v], i)=&gt;[k, fn(k as keyof T, v, i)]))
+
+/** Specify a binary condition. */
+export const when = (condition: boolean, ...fns: Step&lt;unknown&gt;[]) =&gt;
+  either(condition, Pipe(...fns));
+
+/** Specify a ternary condition. */
+export const either = &lt;C&gt; (
+  condition:  boolean|((_: C)=&gt;Async&lt;boolean&gt;),
+  whenTrue:   Takes&lt;[C]&gt;,
+  whenFalse?: Takes&lt;[C]&gt;
+) =&gt; Object.assign(async function branch (state: C) {
+  if (typeof condition === 'function') condition = await condition(state);
+  if (condition) return whenTrue(state);
+  if (whenFalse) return whenFalse(state);
+}, { condition, whenTrue, whenFalse });
+
+/** Define a reducer for object entries. */
+export const objectReducer = (f) =&gt; (a, [k, v]) =&gt;
+  Object.assign(a, { [k]: f(v, k) });
+
+/** Apply an object reducer to an object's entries. */
+export const reduceObject = f =&gt; x =&gt; Object.entries(x).reduce(f, {});
+
+/** Leak the resolve and reject methods of a promise
+  * out of the promise executor, allowing the promise
+  * to be resolved from elsewhere. */
+export const defer = (callback?) =&gt; {
+  let resolve, reject;
+  const promise = new Promise((arg0, arg1)=&gt;{
+    resolve = arg0;
+    reject  = arg1;
+    if (callback) callback(resolve, reject);
+  });
+  return Object.assign(promise, { resolve, reject });
+  return promise
+}
+
+export type AsyncIter&lt;T&gt; = {
+  [Symbol.asyncIterator](): AsyncIterableIterator&lt;T&gt;
+};
+
+/** Add `Symbol.asyncIterator` to an object, as defined by a getter. */
+export const asyncIter = getIter =&gt; state =&gt; {
+  const iter = getIter(state);
+  return Object.assign(state, { [Symbol.asyncIterator]() { return iter } });
+};
+
+export const withCatcher =
+  &lt;T extends unknown[], U&gt;(catcher: Fn&lt;T, U&gt;) =&gt;
+  &lt;V extends unknown[], W&gt;(f: Fn&lt;V, W&gt;) =&gt;
+  (...args: T): Async&lt;W&gt; =&gt;
+    Promise.resolve(f(...args)).catch(catcher) as Async&lt;W&gt;;
+
+export const setProp = &lt;T extends object&gt;(key: keyof T, ...fns: Fn[]) =&gt;
+  Name(`set ${String(key)}`, async function setProperty (context) {
+    return Object.assign(context, { [key]: await Pipe(...fns)(context) });
+  }, { key, fns });
+
+//type Method&lt;T&gt; = (_: T, ...__: unknown[]) =&gt; unknown[]
+
+export type Prototype = { [Symbol.hasInstance] (_: unknown): boolean };
+</pre></td>
+        </tr>
+      </table>
+            </div>
+            <div class='push'></div>
+          </div>
+          
+      <div class='footer quiet pad2 space-top1 center small'>
+        Code coverage generated by
+        <a href='https://deno.com/' target='_blank'>Deno v2.5.3</a>
+        at Wed, 12 Nov 2025 11:54:51 +0000
+      </div>
+        </body>
+      </html>
