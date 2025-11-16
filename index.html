@@ -21,7 +21,7 @@
         </symbol>
       </defs>
     </svg>
-    <section class="row nav">
+    <section class="row nav" id="navbar">
       <noscript><strong>Contains JavaScript.</strong><br />Enable JS to proceed.</noscript>
       <a class="hackbg" href="https://hack.bg" style="background: rgb(144, 19, 254);">Hack.bg</a>
       <div class="logo"></div>
@@ -33,7 +33,7 @@
         <svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>
         API docs
       </a>
-      <a href="#">
+      <a href="/cov/index.html">
         <svg class="icon icon-code"><use xlink:href="#icon-code"></use></svg>
         Source
       </a>
@@ -43,10 +43,9 @@
       </a>
       <div class="grow"></div>
     </section>
-    <div class="row rel">
 
+    <div class="row rel" id="main">
       <section id="sidebar" class="box flex col" style="gap:0.5rem">
-
         <div class="row">
           <div class="field grow">
             <div class="name">Title</div>
@@ -56,11 +55,12 @@
             <div class="name">LICENCE</div>
             <div>
               <select id="license">
-                <option>AGPL-3.0-or-later</option>
-                <option>AGPL-3.0</option>
-                <option>GPL-3.0-or-later</option>
-                <option>GPL-3.0</option>
-                <option>Closed source (inquire)</option></select>
+                <option>AGPL 3.0 or later</option>
+                <option>AGPL 3.0</option>
+                <option>GPL 3.0 or later</option>
+                <option>GPL 3.0</option>
+                <option>Closed source (inquire)</option>
+              </select>
             </div>
           </div>
         </div>
@@ -73,13 +73,13 @@
                 <label><input type="checkbox" id="enable.btc" checked /> Bitcoin</label>
                 <p>Test with local <a href="https://en.bitcoin.it/wiki/Original_Bitcoin_client/API_calls_list">bitcoind</a> in <a href="https://developer.bitcoin.org/examples/testing.html">-regtest</a> mode.</p>
                 <div class="grow"></div>
-                <p><a href="#">API</a></p>
+                <p><a class="flex" href="#"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>API</a></p>
               </li>
               <li class="feature">
                 <label><input type="checkbox" id="enable.simf" checked /> Simplicity</label>
                 <p>Compile and run <a target="_blank" href="https://docs.simplicity-lang.org/simplicityhl-reference/">SimplicityHL</a> programs.</p>
                 <div class="grow"></div>
-                <p><a href="#">API</a></p>
+                <p><a class="flex" href="#"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>API</a></p>
               </li>
               <li class="feature">
                 <label><input type="checkbox" id="enable.node" checked /> Node.js</label>
@@ -127,8 +127,9 @@
               </li>
               <li class="feature">
                 <label class="disabled">⏳️ Rust</label>
+                <p>Different targets may need different toolchains.</p>
                 <div class="grow"></div>
-                <select><option>stable</option><option>beta</option><option>nightly</option></select>
+                <!--<select><option>stable</option><option>beta</option><option>nightly</option></select>-->
               </li>
               <li class="feature">
                 <label class="disabled">⏳️ Mold</label>

@@ -6,4 +6,3 @@ coverage
 .misc
 .direnv
 .misc/toolbox
-var/docs/deno

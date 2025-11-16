@@ -1,7 +1,7 @@
 #!/bin/sh
 set -emu
 OUTPUT="var/docs/deno"
-deno doc -I --html --output="$OUTPUT" index.ts
+deno doc -I --html --output="$OUTPUT" lib/index.ts
 cp "$OUTPUT/all_symbols.html" "$OUTPUT/index.html"
 echo '.namespaceItem{min-height:1.5rem !important;width:100%}' >> "$OUTPUT/styles.css"
 echo '.namespaceItemContent{display: flex;flex-flow: row wrap}' >> "$OUTPUT/styles.css"

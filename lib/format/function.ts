@@ -105,9 +105,6 @@ export type Returns<T> = (...args: unknown[]) => T;
 /** Annotations added by [Name]. */
 export type Reflects<F extends Fn[] = Fn[]> = { stack?: string[], steps?: F };
 
-/** Procedure. Mutates context and returns void or new context. */
-export type Op<T> = Takes<[T]> & Returns<Async<T|void>>;
-
 /** Gradually elaboratable function type. */
 export type Fn<Inputs extends unknown[] = unknown[], Output = unknown> =
   & Takes<Inputs> & Returns<Output>;

@@ -2,7 +2,7 @@ import type { Fn, Bytes, Step, Async } from '../index.ts';
 import { joinPath, tmpdir, zipSync } from '../deps.ts';
 import { realpathSync } from '../deps.ts';
 import { mkdir, rm, mkdtemp, writeFile, resolvePath, cwd } from '../deps.ts';
-import { Pipe, Name } from '../format/function.ts';
+import { Pipe, Name, chunked } from '../format.ts';
 import { Log } from './log.ts';
 /** A function that created an entry in a directory. */
 export type DirEntry<D extends Dir = Dir, U extends unknown[] = unknown[]> =
@@ -136,3 +136,6 @@ function LocalFS <D extends Dir> (dir: string|D, path: string = ''): D {
 
   return dir
 };
+/** Define a Markdown file. */
+export const Markdown = (name: string, ...args: (string|unknown)[]): DirEntry =>
+  Txt(name, chunked('\n\n')(...args));

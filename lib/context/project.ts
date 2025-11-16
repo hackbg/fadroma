@@ -1,5 +1,5 @@
 import type { Returns, Async, Step, DirEntry } from '../index.ts';
-import { Dir, Txt } from './fs.ts';
+import { Dir, Txt, Markdown } from './fs.ts';
 import { chunked, Name } from '../format.ts';
 /** An application project. */
 export type Project = Name & Rust & ECMAScript & {
@@ -14,9 +14,6 @@ export const Project = (name: string, ...ops: DirEntry[]) =>
 /** Define the project's README. */
 export const Readme = (title: string, ...sections: string[]) =>
   Markdown('README.md', chunked('\n\n')(`# ${title}`, ...sections));
-/** Define a Markdown file. */
-export const Markdown = (name: string, ...args: (string|unknown)[]): DirEntry =>
-  Txt(name, chunked('\n\n')(...args));
 /** Semantic version. */
 export type Semver = string; // TODO
 /** Versioned component. */

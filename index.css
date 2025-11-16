@@ -3,7 +3,7 @@
 
 *{box-sizing:border-box;font-family:sans, sans-serif;}
 html,body{min-height:100%;margin:0;padding:0;font-family:sans, sans-serif;font-size:18px;}
-html  {background-image:radial-gradient(circle at top, #ddd5, #3337),url('bg.svg');background-size:cover}
+html  {background-image:radial-gradient(circle at top, #ddd5, #7774),url('bg.svg');background-size:cover}
 body  {
   color:#555;
   &>section>button{ align-self: center }
@@ -24,10 +24,12 @@ h1{margin:0;font-size:1.66rem;font-weight:normal;color:#aaa;}
 .features {
   padding: 0 0.5rem 0 0;flex-grow:1;margin:0 0.5rem 1rem 0;display:flex;flex-flow:column;list-style:none
 }
-.feature  {
-  margin:0;padding:0;display:flex;flex-flow:row wrap;
+.feature {
+  margin:0;padding:0;display:flex;flex-flow:row nowrap;
   padding:0 0.1rem;margin-bottom:0.5rem;align-items:flex-start;
-  p {font-size: 0.875rem; margin: 0.25rem 0}
+  p {
+    font-size: 0.875rem; margin: 0.25rem 0
+  }
   select {padding: 0.25rem; margin-left:-1rem}
   label {
     align-items:center;background:#fff4;padding:0.1rem 0.25rem;
@@ -38,6 +40,12 @@ h1{margin:0;font-size:1.66rem;font-weight:normal;color:#aaa;}
       background:none;border:2px dotted #888;border-radius:0.25rem;opacity:0.5;
       &:hover {background:none};
     }
+  }
+  a.flex .icon { margin-right: 0.25rem }
+  @media screen and (max-width: 1440px) {
+    flex-flow: column nowrap;
+    margin-left: -0.25rem;
+    p { max-width: 24rem; padding-left: 0.5rem; }
   }
 }
 
@@ -50,14 +58,24 @@ h1{margin:0;font-size:1.66rem;font-weight:normal;color:#aaa;}
     #editors & { text-transform: none }
   }
 }
+
 #sidebar, #editors { overflow: auto; }
-#sidebar { padding: 0.25rem 0.5rem; margin: 0.25rem; max-width: 80ch }
+
+#sidebar {
+  padding: 0.25rem 0.5rem; margin: 0.25rem; max-width: 80ch;
+  @media screen and (max-width: 1440px) {
+    & > .row { flex-flow: column }
+  }
+}
 #editors {
   padding: 0 0.25rem;
   flex-grow: 1;
+  .field > .name { margin: 0.25rem; }
+  select, input, textarea { margin-bottom: 0.5rem; }
   textarea {
     font-family: monospace;
     min-height: 3rem;
+    resize: vertical;
   }
 }
 
@@ -142,4 +160,50 @@ noscript {
   stroke-width: 0;
   stroke: currentColor;
   fill: currentColor;
+}
+
+.namespaceSection {
+  width: 100%; column-count: 4; column-rule: 1px solid #0808; padding: 1rem;
+  .namespaceItem {
+    flex-flow: column nowrap;
+    padding: 0.25rem 0.5rem 0.25rem 1.75rem;
+    break-inside: avoid;
+    .namespaceItemContent {
+      a { font-weight: 450; };
+      input[type="checkbox"] { margin-right: 0.5rem; }
+    }
+    .namespaceItemContentSubItems {
+      display: flex; flex-flow: row wrap; gap: 0.5rem; list-style: none;
+      padding: 0; margin: 0.5rem 0.25rem; font-size: 0.875rem;
+    }
+    &[data-ns] {
+      display: none;
+    }
+    &[data-kind="Namespace"],
+    &[data-kind="FunctionType Alias"] {
+      .namespaceItemContent>a {
+        display: flex;
+        align-items: center;
+        font-weight: 650;
+        &::after {
+          content: " "; background: #0006; margin: 0 0.5rem;
+          min-width: 1rem; height: 1px; display: flex; flex-grow: 1;
+        }
+      }
+    }
+    &[data-kind="Namespace"] {
+      padding-left: 0;
+    }
+    &[data-kind="FunctionType Alias"] {
+      .namespaceItemContent>a::after {
+        background: #0003;
+      }
+    }
+    p {
+      margin: 0.25rem 0;
+    }
+    .docNodeKindIcon {
+      float: right;
+    }
+  }
 }

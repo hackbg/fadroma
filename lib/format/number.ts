@@ -44,8 +44,6 @@ export const Base9 = {
 };
 export const randomId = (length): number =>
   parseInt(Base9.random(length), 10);
-export const addZeros = (n: number|Uint128, z: number) =>
-  `${n}${[...Array(z)].map(() => '0').join('')}` as Uint128;
 export const pickRandom = <T>(set: Set<T>): T =>
   [...set][Math.floor(Math.random()*set.size)];
 /** Returns Uint8Array of given length. */

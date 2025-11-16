@@ -16,7 +16,6 @@ export default defineConfig({
   publicDir: 'var',
   resolve: { alias },
   plugins: [
-    { configureServer (s) { s.middleware.use('/docs', (req, res, next) => { throw new Error() }) } },
     nodePolyfills({ include }),
   ],
 });
