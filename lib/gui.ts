@@ -31,4 +31,5 @@ on(elById("download"), "click", async function generateProject () {
     direnv: checked('enable-direnv'),
   }));
   console.log({project});
+  console.log(await project());
 });

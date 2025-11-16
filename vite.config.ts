@@ -15,5 +15,8 @@ const alias = [
 export default defineConfig({
   publicDir: 'var',
   resolve: { alias },
-  plugins: [ nodePolyfills({ include }) ],
+  plugins: [
+    { configureServer (s) { s.middleware.use('/docs', (req, res, next) => { throw new Error() }) } },
+    nodePolyfills({ include }),
+  ],
 });
