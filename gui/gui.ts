@@ -1,11 +1,5 @@
-//import { Dir } from './context.ts';
-//console.log({Dir});
-globalThis.process.stderr = {};
-globalThis.process.stdin  = {};
-globalThis.process.stdout = {};
-
-import type { Bytes } from './index.ts';
-import { Dir, Zip, Txt, Bin } from './index.ts';
+import type { Bytes } from '../lib/index.ts';
+import { Dir, Zip, Txt, Bin } from '../lib/index.ts';
 
 const elById  = (id: string) => document.getElementById(id);
 const checked = (id: string) => !!(elById(id) as HTMLInputElement)?.checked;
@@ -17,7 +11,16 @@ on(elById("sidebar"),  "change", toolbarOnChange);
 on(elById("navbar"),   "click",  navbarOnClick);
 on(elById("download"), "click",  generateProject);
 async function toolbarOnChange (e) {
-  console.log(e.target);
+  const { id, checked, value: _ } = e.target;
+  if (id === 'enable.simf') {
+    if (!checked) {
+      elById("src/main.simf").dataset["disabled"] = "disabled";
+      elById("src/main.wit").dataset["disabled"] = "disabled";
+    } else {
+      delete elById("src/main.simf").dataset["disabled"];
+      delete elById("src/main.wit").dataset["disabled"];
+    }
+  }
 }
 async function navbarOnClick (e) {
   if (e.target.href) {

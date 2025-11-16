@@ -2,7 +2,7 @@
   <head>
     <meta charset="utf8" />
     <title>Fadroma by Hack.bg</title>
-    <link rel="stylesheet" href="index.css" />
+    <link rel="stylesheet" href="gui/gui.css" />
   </head>
   <body>
     <svg style="position: absolute; width: 0; height: 0; overflow: hidden" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -23,24 +23,26 @@
     </svg>
     <section class="row nav" id="navbar">
       <noscript><strong>Contains JavaScript.</strong><br />Enable JS to proceed.</noscript>
-      <a class="hackbg" href="https://hack.bg" style="background: rgb(144, 19, 254);">Hack.bg</a>
+      <a class="hackbg" href="https://hack.bg" style="">Hack.bg</a>
       <div class="logo"></div>
-      <button id="download" class="rel">
-        <svg class="icon icon-download"><use xlink:href="#icon-download"></use></svg>
-        Download
-      </button>
-      <a href="/docs/deno/index.html">
-        <svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>
-        API docs
-      </a>
-      <a href="/cov/index.html">
-        <svg class="icon icon-code"><use xlink:href="#icon-code"></use></svg>
-        Source
-      </a>
-      <a href="#">
-        <svg class="icon icon-doc"><use xlink:href="#icon-doc"></use></svg>
-        Test report
-      </a>
+      <div class="buttons row">
+        <button id="download" class="rel">
+          <svg class="icon icon-download"><use xlink:href="#icon-download"></use></svg>
+          Download
+        </button>
+        <a href="/docs/deno/index.html">
+          <svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>
+          API docs
+        </a>
+        <a href="/cov/index.html">
+          <svg class="icon icon-code"><use xlink:href="#icon-code"></use></svg>
+          Source
+        </a>
+        <a href="#">
+          <svg class="icon icon-doc"><use xlink:href="#icon-doc"></use></svg>
+          Test report
+        </a>
+      </div>
       <div class="grow"></div>
     </section>
 
@@ -157,23 +159,23 @@
           </div>
         </div>
 
-        <div class="field text">
+        <div class="field text" id="src/main.simf">
           <div class="name">src/main.simf</div>
           <div class="flex col">
-            <textarea id="src/main.simf" placeholder="enter simplicity code"></textarea>
+            <textarea id="text:src/main.simf" placeholder="enter simplicity code"></textarea>
           </div>
         </div>
 
-        <div class="field bin">
+        <div class="field bin" id="src/main.wit">
           <div class="name">src/main.wit</div>
           <div class="flex col">
-            <textarea id="src/main.wit" placeholder="enter witness data"></textarea>
+            <textarea id="text:src/main.wit" placeholder="enter witness data"></textarea>
           </div>
         </div>
 
       </section>
 
     </div>
-    <script type="module" src="lib/gui.ts"></script>
+    <script type="module" src="gui/gui.ts"></script>
   </body>
 </html>

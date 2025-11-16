@@ -2,5 +2,5 @@
 , "noUnusedLocals": false
 , "noUnusedParameters": false
 , "nodeModulesDir": "auto"
-, "workspace": [ "./@hackbg/*", "./@hackbg/toolbox/*", "./@fadroma/*" ]
+, "workspace": [ "./lib", "./gui", "./src" ]
 , "lint": { "rules": { "exclude": ["no-async-promise-executor", "require-await"] } } }

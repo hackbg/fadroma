@@ -2,7 +2,7 @@
   "name": "@hackbg/fadroma",
   "version": "3.0.0",
   "type": "module",
-  "main": "index.ts",
+  "main": "lib/index.ts",
   "devDependencies": {
     "@noble/curves": "^2.0.1",
     "@noble/ed25519": "^3.0.0",
@@ -26,7 +26,6 @@
     "vite-plugin-node-polyfills": "^0.24.0"
   },
   "scripts": {
-    "dev": "vite",
     "test": "tsx ./test.ts",
     "check": "deno check",
     "doc:type": "typedoc --out doc/type --darkHighlightTheme everforest-dark --cleanOutputDir --groupReferencesByType --useFirstParagraphOfCommentAsSummary index.ts",
