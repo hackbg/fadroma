@@ -1,0 +1,8 @@
+[submodule "ganesha"]
+  path   = ensuite/ganesha
+  url    = https://github.com/hackbg/ganesha.git
+  branch = develop
+[submodule "connect/scrt/secret.js"]
+  path   = scrt/secretjs-esm
+  url    = https://github.com/hackbg/secret.js.git
+  branch = fix/esm-nonflat
