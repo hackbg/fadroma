@@ -2,10 +2,10 @@
   <head>
     <meta charset="utf8" />
     <title>Fadroma by Hack.bg</title>
-    <script type="module" crossorigin src="/assets/index-4lMy4ivj.js"></script>
+    <script type="module" crossorigin src="/assets/index-BoMOmzBh.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/index-BfW5OQ84.js">
     <link rel="modulepreload" crossorigin href="/assets/__vite-browser-external-D7Ct-6yo.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-C3LmZ7fa.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-fphrs3rj.css">
   </head>
   <body>
     <svg style="position: absolute; width: 0; height: 0; overflow: hidden" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -30,10 +30,15 @@
         </symbol>
       </defs>
     </svg>
+
     <section class="row nav" id="navbar">
+
       <noscript><strong>Contains JavaScript.</strong><br />Enable JS to proceed.</noscript>
+
       <a class="hackbg" href="https://hack.bg" style="">Hack.bg</a>
+
       <div class="logo"></div>
+
       <div class="buttons row">
         <button id="download" class="rel">
           <svg class="icon icon-download"><use xlink:href="#icon-download"></use></svg>
@@ -52,7 +57,7 @@
           Test report
         </a>
       </div>
-      <div class="grow"></div>
+
     </section>
 
     <div class="row rel" id="main">
@@ -82,51 +87,64 @@
             <ul id="features" class="features">
               <li class="feature">
                 <label><input type="checkbox" id="enable.btc" checked /> Bitcoin</label>
-                <p>Test with local <a href="https://en.bitcoin.it/wiki/Original_Bitcoin_client/API_calls_list">bitcoind</a> in <a href="https://developer.bitcoin.org/examples/testing.html">-regtest</a> mode.</p>
-                <div class="grow"></div>
+                <p class="grow">Test with local <a href="https://en.bitcoin.it/wiki/Original_Bitcoin_client/API_calls_list">bitcoind</a> in <a href="https://developer.bitcoin.org/examples/testing.html">-regtest</a> mode.</p>
                 <p><a class="flex" href="#"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>API</a></p>
               </li>
               <li class="feature">
                 <label><input type="checkbox" id="enable.simf" checked /> Simplicity</label>
-                <p>Compile and run <a target="_blank" href="https://docs.simplicity-lang.org/simplicityhl-reference/">SimplicityHL</a> programs.</p>
-                <div class="grow"></div>
+                <p class="grow">Compile and run <a target="_blank" href="https://docs.simplicity-lang.org/simplicityhl-reference/">SimplicityHL</a> programs.</p>
                 <p><a class="flex" href="#"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>API</a></p>
               </li>
               <li class="feature">
-                <label><input type="checkbox" id="enable.node" checked /> Node.js</label>
-                <p>Will use <a href="https://www.npmjs.com/package/tsx">tsx</a> and tsc for TypeScript.</p>
+                <label><input type="checkbox" id="enable.deno" checked /> Deno</label>
+                <p class="grow">Next-gen TS/JS runtime.</p>
+                <p><a class="flex" href="https://docs.deno.com/runtime/reference/std/"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>@std</a></p>
+                <p><a class="flex" href="https://docs.deno.com/api/deno/"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>API</a></p>
               </li>
               <li class="feature">
-                <label><input type="checkbox" id="enable.deno" checked /> Deno</label>
-                <p>Next-gen TS/JS runtime.</p>
+                <label><input type="checkbox" id="enable.node" checked /> Node.js</label>
+                <p class="grow">Will use <a href="https://www.npmjs.com/package/tsx">tsx</a> and tsc for TypeScript.</p>
+                <p><a class="flex" href="https://nodejs.org/api/index.html"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>API</a></p>
               </li>
               <li class="feature">
                 <label><input type="checkbox" id="enable.pnpm" checked /> PNPM</label>
-                <p>Recommended package manager.</p>
-              </li>
-              <li class="feature">
-                <label><input type="checkbox" id="enable.eslint" checked /> ESLint</label>
-                <p>Static analyzer.</p>
+                <p class="grow">Recommended package manager.</p>
+                <p><a class="flex" href="https://pnpm.io/feature-comparison"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>Compare</a></p>
               </li>
               <li class="feature">
                 <label><input type="checkbox" id="enable.nix" checked /> Nix Shell</label>
-                <p>Obtain dependencies from <a href="https://nixos.org/download/">Nix package manager.</a></p>
+                <p class="grow">Obtain dependencies from <a href="https://nixos.org/download/">Nix package manager.</a></p>
+                <p><a class="flex" href="https://search.nixos.org/packages"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>Packages</a></p>
               </li>
               <li class="feature">
                 <label><input type="checkbox" id="enable.direnv" checked /> Direnv</label>
-                <p>Automatically load Nix shell when entering project directory.</p>
+                <p class="grow">Automatically load Nix shell when entering project directory.</p>
+                <p><a class="flex" href="https://github.com/direnv/direnv/wiki"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>Wiki</a></p>
               </li>
               <li class="feature">
-                <label class="disabled">⏳️ Solana</label>
-                <p>Build test, and deploy Solana programs.</p>
+                <label class="disabled">⏳️ ESLint</label>
+                <p class="grow">Static analyzer.</p>
+                <p><a class="flex" href="https://eslint.org/docs/latest/use/configure/"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>Config</a></p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Solana RPC</label>
+                <p class="grow">RPC client for Solana.</p>
+                <p><a class="flex" href="#"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>Web3</a></p>
+                <p><a class="flex" href="#"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>Kit</a></p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Solana Rust</label>
+                <p class="grow">Build, test, and deploy Solana programs.</p>
+                <p><a class="flex" href="#"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>API</a></p>
+                <p><a class="flex" href="#"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>Anchor</a></p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Tendermint</label>
+                <p>RPC client for Tendermint/CometBFT/Cosmos/IBC ecosystem.</p>
               </li>
               <li class="feature">
                 <label class="disabled">⏳️ CosmWasm</label>
                 <p>Build, test, and deploy CosmWasm contracts.</p>
-              </li>
-              <li class="feature">
-                <label class="disabled">⏳️ Tendermint</label>
-                <p>RPC client for Tendermint/CometBFT and Cosmos/IBC ecosystem.</p>
               </li>
               <li class="feature">
                 <label class="disabled">⏳️ Namada</label>
@@ -134,7 +152,7 @@
               </li>
               <li class="feature">
                 <label class="disabled">⏳️ Scrt</label>
-                <p>RPC client and decoder for <a href="https://scrt.network/">Secret</a>.</p>
+                <p>RPC client for <a href="https://scrt.network/">Secret</a>.</p>
               </li>
               <li class="feature">
                 <label class="disabled">⏳️ Rust</label>
@@ -148,7 +166,7 @@
               </li>
               <li class="feature">
                 <label class="disabled">⏳️ Drone</label>
-                <p>Config for self-hosted Drone CI.</p>
+                <p>Config for Drone CI.</p>
               </li>
               <li class="feature">
                 <label class="disabled">⏳️ GHA</label>
@@ -211,6 +229,78 @@ export default Test.suite(import.meta, "Test",
   Test.the("Deploy"),
   Test.the("Invoke"));</textarea>
           </div>
+        </div>
+
+        <div class="field file">
+          <label class="name">
+            <input type="checkbox" class="collapse" name="show:package.json" />
+            <svg class="icon expanded"><use xlink:href="#icon-chevron-down"></use></svg>
+            <svg class="icon collapsed"><use xlink:href="#icon-chevron-right"></use></svg>
+            package.json
+          </label>
+          <ul class="flex col box">
+            <li>name</li>
+            <li>version</li>
+            <li>type</li>
+            <li>main</li>
+            <li>dependencies</li>
+          </ul>
+        </div>
+
+        <div class="field file">
+          <label class="name">
+            <input type="checkbox" class="collapse" name="show:tsconfig.json" />
+            <svg class="icon expanded"><use xlink:href="#icon-chevron-down"></use></svg>
+            <svg class="icon collapsed"><use xlink:href="#icon-chevron-right"></use></svg>
+            tsconfig.json
+          </label>
+          <ul class="flex col box">
+            <li>strict: false</li>
+            <li>target: "esnext"</li>
+            <li>module: "esnext"</li>
+            <li>moduleResolution: "bundler"</li>
+            <li>allowImportingTsExtensions: true</li>
+            <li>noUnusedLocals: false</li>
+            <li>noUnusedParameters: false</li>
+            <li>isolatedModules: false</li>
+          </ul>
+        </div>
+
+        <div class="field file">
+          <label class="name">
+            <input type="checkbox" class="collapse" name="show:deno.json" />
+            <svg class="icon expanded"><use xlink:href="#icon-chevron-down"></use></svg>
+            <svg class="icon collapsed"><use xlink:href="#icon-chevron-right"></use></svg>
+            deno.json
+          </label>
+          <ul class="flex col box">
+            {}
+          </ul>
+        </div>
+
+        <div class="field file">
+          <label class="name">
+            <input type="checkbox" class="collapse" name="show:.envrc" />
+            <svg class="icon expanded"><use xlink:href="#icon-chevron-down"></use></svg>
+            <svg class="icon collapsed"><use xlink:href="#icon-chevron-right"></use></svg>
+            .envrc
+          </label>
+          <ul class="flex col box">
+            use nix
+          </ul>
+        </div>
+
+        <div class="field file">
+          <label class="name">
+            <input type="checkbox" class="collapse" name="show:shell.nix" />
+            <svg class="icon expanded"><use xlink:href="#icon-chevron-down"></use></svg>
+            <svg class="icon collapsed"><use xlink:href="#icon-chevron-right"></use></svg>
+            shell.nix
+          </label>
+          <ul class="flex col box">
+            <li><strong>name</strong></li>
+            <li><strong>nativeBuildInputs:</strong> bitcoind</li>
+          </ul>
         </div>
 
       </section>
