@@ -4,7 +4,7 @@ export * from './context/log.ts';
 export * from './context/port.ts';
 export * from './context/service.ts';
 export * from './context/tcp.ts';
-export * as DOM from './context/dom.ts';
+export * from './context/dom.ts';
 export * as TUI from './context/tui.ts';
 export * as Test from './context/tester.ts';
 export * as Project from './context/project.ts';
