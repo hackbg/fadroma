@@ -11,7 +11,10 @@ export function DOM (...args: unknown[]): Node {
     const el = document.createElement(tag);
     if (id) el.id = id;
     for (const c of classes) el.classList.add(c);
-    for (const [k, v] of Object.entries(attrs)) el.attributes[k] = v;
+    for (const [k, v] of Object.entries(attrs)) {
+      const attr = Object.assign(document.createAttribute(k), { value: v });
+      el.attributes.setNamedItem(attr);
+    }
     for (const prop of props) {
       if (typeof prop === 'string') {
         const text = document.createTextNode(prop);
@@ -21,7 +24,7 @@ export function DOM (...args: unknown[]): Node {
           el.appendChild(DOM(prop));
         } else {
           for (const [k, v] of Object.entries(props)) {
-            el.attributes[k] = v;
+            el[k] = v;
           }
         }
       } else if (prop) {

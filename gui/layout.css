@@ -43,8 +43,8 @@ select
 { overflow: auto; }
 
 .features
-{ padding:    0 0.5rem 0 0;
-  margin:     0 0.5rem 1rem 0;
+{ padding:    0;
+  margin:     0 0.33rem 1rem 0;
   flex-grow:  1;
   list-style: none;
   display:    flex;
