@@ -69,39 +69,40 @@ export function Temp <D extends Dir> (
 export function Txt <T = string|number|object|null> (
   path: string, value?: T|T[], ...steps: Array<T|Step<T>>
 ): DirEntry {
-  return Name(`Txt(${path})`, async function writeTxtFile <D extends Dir> (dir: string|D) {
+  return Name(`Txt(${path})`, writeTxtFile, { path, value, steps });
+  async function writeTxtFile <D extends Dir> (dir: string|D) {
     dir = LocalFS(dir);
     const full = joinPath(dir.path, path);
     const data = await Pipe(...steps as Fn[])(value||'') || '';
     await dir.writeFile(full, dir.tree[full] = data as string, 'utf8');
     return dir;
-  }, { path, value, steps });
+  }
 }
 /** Specify a binary data file. */
 export function Bin (
   path: string, value?: number|Bytes, ...steps: Step<Bytes>[]
 ): DirEntry {
   value = (typeof value === 'number') ? new Uint8Array(value) : value
-  return Name(`Bin(${path})`, async function writeBinFile (dir: Dir) {
+  return Name(`Bin(${path})`, writeBinFile, { path, value, steps });
+  async function writeBinFile (dir: Dir) {
     dir = LocalFS(dir);
     const full = joinPath(dir.path, path);
     const data = await Pipe(...steps as Fn[])(value||'') || '';
     await dir.writeFile(full, dir.tree[full] = data as Bytes);
     return dir;
-  }, { path, value, steps });
+  }
 }
 /** Specify a ZIP archive. */
 export function Zip <D extends Dir> (name: string, ...entries: DirEntry<D>[]) {
-  return Name(`Zip(${entries.length})`, async function writeZipFile (
-    dir: D, ...args: unknown[]
-  ) {
+  return Name(`Zip(${entries.length})`, writeZipFile, { entries })
+  async function writeZipFile (dir?: D, ...args: unknown[]) {
     const context = ZippedFS(dir);
     for (const entry of entries) await entry(context, ...args);
     const data = zipSync(context.tree as any);
     if (dir) await dir.writeFile(joinPath(dir.path, name), data);
     Log().log('Wrote', name)
     return Object.assign(data, { name, tree: context.tree });
-  }, { entries })
+  }
 }
 function ZippedFS <D extends Dir> (dir: string|D, tree = {}) {
   dir = LocalFS(dir);

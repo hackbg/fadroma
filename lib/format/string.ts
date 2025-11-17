@@ -36,10 +36,7 @@ export const glued  = Fn(joined, '');
 export const spaced = Fn(joined, ' ');
 export const lines  = Fn(joined, '\n');
 
-export const
-  joiner = (x?: Stringy, y = ' ') => x ? (x.toString() + y) : '',
-  col1 = 8,  pad1 = (x?: Stringy, c = '·') => joiner(x).padEnd(col1, c),
-  col2 = 48, pad2 = (x?: Stringy, c = ' ') => joiner(x).padEnd(col2, c);
+export const joiner = (x?: Stringy, y = ' ') => x ? (x.toString() + y) : '';
 
 export const see = (arg: unknown) => {
   const color = !NO_COLOR // FIXME move these to color.ts:

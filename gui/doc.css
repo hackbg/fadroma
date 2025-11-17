@@ -1,0 +1,54 @@
+.namespaceSection {
+  width: 100%;
+  column-count: 4;
+  column-rule: 1px solid #0808;
+  padding: 1rem;
+  @media screen and (max-width: 1280px) {
+    column-count: 1;
+  }
+  .namespaceItem {
+    flex-flow: column nowrap;
+    padding: 0.25rem 1.2rem 0.25rem 1.75rem;
+    break-inside: avoid;
+    .namespaceItemContent {
+      a { font-weight: 450; };
+      input[type="checkbox"] { margin-right: 0.75rem; }
+    }
+    .namespaceItemContentSubItems {
+      display: flex; flex-flow: row wrap; gap: 0.5rem; list-style: none;
+      padding: 0; margin: 0.5rem 0.25rem; font-size: 0.875rem;
+    }
+    &[data-ns] {
+      display: none;
+    }
+    &[data-kind="Namespace"],
+    &[data-kind="FunctionType Alias"] {
+      .namespaceItemContent>a {
+        display: flex;
+        align-items: center;
+        font-weight: 650;
+        &::after {
+          content: " "; background: #0006; margin: 0 0.5rem;
+          min-width: 1rem; height: 1px; display: flex; flex-grow: 1;
+        }
+      }
+    }
+    &[data-kind="Namespace"] {
+      padding-left: 0;
+      .namespaceItemContent>a {
+        font-weight: 750;
+      }
+    }
+    &[data-kind="FunctionType Alias"] {
+      .namespaceItemContent>a::after {
+        background: #0003;
+      }
+    }
+    p {
+      margin: 0.25rem 0;
+    }
+    .docNodeKindIcon {
+      float: right;
+    }
+  }
+}

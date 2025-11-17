@@ -13,19 +13,6 @@ export function formatError (e: Error, name?: Stringy) {
   e.stack = [head, name, ...stack].filter(Boolean).join('\n');
   return e;
 }
-/** Add originating test step to stack trace.
-  *
-  * Since there is a degree of indirection when composing curried functions
-  * (the code is defined from one place but executed from another),
-  * without this helper the real stack gets lost. */
-export function addStepStack (
-  step: { name?: string, stack?: string[] }, error: Error
-) {
-  if (typeof error !== 'object') error = new Error(error);
-  error.stack ||= ''
-  if (step.stack) error.stack += '\n  From:\n' + step.stack.join('\n')
-  return error
-}
 /** Set `Error.stackTraceLimit` to `Infinity`,
   * run a function, then restore its previous value. */
 export async function withInfiniteStack <F extends Fn> (
@@ -53,6 +40,7 @@ export function alignTrace (line: string) {
   return line
 }
 
+/** Extended error class. */
 class Oops extends Error {
   // Todos are handled differently by the tester.
   todo?: boolean

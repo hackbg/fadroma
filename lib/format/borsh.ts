@@ -1,3 +1,5 @@
+/** Borsh encoding and decoding. */
+
 // TODO
 export type AnyField = {
   encode (buffer: Writer, value: unknown): void

@@ -1,3 +1,5 @@
+/** ANSI colors. */
+
 // TODO id -> color registry
 import type { Stringy } from '../index.ts';
 import { env } from '../deps.ts';

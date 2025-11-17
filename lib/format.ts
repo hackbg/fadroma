@@ -8,5 +8,5 @@ export * from './format/stream.ts';
 export * from './format/string.ts';
 export * from './format/time.ts';
 
-export * as ANSI  from './format/ansi.ts';
+export * as Ansi  from './format/ansi.ts';
 export * as Borsh from './format/borsh.ts';

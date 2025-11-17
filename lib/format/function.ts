@@ -94,8 +94,17 @@ export const isMain = (meta: boolean|Partial<ImportMeta>, argv1: string) =>
     || (!!meta?.main)
     || (meta?.url && fileURLToPath(meta?.url) == argv1));
 
-/** Either `T` or `Promise<T>`; both cases handled asynchronously. */
+/** Handle T or Promise<T> as Promise<T> */
 export type Async<T = unknown> = T|Promise<T>;
+/** Handle T or Promise<T> as Promise<T>
+  *
+  * Works by checking if the return value
+  * of the previous step is `then`able. */
+export const Async = <X, F extends (_: unknown)=>unknown> (
+  x: X | { then?: (f: F)=>Promise<unknown> }, f: F
+) => isThenable(x)
+  ? (x as unknown as { then: (_:F)=>Promise<unknown> }).then(f)
+  : f(x);
 
 /** Function arguments. */
 export type Takes<T extends unknown[]> = (...args: T) => unknown;
@@ -117,6 +126,20 @@ export type Pipe<Output, Inputs extends []> =
 /** Part of a [Pipe]. */
 export type Step<T = unknown, U = T> =
   Reflects & Takes<[T]> & Returns<Async<U>>;
+
+/** Add originating test step to stack trace.
+  *
+  * Since there is a degree of indirection involved when composing functions
+  * (the code is defined from one place but executed from another),
+  * without this helper the real stack would be lost. */
+export function Step (
+  step: { name?: string, stack?: string[] }, error: Error
+) {
+  if (typeof error !== 'object') error = new Error(error);
+  error.stack ||= ''
+  if (step.stack) error.stack += '\n  From:\n' + step.stack.join('\n')
+  return error
+}
 
 /** A function that composes multiple steps into one step. */
 export type Steps<T = unknown, U = T> =
@@ -165,8 +188,8 @@ export function Fn <F extends ((..._:unknown[])=>unknown)> (
 const curriedArgs = (args: unknown[]) => args.map(String)
   .map((x: string) => x==='undefined'?'_':x).join(', ');
 
-/** Combine functions, where the return value of each step
-  * is passed as first argument to the next one.
+/** Combine functions, passing return value of each step
+  * as first argument to next step.
   *
   * When there's an async step in the pipeline,
   * the pipeline transparently becomes asynchronous.
@@ -205,7 +228,7 @@ export function Pipe (...steps: unknown[]) {
     return Name(pipeName(steps as Fn[]), function pipeline (value: unknown) {
       for (const step of steps) {
         if (!step) continue;
-        if (typeof step === 'function') value = sync(value, step as Fn);
+        if (typeof step === 'function') value = Async(value, step as Fn);
       }
       return value
     }, { steps });
@@ -213,7 +236,7 @@ export function Pipe (...steps: unknown[]) {
   let value = steps.shift();
   for (const step of steps) {
     if (!step) continue;
-    if (typeof step === 'function') value = sync(value, step as Fn);
+    if (typeof step === 'function') value = Async(value, step as Fn);
   }
   return value
 }
@@ -232,16 +255,6 @@ export function Seq (...steps: Async<Fn>[]) {
   }, { steps });
 }
 
-/** Universal color-blind combinator.
-  *
-  * Works by checking if the return value
-  * of the previous step is `then`able. */
-export const sync = <X, F extends (_: unknown)=>unknown> (
-  x: X | { then?: (f: F)=>Promise<unknown> }, f: F
-) => isThenable(x)
-  ? (x as unknown as { then: (_:F)=>Promise<unknown> }).then(f)
-  : f(x);
-
 const isThenable = (x: unknown) => !!x
   && (typeof x === 'object')
   && ('then' in x)
@@ -250,14 +263,14 @@ const isThenable = (x: unknown) => !!x
 /** Check the `typeof` a JS value. */
 const isType = (type: string) =>
   Object.assign(function isType (value: any) {
-    return type as typeof value === typeof value
+    return type === typeof value as string
   }, { type });
 
 /** Check if the `typeof` a JS value is a function. */
 const isFn = isType('function')
 
-/** Pick named keys from an object. */
-export const pick = <T, K extends keyof T>(
+/** Shallow clone only certain keys. */
+export const Pick = <T, K extends keyof T>(
   keys: Array<K>, ...steps: Fn<[T[K], T]>[]
 ) => Object.assign(async function pickKeys (data: T) {
   const pipeline = Pipe(...steps);
@@ -266,7 +279,8 @@ export const pick = <T, K extends keyof T>(
   return result as Pick<T, K>;
 }, { keys, steps });
 
-export const omit = todo();
+/** Shallow clone except certain keys. */
+export const Omit = todo();
 
 /** Specify a binary condition. */
 export const when = (condition: boolean, ...fns: Step<unknown>[]) =>
@@ -283,15 +297,8 @@ export const either = <C> (
   if (whenFalse) return whenFalse(state);
 }, { condition, whenTrue, whenFalse });
 
-/** Define a reducer for object entries. */
-export const objectReducer = (f) => (a, [k, v]) =>
-  Object.assign(a, { [k]: f(v, k) });
-
-/** Apply an object reducer to an object's entries. */
-export const reduceObject = f => x => Object.entries(x).reduce(f, {});
-
-/** Leak the resolve and reject methods of a promise
-  * out of the promise executor, allowing the promise
+/** Create promise, Leaking `resolve` and `reject` methods
+  * from the executor, which allows the promise
   * to be resolved from elsewhere. */
 export const defer = (callback?) => {
   let resolve, reject;
@@ -304,12 +311,13 @@ export const defer = (callback?) => {
   return promise
 }
 
+/** Object with Symbol.asyncIterator method. */
 export type AsyncIter<T> = {
   [Symbol.asyncIterator](): AsyncIterableIterator<T>
 };
 
-/** Add `Symbol.asyncIterator` to an object, as defined by a getter. */
-export const asyncIter = getIter => state => {
+/** Add `Symbol.asyncIterator` to an object. */
+export const AsyncIter = getIter => state => {
   const iter = getIter(state);
   return Object.assign(state, { [Symbol.asyncIterator]() { return iter } });
 };

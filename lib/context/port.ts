@@ -2,7 +2,9 @@ import type { Step, Fn } from '../index.ts';
 import { Error, Name, Pipe } from '../format.ts';
 import { Socket } from '../deps.ts';
 
+/** Keep track of port assignments. */
 export type Ports<T = unknown> = { ports: Record<number, T> };
+/** Add ports to context. */
 export function Ports (context = {}, ...fns: Fn[]) {
   return Pipe(...fns)({ ports: {}, ...context })
 }

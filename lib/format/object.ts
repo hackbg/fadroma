@@ -44,3 +44,10 @@ export const mapEntries = <T extends object> (
   fn: (k: keyof T, v: T[typeof k], i: number) => unknown
 ) => (obj: T) => Object.fromEntries(Object.entries(obj)
   .map(([k, v], i)=>[k, fn(k as keyof T, v, i)]))
+
+/** Define a reducer for object entries. */
+const _objectReducer = (f) => (a, [k, v]) =>
+  Object.assign(a, { [k]: f(v, k) });
+
+/** Apply an object reducer to an object's entries. */
+const _reduceObject = f => x => Object.entries(x).reduce(f, {});

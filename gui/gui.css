@@ -1,147 +1,61 @@
-input[type=checkbox]
-{ width:1rem;height:1rem;margin: 0;
-  &.collapse
-  { width:0;height:0;
-    & ~ .expanded { display: none }
-    &[checked] ~ .collapsed { display: none }
-    &[checked] ~ .expanded { display: inline-block }
-} }
-.feature {
-  @media screen and (max-width: 1280px) {
-    width: 12rem;
-  }
-  margin:0;padding:0;display:flex;flex-flow:row nowrap;
-  padding:0 0.1rem;margin-bottom:0.5rem;align-items:flex-start;
-  p {
-    font-size: 0.875rem; margin: 0.25rem 0
-  }
-  select {padding: 0.25rem; margin-left:-1rem}
-  label {
-    align-items:center;background:#fff4;padding:0.1rem 0.25rem;
-    user-select:none;font-size:1rem;display:flex;flex-flow:row nowrap;
-    margin-right:1rem;white-space:nowrap;font-weight:500;min-width:14ch;
-    &>input    {margin-right: 0.5rem}
-    &.disabled {
-      background:none;border:2px dotted #888;border-radius:0.25rem;opacity:0.5;
-      &:hover {background:none};
-    }
-  }
-  a.flex .icon { margin-right: 0.25rem; margin-left: 0.75rem; }
-  @media screen and (max-width: 1440px) {
-    flex-flow: column nowrap;
-    margin-left: -0.25rem;
-    p { max-width: 24rem; padding-left: 0.5rem; }
-  }
-}
+@font-face
+{ font-family: "sans"; font-style: normal; font-weight: 100 1000;
+  src: url("/font.woff2")   format("woff2 supports variations"),
+       url("/font.woff2")   format("woff2-variations"); }
+@font-face
+{ font-family: "sans"; font-style: italic; font-weight: 100 1000;
+  src: url("/italic.woff2") format("woff2 supports variations"),
+       url("/italic.woff2") format("woff2-variations"); }
 
-.field {
-  display:flex;flex-flow:column nowrap;
-  & > .name {
-    user-select: none;
-    margin-right:0.5rem;font-size:0.8rem;text-transform:uppercase;
-    font-weight:bold;letter-spacing:0.05rem;color:#555;padding:0.5rem 1rem 0 0;
-    margin-bottom:0.5rem;font-weight:550;
-    #editors & {
-      text-transform: none;
-      margin: 0.25rem; align-items: center; display: flex; flex-flow: row nowrap;
-      padding-top: 0;
-    }
-  }
-}
+*
+{ font-family:sans, sans-serif;
+  box-sizing: border-box;
+  scrollbar-width: thin }
 
-#sidebar
-{ padding: 0.25rem 0.5rem; margin: 0.25rem; max-width: 80ch;
-  a[href]
-  { text-decoration: none; &:hover { text-decoration: underline } }
-  @media screen and (max-width: 1440px)
-  { & > .row { flex-flow: column } } }
+html
+{ background-size:  cover;
+  background-image: radial-gradient(circle at top, #bbb8, #7778), url('bg.svg'); }
 
-#editors
-{ padding: 0.5rem 0.25rem; flex-grow: 1;
-  select, input, textarea
-  { margin-bottom: 0.5rem; }
-  textarea
-  { font-family: monospace;
-    min-height: 3rem;
-    font-size: 1rem;
-    line-height: 1.25;
-    resize: vertical; } }
+body
+{ color:#555; }
+
+a
+{ color: #090; }
+
+h1
+{ color: #aaa; }
+
+input,
+textarea,
+select
+{ border:     1px solid #8884;
+  box-shadow: 3px 3px 6px #8882;
+  &, label
+  { &:hover { background: #fff8 }; }; }
+
+html,
+body
+{ font-size:  18px;
+  min-height: 100%;
+  margin:     0;
+  padding:    0; }
+
+h1
+{ margin: 0;
+  font-size: 1.66rem;
+  font-weight: normal; }
+
+input,
+textarea,
+select
+{ font-size:    1rem;
+  margin-right: 1rem;
+  padding:      0.5rem;
+  line-height:  1.33rem;
+  &::placeholder { text-decoration: underline; }; };
 
 /*button {margin-top:0.25rem;background:#fff;border:1px solid #aaa;background:#4a4;color:#fff;padding:0.5rem 1rem;border:none;border-radius:0.25rem;box-shadow:3px 3px 9px #3333; text-transform:uppercase;letter-spacing:0.1rem;font-size:1rem}*/
 
-.nav
-{ background-color: #65b34c;
-  background-image: linear-gradient(to bottom, #65b34c, #77b377);
-  margin: 0; padding: 0; border-radius: 0;
-  align-items: stretch;
-  min-height: 1.5rem;
-  .logo
-  { width:10rem;margin:0 1rem 0.125rem 0;background:url("/wordmark.svg");
-    background-size:contain;background-repeat:no-repeat;background-position:center;
-    align-self:stretch; }
-  a, button
-  { color: #fff;
-    text-decoration: none;
-    font-size: 0.875rem;
-    font-weight: bold;
-    background: none;
-    border: none;
-    box-shadow: none;
-    display: flex;
-    flex-flow: row nowrap;
-    align-items: center;
-    gap: 0.33rem;
-    padding: 0.33rem 0.66rem;
-    margin: 0;
-    text-shadow: 0 1px 2px #0004;
-    .icon
-    { background: linear-gradient(to bottom, #0004, #0000);
-      padding: 0.25rem;
-      margin: -0.25rem 0 -0.25rem -0.25rem;
-      box-sizing: content-box;
-      border-radius: 1rem; }
-    &:hover
-    { background: linear-gradient(to top, #0004, #0000); } }
-  button
-  { font-size: 0.875rem; }
-  @media screen and (max-width: 1280px)
-  { position: fixed;
-    top: 0.25rem; left: 0.25rem; right: 0.25rem;
-    z-index: 1000;
-    background-color: #65b34c88;
-    background-image: linear-gradient(to top, #65b34c88, #77b37788);
-    border-radius: 0.25rem; }
-  .buttons
-  { gap: 0.33rem;
-    @media screen and (max-width: 1280px)
-    { background-color: #65b34c88;
-      background-image: linear-gradient(to top, #65b34c88, #77b37788);
-      backdrop-filter: blur(0.25rem);
-      border-radius: 0.25rem;
-      position: fixed;
-      bottom: 0.25rem;
-      left: 0.25rem;
-      right: 0.25rem;
-      z-index: 1000;
-      justify-content: space-around;
-      a, button
-      { padding: 0.66rem 1rem; } }
-    @media screen and (max-width: 1280px)
-    { a, button
-      { /*flex-flow: column;*/
-        /*align-items: center;*/
-        padding: 0.5rem 1rem; } } }
-  .hackbg
-  { background: rgb(144, 19, 254);
-    align-self: stretch;
-    padding: 0.25rem 0.5rem; margin-right: 0.25rem; font-size:1.25rem;line-height:1;font-weight:400
-    &:hover { background: linear-gradient(to bottom, rgb(144, 19, 254), rgb(150, 20, 255)); } }
-}
-
-a { color: #090 }
-
-.rel { position: relative; }
-.abs { position: absolute; }
 noscript {
   display: inline-block;
   inset: 0; z-index: 1000; background: #0004; backdrop-filter: blur(0.25rem);
@@ -159,61 +73,53 @@ noscript {
   fill: currentColor;
 }
 
-.namespaceSection {
-  width: 100%;
-  column-count: 4;
-  column-rule: 1px solid #0808;
-  padding: 1rem;
-  @media screen and (max-width: 1280px) {
-    column-count: 1;
-  }
-  .namespaceItem {
-    flex-flow: column nowrap;
-    padding: 0.25rem 0.5rem 0.25rem 1.75rem;
-    break-inside: avoid;
-    .namespaceItemContent {
-      a { font-weight: 450; };
-      input[type="checkbox"] { margin-right: 0.5rem; }
-    }
-    .namespaceItemContentSubItems {
-      display: flex; flex-flow: row wrap; gap: 0.5rem; list-style: none;
-      padding: 0; margin: 0.5rem 0.25rem; font-size: 0.875rem;
-    }
-    &[data-ns] {
-      display: none;
-    }
-    &[data-kind="Namespace"],
-    &[data-kind="FunctionType Alias"] {
-      .namespaceItemContent>a {
-        display: flex;
-        align-items: center;
-        font-weight: 650;
-        &::after {
-          content: " "; background: #0006; margin: 0 0.5rem;
-          min-width: 1rem; height: 1px; display: flex; flex-grow: 1;
-        }
-      }
-    }
-    &[data-kind="Namespace"] {
-      padding-left: 0;
-      .namespaceItemContent>a {
-        font-weight: 750;
-      }
-    }
-    &[data-kind="FunctionType Alias"] {
-      .namespaceItemContent>a::after {
-        background: #0003;
-      }
-    }
-    p {
-      margin: 0.25rem 0;
-    }
-    .docNodeKindIcon {
-      float: right;
-    }
-  }
-}
+input[type=checkbox]
+{ width:  1rem;
+  height: 1rem;
+  margin: 0; }
 
-@media screen and (max-width: 1280px) {
-  #main { padding: 2.25rem 0 2.5rem; }
-}
+.rel
+{ position: relative; }
+
+.abs
+{ position: absolute; }
+
+.flex
+{ display: flex; }
+
+.row
+{ display: flex; flex-flow: row nowrap }
+
+.col
+{ display: flex; flex-flow: column nowrap }
+
+.wrap
+{ flex-wrap: wrap }
+
+.grow
+{ flex-grow: 1 }
+
+input[type=checkbox].collapse
+{ width: 1rem;
+  height: 1rem;
+  position: relative;
+  display: inline-block; }
+
+#main
+{ padding: 0.5rem; align-items: flex-start;
+  @media screen and (max-width: 1280px)
+  { padding: 2.25rem 0 2.5rem; } }
+
+#sidebar,
+#editors
+{ overflow: auto; }
+
+.box
+{ background:linear-gradient(180deg, #fff8, #fff4);
+  box-shadow:3px 3px 3px #5551;
+  border-width:1px;
+  border-style:solid;
+  border-top-color:#ffffffff;
+  border-left-color:#ffffff88;
+  border-bottom-color:#00000028;
+  border-right-color:#00000022 }

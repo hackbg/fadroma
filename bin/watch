@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run -I --allow-env --allow-run
 import { stdin, stdout } from 'node:process';
 import testSuite from '../lib/index.test.ts';
-import { ANSI, Main, Exec, when } from '../lib/index.ts';
+import { Ansi, Main, Exec, when } from '../lib/index.ts';
 import { tuiContext, runInput, runOutput, draw, at } from '../lib/context/tui.ts';
 
 export type State = {
@@ -100,13 +100,13 @@ const status = (state: State) => {
       styled('CPU '+((state.tD/state.tF)*100).toFixed(1)+'%')),
     at(Math.max(0, (state.width - size.length - 1) || 0), 0,
       styled(size), '\n '),
-    at(0, state.height - 1, ANSI.bg255(240)(' Filter: '), ' \x1b[1m'+state.filter)
+    at(0, state.height - 1, Ansi.bg255(240)(' Filter: '), ' \x1b[1m'+state.filter)
   )(state)
 };
 
 const output = draw(title, tests, status);
 
-const styled = (x: String) => '\x1b[1m'+ANSI.fg255(16)(ANSI.bg255(208)(x));
+const styled = (x: String) => '\x1b[1m'+Ansi.fg255(16)(Ansi.bg255(208)(x));
 
 export const collectTree = (steps: Test.Step<unknown>[]) => {
   const output = []
@@ -134,8 +134,8 @@ export const collectList = (steps: Test.Step<unknown>[], {
       output.push([
         (subids.join('.')+' ').padEnd(10,'┈')+' ',
         (subids.length < 2) && '\x1b[1m',
-        ANSI.gray(subids.length, step.name.padEnd(14))+' ',
-        ANSI.gray(10, 'ready')
+        Ansi.gray(subids.length, step.name.padEnd(14))+' ',
+        Ansi.gray(10, 'ready')
       ].filter(Boolean).join(''));
       if (step.steps) collectSteps(subids, step.steps);
     }

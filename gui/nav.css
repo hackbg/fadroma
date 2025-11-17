@@ -1,0 +1,69 @@
+.nav
+{ background-color: #65b34c;
+  background-image: linear-gradient(to bottom, #65b34c, #77b377);
+  margin: 0; padding: 0; border-radius: 0;
+  align-items: stretch;
+  min-height: 1.5rem;
+  .logo
+  { width:10rem;margin:0 1rem 0.125rem 0;background:url("/wordmark.svg");
+    background-size:contain;background-repeat:no-repeat;background-position:center;
+    align-self:stretch; }
+  a, button
+  { color: #fff;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: bold;
+    background: none;
+    border: none;
+    box-shadow: none;
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    gap: 0.33rem;
+    padding: 0.33rem 0.66rem;
+    margin: 0;
+    text-shadow: 0 1px 2px #0004;
+    .icon
+    { background: linear-gradient(to bottom, #0004, #0000);
+      padding: 0.25rem;
+      margin: -0.25rem 0 -0.25rem -0.25rem;
+      box-sizing: content-box;
+      border-radius: 1rem; }
+    &:hover
+    { background: linear-gradient(to top, #0004, #0000); } }
+  button
+  { font-size: 0.875rem; }
+  @media screen and (max-width: 1280px)
+  { position: fixed;
+    top: 0.25rem; left: 0.25rem; right: 0.25rem;
+    z-index: 1000;
+    background-color: #65b34c88;
+    background-image: linear-gradient(to top, #65b34c88, #77b37788);
+    border-radius: 0.25rem; }
+  .buttons
+  { gap: 0.33rem;
+    @media screen and (max-width: 1280px)
+    { background-color: #65b34c88;
+      background-image: linear-gradient(to top, #65b34c88, #77b37788);
+      backdrop-filter: blur(0.25rem);
+      border-radius: 0.25rem;
+      position: fixed;
+      bottom: 0.25rem;
+      left: 0.25rem;
+      right: 0.25rem;
+      z-index: 1000;
+      justify-content: space-around;
+      a, button
+      { padding: 0.66rem 1rem; } }
+    @media screen and (max-width: 1280px)
+    { a, button
+      { /*flex-flow: column;*/
+        /*align-items: center;*/
+        padding: 0.5rem 1rem; } } }
+  .hackbg
+  { background: rgb(144, 19, 254);
+    align-self: stretch;
+    padding: 0.25rem 0.5rem; margin-right: 0.25rem; font-size:1.25rem;line-height:1;font-weight:400
+    &:hover { background: linear-gradient(to bottom, rgb(144, 19, 254), rgb(150, 20, 255)); } }
+}
+

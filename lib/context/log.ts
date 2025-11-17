@@ -1,7 +1,7 @@
 import type { Fn } from '../index.ts';
 import { env, stdout, stderr, process, getCreateLogUpdate, inspect } from '../deps.ts';
-import { joined, ANSI, stackTrace } from '../format.ts';
-const { red, yellow, dim, gray, blue } = ANSI;
+import { joined, Ansi, stackTrace } from '../format.ts';
+const { red, yellow, dim, gray, blue } = Ansi;
 const createLogUpdate = ('stderr' in process) ? await getCreateLogUpdate() : null;
 /** Logging interface. */
 export type Log = {
@@ -52,10 +52,10 @@ export function traceConsole () {
   if (!(console as { untrace?: Fn }).untrace) {
     const { log, info, warn, error } = globalThis.console;
     Object.assign(globalThis.console, {
-      log:   traced(ANSI.yellow('log')),
-      info:  traced(ANSI.blue('info')),
-      warn:  traced(ANSI.yellow('warn')),
-      error: traced(ANSI.red('error')),
+      log:   traced(Ansi.yellow('log')),
+      info:  traced(Ansi.blue('info')),
+      warn:  traced(Ansi.yellow('warn')),
+      error: traced(Ansi.red('error')),
       untrace: function fadromaUntraceConsole () {
         Object.assign(globalThis.console, { log, info, warn, error });
       }
@@ -63,7 +63,7 @@ export function traceConsole () {
   }
   function traced (kind: string) {
     return (...args: unknown[]) => {
-      const trace = ANSI.gray(8, stackTrace(3, 1).join('\n '));
+      const trace = Ansi.gray(8, stackTrace(3, 1).join('\n '));
       const line = args.map(x=>inspect(x, { depth: Infinity })).join(' ');
       stderr.write(`${kind} ${line} ${trace}\n`);
     };

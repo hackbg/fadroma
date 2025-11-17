@@ -2,8 +2,9 @@ import type { Fn, Reflects, Async, Prototype, Meta } from '../index.ts';
 import { Log } from './log.ts';
 import { ok, equal, throws, rejects, stdout, exit, argv,
   setImmediate, inspect } from '../deps.ts';
-import { ANSI, Error, Name, Seq, spaced, lines, msec, toString, merged, isMain,
-  todo, addStepStack, withInfiniteStack, alignTrace } from '../format.ts';
+import { Ansi, Error, Name, Seq, Step as toStep,
+  spaced, lines, msec, toString, merged, isMain,
+  todo, withInfiniteStack, alignTrace } from '../format.ts';
 /** Test entrypoint. When test module is run (not imported),
   * tests in the `suite` run, and a report is printed.
   *
@@ -71,13 +72,13 @@ const categories: State[] = ['pass', 'fail', 'todo', 'idea', 'warn', 'skip', 'no
 export type Categories = Record<State, Category>;
 /** Define result categories. */
 function Categories (context: Partial<Testing> = {}) {
-  context.pass = Category(context.stack, 'pass', `🟢`, ANSI.green,  'passed'  );
-  context.fail = Category(context.stack, 'fail', `🔴`, ANSI.red,    'failed'  );
-  context.todo = Category(context.stack, 'todo', `🟠`, ANSI.orange, 'tasks'   );
-  context.warn = Category(context.stack, 'warn', `🟡`, ANSI.yellow, 'warnings');
-  context.skip = Category(context.stack, 'skip', `🟣`, ANSI.purple, 'skipped' );
-  context.idea = Category(context.stack, 'idea', `🔵`, ANSI.blue,   'ideas'   );
-  context.note = Category(context.stack, 'note', `⚫️`, ANSI.dim,    'notes'   );
+  context.pass = Category(context.stack, 'pass', `🟢`, Ansi.green,  'passed'  );
+  context.fail = Category(context.stack, 'fail', `🔴`, Ansi.red,    'failed'  );
+  context.todo = Category(context.stack, 'todo', `🟠`, Ansi.orange, 'tasks'   );
+  context.warn = Category(context.stack, 'warn', `🟡`, Ansi.yellow, 'warnings');
+  context.skip = Category(context.stack, 'skip', `🟣`, Ansi.purple, 'skipped' );
+  context.idea = Category(context.stack, 'idea', `🔵`, Ansi.blue,   'ideas'   );
+  context.note = Category(context.stack, 'note', `⚫️`, Ansi.dim,    'notes'   );
   return context;
 }
 /** Keeps track of nested steps. */
@@ -101,7 +102,7 @@ function Stack (context: Partial<Log & Categories & Stack> = {}) {
     const label = testLabel(context.stack);
     const { icon, color } = context[state];
     context.log(color(msec(t1).padStart(8)),
-      ANSI.gray(6+2*Math.max(0, Math.log10(tD)), '+'+msec(tD).padStart(8)),
+      Ansi.gray(6+2*Math.max(0, Math.log10(tD)), '+'+msec(tD).padStart(8)),
       icon, color(label));
     const result = { index, name: step.name, t0, t1, tD, returned, threw };
     context[state](result);
@@ -135,7 +136,7 @@ function testReport ({ context, details = [] }) {
     const label = [testIndex(origin), testNames(origin)].join(' ');
     const { message, stack = '' } = threw || {};
     if (!thrown.has(threw)) {
-      details.push(['\n 🔴', ANSI.red(label), message].join(' '));
+      details.push(['\n 🔴', Ansi.red(label), message].join(' '));
       thrown.add(threw);
       details.push(stack.replace(message).split('\n')
         .map((x: string)=>x.trim())
@@ -224,12 +225,11 @@ export function the <T extends Testing> (
         returned = await step(returned, context);
         state ||= 'pass';
       } catch (error) {
-        threw ||= addStepStack(step, error);
+        threw ||= toStep(step, error);
         if (!threw.todo) state = 'fail';
         if (state === 'fail') throw threw;
       } finally {
         const t1 = performance.now();
-        const tD = t1 - t0;
         state ||= 'todo';
         context.end(index, step, t0, t1, state, returned, threw);
       }
@@ -239,11 +239,11 @@ export function the <T extends Testing> (
 const testIndex = (stack: Frame[]) => stack.map(s=>s.index).join('.')+'.';
 const testNames = (stack: Frame[]) => stack.map(s=>s.name).join(': ');
 const testLabel = (stack: Frame[], col1 = 20, col2 = 40) => [
-  testIndex(stack).padEnd(20),
-  testNames(stack).padEnd(40)
+  testIndex(stack).padEnd(col1),
+  testNames(stack).padEnd(col2)
 ].join(' │ ');
 const substepName = (name?: string, step?: { name?: string }) =>
-  [name, step?.name].filter(Boolean).join(': ') || ANSI.gray(7, '(unnamed)');
+  [name, step?.name].filter(Boolean).join(': ') || Ansi.gray(7, '(unnamed)');
 /** Confirm that value returned by previous test step is of given type.
   * Optionally, confirms other predicates about the value. */
 export function is <T extends Testing> (t: null|undefined): Step<T, unknown>;
