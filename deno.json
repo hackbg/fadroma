@@ -2,5 +2,4 @@
 , "noUnusedLocals": false
 , "noUnusedParameters": false
 , "nodeModulesDir": "auto"
-, "workspace": [ "./lib", "./gui", "./src" ]
 , "lint": { "rules": { "exclude": ["no-async-promise-executor", "require-await"] } } }

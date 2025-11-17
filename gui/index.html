@@ -1,0 +1,310 @@
+<html>
+  <head>
+    <meta charset="utf8" />
+    <title>Fadroma by Hack.bg</title>
+    <link rel="stylesheet" href="gui.css" />
+    <link rel="stylesheet" href="layout.css" />
+    <link rel="stylesheet" href="theme.css" />
+  </head>
+  <body>
+    <svg style="position: absolute; width: 0; height: 0; overflow: hidden" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+      <defs>
+        <symbol id="icon-download" viewBox="0 0 20 20">
+          <path d="M15 7h-3v-6h-4v6h-3l5 5 5-5zM19.338 13.532c-0.21-0.224-1.611-1.723-2.011-2.114-0.265-0.259-0.644-0.418-1.042-0.418h-1.757l3.064 2.994h-3.544c-0.102 0-0.194 0.052-0.24 0.133l-0.816 1.873h-5.984l-0.816-1.873c-0.046-0.081-0.139-0.133-0.24-0.133h-3.544l3.063-2.994h-1.756c-0.397 0-0.776 0.159-1.042 0.418-0.4 0.392-1.801 1.891-2.011 2.114-0.489 0.521-0.758 0.936-0.63 1.449l0.561 3.074c0.128 0.514 0.691 0.936 1.252 0.936h16.312c0.561 0 1.124-0.422 1.252-0.936l0.561-3.074c0.126-0.513-0.142-0.928-0.632-1.449z"></path>
+        </symbol>
+        <symbol id="icon-book" viewBox="0 0 20 20">
+          <path d="M10.595 5.196l0.446 1.371c0.369-0.316 0.835-0.599 1.441-0.795 0.59-0.192 1.111-0.3 1.582-0.362l-0.43-1.323c-0.476 0.069-1.001 0.18-1.58 0.368s-1.055 0.45-1.459 0.741zM11.522 8.051l0.446 1.371c0.369-0.316 0.835-0.599 1.441-0.795 0.59-0.192 1.111-0.3 1.582-0.362l-0.43-1.323c-0.476 0.069-1.001 0.18-1.58 0.368-0.578 0.187-1.054 0.449-1.459 0.741zM12.45 10.905l0.446 1.371c0.369-0.316 0.835-0.599 1.441-0.795 0.59-0.192 1.111-0.3 1.582-0.362l-0.43-1.323c-0.476 0.069-1.001 0.18-1.58 0.368-0.579 0.187-1.055 0.45-1.459 0.741zM5.388 13.077l0.43 1.323c0.417-0.226 0.902-0.445 1.492-0.636 0.606-0.197 1.149-0.242 1.633-0.203l-0.446-1.371c-0.499 0.002-1.038 0.070-1.615 0.257-0.579 0.188-1.069 0.406-1.494 0.63zM3.533 7.368l0.43 1.323c0.417-0.226 0.902-0.444 1.492-0.636 0.606-0.197 1.149-0.242 1.633-0.203l-0.445-1.372c-0.499 0.003-1.038 0.070-1.616 0.258-0.579 0.188-1.069 0.406-1.494 0.63zM4.46 10.223l0.43 1.323c0.417-0.226 0.902-0.445 1.492-0.636 0.606-0.197 1.149-0.242 1.633-0.203l-0.445-1.372c-0.499 0.002-1.038 0.070-1.615 0.257-0.579 0.188-1.070 0.407-1.495 0.631zM11.064 1.41c-1.723 0.56-2.623 1.752-3.053 2.559-0.822-0.4-2.25-0.835-3.973-0.275-2.523 0.82-3.969 2.627-3.969 2.627l4.095 12.587c0.126 0.387 0.646 0.477 0.878 0.143 0.499-0.719 1.46-1.658 3.257-2.242 1.718-0.558 2.969 0.054 3.655 0.578 0.272 0.208 0.662 0.060 0.762-0.268 0.252-0.827 0.907-2.040 2.61-2.593 1.799-0.585 3.129-0.389 3.956-0.1 0.385 0.134 0.75-0.242 0.625-0.629l-4.088-12.594c0 0-2.232-0.612-4.755 0.207zM10.951 15.256c-0.819-0.244-1.901-0.358-3.141 0.044-1.251 0.406-2.127 0.949-2.699 1.404l-3.245-9.982c0.358-0.358 1.187-1.042 2.662-1.521 1.389-0.451 2.528-0.065 3.279 0.378l3.144 9.677zM17.845 12.567c-0.731-0.032-1.759 0.044-3.010 0.451-1.24 0.403-2.048 1.132-2.567 1.81l-3.144-9.677c0.346-0.8 1.040-1.782 2.43-2.233 1.474-0.479 2.547-0.413 3.047-0.334l3.244 9.983z"></path>
+        </symbol>
+        <symbol id="icon-code" viewBox="0 0 20 20">
+          <path d="M5.719 14.75c-0.236 0-0.474-0.083-0.664-0.252l-5.060-4.498 5.341-4.748c0.412-0.365 1.044-0.33 1.411 0.083s0.33 1.045-0.083 1.412l-3.659 3.253 3.378 3.002c0.413 0.367 0.45 0.999 0.083 1.412-0.197 0.223-0.472 0.336-0.747 0.336zM14.664 14.748l5.341-4.748-5.060-4.498c-0.413-0.367-1.045-0.33-1.411 0.083s-0.33 1.045 0.083 1.412l3.378 3.003-3.659 3.252c-0.413 0.367-0.45 0.999-0.083 1.412 0.197 0.223 0.472 0.336 0.747 0.336 0.236 0 0.474-0.083 0.664-0.252zM9.986 16.165l2-12c0.091-0.545-0.277-1.060-0.822-1.151-0.547-0.092-1.061 0.277-1.15 0.822l-2 12c-0.091 0.545 0.277 1.060 0.822 1.151 0.056 0.009 0.11 0.013 0.165 0.013 0.48 0 0.904-0.347 0.985-0.835z"></path>
+        </symbol>
+        <symbol id="icon-doc" viewBox="0 0 20 20">
+          <path d="M16 1h-12c-0.553 0-1 0.447-1 1v16c0 0.552 0.447 1 1 1h12c0.553 0 1-0.448 1-1v-16c0-0.552-0.447-1-1-1zM15 17h-10v-14h10v14zM13 5h-6v2h6v-2zM13 13h-6v2h6v-2zM13 9h-6v2h6v-2z"></path>
+        </symbol>
+        <symbol id="icon-chevron-down" viewBox="0 0 20 20">
+          <path d="M4.516 7.548c0.436-0.446 1.043-0.481 1.576 0l3.908 3.747 3.908-3.747c0.533-0.481 1.141-0.446 1.574 0 0.436 0.445 0.408 1.197 0 1.615-0.406 0.418-4.695 4.502-4.695 4.502-0.217 0.223-0.502 0.335-0.787 0.335s-0.57-0.112-0.789-0.335c0 0-4.287-4.084-4.695-4.502s-0.436-1.17 0-1.615z"></path>
+        </symbol>
+        <symbol id="icon-chevron-right" viewBox="0 0 20 20">
+          <path d="M9.163 4.516c0.418 0.408 4.502 4.695 4.502 4.695 0.223 0.219 0.335 0.504 0.335 0.789s-0.112 0.57-0.335 0.787c0 0-4.084 4.289-4.502 4.695-0.418 0.408-1.17 0.436-1.615 0-0.446-0.434-0.481-1.041 0-1.574l3.747-3.908-3.747-3.908c-0.481-0.533-0.446-1.141 0-1.576s1.197-0.409 1.615 0z"></path>
+        </symbol>
+      </defs>
+    </svg>
+
+    <section class="row nav" id="navbar">
+
+      <noscript><strong>Contains JavaScript.</strong><br />Enable JS to proceed.</noscript>
+
+      <a class="hackbg" href="https://hack.bg" style="">Hack.bg</a>
+
+      <div class="logo"></div>
+
+      <div class="buttons row">
+        <button id="download" class="rel">
+          <svg class="icon icon-download"><use xlink:href="#icon-download"></use></svg>
+          Download
+        </button>
+        <a href="/docs/deno/index.html">
+          <svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>
+          API docs
+        </a>
+        <a href="/cov/index.html">
+          <svg class="icon icon-code"><use xlink:href="#icon-code"></use></svg>
+          Source
+        </a>
+        <a href="#">
+          <svg class="icon icon-doc"><use xlink:href="#icon-doc"></use></svg>
+          Test report
+        </a>
+      </div>
+
+    </section>
+
+    <div class="row rel" id="main">
+      <section id="sidebar" class="box flex col" style="gap:0.5rem">
+        <div class="row">
+          <div class="field grow">
+            <div class="name">Title</div>
+            <input type="text" id="title" focused placeholder="name your project" />
+          </div>
+          <div class="field">
+            <div class="name">LICENCE</div>
+            <div>
+              <select id="license">
+                <option>AGPL 3.0 or later</option>
+                <option>AGPL 3.0</option>
+                <option>GPL 3.0 or later</option>
+                <option>GPL 3.0</option>
+                <option>Closed source (inquire)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="name">Integrations</div>
+          <div class="grow">
+            <ul id="features" class="features">
+              <li class="feature">
+                <label><input type="checkbox" id="enable.btc" checked /> Bitcoin</label>
+                <p class="grow">Test with local <a href="https://en.bitcoin.it/wiki/Original_Bitcoin_client/API_calls_list">bitcoind</a> in <a href="https://developer.bitcoin.org/examples/testing.html">-regtest</a> mode.</p>
+                <p><a class="flex" href="#"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>API</a></p>
+              </li>
+              <li class="feature">
+                <label><input type="checkbox" id="enable.simf" checked /> Simplicity</label>
+                <p class="grow">Compile and run <a target="_blank" href="https://docs.simplicity-lang.org/simplicityhl-reference/">SimplicityHL</a> programs.</p>
+                <p><a class="flex" href="#"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>API</a></p>
+              </li>
+              <li class="feature">
+                <label><input type="checkbox" id="enable.deno" checked /> Deno</label>
+                <p class="grow">Next-gen TS/JS runtime.</p>
+                <p><a class="flex" href="https://docs.deno.com/runtime/reference/std/"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>@std</a></p>
+                <p><a class="flex" href="https://docs.deno.com/api/deno/"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>API</a></p>
+              </li>
+              <li class="feature">
+                <label><input type="checkbox" id="enable.node" checked /> Node.js</label>
+                <p class="grow">Will use <a href="https://www.npmjs.com/package/tsx">tsx</a> and tsc for TypeScript.</p>
+                <p><a class="flex" href="https://nodejs.org/api/index.html"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>API</a></p>
+              </li>
+              <li class="feature">
+                <label><input type="checkbox" id="enable.pnpm" checked /> PNPM</label>
+                <p class="grow">Recommended package manager.</p>
+                <p><a class="flex" href="https://pnpm.io/feature-comparison"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>Compare</a></p>
+              </li>
+              <li class="feature">
+                <label><input type="checkbox" id="enable.nix" checked /> Nix Shell</label>
+                <p class="grow">Obtain dependencies from <a href="https://nixos.org/download/">Nix package manager.</a></p>
+                <p><a class="flex" href="https://search.nixos.org/packages"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>Packages</a></p>
+              </li>
+              <li class="feature">
+                <label><input type="checkbox" id="enable.direnv" checked /> Direnv</label>
+                <p class="grow">Automatically load Nix shell when entering project directory.</p>
+                <p><a class="flex" href="https://github.com/direnv/direnv/wiki"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>Wiki</a></p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ ESLint</label>
+                <p class="grow">Static analyzer.</p>
+                <p><a class="flex" href="https://eslint.org/docs/latest/use/configure/"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>Config</a></p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Solana RPC</label>
+                <p class="grow">RPC client for Solana.</p>
+                <p><a class="flex" href="#"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>Web3</a></p>
+                <p><a class="flex" href="#"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>Kit</a></p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Solana Rust</label>
+                <p class="grow">Build, test, and deploy Solana programs.</p>
+                <p><a class="flex" href="#"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>API</a></p>
+                <p><a class="flex" href="#"><svg class="icon icon-book"><use xlink:href="#icon-book"></use></svg>Anchor</a></p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Tendermint</label>
+                <p>RPC client for Tendermint/CometBFT/Cosmos/IBC ecosystem.</p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ CosmWasm</label>
+                <p>Build, test, and deploy CosmWasm contracts.</p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Namada</label>
+                <p>RPC client and decoder for <a href="https://github.com/namada-net/namada">Namada</a>.</p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Scrt</label>
+                <p>RPC client for <a href="https://scrt.network/">Secret</a>.</p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Rust</label>
+                <p>Different targets may need different toolchains.</p>
+                <div class="grow"></div>
+                <!--<select><option>stable</option><option>beta</option><option>nightly</option></select>-->
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Mold</label>
+                <p><a href="https://github.com/rui314/mold">Fast linker.</a> Improves Rust build times.</p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ Drone</label>
+                <p>Config for Drone CI.</p>
+              </li>
+              <li class="feature">
+                <label class="disabled">⏳️ GHA</label>
+                <p>Config for GitHub Actions.</p>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="editors">
+
+        <div class="field file">
+          <label class="name">
+            <input type="checkbox" class="collapse" name="show:README" />
+            <svg class="icon expanded"><use xlink:href="#icon-chevron-down"></use></svg>
+            <svg class="icon collapsed"><use xlink:href="#icon-chevron-right"></use></svg>
+            README
+          </label>
+          <div class="flex col">
+            <textarea id="text:README" placeholder="describe your project"></textarea>
+          </div>
+        </div>
+
+        <div class="field text" id="src/main.simf">
+          <div class="name"><input type="checkbox" class="collapse" />
+            <svg class="icon"><use xlink:href="#icon-chevron-down"></use></svg>
+            src/main.simf</div>
+          <div class="flex col">
+            <textarea id="text:src/main.simf" placeholder="enter simplicity code"></textarea>
+          </div>
+        </div>
+
+        <div class="field bin" id="src/main.wit">
+          <div class="name"><input type="checkbox" class="collapse" />
+            <svg class="icon"><use xlink:href="#icon-chevron-down"></use></svg>
+            src/main.wit</div>
+          <div class="flex col">
+            <textarea id="text:src/main.wit" placeholder="enter witness data"></textarea>
+          </div>
+        </div>
+
+        <div class="field text" id="src/index.ts">
+          <div class="name"><input type="checkbox" class="collapse" />
+            <svg class="icon"><use xlink:href="#icon-chevron-down"></use></svg>
+            src/index.ts</div>
+          <div class="flex col">
+            <textarea id="text:src/index.ts" placeholder="enter TS code">import { Btc, Simf } from '../lib/index.ts';
+export async function deploy () {}</textarea>
+          </div>
+        </div>
+
+        <div class="field text" id="src/test.ts">
+          <div class="name"><input type="checkbox" class="collapse" />
+            <svg class="icon"><use xlink:href="#icon-chevron-down"></use></svg>
+            src/test.ts</div>
+          <div class="flex col">
+            <textarea id="text:src/test.ts" placeholder="enter TS code">import { Test, Btc, Simf } from '../lib/index.ts';
+export default Test.suite(import.meta, "Test",
+  Test.the("Deploy"),
+  Test.the("Invoke"));</textarea>
+          </div>
+        </div>
+
+        <div class="field file">
+          <label class="name">
+            <input type="checkbox" class="collapse" name="show:package.json" />
+            <svg class="icon expanded"><use xlink:href="#icon-chevron-down"></use></svg>
+            <svg class="icon collapsed"><use xlink:href="#icon-chevron-right"></use></svg>
+            package.json
+          </label>
+          <ul class="flex col box">
+            <li>name</li>
+            <li>version</li>
+            <li>type</li>
+            <li>main</li>
+            <li>dependencies</li>
+          </ul>
+        </div>
+
+        <div class="field file">
+          <label class="name">
+            <input type="checkbox" class="collapse" name="show:tsconfig.json" />
+            <svg class="icon expanded"><use xlink:href="#icon-chevron-down"></use></svg>
+            <svg class="icon collapsed"><use xlink:href="#icon-chevron-right"></use></svg>
+            tsconfig.json
+          </label>
+          <ul class="flex col box">
+            <li>strict: false</li>
+            <li>target: "esnext"</li>
+            <li>module: "esnext"</li>
+            <li>moduleResolution: "bundler"</li>
+            <li>allowImportingTsExtensions: true</li>
+            <li>noUnusedLocals: false</li>
+            <li>noUnusedParameters: false</li>
+            <li>isolatedModules: false</li>
+          </ul>
+        </div>
+
+        <div class="field file">
+          <label class="name">
+            <input type="checkbox" class="collapse" name="show:deno.json" />
+            <svg class="icon expanded"><use xlink:href="#icon-chevron-down"></use></svg>
+            <svg class="icon collapsed"><use xlink:href="#icon-chevron-right"></use></svg>
+            deno.json
+          </label>
+          <ul class="flex col box">
+            {}
+          </ul>
+        </div>
+
+        <div class="field file">
+          <label class="name">
+            <input type="checkbox" class="collapse" name="show:.envrc" />
+            <svg class="icon expanded"><use xlink:href="#icon-chevron-down"></use></svg>
+            <svg class="icon collapsed"><use xlink:href="#icon-chevron-right"></use></svg>
+            .envrc
+          </label>
+          <ul class="flex col box">
+            use nix
+          </ul>
+        </div>
+
+        <div class="field file">
+          <label class="name">
+            <input type="checkbox" class="collapse" name="show:shell.nix" />
+            <svg class="icon expanded"><use xlink:href="#icon-chevron-down"></use></svg>
+            <svg class="icon collapsed"><use xlink:href="#icon-chevron-right"></use></svg>
+            shell.nix
+          </label>
+          <ul class="flex col box">
+            <li><strong>name</strong></li>
+            <li><strong>nativeBuildInputs:</strong> bitcoind</li>
+          </ul>
+        </div>
+
+      </section>
+
+    </div>
+    <script type="module" src="gui.ts"></script>
+  </body>
+</html>

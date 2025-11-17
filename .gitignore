@@ -6,3 +6,4 @@ coverage
 .misc
 .direnv
 .misc/toolbox
+dist

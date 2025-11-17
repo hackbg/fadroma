@@ -26,7 +26,7 @@ export function Log <T extends Log> (
   context.formatOne ??= (x: unknown) => (typeof x === 'string') ? x :
     (x && (typeof x === 'object') && (x instanceof Error)) ? x.message :
     inspect(x, { depth: 10, colors: true });
-  if ('stderr' in process && process.stderr.isTTY) {
+  if (process.stderr) {
     const logWidth = (stdout.getWindowSize()||[Number(env.COLUMNS)])[0]
       || Number(env.COLUMNS) || Infinity;
     const logUpdater = createLogUpdate(stdout, { defaultWidth: logWidth });

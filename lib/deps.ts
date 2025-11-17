@@ -7,11 +7,12 @@ export { inspect, stripVTControlCharacters } from 'node:util';
 export { spawn as spawnImpl } from 'node:child_process';
 export type { ChildProcess } from 'node:child_process';
 export type { Buffer } from 'node:buffer';
-export { webcrypto } from 'node:crypto';
 export { createServer as createHttpServer,
   Server as HttpServer } from 'node:http';
 export { createServer as createTcpServer, createConnection,
   Server as TcpServer, Socket } from 'node:net';
+
+export const webcrypto = globalThis.crypto ?? (await import('node:crypto')).webcrypto;
 
 import process from 'node:process';
 export { process };

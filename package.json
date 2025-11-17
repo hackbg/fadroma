@@ -27,6 +27,7 @@
   },
   "scripts": {
     "test": "tsx ./test.ts",
+    "build": "vite build",
     "check": "deno check",
     "doc:type": "typedoc --out doc/type --darkHighlightTheme everforest-dark --cleanOutputDir --groupReferencesByType --useFirstParagraphOfCommentAsSummary index.ts",
     "doc:deno": "deno doc --output doc/deno --html index.ts"

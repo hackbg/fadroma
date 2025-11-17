@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
 const include: Parameters<typeof nodePolyfills>[0]["include"] =
-  [ 'assert', 'timers', 'os', 'url', 'path', 'util', 'buffer', 'crypto', 'http', 'process', 'stream' ];
+  [ 'assert', 'timers', 'os', 'url', 'path', 'util', 'buffer', 'http', 'process', 'stream' ];
 const alias = [
   { find: 'node:fs/promises',   replacement: resolve(__dirname, 'lib/stub/stub_fs.ts') },
   { find: 'node:fs',            replacement: resolve(__dirname, 'lib/stub/stub_fs.ts') },
@@ -13,9 +13,9 @@ const alias = [
   //{ find: 'node:process',       replacement: resolve(__dirname, 'lib/stub/stub_process.ts') },
 ];
 export default defineConfig({
-  publicDir: 'var',
-  resolve: { alias },
-  plugins: [
-    nodePolyfills({ include }),
-  ],
+  root:      'gui',
+  publicDir: '../var',
+  build:     { outDir: '../.misc/gh-pages' },
+  resolve:   { alias },
+  plugins:   [ nodePolyfills({ include }), ],
 });

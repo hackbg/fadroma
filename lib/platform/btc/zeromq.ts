@@ -1,7 +1,7 @@
 import type { Async, AsyncIter, Log, Reader } from '../../index.ts';
 import { Connect, Listen } from '../../context.ts';
 import { UTF8, Bytes, Fn, Name, Pipe, Flag,
-  byteParse, readBytes, readUntilDone, write, merged } from '../../format.ts';
+  readBytes, readUntilDone, write, merged } from '../../format.ts';
 /** A ZeroMQ connection. */
 export type Conn = (AsyncIter<Frame> & ConnOpts) | { socket?: unknown };
 /** Options for creating a ZeroMQ connection. */
@@ -122,7 +122,7 @@ export const Frame = merged(zmqFrame, {
   write: (frame: Frame) => w => w.write(zmqFrame(frame)),
   empty: new Uint8Array([1, 0]),
   payload: (frame: Frame & Bytes, offset = 1): Uint8Array => {
-    const { buf, u8, u64 } = byteParse(frame);
+    const { buf, u8, u64 } = Bytes.parse(frame);
     const n = frame.long ? Number(u64(offset)) : u8(offset);
     offset += frame.long ? 4 : 1;
     return buf(n, offset);
@@ -142,7 +142,7 @@ export function zmqFrame (input?: unknown): Frame & Bytes {
     const bytes = Bytes(input);
     const long  = Flags.long(bytes);
     if (long) throw new Error("long frames not supported yet");
-    const size = Number(byteParse(bytes)[long ? 'u64' : 'u8'](1));
+    const size = Number(Bytes.parse(bytes)[long ? 'u64' : 'u8'](1));
     const more = Flags.more(bytes);
     const cmd  = Flags.cmd(bytes);
     merged(bytes, { size, more, long, cmd });

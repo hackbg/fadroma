@@ -4,12 +4,16 @@ import { UTF8 } from './string.ts';
 /** Alias for various buffer types. */
 export type Bytes = Uint8Array|Buffer;
 /** Convert a buffer to `Uint8Array` if it isn't already one. */
-export function Bytes <T>(x: T): Uint8Array {
+export const Bytes = Object.assign(function toBytes <T>(x: T): Uint8Array {
   return (x instanceof Uint8Array) ? x : new Uint8Array(x as any);
-}
+}, {
+  concat: byteConcat,
+  parse:  byteParse,
+  write:  byteWrite,
+});
 
 /** Concatenate byte arrays. */
-export function byteConcat (chunks: Uint8Array[]): Uint8Array {
+function byteConcat (chunks: Uint8Array[]): Uint8Array {
   const length = chunks.reduce((l, c)=>l+(c?.length??0), 0);
   const output = new Uint8Array(length || 0);
   let cursor = 0;
@@ -22,7 +26,7 @@ export function byteConcat (chunks: Uint8Array[]): Uint8Array {
 }
 
 /** Read values from offsets in a buffer. */
-export function byteParse (b: Bytes, {
+function byteParse (b: Bytes, {
   view = () => new DataView(b.buffer),
   buf = (n: number, off = 0): Uint8Array => b.subarray(off, off + n),
   str = (n: number, off = 0): string => UTF8.decode(buf(n, off)),
@@ -40,7 +44,7 @@ export function byteParse (b: Bytes, {
 }
 
 /** Concatenate values of various types into a buffer. */
-export function byteWrite (bytes: Bytes, {
+function byteWrite (bytes: Bytes, {
   cursor = 0,
   done = () => (cursor === bytes.length) ? bytes : bytes.subarray(0, cursor),
   buf = (value: Uint8Array) => { bytes.set(value, cursor); cursor += value.length; },

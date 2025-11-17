@@ -1,6 +1,6 @@
-import type { Bytes, Step } from '../index.ts';
+import type { Step } from '../index.ts';
 import { Name, Pipe, identity } from './function.ts';
-import { byteConcat } from './byte.ts';
+import { Bytes } from './byte.ts';
 
 /** Connection to `Read & Write` pair. */
 export type RW<T = Bytes> = Reader<T> & Writer<T> & { close?: () => unknown };
@@ -75,7 +75,7 @@ export const readBytes = ({ min = 0, max = 256 } = {}) =>
         total += value?.length ?? 0;
         if (done || (total >= max)) break;
       }
-      return byteConcat(chunks)
+      return Bytes.concat(chunks)
     }, { min, max });
 
 /** Read whole stream. */
@@ -87,6 +87,6 @@ export async function readUntilDone (reader: Reader<Bytes>): Promise<Bytes|null>
     if (done) break;
   }
   if (chunks.length === 0) return null
-  const result = byteConcat(chunks)
+  const result = Bytes.concat(chunks)
   return result
 }

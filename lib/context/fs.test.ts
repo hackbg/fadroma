@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run -I --coverage --allow-env --allow-net --allow-run --allow-read=/tmp/fadroma --allow-write=/tmp/fadroma
 import { Dir, Temp, Zip, Txt, Bin } from './fs.ts';
-import { suite, the, is, has, equals }  from "./tester.ts";
+import { suite, the, is, has, equals } from "./tester.ts";
 import { Name } from '../format.ts';
 import type { Fn } from '../index.ts';
 
