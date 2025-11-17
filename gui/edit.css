@@ -1,12 +1,27 @@
 #editors
 { display: flex;
   flex-flow: column;
+  padding: 0.5rem 0.25rem;
+  flex-grow: 1;
 
   textarea
-  { font-size: 0.875rem; line-height: 1.25; border: none; box-shadow: none; background: #fff4 };
+  { font-size: 1rem;
+    line-height: 1.25;
+    border: none;
+    box-shadow: none;
+    background: none;
+    padding-top: 0;
+    font-family: monospace;
+    min-height: 3rem;
+    font-size: 0.875rem;
+    line-height: 1.25;
+    resize: vertical; };
 
-    .field .name
-    { text-transform: none; } }
+  .field .name
+  { text-transform: none; } }
+
+.field.file:hover
+{ background: #fff3 }
 
 .field.file:focus-within
 { background: #fff6 }
@@ -19,17 +34,6 @@
   font-weight:    bold;
   font-weight:    550;
   letter-spacing: 0.05rem; }
-
-#editors
-{ padding: 0.5rem 0.25rem; flex-grow: 1;
-
-  textarea
-  { font-family: monospace;
-    min-height: 3rem;
-    font-size: 1rem;
-    line-height: 1.25;
-    resize: vertical;
-    border-bottom: 1px solid #888; } }
 
 .handle-v,
 .handle-h
@@ -48,7 +52,7 @@
   .collapsed & .grow { display: none; } }
 
 .hex-row
-{ background: #fff8; font-family: monospace; white-space: pre;
+{ font-family: monospace; white-space: pre;
   padding: 0 0.5rem; font-size: 0.875rem; font-weight: 600 }
 
 .field

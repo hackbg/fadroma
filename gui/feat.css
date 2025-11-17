@@ -1,5 +1,5 @@
 #sidebar
-{ padding: 0.33rem 0.5rem; margin: 0.25rem; max-width: 80ch;
+{ padding: 0.5rem; margin: 0.25rem; max-width: 80ch;
   a[href]
   { text-decoration: none; &:hover { text-decoration: underline } }
   @media screen and (max-width: 1440px)

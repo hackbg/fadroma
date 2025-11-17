@@ -55,6 +55,9 @@ export function initFeatures (el = elById("features")) {
       ["Recommended package manager."],
       ["Compare", urls.pnpmCompare]),
 
+    DisabledFeature("enable.eslint", "ESLint", "Static analyzer.",
+      ["Config", urls.eslintConf]),
+
     Feature("enable.nix", "Nix Shell",
       ["Obtain dependencies from ", Link(urls.nixPkgs, "nixpkgs")],
       ["Install", urls.nixInstall]),
@@ -63,8 +66,9 @@ export function initFeatures (el = elById("features")) {
       ["Automatically load Nix shell when entering project directory."],
       ["Wiki", urls.direnvWiki]),
 
-    DisabledFeature("enable.eslint", "ESLint", "Static analyzer.",
-      ["Config", urls.eslintConf]),
+    DisabledFeature("enable.editorconfig", "EditorConfig",
+      "IDE-agnostic settings.",
+      ["Spec", urls.edConfSpec]),
 
     DisabledFeature("enable.gha",   "GHA",   "Config for GitHub Actions."),
 

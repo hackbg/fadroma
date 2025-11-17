@@ -2,7 +2,7 @@ import { DOM } from '../lib/index.ts';
 import { elById, append } from './lib.ts';
 
 export function initEditors (el = elById("editors")) {
-  return append(el, 
+  append(el, 
     TextField("README",
       "Created at https://fadroma.tech"),
     TextField("src/main.simf",
@@ -55,6 +55,8 @@ export function initEditors (el = elById("editors")) {
       `}`),
     TextField(".envrc", "use nix"),
   );
+  el.querySelectorAll('textarea').forEach(setDefaultHeight);
+  return el
 }
 
 export function TextField (id, ...content) {
@@ -91,5 +93,14 @@ function toggleField (e) {
     target.firstChild.firstChild.href.baseVal = 'icons.svg#icon-chevron-right';
   } else {
     target.firstChild.firstChild.href.baseVal = 'icons.svg#icon-chevron-down';
+    const textarea = target.parentElement.querySelector('textarea');
+    if (textarea) {
+      textarea.focus();
+      setDefaultHeight(textarea);
+    }
   }
+}
+
+function setDefaultHeight (textarea: HTMLTextAreaElement) {
+  textarea.style.height ||= `${1.25*(1+Math.max(2, textarea.value.split('\n').length))}em`;
 }
