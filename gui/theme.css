@@ -39,6 +39,9 @@ select
   &, label
   { &:hover { background: #fff8 }; }; }
 
+#editors textarea
+{ font-size: 0.875rem; line-height: 1.25 }
+
 .box
 { background:linear-gradient(180deg, #fff5, #fff1);box-shadow:3px 3px 3px #5551;
   border-width:1px;border-style:solid;

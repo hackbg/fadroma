@@ -196,6 +196,9 @@ noscript {
     }
     &[data-kind="Namespace"] {
       padding-left: 0;
+      .namespaceItemContent>a {
+        font-weight: 750;
+      }
     }
     &[data-kind="FunctionType Alias"] {
       .namespaceItemContent>a::after {

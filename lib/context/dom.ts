@@ -1,7 +1,5 @@
-export type DOM = { /* TODO */ };
-export const domContext = () => () => { throw new Error('TODO') };
-
-export function DOM (...args: unknown[]): Node {
+/** Create a DOM tree in a DocumentFragment. */
+export function DOM (...args: unknown[]): DocumentFragment {
   if (typeof args[0] === 'string') return DOM(args);
   const frag = new DocumentFragment();
   for (const arg of args) {

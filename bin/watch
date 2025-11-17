@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run -I --allow-env --allow-run
 import { stdin, stdout } from 'node:process';
 import testSuite from '../lib/index.test.ts';
-import { ANSI, entrypoint, Exec, when } from '../lib/index.ts';
+import { ANSI, Main, Exec, when } from '../lib/index.ts';
 import { tuiContext, runInput, runOutput, draw, at } from '../lib/context/tui.ts';
 
 export type State = {
@@ -16,7 +16,9 @@ export type State = {
   runCheck: () => Promise<unknown>,
 } & TuiState;
 
-export default entrypoint(import.meta, async function main (...args) {
+export default Main(import.meta, main);
+
+async function main (...args) {
   await inRawTTY(stdin, start, ...args);
 });
 

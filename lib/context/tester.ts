@@ -2,7 +2,7 @@ import type { Fn, Reflects, Async, Prototype, Meta } from '../index.ts';
 import { Log } from './log.ts';
 import { ok, equal, throws, rejects, stdout, exit, argv,
   setImmediate, inspect } from '../deps.ts';
-import { ANSI, Error, Name, Seq, spaced, lines, msec, toString, merged, isEntrypoint,
+import { ANSI, Error, Name, Seq, spaced, lines, msec, toString, merged, isMain,
   todo, addStepStack, withInfiniteStack, alignTrace } from '../format.ts';
 /** Test entrypoint. When test module is run (not imported),
   * tests in the `suite` run, and a report is printed.
@@ -29,7 +29,7 @@ import { ANSI, Error, Name, Seq, spaced, lines, msec, toString, merged, isEntryp
   **/
 export function suite (meta: Meta, name: string, ...steps: (Step|string)[]) {
   const suite = the(name, ...steps);
-  const enter = isEntrypoint(meta, argv[1]);
+  const enter = isMain(meta, argv[1]);
   if (enter) setImmediate(()=>testAndExit(suite, argv.slice(2)));
   return suite as Step;
 };

@@ -1,5 +1,5 @@
 import type { Meta } from './index.ts';
-import { Fn, msec, entrypoint as entry } from './format.ts';
+import { Fn, Main, msec } from './format.ts';
 import { bold, blue } from './format/ansi.ts';
 import { cwd, resolvePath, realpathSync, stdout, watchFs } from './deps.ts';
 export * from './watch/denoCheck.ts';
@@ -8,7 +8,7 @@ export * from './watch/runTest.ts';
 export const entrypoint = function watchEntrypoint (
   meta: Meta, mode: Fn<[string, string[]]>, ...options: unknown[]
 ) {
-  return entry(meta, Fn(watch, mode, options||[]))
+  return Main(meta, Fn(watch, mode, options||[]))
 };
 const toRealPath = (x: string) => { try { return realpathSync(x) } catch (e) { if (e.code!=='ENOENT') throw e } };
 const toRelativePath = (cwd: string) => (x: string) => resolvePath(x).replace(cwd, '.');

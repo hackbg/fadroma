@@ -1,6 +1,7 @@
-import { BaseError, BaseConsole } from './deps.ts'
+import { Error } from '../format.ts'
+import { Log } from '../context.ts'
 import type { BaseApi, Fee, Coin, Uint128, Into, ChainId, ChainRef,
-  Address, Hash } from './deps.ts';
+  Address, Hash } from '../index.ts';
 
 /** A code ID, identifying uploaded code on a chain. */
 export type CodeId       = string|number;

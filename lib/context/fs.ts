@@ -93,27 +93,28 @@ export function Bin (
 /** Specify a ZIP archive. */
 export function Zip <D extends Dir> (name: string, ...entries: DirEntry<D>[]) {
   return Name(`Zip(${entries.length})`, async function writeZipFile (
-    dir?: D, ...args: unknown[]
+    dir: D, ...args: unknown[]
   ) {
-    const context = ZippedFS();
+    const context = ZippedFS(dir);
     for (const entry of entries) await entry(context, ...args);
-    const data = zipSync(context.tree);
+    const data = zipSync(context.tree as any);
     if (dir) await dir.writeFile(joinPath(dir.path, name), data);
     Log().log('Wrote', name)
     return Object.assign(data, { name, tree: context.tree });
   }, { entries })
 }
-function ZippedFS (tree = {}) {
+function ZippedFS <D extends Dir> (dir: string|D, tree = {}) {
+  dir = LocalFS(dir);
   return {
-    tree,
+    ...dir,
     mkdir: function zipMkdir (path: string) {
-      tree[path] ??= {};
+      tree[joinPath(dir.path, path)] ??= {};
     },
     mkdtemp: function zipMkdtemp (..._: unknown[]) {
       throw new Error('mkdtemp not supported in zip')
     },
     writeFile: function zipWrite (path: string, data: unknown) {
-      tree[path] ??= data;
+      tree[joinPath(dir.path, path)] ??= data;
     },
     rimraf: function zipRimraf (_: string) {
       throw new Error('rimraf in zip: not implemented')

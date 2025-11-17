@@ -59,21 +59,22 @@ export type Main = Fn;
   *
   * Example:
   *
-  *   export default entrypoint(import.meta.main || import.meta.url, main)
+  *   import { Main } from '@hackbg/fadroma';
+  *   export default Main(import.meta.main || import.meta.url, main)
   *   async function main (...args: string[]) {
   *     console.log('Program arguments:', ...args)
   *   }
   *
   * */
-export function entrypoint <M extends Fn> (meta: Meta, main: M): M;
-export function entrypoint <M extends Fn, N> (meta: Meta, main: Main, alt: N): N;
-export function entrypoint (
+export function Main <M extends Fn> (meta: Meta, main: M): M;
+export function Main <M extends Fn, N> (meta: Meta, main: Main, alt: N): N;
+export function Main (
   meta: Partial<ImportMeta> = {},
   main: (args: string[])=>unknown,
   alt?: unknown
 ) {
   const [_, argv1, ...args] = argv
-  if (isEntrypoint(meta || {}, argv1)) setImmediate(async ()=>{
+  if (isMain(meta || {}, argv1)) setImmediate(async ()=>{
     try {
       await Promise.resolve(main(args));
       //exit(0);
@@ -87,7 +88,7 @@ export function entrypoint (
   return main
 }
 
-export const isEntrypoint = (meta: boolean|Partial<ImportMeta>, argv1: string) =>
+export const isMain = (meta: boolean|Partial<ImportMeta>, argv1: string) =>
   (!(meta === false)) && (false
     || (meta === true)
     || (!!meta?.main)
