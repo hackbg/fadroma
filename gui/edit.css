@@ -2,7 +2,8 @@
 { display: flex;
   flex-flow: column;
   padding: 0.5rem 0.25rem;
-  flex-grow: 1;
+
+  @media screen and (max-width: 1440px) { margin: 0 0.5rem; }
 
   textarea
   { font-size: 1rem;
@@ -13,9 +14,12 @@
     padding-top: 0;
     font-family: monospace;
     min-height: 3rem;
-    font-size: 0.875rem;
     line-height: 1.25;
-    resize: vertical; };
+    white-space: pre;
+    scrollbar-width: initial;
+
+    &:focus
+    { background: #fff } };
 
   .field .name
   { text-transform: none; } }
@@ -53,7 +57,7 @@
 
 .hex-row
 { font-family: monospace; white-space: pre;
-  padding: 0 0.5rem; font-size: 0.875rem; font-weight: 600 }
+  padding: 0 0.5rem; font-weight: 600 }
 
 .field
 { display:   flex;
@@ -65,8 +69,11 @@
   &.file
   { flex-flow: row nowrap;
 
+    border-bottom: 1px solid #8888;
+
     textarea
     { margin-bottom: 0;
+      padding-left: 0.25rem;
       &:focus-visible { outline: none } }
 
     &.collapsed textarea,
@@ -90,6 +97,11 @@
   { user-select:    none;
     padding:        0 0.33rem;
 
+    .file &
+    { font-weight: bold;
+      font-size: 1rem;
+      padding: 0 }
+
     #editors &
     { text-transform: none;
       margin:         0.25rem;
@@ -97,3 +109,8 @@
       display:        flex;
       flex-flow:      row nowrap;
       padding-top:    0; } } }
+
+.file
+{ input[type=text],
+  select
+  { padding: 0.25rem 0.5rem; background: #fff4; border-bottom: 1px solid #fffa; } }

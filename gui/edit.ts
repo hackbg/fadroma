@@ -1,14 +1,17 @@
-import { DOM } from '../lib/index.ts';
+import { DOM, Bytes } from '../lib/index.ts';
 import { elById, append } from './lib.ts';
 
 export function initEditors (el = elById("editors")) {
   append(el, 
     TextField("README",
       "Created at https://fadroma.tech"),
-    TextField("src/main.simf",
+    WitnessField("src/main.wit",
       ' '),
-    HexField("src/main.wit",
-      ' '),
+    SimfField("src/main.simf",
+      '  let oracle_height: u32 = witness::ORACLE_HEIGHT;',
+      '  let oracle_price:  u32 = witness::ORACLE_PRICE;',
+      '  let oracle_sig: Signature = witness::ORACLE_SIG;',
+      '  let owner_sig:  Signature = witness::OWNER_SIG;'),
     TextField("index.ts",
       `import { Btc, Simf } from '../lib/index.ts';`,
       `export async function deploy () {}`),
@@ -59,18 +62,47 @@ export function initEditors (el = elById("editors")) {
   return el
 }
 
-export function TextField (id, ...content) {
-  return DOM([`div.field.file#${id}`,
+const Field = (id, ...content) =>
+  [`div.field.file#${id}`,
     ['div.handle-v', { onclick: toggleField },
       ['svg.icon.expanded', ['use[href=icons.svg#icon-chevron-down]']],
       ['div.grow']],
     ['div.flex.col.grow',
       ['div.flex.row', ['div.name', id], ['div.handle-h']],
-      [`textarea#text:${id}`, content.filter(Boolean).join('\n')]]]);
-}
-
-export function HexField (id, ...content) {
-  return DOM([`div.field.file.hex#${id}`,
+      ...content]];
+const TextField = (id, ...content) =>
+  DOM(Field(id, [`textarea#text:${id}`, content.filter(Boolean).join('\n')]));
+const SimfField = (id, ...content) =>
+  DOM(Field(id,
+    SimfFn('main', ...content),
+    SimfFn('checksig'),
+    SimfFn('checksigfromstack')));
+const SimfFn = (name, ...content) =>
+  ['div.col',
+    ['div.row.align-center',
+      ['strong', 'fn '],
+      [`input[type=text][size=${name.length-1}]`, { value: name }],
+      '(',
+      [`input[type=text][size=2]`],
+      ')',
+      ' { '],
+    ['textarea', content.join('\n')||' '],
+    '}'];
+const WitnessField = (id, ...content) =>
+  DOM(Field(id, ['div.col.gap',
+    WitnessRow('u32', 'ORACLE_HEIGHT', '1000'),
+    WitnessRow('u32', 'ORACLE_PRICE',  '100000'),
+    WitnessRow('sig', 'ORACLE_SIG',    ''),
+    WitnessRow('sig', 'OWNER_SIG',     ''),
+  ]));
+const WitnessRow = (t: 'sig'|'u32', k: string, v: string|Bytes) =>
+  ['div.col.gap',
+    ['div.row.gap',
+      ['label', ['input[type=text][size=14]', { value: k }]],
+      ['label', ['select', ['option', { value: t }, t]]]],
+    ['label', ['input[type=text]',          { value: v }]]];
+const HexField = (id, ...content) =>
+  DOM([`div.field.file.hex#${id}`,
     ['div.handle-v', { onclick: toggleField },
       ['svg.icon.expanded', ['use[href=icons.svg#icon-chevron-down]']],
       ['div.grow']],
@@ -80,11 +112,8 @@ export function HexField (id, ...content) {
       HexRow('00000010 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................'),
       HexRow('00000020 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................'),
       HexRow('00000030 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................')]]);
-}
-
-export function HexRow (addr, bytes, chars) {
-  return ['div.row.hex-row', addr, bytes, chars]
-}
+const HexRow = (addr, bytes, chars) =>
+  ['div.row.hex-row', addr, bytes, chars];
 
 function toggleField (e) {
   const target = e.currentTarget;
@@ -102,5 +131,5 @@ function toggleField (e) {
 }
 
 function setDefaultHeight (textarea: HTMLTextAreaElement) {
-  textarea.style.height ||= `${1.25*(1+Math.max(2, textarea.value.split('\n').length))}em`;
+  textarea.style.height ||= `${1.5*(1+Math.max(2, textarea.value.split('\n').length))}em`;
 }

@@ -10,15 +10,15 @@
   </head>
   <body>
 
-    <section class="row nav" id="navbar">
+    <section class="col nav" id="navbar">
 
       <noscript><strong>Contains JavaScript.</strong><br />Enable JS to proceed.</noscript>
 
-      <a class="hackbg" href="https://hack.bg" style="">Hack.bg</a>
+      <a class="hackbg" href="https://hack.bg" style=""><strong>Hack.bg</strong> presents</a>
 
       <div class="logo"></div>
 
-      <div class="buttons row">
+      <div class="col buttons">
         <button id="new" class="rel">
           <svg class="icon icon-document"><use href="icons.svg#icon-document"></use></svg>
           New
@@ -48,8 +48,9 @@
     </section>
 
     <div class="row rel" id="main">
-      <section id="sidebar" class="box flex col" style="gap:0.5rem">
-        <div class="row">
+
+      <section id="editors" class="box">
+        <div class="row gap">
           <div class="field grow">
             <div class="name">Title</div>
             <input type="text" id="title" focused placeholder="name your project" />
@@ -67,17 +68,16 @@
             </div>
           </div>
         </div>
+      </section>
 
+      <section id="sidebar" class="flex col" style="gap:0.5rem">
         <div class="field">
-          <div class="name">Integrations</div>
           <div class="grow">
             <ul id="features" class="features">
             </ul>
           </div>
         </div>
       </section>
-
-      <section id="editors"></section>
 
     </div>
     <script type="module" src="gui.ts"></script>

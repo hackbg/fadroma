@@ -12,12 +12,27 @@
   box-sizing: border-box;
   scrollbar-width: thin }
 
+html,
+body
+{ font-size:  18px;
+  min-height: 100%;
+  margin:     0;
+  padding:    0; }
+
 html
-{ background-size:  cover;
-  background-image: radial-gradient(circle at top, #bbb8, #7778), url('bg.svg'); }
+{ background-color: #65b34c;
+  background-size:  cover;
+  background-image: linear-gradient(to top, #65b34c, #77b377), radial-gradient(circle at top, #ddd8, #7778), url('bg.svg'); }
 
 body
-{ color:#555; }
+{ color: #444;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  height: 100%;
+  overflow: hidden;
+  @media screen and (max-width: 1440px)
+  { flex-flow: column; overflow: auto; height: auto } }
 
 a
 { color: #090; }
@@ -33,13 +48,6 @@ select
   &, label
   { &:hover { background: #fff8 }; }; }
 
-html,
-body
-{ font-size:  18px;
-  min-height: 100%;
-  margin:     0;
-  padding:    0; }
-
 h1
 { margin: 0;
   font-size: 1.66rem;
@@ -48,10 +56,9 @@ h1
 input,
 textarea,
 select
-{ font-size:    1rem;
-  margin-right: 1rem;
-  padding:      0.5rem;
-  line-height:  1.33rem;
+{ font-size:   1rem;
+  padding:     0.5rem;
+  line-height: 1.33rem;
   &::placeholder { text-decoration: underline; }; };
 
 /*button {margin-top:0.25rem;background:#fff;border:1px solid #aaa;background:#4a4;color:#fff;padding:0.5rem 1rem;border:none;border-radius:0.25rem;box-shadow:3px 3px 9px #3333; text-transform:uppercase;letter-spacing:0.1rem;font-size:1rem}*/
@@ -99,6 +106,24 @@ input[type=checkbox]
 .grow
 { flex-grow: 1 }
 
+.around
+{ justify-content: space-around }
+
+.between
+{ justify-content: space-between }
+
+.justify-center
+{ justify-content: center; }
+
+.align-center
+{ align-items: center; }
+
+.gap
+{ gap: 0.5rem; }
+
+.gap .gap
+{ gap: 0.25rem; }
+
 input[type=checkbox].collapse
 { width: 1rem;
   height: 1rem;
@@ -106,13 +131,19 @@ input[type=checkbox].collapse
   display: inline-block; }
 
 #main
-{ padding: 0.5rem; align-items: flex-start;
-  @media screen and (max-width: 1280px)
-  { padding: 2.25rem 0 2.5rem; } }
+{ border: 0.5rem solid #4844;
+  align-items: flex-start;
+  background: #c8c8c8;
+  @media screen and (max-width: 1440px)
+  { flex-flow: column-reverse;
+    align-items: stretch;
+    padding: 0 0 2.5rem; } }
 
 #sidebar,
 #editors
-{ overflow: auto; }
+{ overflow: auto; 
+  @media screen and (min-width: 1441px)
+  { height: 100%; } }
 
 .box
 { background:linear-gradient(180deg, #fff8, #fff4);

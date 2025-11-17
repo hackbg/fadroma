@@ -3,7 +3,8 @@
   column-count: 4;
   column-rule: 1px solid #0808;
   padding: 1rem;
-  @media screen and (max-width: 1280px) {
+  background: #fff8;
+  @media screen and (max-width: 1440px) {
     column-count: 1;
   }
   .namespaceItem {

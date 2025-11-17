@@ -1,54 +1,69 @@
 #sidebar
-{ padding: 0.5rem; margin: 0.25rem; max-width: 80ch;
+{ padding: 0 0.5rem 0.5rem;
+  background: #fff4;
+
+  .field .name { margin-top: 1rem }
+
   a[href]
-  { text-decoration: none; &:hover { text-decoration: underline } }
+  { text-decoration: none;
+
+    &:hover { text-decoration: underline } }
+
   @media screen and (max-width: 1440px)
   { & > .row { flex-flow: column } } }
 
 .features
 { padding:    0;
-  margin:     0.25rem 0.33rem 1rem 0;
+  margin:     0 0.33rem 0.5rem;
   flex-grow:  1;
   list-style: none;
   display:    flex;
   flex-flow:  column;
-  gap:        0.5rem;
-
-  @media screen and (max-width: 1280px)
-  { width:     24rem;
-    flex-flow: row wrap; } }
+  gap:        0.5rem; }
 
 .feature
 { min-height: 1.33rem;
+  margin:0;
+  padding:0;
+  display:flex;
+  flex-flow:column nowrap;
+  padding:0 0.5rem 0 0;
+  align-items:stretch;
+
+  &[data-depth="0"]
+  { padding-top: 1rem; label { font-weight: 700; } }
+
+  &[data-depth="1"]
+  { padding-left: 0.75rem; }
+
+  &[data-depth="1"] + &[data-depth="0"]
+  { margin-top: 0.5rem; border-top: 1px solid #8888; }
+
   &.disabled
   { opacity: 0.75 }
-  p
-  { font-size: 0.875rem; margin: 0.25rem 0 0 1rem }
-  select
-  { padding: 0.25rem; margin-left:-1rem }
-  label
-  { align-items:center;padding:0.1rem 0.25rem;
-    user-select:none;font-size:1rem;display:flex;flex-flow:row nowrap;
-    white-space:nowrap;font-weight:600;min-width:14ch;
-    &>input
-    {margin-right: 0.25rem}
-    .feature.disabled &
-    { background:none;border-radius:0.25rem;opacity:0.75;padding:0; } }
-  a.flex .icon
-  { margin-right: 0.25rem; margin-left: 0.75rem; }
-  @media screen and (max-width: 1280px)
-  { width: 12rem; }
-  @media screen and (max-width: 1440px)
-  { flex-flow: column nowrap;
-    margin-left: -0.25rem;
-    p { max-width: 24rem; padding-left: 0.5rem; } } }
-
-.feature
-{ margin:0;padding:0;display:flex;flex-flow:row nowrap;
-  padding:0 0.1rem;align-items:flex-start;
 
   .links
   { font-size: 0.875rem;
     margin-top: 0.25rem;
     margin-left: 0.75rem;
-    flex-flow: row wrap } }
+    flex-flow: row nowrap }
+
+  p
+  { font-size: 0.875rem; margin: 0.25rem }
+
+  select
+  { padding: 0.25rem; margin-left:-1rem }
+
+  label
+  { align-items:center;padding:0.1rem 0.25rem;
+    user-select:none;font-size:1rem;display:flex;flex-flow:row nowrap;
+    white-space:nowrap;font-weight:600;min-width:14ch;
+
+    &>input
+    {margin-right: 0.25rem}
+
+    .feature.disabled &
+    { background:none;border-radius:0.25rem;opacity:0.75;padding:0; } }
+
+  a.flex .icon
+  { margin-right: 0.25rem; margin-left: 0.75rem; } }
