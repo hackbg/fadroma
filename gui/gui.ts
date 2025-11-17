@@ -1,6 +1,6 @@
 import type { Bytes } from '../lib/index.ts';
 import { Dir, Zip, Txt, Bin } from '../lib/index.ts';
-import { loadDocs } from './docs.ts';
+import { loadDocs } from './doc.ts';
 import { updateProject, saveProject } from './gen.ts';
 
 const elById  = (id: string) => document.getElementById(id);

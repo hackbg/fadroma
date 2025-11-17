@@ -8,7 +8,6 @@ const byteVal = (id: string) => (elById(id) as HTMLInputElement)?.value?.trim() 
 const on = (x: EventTarget, ev, cb) => { x?.addEventListener(ev, cb); return cb; }
 
 export async function updateProject (e) {
-  elById("editors").prepend(FileField("test"));
   const { id, checked, value: _ } = e.target;
   if (id === 'enable.simf') {
     if (!checked) {
