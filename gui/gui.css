@@ -31,10 +31,9 @@ body
   justify-content: center;
   height: 100%;
   overflow: hidden;
-  @media screen and (max-width: 1440px)
-  { flex-flow: column; overflow: auto; height: auto } }
+  background: radial-gradient(at left, #0000, #3214); }
 
-a
+a[href]
 { color: #090; }
 
 h1
@@ -97,6 +96,9 @@ input[type=checkbox]
 .row
 { display: flex; flex-flow: row nowrap }
 
+.row-rev
+{ display: flex; flex-flow: row-reverse nowrap }
+
 .col
 { display: flex; flex-flow: column nowrap }
 
@@ -131,26 +133,34 @@ input[type=checkbox].collapse
   display: inline-block; }
 
 #main
-{ border: 0.5rem solid #4844;
+{ border: 0.5rem solid transparent;
   align-items: flex-start;
-  background: #c8c8c8;
-  @media screen and (max-width: 1440px)
-  { flex-flow: column-reverse;
-    align-items: stretch;
-    padding: 0 0 2.5rem; } }
+  overflow: auto }
 
 #sidebar,
 #editors
-{ overflow: auto; 
-  @media screen and (min-width: 1441px)
-  { height: 100%; } }
+{ overflow: auto; }
 
-.box
-{ background:linear-gradient(180deg, #fff8, #fff4);
+.box {
+  background:linear-gradient(180deg, #fff8, #fff4);
   box-shadow:3px 3px 3px #5551;
   border-width:1px;
   border-style:solid;
   border-top-color:#ffffffff;
   border-left-color:#ffffff88;
   border-bottom-color:#00000028;
-  border-right-color:#00000022 }
+  border-right-color:#00000022;
+}
+
+.collapsible {
+  max-width:  100%;
+  max-height: 100%;
+  /*transition: max-width 0.33s ease-out, max-height 0.33s ease-out, opacity 0.33s ease-in;*/
+  .collapsed & {
+    overflow: hidden;
+    max-height: 0;
+    max-width:  0;
+    opacity:    0;
+    * { overflow: hidden; }
+  }
+}

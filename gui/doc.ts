@@ -1,8 +1,9 @@
-const elById  = (id: string) => document.getElementById(id);
+import { elById } from './lib.ts';
 
-export async function loadDocs (html: string) {
-
+export async function loadDocs (href: string) {
   const main = elById("main");
+  const resp = await fetch(href);
+  const html = await resp.text();
   const sect = new DocumentFragment();
   const docs = new DOMParser().parseFromString(html, 'text/html');
   docs.querySelectorAll(".namespaceSection").forEach(loadSection);

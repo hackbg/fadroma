@@ -38,7 +38,9 @@ function domAdd (frag, arg) {
       // Strings are added as text nodes:
       el.appendChild(document.createTextNode(prop));
     } else if (typeof prop === 'object') {
-      if (prop[Symbol.iterator]) {
+      if (prop instanceof Node) {
+        el.appendChild(prop);
+      } else if (prop[Symbol.iterator]) {
         // Iterables are added as nested DOM tuples:
         el.appendChild(DOM(prop));
       } else {
@@ -118,7 +120,7 @@ function domParse (el: string) {
     match = el.match(RE_ID);
     if (match) {
       if (id !== null) throw new Error(`DOM: duplicate id: ${match[0]}`);
-      id = match[0];
+      id = match[0].slice(1);
       el = el.slice(match[0].length);
       continue
     }

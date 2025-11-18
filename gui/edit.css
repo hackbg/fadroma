@@ -1,9 +1,25 @@
-#editors
-{ display: flex;
-  flex-flow: column;
-  padding: 0.5rem 0.25rem;
+#editors {
+  display:    flex;
+  flex-flow:  column;
+  padding:    0.5rem 0.25rem;
+  flex-grow:  1;
+  background: #cacaca;
+  background: linear-gradient(to right, #d8d8d8, #c8c8c8);
 
-  @media screen and (max-width: 1440px) { margin: 0 0.5rem; }
+  input, textarea, select
+  { border:     none;
+    box-shadow: none;
+    background: none;
+    .field:hover &
+    { background: #fff8 }
+    &:hover
+    { background: #fff8 }
+    &:focus, &:hover:focus
+    { background: #fff;
+      outline:    none; } }
+
+  select
+  { padding-left: 0.5rem }
 
   textarea
   { font-size: 1rem;
@@ -22,19 +38,14 @@
     { background: #fff } };
 
   .field .name
-  { text-transform: none; } }
+  { text-transform: none; }
 
-.field.file:hover
-{ background: #fff3 }
-
-.field.file:focus-within
-{ background: #fff6 }
+  .field.file .name
+  { font-size: 1rem; min-height: 2rem; } }
 
 .field .name
-{ color: #555; }
-
-.field .name
-{ font-size:      0.875rem;
+{ color: #555;
+  font-size:      0.875rem;
   font-weight:    bold;
   font-weight:    550;
   letter-spacing: 0.05rem; }
@@ -42,7 +53,7 @@
 .handle-v,
 .handle-h
 { min-width: 1rem; min-height: 1rem; display: flex;
-  svg { width: 1.25rem; height: 1.5rem } }
+  svg { width: 1.25rem; height: 2rem } }
 
 .handle-v:hover
 { background: #fff4; cursor: pointer }
@@ -66,51 +77,88 @@
   &[data-disabled]
   { display: none; visibility: hidden; }
 
-  &.file
-  { flex-flow: row nowrap;
-
-    border-bottom: 1px solid #8888;
-
-    textarea
-    { margin-bottom: 0;
-      padding-left: 0.25rem;
-      &:focus-visible { outline: none } }
-
-    &.collapsed textarea,
-    &.collapsed .hex-row
-    { display: none; visibility: hidden }
-
-    &:focus-within
-    { background: #fff6 }
-
-    > ul
-    { list-style: none;
-      padding:    0 0.5rem;
-      display:    flex;
-      flex-flow:  row nowrap;
-      margin-top: 0.25rem;
-      min-height: 1rem;
-
-      > li { margin-right: 1rem } } };
-
   .name
   { user-select:    none;
     padding:        0 0.33rem;
 
-    .file &
-    { font-weight: bold;
-      font-size: 1rem;
-      padding: 0 }
-
     #editors &
     { text-transform: none;
-      margin:         0.25rem;
+      padding:        0.25rem;
       align-items:    center;
       display:        flex;
-      flex-flow:      row nowrap;
-      padding-top:    0; } } }
+      flex-flow:      row nowrap; } }
 
-.file
-{ input[type=text],
-  select
-  { padding: 0.25rem 0.5rem; background: #fff4; border-bottom: 1px solid #fffa; } }
+  .command
+  { display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    &:hover { text-decoration: underline; }
+    padding: 0.25rem 0.5rem;
+    .icon { margin: 0.25rem 0.125rem 0.25rem 0.25rem }; } }
+
+.field.file
+{ flex-shrink:   0;
+  flex-flow:     row nowrap;
+  border-bottom: 1px solid #8888;
+  min-height:    2rem;
+
+  &:hover
+  { background: #fff3 }
+
+  &:focus-within
+  { background: #fff6;
+    .name { color: #222; text-shadow: 1px 1px 3px #0002 } }
+
+  textarea
+  { margin-bottom: 0;
+    padding-left: 0.25rem;
+    &:focus-visible { outline: none } }
+
+  &.collapsed textarea,
+  &.collapsed .hex-row
+  { display: none; visibility: hidden; max-height: 0; max-width: 0; }
+
+  &:focus-within
+  { background: #fff6 }
+
+  > ul
+  { list-style: none;
+    padding:    0 0.5rem;
+    display:    flex;
+    flex-flow:  row nowrap;
+    margin-top: 0.25rem;
+    min-height: 1rem;
+
+    > li { margin-right: 1rem } } };
+
+  input, select
+  { padding: 0.125rem 0.5rem;
+    background: none;
+    border: 1px solid transparent;
+    box-shadow: none;
+    &:focus { background: #fff; outline: none } }
+  &:hover
+  { input, select
+    { background: #fff0; border-bottom: 1px dotted #0008;
+      &:focus { background: #fff; } }}}
+
+.witness
+{ display: flex; flex-flow: row wrap; margin-bottom: 0.5rem; }
+
+.witness select { width: 4rem }
+
+.fields
+{ border-bottom: 1px solid #8888;
+  input, select { margin-left: -0.5rem; padding-left: 0.75rem } }
+
+.fn {
+  input, textarea { background: none }
+  .keyword, input { padding: 0.25rem; height; 1.5rem; line-height: 1rem; }
+  .keyword { display: inline-block; font-style: italic }
+  &:hover { input, textarea { background: none } }
+  .command { opacity: 0.8 }
+  &:hover { .command { opacity: 0.9 } }
+  .command:hover { opacity: 1 }
+  .file:hover & { background: #fff4 }
+  &:focus-within { background: #fff }
+}

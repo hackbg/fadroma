@@ -2,13 +2,12 @@
 { align-items: stretch;
   align-self: center;
   min-height: 1.5rem;
+  text-shadow: 1px 1px 0 #0008;
 
   .logo
   { width:10rem;min-height:2rem;margin:1rem auto;background:url("/wordmark.svg");
     background-size:contain;background-repeat:no-repeat;background-position:center;
-    align-self:stretch;
-
-    @media screen and (max-width: 1440px) { margin: 0.5rem; } }
+    align-self:stretch; }
 
   a, button
   { color: #fff;
@@ -28,59 +27,26 @@
     text-align: center;
 
     .icon
-    { background: linear-gradient(to bottom, #0004, #0000);
+    { background: linear-gradient(to left, #0002, #fff2), linear-gradient(to top, #0002, #fff2);
       padding: 0.25rem;
-      margin: -0.25rem;
+      margin: -0.25rem -0.25rem -0.25rem 0;
       box-sizing: content-box;
       border-radius: 1rem; }
 
     &:hover
-    { background: linear-gradient(to top, #0004, #0000); } }
+    { background: linear-gradient(to left, #0003, #0000); } }
 
   button
   { font-size: 0.875rem; }
 
-  @media screen and (max-width: 1440px)
-  { min-height: 5rem; background-color: #65b34c88;
-    background-image: linear-gradient(to top, #65b34c88, #77b37788);
-    border-radius: 0.25rem; }
-
-  .buttons
-  { gap: 0.33rem;
-
-    a,
-    button
-    { flex-flow: row-reverse; }
-
-    @media screen and (max-width: 1440px) { flex-flow: row nowrap }
-
-    @media screen and (max-width: 1440px)
-    { background-color: #65b34c88;
-      background-image: linear-gradient(to top, #65b34c88, #77b37788);
-      backdrop-filter: blur(0.25rem);
-      position: fixed;
-      bottom: 0rem;
-      left: 0rem;
-      right: 0rem;
-      z-index: 1000;
-      justify-content: space-around;
-      a, button
-      { padding: 0.66rem 1rem; flex-flow: column; } }
-
-    @media screen and (max-width: 1440px)
-    { a, button
-      { /*flex-flow: column;*/
-        /*align-items: center;*/
-        padding: 0.5rem 1rem; } } }
+  .buttons { gap: 0.33rem; a, button { flex-flow: row-reverse; } }
 
   .hackbg
   { /*background: linear-gradient(to bottom, rgba(144, 19, 254, 1), rgba(144, 19, 254, 0));*/
-    align-self: stretch; padding: 1rem 0.5rem 0.5rem; margin-bottom:-0.5rem; 
+    align-self: stretch; padding: 0.5rem; margin-bottom:-0.5rem; 
     font-size:1.25rem;line-height:1;font-weight:400;
-
     &:hover
     { background: linear-gradient(to bottom, rgb(144, 19, 254), rgb(150, 20, 255)); }
-
     strong
     { font-weight: 800; } }
 }

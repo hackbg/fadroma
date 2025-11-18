@@ -25,7 +25,7 @@ html(lang='en')
             path(d=icon.path)
 
     mixin icon (id)
-      svg(class=`icon icon-${id}`)
+      svg(class=`icon ${id}`)
         use(xlink:href=`#${id}`)
 
     mixin field (name)

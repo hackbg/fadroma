@@ -1,16 +1,21 @@
 #sidebar
 { padding: 0 0.5rem 0.5rem;
-  background: #fff4;
+  max-width: 48%;
+  /*color: #fff;*/
+  /*text-shadow: 1px 1px 0 #0008;*/
+  /*font-weight: 500;*/
+  background: linear-gradient(to left, #c8c8c8, #cfcfcf);
+  border-top: 1px solid #fffa;
+  /*color: #fff;*/
 
   .field .name { margin-top: 1rem }
 
   a[href]
   { text-decoration: none;
-
-    &:hover { text-decoration: underline } }
-
-  @media screen and (max-width: 1440px)
-  { & > .row { flex-flow: column } } }
+    font-weight: 500;
+    /*color: #efe;*/
+    text-decoration: underline;
+    &:hover { text-decoration: underline } } }
 
 .features
 { padding:    0;
@@ -67,3 +72,6 @@
 
   a.flex .icon
   { margin-right: 0.25rem; margin-left: 0.75rem; } }
+
+/*.features.smol*/
+/*{ a, p { display: none; visibility: hidden } }*/

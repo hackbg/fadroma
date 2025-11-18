@@ -1,8 +1,50 @@
-import { DOM, Bytes } from '../lib/index.ts';
-import { elById, append } from './lib.ts';
+import { DOM, Bytes, Dir, Zip, Txt, Bin } from '../lib/index.ts';
+import { elById, append, textVal, byteVal, Icon } from './lib.ts';
+
+export async function clearProject () {
+}
+
+export async function loadExample () {
+}
+
+export async function updateProject (e) {
+}
+
+export async function saveProject () {
+  const title    = textVal('title');
+  const license  = textVal('license');
+  const filename = `${+new Date()}-${title}.zip`
+  const project  = Zip(filename,
+    Dir(Txt('README.md', textVal('readme')),
+      Dir('src',
+        Txt('main.simf', textVal('src/main.simf')),
+        Bin('main.wit',  byteVal('src/main.wit')))));
+  const zip = await project();
+  console.log(zip.tree)
+  const file = new File([zip as BlobPart], filename, { type: 'application/zip' });
+  const url = URL.createObjectURL(file);
+  console.log(url);
+  const downloadLink = Object.assign(document.createElement('a'), { href: url, download: filename });
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
+}
 
 export function initEditors (el = elById("editors")) {
   append(el, 
+    DOM([
+      'div.row.gap.fields',
+      ['div.field.grow',
+        ['div.name', 'Title'],
+        ['input#title[type=text][focused=focused]', { placeholder: 'name your project' }]],
+      ['div.field',
+        ['div.name', 'Licence'],
+        ['select#licence',
+          ['option', 'AGPL 3.0 or later'],
+          ['option', 'AGPL 3.0 only'],
+          ['option', 'GPL 3.0 or later'],
+          ['option', 'GPL 3.0 only'],
+          ['option', 'Closed source (inquire)']]]]),
     TextField("README",
       "Created at https://fadroma.tech"),
     WitnessField("src/main.wit",
@@ -12,10 +54,10 @@ export function initEditors (el = elById("editors")) {
       '  let oracle_price:  u32 = witness::ORACLE_PRICE;',
       '  let oracle_sig: Signature = witness::ORACLE_SIG;',
       '  let owner_sig:  Signature = witness::OWNER_SIG;'),
-    TextField("index.ts",
+    TSField("index.ts",
       `import { Btc, Simf } from '../lib/index.ts';`,
       `export async function deploy () {}`),
-    TextField("test.ts",
+    TSTestField("test.ts",
       `import { Test, Btc, Simf } from '../lib/index.ts';`,
       `import { deploy } from './index.ts';`,
       `export default Test.suite(import.meta, "Test",`,
@@ -62,70 +104,103 @@ export function initEditors (el = elById("editors")) {
   return el
 }
 
-const Field = (id, ...content) =>
-  [`div.field.file#${id}`,
-    ['div.handle-v', { onclick: toggleField },
-      ['svg.icon.expanded', ['use[href=icons.svg#icon-chevron-down]']],
+const Field = (id, header, ...content) =>
+  [`div.field.file.collapsed#${id}`,
+    ['div.handle-v', { onclick: toggleField(id) },
+      ['svg.icon', ['use[href=icons.svg#chevron-right]']],
       ['div.grow']],
     ['div.flex.col.grow',
-      ['div.flex.row', ['div.name', id], ['div.handle-h']],
+      ['div.flex.row',
+        ['div.name', { onclick: toggleField(id) }, id],
+        ['div.handle-h', { onclick: toggleField(id) }], ...header],
       ...content]];
+
 const TextField = (id, ...content) =>
-  DOM(Field(id, [`textarea#text:${id}`, content.filter(Boolean).join('\n')]));
+  DOM(Field(id, [], [`textarea.collapsible#text:${id}`, content.filter(Boolean).join('\n')]));
+
+const TSField = (id, ...content) =>
+  DOM(Field(id, [
+    ['div.command', Icon('play'), 'Check'],
+  ], [`textarea.collapsible#text:${id}`, content.filter(Boolean).join('\n')]));
+
+const TSTestField = (id, ...content) =>
+  DOM(Field(id, [
+    ['div.command', Icon('play'), 'Test'],
+  ], [`textarea.collapsible#text:${id}`, content.filter(Boolean).join('\n')]));
+
 const SimfField = (id, ...content) =>
-  DOM(Field(id,
+  DOM(Field(id, [
+    ['div.command', Icon('play'), 'Compile'],
+  ], ['div.collapsible',
     SimfFn('main', ...content),
     SimfFn('checksig'),
-    SimfFn('checksigfromstack')));
+    SimfFn('checksigfromstack'),
+    ['div.row', ['div.grow'], ['div.command', Icon('circle-with-plus'), 'Add declaration']]
+  ]));
+
 const SimfFn = (name, ...content) =>
-  ['div.col',
+  ['div.col.fn',
     ['div.row.align-center',
-      ['strong', 'fn '],
-      [`input[type=text][size=${name.length-1}]`, { value: name }],
+      ['strong.keyword', 'fn '],
+      [`input[type=text][size=${name.length-2}]`, { value: name }],
       '(',
       [`input[type=text][size=2]`],
       ')',
-      ' { '],
+      ' { ',
+      ['div.grow'],
+      ['div.command', Icon('circle-with-cross'), 'Remove']],
     ['textarea', content.join('\n')||' '],
     '}'];
+
 const WitnessField = (id, ...content) =>
-  DOM(Field(id, ['div.col.gap',
+  DOM(Field(id, [
+  ], ['div.col.collapsible',
     WitnessRow('u32', 'ORACLE_HEIGHT', '1000'),
     WitnessRow('u32', 'ORACLE_PRICE',  '100000'),
     WitnessRow('sig', 'ORACLE_SIG',    ''),
     WitnessRow('sig', 'OWNER_SIG',     ''),
+    ['div.row', ['div.grow'], ['div.command', Icon('circle-with-plus'), 'Add witness']]
   ]));
+
 const WitnessRow = (t: 'sig'|'u32', k: string, v: string|Bytes) =>
-  ['div.col.gap',
+  ['div.witness',
     ['div.row.gap',
-      ['label', ['input[type=text][size=14]', { value: k }]],
-      ['label', ['select', ['option', { value: t }, t]]]],
-    ['label', ['input[type=text]',          { value: v }]]];
+      ['label', ['select', ['option', { value: t }, t]]],
+      ['input[type=text].grow', { value: k }],
+      ['label.row', ['input[type=text].grow', { value: v }]]]];
+
 const HexField = (id, ...content) =>
   DOM([`div.field.file.hex#${id}`,
-    ['div.handle-v', { onclick: toggleField },
-      ['svg.icon.expanded', ['use[href=icons.svg#icon-chevron-down]']],
+    ['div.handle-v', { onclick: toggleField(id) },
+      ['svg.icon.expanded', ['use[href=icons.svg#chevron-down]']],
       ['div.grow']],
     ['div.flex.col.grow',
-      ['div.flex.row', ['div.name', id], ['div.handle-h']],
+      ['div.flex.row',
+        ['div.name', { onclick: toggleField(id) }, id],
+        ['div.handle-h', { onclick: toggleField(id) }]],
       HexRow('00000000 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................'),
       HexRow('00000010 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................'),
       HexRow('00000020 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................'),
       HexRow('00000030 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................')]]);
+
 const HexRow = (addr, bytes, chars) =>
   ['div.row.hex-row', addr, bytes, chars];
 
-function toggleField (e) {
-  const target = e.currentTarget;
-  target.parentElement.classList.toggle('collapsed');
-  if (target.parentElement.classList.contains('collapsed')) {
-    target.firstChild.firstChild.href.baseVal = 'icons.svg#icon-chevron-right';
-  } else {
-    target.firstChild.firstChild.href.baseVal = 'icons.svg#icon-chevron-down';
-    const textarea = target.parentElement.querySelector('textarea');
-    if (textarea) {
-      textarea.focus();
-      setDefaultHeight(textarea);
+function toggleField (id) {
+  return () => {
+    const el = elById(id);
+    console.log({id, el});
+    const icon = el.querySelector('.icon') as SVGUseElement;
+    el.classList.toggle('collapsed');
+    if (el.classList.contains('collapsed')) {
+      icon.firstChild.href.baseVal = 'icons.svg#chevron-right';
+    } else {
+      icon.firstChild.href.baseVal = 'icons.svg#chevron-down';
+      const textarea = el.querySelector('textarea');
+      if (textarea) {
+        textarea.focus();
+        setDefaultHeight(textarea);
+      }
     }
   }
 }
