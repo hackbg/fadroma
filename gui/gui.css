@@ -22,7 +22,10 @@ body
 html
 { background-color: #65b34c;
   background-size:  cover;
-  background-image: linear-gradient(to top, #65b34c, #77b377), radial-gradient(circle at top, #ddd8, #7778), url('bg.svg'); }
+  background-image:
+    linear-gradient(to top, #65b34c, #77b377),
+    radial-gradient(circle at top, #ddd8, #7778),
+    url('bg.svg'); }
 
 body
 { color: #444;
@@ -30,8 +33,8 @@ body
   flex-flow: row nowrap;
   justify-content: center;
   height: 100%;
-  overflow: hidden;
-  background: radial-gradient(at left, #0000, #3214); }
+  background: radial-gradient(at left, #0000, #2311);
+  overflow: hidden; }
 
 a[href]
 { color: #090; }

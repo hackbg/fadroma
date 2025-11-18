@@ -1,7 +1,19 @@
-import { DOM, Bytes, Dir, Zip, Txt, Bin } from '../lib/index.ts';
-import { elById, append, textVal, byteVal, Icon } from './lib.ts';
+import { Fn, DOM, Bytes, Dir, Zip, Txt, Bin } from '../lib/index.ts';
+import { elById, append, pinSize, textVal, byteVal, Icon } from './lib.ts';
 
 export async function clearProject () {
+}
+
+export function initEditors (el = elById("editors")) {
+  pinSize(el, (_w, _h) => {
+    el.innerHTML = '';
+    append(el, ...ProjectInfo());
+    append(el, ...ProjectSimf());
+    append(el, ...ProjectEsm({ btc: true, simf: true }));
+    append(el, ...ProjectEnv({ btc: true, simf: true, nix: true, direnv: true }));
+  });
+  el.querySelectorAll('textarea').forEach(setDefaultHeight);
+  return el
 }
 
 export async function loadExample () {
@@ -11,101 +23,111 @@ export async function updateProject (e) {
 }
 
 export async function saveProject () {
-  const title    = textVal('title');
-  const license  = textVal('license');
-  const filename = `${+new Date()}-${title}.zip`
-  const project  = Zip(filename,
-    Dir(Txt('README.md', textVal('readme')),
-      Dir('src',
-        Txt('main.simf', textVal('src/main.simf')),
-        Bin('main.wit',  byteVal('src/main.wit')))));
-  const zip = await project();
-  console.log(zip.tree)
-  const file = new File([zip as BlobPart], filename, { type: 'application/zip' });
-  const url = URL.createObjectURL(file);
-  console.log(url);
-  const downloadLink = Object.assign(document.createElement('a'), { href: url, download: filename });
-  document.body.appendChild(downloadLink);
-  downloadLink.click();
-  document.body.removeChild(downloadLink);
+  console.log(elById("editors").querySelectorAll('[path]'));
+  //const title    = textVal('title');
+  //const license  = textVal('license');
+  //const filename = `${+new Date()}-${title}.zip`
+  //const project  = Zip(filename,
+    //Dir(Txt('README.md', textVal('readme')),
+      //Dir('src',
+        //Txt('main.simf', textVal('src/main.simf')),
+        //Bin('main.wit',  byteVal('src/main.wit')))));
+  //const zip = await project();
+  //console.log(zip.tree)
+  //const file = new File([zip as BlobPart], filename, { type: 'application/zip' });
+  //const url = URL.createObjectURL(file);
+  //console.log(url);
+  //const downloadLink = Object.assign(document.createElement('a'), { href: url, download: filename });
+  //document.body.appendChild(downloadLink);
+  //downloadLink.click();
+  //document.body.removeChild(downloadLink);
 }
 
-export function initEditors (el = elById("editors")) {
-  append(el, 
-    DOM([
-      'div.row.gap.fields',
-      ['div.field.grow',
-        ['div.name', 'Title'],
-        ['input#title[type=text][focused=focused]', { placeholder: 'name your project' }]],
-      ['div.field',
-        ['div.name', 'Licence'],
-        ['select#licence',
-          ['option', 'AGPL 3.0 or later'],
-          ['option', 'AGPL 3.0 only'],
-          ['option', 'GPL 3.0 or later'],
-          ['option', 'GPL 3.0 only'],
-          ['option', 'Closed source (inquire)']]]]),
-    TextField("README",
-      "Created at https://fadroma.tech"),
-    WitnessField("src/main.wit",
-      ' '),
-    SimfField("src/main.simf",
-      '  let oracle_height: u32 = witness::ORACLE_HEIGHT;',
-      '  let oracle_price:  u32 = witness::ORACLE_PRICE;',
-      '  let oracle_sig: Signature = witness::ORACLE_SIG;',
-      '  let owner_sig:  Signature = witness::OWNER_SIG;'),
-    TSField("index.ts",
-      `import { Btc, Simf } from '../lib/index.ts';`,
-      `export async function deploy () {}`),
-    TSTestField("test.ts",
-      `import { Test, Btc, Simf } from '../lib/index.ts';`,
-      `import { deploy } from './index.ts';`,
-      `export default Test.suite(import.meta, "Test",`,
-      `  Test.the("Deploy", deploy),`,
-      `  Test.the("Invoke"));`),
-    TextField("package.json",
-      `{`,
-      `  "name": "",`,
-      `  "type": "module",`,
-      `  "main": "index.ts",`,
-      `  "version": "0.1.0",`,
-      `  "licence": "AGPL-3.0-or-later",`,
-      `  "dependencies": {`,
-      `    "@hackbg/fadroma": "*"`,
-      `  },`,
-      `  "devDependencies": {`,
-      `    "vite": "*"`,
-      `  }`,
-      `}`,
-    ),
-    TextField("tsconfig.json",
-      `{`,
-      `  "strict": false,`,
-      `  "target": "esnext",`,
-      `  "module": "esnext",`,
-      `  "moduleResolution": "bundler",`,
-      `  "allowImportingTsExtensions": true,`,
-      `  "noUnusedLocals": false,`,
-      `  "noUnusedParameters": false,`,
-      `  "isolatedModules": false,`,
-      `}`,
-    ),
-    TextField("deno.json", "{}"),
-    TextField("deps.ts", ' '),
-    TextField("shell.nix",
-      `{pkgs ? import<nixpkgs> {} }: pkgs.mkShell {`,
-      `  nativeBuildInputs = [`,
-      `    pkgs.bitcoind`,
-      `  ];`,
-      `}`),
-    TextField(".envrc", "use nix"),
-  );
-  el.querySelectorAll('textarea').forEach(setDefaultHeight);
-  return el
-}
+const ProjectInfo = () => [
+  DOM([
+    'div.row.gap.fields',
+    ['div.field.grow',
+      ['div.name', 'Title'],
+      ['input#title[type=text][focused=focused]', { placeholder: 'name your project' }]],
+    ['div.field',
+      ['div.name', 'Licence'],
+      ['select#licence',
+        ['option', 'AGPL 3.0 or later'],
+        ['option', 'AGPL 3.0 only'],
+        ['option', 'GPL 3.0 or later'],
+        ['option', 'GPL 3.0 only'],
+        ['option', 'Closed source (inquire)']]]]),
+  TextField("README",
+    "Created at https://fadroma.tech"),
+];
+
+const ProjectSimf = () => [
+  WitnessField("src/main.wit",
+    ' '),
+  SimfField("src/main.simf",
+    '  let oracle_height: u32 = witness::ORACLE_HEIGHT;',
+    '  let oracle_price:  u32 = witness::ORACLE_PRICE;',
+    '  let oracle_sig: Signature = witness::ORACLE_SIG;',
+    '  let owner_sig:  Signature = witness::OWNER_SIG;'),
+];
+
+const ProjectEsm = ({
+  btc = false, simf = false
+} = {}) => [
+  TSField("index.ts",
+    `import { Btc, Simf } from '../lib/index.ts';`,
+    `export async function deploy () {}`),
+  TSTestField("test.ts",
+    `import { Test, Btc, Simf } from '../lib/index.ts';`,
+    `import { deploy } from './index.ts';`,
+    `export default Test.suite(import.meta, "Test",`,
+    `  Test.the("Deploy", deploy),`,
+    `  Test.the("Invoke"));`),
+  TextField("package.json",
+    `{`,
+    `  "name": "",`,
+    `  "type": "module",`,
+    `  "main": "index.ts",`,
+    `  "version": "0.1.0",`,
+    `  "licence": "AGPL-3.0-or-later",`,
+    `  "dependencies": {`,
+    `    "@hackbg/fadroma": "*"`,
+    `  },`,
+    `  "devDependencies": {`,
+    `    "vite": "*"`,
+    `  }`,
+    `}`,
+  ),
+  TextField("tsconfig.json",
+    `{`,
+    `  "strict": false,`,
+    `  "target": "esnext",`,
+    `  "module": "esnext",`,
+    `  "moduleResolution": "bundler",`,
+    `  "allowImportingTsExtensions": true,`,
+    `  "noUnusedLocals": false,`,
+    `  "noUnusedParameters": false,`,
+    `  "isolatedModules": false,`,
+    `}`,
+  ),
+  TextField("deno.json", "{}"),
+  TextField("deps.ts", ' '),
+];
+
+const ProjectEnv = ({
+  btc = false, simf = false, nix = false, direnv = false
+} = {}) => [
+  TextField("shell.nix",
+    `{pkgs ? import<nixpkgs> {} }: pkgs.mkShell {`,
+    `  nativeBuildInputs = [`,
+    `    pkgs.bitcoind`,
+    `  ];`,
+    `}`),
+  TextField(".envrc", "use nix"),
+];
 
 const Field = (id, header, ...content) =>
-  [`div.field.file.collapsed#${id}`,
+  [`div.field.file.collapsed#${id}[data-path=${id}]`,
     ['div.handle-v', { onclick: toggleField(id) },
       ['svg.icon', ['use[href=icons.svg#chevron-right]']],
       ['div.grow']],
