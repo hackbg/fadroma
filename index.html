@@ -2,82 +2,37 @@
   <head>
     <meta charset="utf8" />
     <title>Fadroma by Hack.bg</title>
-    <script type="module" crossorigin src="/assets/index-FQqZZnSp.js"></script>
+    <script type="module" crossorigin src="/assets/index-Cjoctl1I.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/index-BfW5OQ84.js">
     <link rel="modulepreload" crossorigin href="/assets/__vite-browser-external-D7Ct-6yo.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-CsUjt7z1.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-BgVSiebr.css">
   </head>
   <body>
-
-    <section class="col nav" id="navbar">
-
+    <nav class="col nav" id="navbar">
       <noscript><strong>Contains JavaScript.</strong><br />Enable JS to proceed.</noscript>
-
       <a class="hackbg" href="https://hack.bg" style=""><strong>Hack.bg</strong> presents</a>
-
       <div class="logo"></div>
-
       <div class="col buttons">
-        <button id="new" class="rel">
-          <svg class="icon icon-document"><use href="icons.svg#icon-document"></use></svg>
-          New
-        </button>
-        <button id="new" class="rel">
-          <svg class="icon icon-upload"><use href="icons.svg#icon-upload"></use></svg>
-          Load
-        </button>
-        <button id="download" class="rel">
-          <svg class="icon icon-download"><use href="icons.svg#icon-download"></use></svg>
-          Save
-        </button>
-        <a href="/docs/deno/index.html">
-          <svg class="icon icon-book"><use href="icons.svg#icon-book"></use></svg>
-          Docs
-        </a>
-        <a href="#">
-          <svg class="icon icon-doc"><use href="icons.svg#icon-doc"></use></svg>
-          Test
-        </a>
+        <button data-action="new" class="rel">
+          <svg class="icon"><use href="icons.svg#document"></use></svg> New </button>
+        <button data-action="load" class="rel">
+          <svg class="icon"><use href="icons.svg#upload"></use></svg> Load</button>
+        <button data-action="save" class="rel">
+          <svg class="icon"><use href="icons.svg#download"></use></svg> Save</button>
+        <a data-action="docs" href="/docs/deno/index.html">
+          <svg class="icon"><use href="icons.svg#book"></use></svg> Docs</a>
+        <a data-action="test" href="#">
+          <svg class="icon"><use href="icons.svg#doc"></use></svg> Test</a>
         <a href="/cov/index.html">
-          <svg class="icon icon-code"><use href="icons.svg#icon-code"></use></svg>
-          Coverage
-        </a>
+          <svg class="icon"><use href="icons.svg#code"></use></svg> Coverage</a>
       </div>
-
-    </section>
-
-    <div class="row rel" id="main">
-
+    </nav>
+    <div class="row rel gap" id="main">
       <section id="editors" class="box">
-        <div class="row gap">
-          <div class="field grow">
-            <div class="name">Title</div>
-            <input type="text" id="title" focused placeholder="name your project" />
-          </div>
-          <div class="field">
-            <div class="name">Licence</div>
-            <div>
-              <select id="license">
-                <option>AGPL 3.0 or later</option>
-                <option>AGPL 3.0</option>
-                <option>GPL 3.0 or later</option>
-                <option>GPL 3.0</option>
-                <option>Closed source (inquire)</option>
-              </select>
-            </div>
-          </div>
-        </div>
       </section>
-
       <section id="sidebar" class="flex col" style="gap:0.5rem">
-        <div class="field">
-          <div class="grow">
-            <ul id="features" class="features">
-            </ul>
-          </div>
-        </div>
+        <ul id="features" class="features smol"></ul>
       </section>
-
     </div>
   </body>
 </html>
