@@ -1,5 +1,6 @@
 #sidebar
-{ padding: 0 0.5rem 0.5rem;
+{ min-width: 30vw;
+  padding: 0 0.5rem 0.5rem;
   max-width: 48%;
   /*color: #fff;*/
   /*text-shadow: 1px 1px 0 #0008;*/

@@ -1,16 +1,14 @@
-import { Fn, DOM, Bytes, Dir, Zip, Txt, Bin } from '../lib/index.ts';
-import { elById, append, pinSize, textVal, byteVal, Icon } from './lib.ts';
-
-export async function clearProject () {
-}
+import { DOM, Bytes } from '../lib/index.ts';
+import { elById, pinSize, textVal, Icon } from './lib.ts';
+import { zipSync, zipStr } from '../lib/deps.ts';
 
 export function initEditors (el = elById("editors")) {
-  pinSize(el, (_w, _h) => {
+  pinSize(el, () => {
     el.innerHTML = '';
-    append(el, ...ProjectInfo());
-    append(el, ...ProjectSimf());
-    append(el, ...ProjectEsm({ btc: true, simf: true }));
-    append(el, ...ProjectEnv({ btc: true, simf: true, nix: true, direnv: true }));
+    DOM.append(el, ...ProjectInfo());
+    DOM.append(el, ...ProjectSimf());
+    DOM.append(el, ...ProjectEsm({ btc: true, simf: true }));
+    DOM.append(el, ...ProjectEnv({ btc: true, simf: true, nix: true, direnv: true }));
   });
   el.querySelectorAll('textarea').forEach(setDefaultHeight);
   return el
@@ -23,24 +21,21 @@ export async function updateProject (e) {
 }
 
 export async function saveProject () {
-  console.log(elById("editors").querySelectorAll('[path]'));
-  //const title    = textVal('title');
-  //const license  = textVal('license');
-  //const filename = `${+new Date()}-${title}.zip`
-  //const project  = Zip(filename,
-    //Dir(Txt('README.md', textVal('readme')),
-      //Dir('src',
-        //Txt('main.simf', textVal('src/main.simf')),
-        //Bin('main.wit',  byteVal('src/main.wit')))));
-  //const zip = await project();
-  //console.log(zip.tree)
-  //const file = new File([zip as BlobPart], filename, { type: 'application/zip' });
-  //const url = URL.createObjectURL(file);
-  //console.log(url);
-  //const downloadLink = Object.assign(document.createElement('a'), { href: url, download: filename });
-  //document.body.appendChild(downloadLink);
-  //downloadLink.click();
-  //document.body.removeChild(downloadLink);
+  const title   = textVal('title') || 'fadroma';
+  const license = textVal('license');
+  const archive = {};
+  elById("editors").querySelectorAll('[data-path]').forEach((el: HTMLElement)=>{
+    archive[el.dataset.path] = zipStr(el.querySelector('textarea')?.value);
+  });
+
+  const name = `${+new Date()}-${title}.zip`
+  const zip  = zipSync(archive);
+  const file = new File([zip as BlobPart], name, { type: 'application/zip' });
+  const url  = URL.createObjectURL(file);
+  const link = Object.assign(document.createElement('a'), { href: url, download: name });
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 const ProjectInfo = () => [
@@ -85,9 +80,9 @@ const ProjectEsm = ({
     `  Test.the("Invoke"));`),
   TextField("package.json",
     `{`,
-    `  "name": "",`,
-    `  "type": "module",`,
-    `  "main": "index.ts",`,
+    `  "name":    "untitled",`,
+    `  "type":    "module",`,
+    `  "main":    "index.ts",`,
     `  "version": "0.1.0",`,
     `  "licence": "AGPL-3.0-or-later",`,
     `  "dependencies": {`,
@@ -100,14 +95,16 @@ const ProjectEsm = ({
   ),
   TextField("tsconfig.json",
     `{`,
-    `  "strict": false,`,
-    `  "target": "esnext",`,
-    `  "module": "esnext",`,
-    `  "moduleResolution": "bundler",`,
-    `  "allowImportingTsExtensions": true,`,
-    `  "noUnusedLocals": false,`,
-    `  "noUnusedParameters": false,`,
-    `  "isolatedModules": false,`,
+    `  "compilerOptions": {`,
+    `    "strict":                    false,`,
+    `    "target":                    "esnext",`,
+    `    "module":                    "esnext",`,
+    `    "moduleResolution":          "bundler",`,
+    `    "allowImportingTsExtensions": true,`,
+    `    "noUnusedLocals":             false,`,
+    `    "noUnusedParameters":         false,`,
+    `    "isolatedModules":            false,`,
+    `  }`,
     `}`,
   ),
   TextField("deno.json", "{}"),
@@ -154,9 +151,9 @@ const SimfField = (id, ...content) =>
   DOM(Field(id, [
     ['div.command', Icon('play'), 'Compile'],
   ], ['div.collapsible',
-    SimfFn('main', ...content),
-    SimfFn('checksig'),
-    SimfFn('checksigfromstack'),
+    //SimfFn('main', ...content),
+    //SimfFn('checksig'),
+    //SimfFn('checksigfromstack'),
     ['div.row', ['div.grow'], ['div.command', Icon('circle-with-plus'), 'Add declaration']]
   ]));
 

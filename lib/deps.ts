@@ -76,4 +76,4 @@ export const tryToParse = <T, U>(src: T): TryToParse<T, U> => {
   }
 };
 
-export { zipSync } from 'fflate';
+export { zipSync, strToU8 as zipStr } from 'fflate';

@@ -30,7 +30,6 @@ html
 body
 { color: #444;
   display: flex;
-  flex-flow: row nowrap;
   justify-content: center;
   height: 100%;
   background: radial-gradient(at left, #0000, #2311);
@@ -123,11 +122,17 @@ input[type=checkbox]
 .align-center
 { align-items: center; }
 
+.align-start
+{ align-items: flex-start; }
+
+.align-stretch
+{ align-items: stretch; }
+
 .gap
 { gap: 0.5rem; }
 
-.gap .gap
-{ gap: 0.25rem; }
+.overflow-hidden
+{ overflow: hidden }
 
 input[type=checkbox].collapse
 { width: 1rem;

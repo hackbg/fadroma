@@ -1,13 +1,36 @@
+body
+{ flex-flow: column nowrap;
+  justify-content: flex-start; }
+
 .nav
-{ align-items: stretch;
+{ align-items: center;
   align-self: center;
   min-height: 1.5rem;
   text-shadow: 1px 1px 0 #0008;
+  flex-shrink: 0;
+  padding-top: 0.5rem;
+  color: #fff;
 
   .logo
-  { width:10rem;min-height:2rem;margin:1rem auto;background:url("/wordmark.svg");
+  { width:10rem;min-height:2rem;margin:0 auto;background:url("/wordmark.svg");
     background-size:contain;background-repeat:no-repeat;background-position:center;
     align-self:stretch; }
+
+  .subtitle
+  { align-self: stretch; padding: 0.5rem; margin-bottom:-0.5rem; 
+    font-size:1.25rem;line-height:1;font-weight:400;color:#fff;text-decoration:none; }
+
+  .hackbg
+  { /*background: linear-gradient(to bottom, rgba(144, 19, 254, 1), rgba(144, 19, 254, 0));*/
+    &:hover
+    { background: linear-gradient(to bottom, rgb(144, 19, 254), rgb(150, 20, 255)); }
+    strong
+    { font-weight: 800; } }
+}
+
+.buttons {
+  margin-top: 0.9rem;
+  gap: 0.33rem;
 
   a, button
   { color: #fff;
@@ -18,7 +41,7 @@
     border: none;
     box-shadow: none;
     display: flex;
-    flex-flow: row nowrap;
+    flex-flow: row-reverse nowrap;
     align-items: center;
     gap: 0.33rem;
     padding: 0.33rem 0.66rem;
@@ -37,17 +60,4 @@
     { background: linear-gradient(to left, #0003, #0000); } }
 
   button
-  { font-size: 0.875rem; }
-
-  .buttons { gap: 0.33rem; a, button { flex-flow: row-reverse; } }
-
-  .hackbg
-  { /*background: linear-gradient(to bottom, rgba(144, 19, 254, 1), rgba(144, 19, 254, 0));*/
-    align-self: stretch; padding: 0.5rem; margin-bottom:-0.5rem; 
-    font-size:1.25rem;line-height:1;font-weight:400;
-    &:hover
-    { background: linear-gradient(to bottom, rgb(144, 19, 254), rgb(150, 20, 255)); }
-    strong
-    { font-weight: 800; } }
-}
-
+  { font-size: 0.875rem; } }

@@ -1,13 +1,19 @@
 /** Create a DOM tree in a DocumentFragment. */
-export function DOM (...args: unknown[]): DocumentFragment {
-  // Canonical input form is one or more nested tuples at top:
-  // `DOM('div', 'content', [...]) -> `DOM(['div', 'content', [...]])`
-  if (args[0] && !args[0][Symbol.iterator]) return DOM(args);
-  // Collect elements:
-  const frag = new DocumentFragment();
-  for (const arg of args) domAdd(frag, arg);
-  return frag;
-}
+export const DOM = Object.assign(
+  function DOM (...args: unknown[]): DocumentFragment {
+    // Canonical input form is one or more nested tuples at top:
+    // `DOM('div', 'content', [...]) -> `DOM(['div', 'content', [...]])`
+    if (args[0] && !args[0][Symbol.iterator]) return DOM(args);
+    // Collect elements:
+    const frag = new DocumentFragment();
+    for (const arg of args) domAdd(frag, arg);
+    return frag;
+  }, {
+    append (el: Node, ...els: Node[]) {
+      els.forEach(e=>el.appendChild(e));
+      return el;
+    }
+  });
 
 function domAdd (frag, arg) {
   // Falsy args are skipped.
@@ -26,7 +32,7 @@ function domAdd (frag, arg) {
     return;
   }
   // Create element with attributes:
-  const el = domAttrs(document.createElement(tag), attrs);
+  let el = domAttrs(document.createElement(tag), attrs);
   // Desugar #id and .class:
   if (id) el.id = id;
   for (const c of classes) el.classList.add(c);
@@ -49,6 +55,8 @@ function domAdd (frag, arg) {
           el[k] = v;
         }
       }
+    } else if (typeof prop === 'function') {
+      el = prop(el) ?? el;
     } else if (prop) {
       // Other types here are invalid:
       throw new Error(`DOM: invalid prop: ${prop}`);

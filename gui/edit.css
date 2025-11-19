@@ -1,4 +1,5 @@
 #editors {
+  min-width:  40vw;
   display:    flex;
   flex-flow:  column;
   padding:    0.5rem 0.25rem;

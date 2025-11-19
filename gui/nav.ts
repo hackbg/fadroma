@@ -3,12 +3,12 @@ import { initEditors, saveProject, loadExample } from './edit.ts';
 import { loadDocs } from './doc.ts';
 
 export async function initNavigation () {
-  on(elById("navbar"), "click", navigate);
+  on(elById("buttonbar"), "click", navigate);
 }
 
 export async function navigate (e: Event) {
   let target = e.target as HTMLElement;
-  while (target.parentElement && (target.parentElement !== e.currentTarget)) {
+  do {
     if (target.dataset.action) switch (target.dataset.action) {
       case 'new':  e.preventDefault(); return initEditors();
       case 'load': e.preventDefault(); return loadExample();
@@ -17,5 +17,5 @@ export async function navigate (e: Event) {
       default: return;
     }
     target = target.parentElement;
-  }
+  } while (target && target !== e.currentTarget);
 }
