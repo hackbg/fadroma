@@ -31,21 +31,21 @@
     "protobuf-varint":  "^1"
   },
   "peerDependenciesMeta": {
-    "@noble/curves":       { "optional": true },
-    "@noble/ed25519":      { "optional": true },
-    "@noble/hashes":       { "optional": true },
-    "@noble/secp256k1":    { "optional": true },
-    "@scure/base":         { "optional": true },
-    "@scure/bip32":        { "optional": true },
-    "@scure/bip39":        { "optional": true },
-    "@types/deno":         { "optional": true },
-    "bitcoinjs-lib":       { "optional": true },
-    "browser-level":       { "optional": true },
-    "case":                { "optional": true },
-    "fflate":              { "optional": true },
-    "indexd":              { "optional": true },
-    "log-update":          { "optional": true },
-    "protobuf-varint":     { "optional": true }
+    "@noble/curves":    { "optional": true },
+    "@noble/ed25519":   { "optional": true },
+    "@noble/hashes":    { "optional": true },
+    "@noble/secp256k1": { "optional": true },
+    "@scure/base":      { "optional": true },
+    "@scure/bip32":     { "optional": true },
+    "@scure/bip39":     { "optional": true },
+    "@types/deno":      { "optional": true },
+    "bitcoinjs-lib":    { "optional": true },
+    "browser-level":    { "optional": true },
+    "case":             { "optional": true },
+    "fflate":           { "optional": true },
+    "indexd":           { "optional": true },
+    "log-update":       { "optional": true },
+    "protobuf-varint":  { "optional": true }
   },
   "devDependencies": {
     "@noble/curves":              "^2.0.1",
@@ -67,5 +67,5 @@
     "typedoc":                    "^0.28.14",
     "vite":                       "^7.2.2",
     "vite-plugin-node-polyfills": "^0.24.0"
-  },
+  }
 }

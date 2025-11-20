@@ -10,16 +10,23 @@
   a { color: #fff }
 }
 
+/*.nav, #editors, #sidebar {*/
+  /*opacity: 0.9;*/
+  /*[>transition: opacity ease-in 0.16s;<]*/
+  /*&:hover { opacity: 1 }*/
+/*}*/
+
 .wordmark {
   width:               10rem;
   min-height:          2rem;
-  margin:              -0.5rem auto 0.5rem;
+  margin:              -0.5rem auto 0;
   background:          url("/wordmark.svg");
   background-size:     contain;
   background-repeat:   no-repeat;
   background-position: center;
   align-self:          stretch;
   filter: drop-shadow(1px 1px 1px #0005);
+  border-bottom: 1px solid #fff;
 }
 
 .subtitle {

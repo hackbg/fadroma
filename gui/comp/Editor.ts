@@ -4,20 +4,21 @@ import { zipSync, zipStr } from '../../lib/deps.ts';
 import { Field } from './Field.ts';
 import { Fields } from './Fields.ts';
 export const Editor = Name('Editor', function initEditor (el = elById("editors"), {
-  btc    = true,
-  simf   = true,
-  nix    = true,
-  direnv = true,
-  node   = true,
-  deno   = true,
-  vite   = false,
+  btc     = true,
+  element = true,
+  simf    = true,
+  nix     = true,
+  direnv  = true,
+  node    = true,
+  deno    = true,
+  vite    = false,
 } = {}) {
   pinSize(el, () => {
     el.innerHTML = '';
     el.appendChild(DOM(...Editor.Info()));
     el.appendChild(DOM(...Editor.Simf()));
     el.appendChild(DOM(...Editor.Esm({ btc, simf, node, deno, vite })));
-    el.appendChild(DOM(...Editor.Env({ btc, simf, nix, direnv })));
+    el.appendChild(DOM(...Editor.Env({ btc, element, simf, nix, direnv })));
   });
   el.querySelectorAll('textarea').forEach(Field.computeHeight);
   return el
@@ -98,19 +99,18 @@ export const Editor = Name('Editor', function initEditor (el = elById("editors")
   } = {}) => [
 
     Fields.TS("index.ts",
-      ESImport("@hackbg/fadroma", btc && 'Btc', simf && 'Simf'),
-      `export async function deploy () {}`),
+      ESHashBang({ deno, node }),
+      ESImport("@hackbg/fadroma", simf && 'Simf'),
+      simf && `export default Simf(import.meta, "src/main.simf");`),
 
     Fields.TS("test.ts",
-      deno ? `#!/usr/bin/env -S deno run -I --coverage --allow-env --allow-run --allow-net` :
-      node ? `#!/usr/bin/env -S npx tsx` :
-      null,
-      ESImport("@hackbg/fadroma", btc && 'Btc', simf && 'Simf'),
-      `import { deploy } from './index.ts';`,
-      `const { suite, the, is, equals, has } = Test;`,
-      `export default suite(import.meta, "Test",`,
-      `  the("Deploy", () => deploy()),`,
-      `  the("Invoke"));`),
+      ESHashBang({ deno, node }),
+      ESImport("@hackbg/fadroma", btc && 'Btc', 'Test'),
+      `import Program from './index.ts';`,
+      `export default Test.suite(import.meta, Btc(`,
+      `  Test.the("Build",    Program.build),`,
+      `  Test.the("Deposit",  Program.deposit),`,
+      `  Test.the("Withdraw", Program.withdraw)));`),
 
     Fields.Text("package.json",
       `{`,
@@ -120,7 +120,7 @@ export const Editor = Name('Editor', function initEditor (el = elById("editors")
       `  "version": "0.1.0",`,
       `  "licence": "AGPL-3.0-or-later",`,
       `  "dependencies": {`,
-      `    "@hackbg/fadroma": "*"`,
+      `    "@hackbg/fadroma": "3.0.0-rc.1"`,
       `  },`,
       `  "devDependencies": {`, [
         (node && `    "tsx":  "^4.20.6"`),
@@ -158,11 +158,14 @@ export const Editor = Name('Editor', function initEditor (el = elById("editors")
     nix && Fields.Text("shell.nix",
       `#!/usr/bin/env nix-shell`,
       `{ pkgs ? import<nixpkgs> {} }: let`,
+      ``,
       `  # Build Rust package.`,
       `  rs = p: (pkgs.rustPlatform.buildRustPackage p);`,
+      ``,
       `  # Fetch source from GitHub.`,
       `  gh = owner: repo: rev: sha256:`,
       `    pkgs.fetchFromGitHub { inherit owner repo rev sha256; };`,
+      ``,
       `  # Build Rust package from GitHub.`,
       `  rs-gh = owner: pname: version: sha256: cargoHash: (rs rec {`,
       `    inherit pname version cargoHash;`,
@@ -171,33 +174,36 @@ export const Editor = Name('Editor', function initEditor (el = elById("editors")
       `    PKG_CONFIG_PATH = "\${pkgs.openssl.dev}/lib/pkgconfig";`,
       `  });`,
       ``,
+      `  # Override package attributes.`,
+      `  over = pkg: attrs: pkg.overrideAttrs (_: attrs);`,
+      ``,
       `in pkgs.mkShell { nativeBuildInputs = [`,
 
       ...(btc
-        ? [ `  pkgs.bitcoind` ]
+        ? [ ``, `  pkgs.bitcoind` ]
         : []),
 
       ...(simf
-        ? [ `  (rs-gh "starkware-bitcoin" "simply" "3e1d0589"`
+        ? [ ``
+          , `  (rs-gh "starkware-bitcoin" "simply" "3e1d0589"`
           , `    "sha256-EKfeEsr/sG/SorT2GK/ovMvI2QaoTMZ1wehbCcSjEmQ="`
           , `    "sha256-N2i5IJtKU1iPkpBaX90LgA7gw8B3n+K5hbByJOMRV3o=")` ]
         : []),
 
       ...(element
-        ? [ `  (pkgs.elementsd.overrideAttrs (_: {`,
-          , `     version = "liquid-testnet-2024-10-08";`,
-          , `     src = pkgs.fetchFromGitHub {`,
-          , `       owner = "ElementsProject";`,
-          , `       repo = "elements";`,
-          , `       rev = "f957d3cde17c85afb18c6747f9c0b4fcb599f19a";`,
-          , `       sha256 = "sha256-XzdfbrQ7s4PfM5N00oP1jo5BNmD4WUMUe79QsTxsL4s=";`,
-          , `    };`,
-          , `    withWallet = true;`,
-          , `    withGui = false;`,
-          , `    doCheck = false; }))` ]
+        ? [ ``
+          , `  (over pkgs.elementsd {`
+          , `    version = "liquid-testnet-2024-10-08";`
+          , `    src = gh "ElementsProject" "elements"`
+          , `      "f957d3cde17c85afb18c6747f9c0b4fcb599f19a"`
+          , `      "sha256-XzdfbrQ7s4PfM5N00oP1jo5BNmD4WUMUe79QsTxsL4s=";`
+          , `    withWallet = true;`
+          , `    withGui = false;`
+          , `    doCheck = false;`
+          , ` })` ]
         : []),
 
-      `]; }`),
+      `\n]; }`),
     direnv && Fields.Text(".envrc", "use nix"),
   ],
 
@@ -211,3 +217,8 @@ const ESImport = (mod: string, ...items: (string|false|null)[]) => {
     return ''
   }
 }
+
+const ESHashBang = ({ deno = false, node = false }) =>
+  deno ? `#!/usr/bin/env -S deno run -I --coverage --allow-env --allow-run --allow-net\n` :
+  node ? `#!/usr/bin/env -S npx tsx\n` :
+  null;

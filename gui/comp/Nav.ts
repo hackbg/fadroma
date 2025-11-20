@@ -3,7 +3,7 @@ import { Editor } from './Editor.ts';
 import { loadDocs } from './Docs.ts';
 
 export const Nav = async function initNavigation () {
-  on(elById("buttonbar"), "click", navigate);
+  on(elById("navbar"), "click", navigate);
 }
 
 export async function navigate (e: Event) {

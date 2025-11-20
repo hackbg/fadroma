@@ -10,7 +10,8 @@
   input, textarea, select
   { border:     none;
     box-shadow: none;
-    background: none;
+    background: #fff0;
+    /*transition: background ease-in 0.16s;*/
     .field:hover &
     { background: #fff8 }
     &:hover
@@ -23,15 +24,14 @@
   { padding-left: 0.5rem }
 
   textarea
-  { font-size: 1rem;
-    line-height: 1.25;
-    border: none;
-    box-shadow: none;
-    background: none;
-    font-family: monospace;
-    min-height: 3rem;
-    line-height: 1.25;
-    white-space: pre;
+  { font-size:       1rem;
+    min-height:      1.25rem;
+    line-height:     1.25;
+    border:          none;
+    box-shadow:      none;
+    background:      none;
+    font-family:     monospace;
+    white-space:     pre;
     scrollbar-width: initial;
 
     &:focus
@@ -104,6 +104,8 @@
   flex-flow:     row nowrap;
   border-bottom: 1px solid #8888;
   min-height:    2rem;
+  /*transition: background ease-in 0.166s;*/
+  background: #fff0;
 
   &:hover
   { background: #fff3 }
@@ -145,11 +147,6 @@
     { background: #fff0; border-bottom: 1px dotted #0008;
       &:focus { background: #fff; } }}}
 
-.witness
-{ display: flex; flex-flow: row wrap; margin-bottom: 0.5rem; }
-
-.witness select { width: 4rem }
-
 .fields
 { border-bottom: 1px solid #8888;
   input, select { margin-left: -0.5rem; padding-left: 0.75rem } }
@@ -169,4 +166,11 @@
 #title {
   font-size: 1.25rem;
   font-weight: 250;
+}
+
+.witness {
+  display: flex; flex-flow: row nowrap; margin-bottom: 1px;
+  select {
+    width: 4rem;
+  }
 }

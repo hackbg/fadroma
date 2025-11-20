@@ -30,6 +30,7 @@ html
 body
 { color:           #444;
   display:         flex;
+  flex-flow:       row;
   justify-content: center;
   background:      radial-gradient(at left, #0000, #2311);
   overflow:        hidden; }
@@ -59,7 +60,8 @@ select
 { font-size:   1rem;
   padding:     0.33rem 0.5rem;
   line-height: 1.33rem;
-  &::placeholder { text-decoration: underline; }; };
+  &::placeholder { text-decoration: underline; };
+  &:focus::placeholder { text-decoration: none; } };
 
 /*button {margin-top:0.25rem;background:#fff;border:1px solid #aaa;background:#4a4;color:#fff;padding:0.5rem 1rem;border:none;border-radius:0.25rem;box-shadow:3px 3px 9px #3333; text-transform:uppercase;letter-spacing:0.1rem;font-size:1rem}*/
 

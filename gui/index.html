@@ -4,19 +4,21 @@
     <meta charset="utf8" />
     <title>Fadroma by Hack.bg</title>
     <link rel="stylesheet" href="css/gui.css" />
-    <link rel="stylesheet" href="css/media.css" />
     <link rel="stylesheet" href="css/nav.css" />
     <link rel="stylesheet" href="css/feat.css" />
     <link rel="stylesheet" href="css/edit.css" />
     <link rel="stylesheet" href="css/doc.css" />
+    <link rel="stylesheet" href="css/media.css" />
   </head>
-  <body class="row align-stretch justify-center">
+  <body class="align-stretch justify-center">
     <nav class="nav align-start" id="navbar">
       <noscript><strong>Contains JavaScript.</strong><br />Enable JS to proceed.</noscript>
       <div class="col">
         <a class="hackbg subtitle" href="https://hack.bg" style=""><strong>Hack.bg</strong> presents:</a>
-        <div class="wordmark"></div>
-        <span class="subtitle">dApp workbench</span>
+        <div class="col">
+          <div class="wordmark" data-action="home"></div>
+          <span class="subtitle" data-action="home">dApp workbench</span>
+        </div>
       </div>
       <nav class="col buttons" id="buttonbar">
         <script type="module">import('./comp/Nav.ts').then(({Nav})=>Nav());</script>

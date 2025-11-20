@@ -1,4 +1,5 @@
 import { elById } from '../lib.ts';
+import { DOM } from '../../lib/index.ts';
 
 export async function loadDocs (href: string) {
   const main = elById("main");
@@ -8,7 +9,7 @@ export async function loadDocs (href: string) {
   const docs = new DOMParser().parseFromString(html, 'text/html');
   docs.querySelectorAll(".namespaceSection").forEach(loadSection);
   main.innerHTML = '';
-  main.appendChild(sect);
+  main.appendChild(DOM(['div.docs', sect]));
 
   function loadSection (section: HTMLElement) {
     section.querySelectorAll("span.italic")
@@ -26,7 +27,7 @@ export async function loadDocs (href: string) {
 
   function hideUndocumented (span: HTMLElement) {
     if (span.innerText === "No documentation available") {
-      span.innerHTML = '&nbsp;';
+      span.innerHTML = '';
     }
   }
 

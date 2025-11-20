@@ -52,10 +52,10 @@ export const Fields = {
 
   WitnessRow: (t: 'sig'|'u32', k: string, v: string|Bytes) =>
     ['div.witness',
-      ['div.row.gap',
-        ['label', ['select', ['option', { value: t }, t]]],
-        ['input[type=text].grow', { value: k }],
-        ['label.row', ['input[type=text].grow', { value: v }]]]],
+      ['input[type=text].grow', { value: k, placeholder: 'name' }],
+      ['label', ['select', ['option', { value: t }, t]]],
+      ['label.row', ['input[type=text].grow', { value: v, placeholder: 'value' }]],
+      ['div.command', Icon('circle-with-cross'), 'Remove']],
 
   Hex: (id: string, ...content: unknown[]) =>
     DOM([`div.field.file.hex#${id}`,

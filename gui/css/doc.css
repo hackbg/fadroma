@@ -1,10 +1,27 @@
+.docs { background: #c0c0c0; overflow: auto; flex-grow: 1 }
+
 .namespaceSection {
   width: 100%;
   column-count: 4;
   column-rule: 1px solid #0808;
   padding: 1rem;
   background: #fff8;
+  @media screen and (min-width: 1920px) {
+    column-count: 5;
+  }
+  @media screen and (min-width: 2200px) {
+    column-count: 6;
+  }
+  @media screen and (min-width: 2400px) {
+    column-count: 7;
+  }
   @media screen and (max-width: 1440px) {
+    column-count: 3;
+  }
+  @media screen and (max-width: 1024px) {
+    column-count: 2;
+  }
+  @media screen and (max-width: 640px) {
     column-count: 1;
   }
   .namespaceItem {
@@ -50,6 +67,9 @@
     }
     .docNodeKindIcon {
       float: right;
+      display: flex;
+      gap: 0.5rem;
+      & > div { background: #0802; color: #585; padding: 0 0.25rem; }
     }
   }
 }

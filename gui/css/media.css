@@ -12,6 +12,25 @@
 }
 
 @media screen and (max-width: 1440px) {
+  body {
+    flex-flow: column;
+    .buttons {
+      align-self: center;
+      margin-top: 0;
+      flex-flow:  row nowrap;
+      max-height: 100%;
+    }
+  }
+  #main { flex-grow: 1 }
+  .nav {
+    justify-content: space-between;
+    display:   flex;
+    flex-flow: row nowrap;
+    padding-top: 0;
+    margin-top: 0;
+    &:nth-child(2) { flex-flow: row nowrap }
+    .hackbg { margin-top: 0 }
+  }
   #sidebar {
     max-width: auto;
     > .row {
