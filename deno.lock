@@ -9,7 +9,6 @@
     "npm:@scure/bip32@^2.0.1": "2.0.1",
     "npm:@scure/bip39@^2.0.1": "2.0.1",
     "npm:@types/deno@^2.5.0": "2.5.0",
-    "npm:@types/node@*": "24.2.0",
     "npm:bitcoinjs-lib@7": "7.0.0",
     "npm:browser-level@3": "3.0.0",
     "npm:case@^1.6.3": "1.6.3",
@@ -18,10 +17,10 @@
     "npm:log-update@^7.0.1": "7.0.1",
     "npm:node-stdlib-browser@^1.3.1": "1.3.1",
     "npm:protobuf-varint@1": "1.0.0",
-    "npm:tsx@4.20.6": "4.20.6",
+    "npm:tsx@^4.20.6": "4.20.6",
     "npm:typedoc@~0.28.14": "0.28.14_typescript@5.9.3",
-    "npm:vite-plugin-node-polyfills@0.24": "0.24.0_vite@7.2.2__@types+node@24.2.0__tsx@4.20.6__picomatch@4.0.3_@types+node@24.2.0_tsx@4.20.6",
-    "npm:vite@^7.2.2": "7.2.2_@types+node@24.2.0_tsx@4.20.6_picomatch@4.0.3"
+    "npm:vite-plugin-node-polyfills@0.24": "0.24.0_vite@7.2.2__tsx@4.20.6__picomatch@4.0.3_tsx@4.20.6",
+    "npm:vite@^7.2.2": "7.2.2_tsx@4.20.6_picomatch@4.0.3"
   },
   "npm": {
     "@esbuild/aix-ppc64@0.25.12": {
@@ -368,12 +367,6 @@
       "integrity": "sha512-WPs+bbQw5aCj+x6laNGWLH3wviHtoCv/P3+otBhbOhJgG8qtpdAMlTCxLtsTWA7LH1Oh/bFCHsBn0TPS5m30EQ==",
       "dependencies": [
         "@types/unist"
-      ]
-    },
-    "@types/node@24.2.0": {
-      "integrity": "sha512-3xyG3pMCq3oYCNg7/ZP+E1ooTaGB4cG8JWRsqqOYQdbWNY4zbaV0Ennrd7stjiJEFZCaybcIgpTjJWHRfBSIDw==",
-      "dependencies": [
-        "undici-types"
       ]
     },
     "@types/unist@3.0.3": {
@@ -1585,9 +1578,6 @@
     "uint8array-tools@0.0.9": {
       "integrity": "sha512-9vqDWmoSXOoi+K14zNaf6LBV51Q8MayF0/IiQs3GlygIKUYtog603e6virExkjjFosfJUBI4LhbQK1iq8IG11A=="
     },
-    "undici-types@7.10.0": {
-      "integrity": "sha512-t5Fy/nfn+14LuOc2KNYg75vZqClpAiqscVvMygNnlsHBFpSXdJaYtXMcdNLpl/Qvc3P2cB3s6lOV51nqsFq4ag=="
-    },
     "url@0.11.4": {
       "integrity": "sha512-oCwdVC7mTuWiPyjLUz/COz5TLk6wgp0RCsN+wHZ2Ekneac9w8uuV0njcbbie2ME+Vs+d6duwmYuR3HgQXs1fOg==",
       "dependencies": [
@@ -1630,7 +1620,7 @@
         "uint8array-tools@0.0.8"
       ]
     },
-    "vite-plugin-node-polyfills@0.24.0_vite@7.2.2__@types+node@24.2.0__tsx@4.20.6__picomatch@4.0.3_@types+node@24.2.0_tsx@4.20.6": {
+    "vite-plugin-node-polyfills@0.24.0_vite@7.2.2__tsx@4.20.6__picomatch@4.0.3_tsx@4.20.6": {
       "integrity": "sha512-GA9QKLH+vIM8NPaGA+o2t8PDfFUl32J8rUp1zQfMKVJQiNkOX4unE51tR6ppl6iKw5yOrDAdSH7r/UIFLCVhLw==",
       "dependencies": [
         "@rollup/plugin-inject",
@@ -1638,10 +1628,9 @@
         "vite"
       ]
     },
-    "vite@7.2.2_@types+node@24.2.0_tsx@4.20.6_picomatch@4.0.3": {
+    "vite@7.2.2_tsx@4.20.6_picomatch@4.0.3": {
       "integrity": "sha512-BxAKBWmIbrDgrokdGZH1IgkIk/5mMHDreLDmCJ0qpyJaAteP8NvMhkwr/ZCQNqNH97bw/dANTE9PDzqwJghfMQ==",
       "dependencies": [
-        "@types/node",
         "esbuild",
         "fdir",
         "picomatch",
@@ -1654,7 +1643,6 @@
         "fsevents"
       ],
       "optionalPeers": [
-        "@types/node",
         "tsx"
       ],
       "bin": true
@@ -1737,7 +1725,7 @@
         "npm:log-update@^7.0.1",
         "npm:node-stdlib-browser@^1.3.1",
         "npm:protobuf-varint@1",
-        "npm:tsx@4.20.6",
+        "npm:tsx@^4.20.6",
         "npm:typedoc@~0.28.14",
         "npm:vite-plugin-node-polyfills@0.24",
         "npm:vite@^7.2.2"
