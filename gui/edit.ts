@@ -22,7 +22,15 @@ export function initEditors (el = elById("editors"), {
 export async function loadExample () {
 }
 
-export async function updateProject (_e) {
+export async function updateProject (e: InputEvent) {
+  let target = e.target as HTMLElement;
+  do {
+    if (target?.id?.startsWith('enable:')) {
+      console.log(target.id);
+      return;
+    }
+    target = target.parentElement;
+  } while (target && target !== e.currentTarget);
 }
 
 export async function saveProject () {

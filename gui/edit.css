@@ -93,8 +93,11 @@
   { display: flex;
     flex-flow: row nowrap;
     align-items: center;
-    &:hover { text-decoration: underline; }
+    user-select: none;
     padding: 0.25rem 0.5rem;
+
+    &:hover { text-decoration: underline; }
+
     .icon { margin: 0.25rem 0.125rem 0.25rem 0.25rem }; } }
 
 .field.file

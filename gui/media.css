@@ -1,9 +1,3 @@
-@media screen and (max-width: 960px) {
-  #main {
-    padding: 0 0 2.5rem;
-  }
-}
-
 @media screen and (max-width: 1440px) {
   #editors {
   }
