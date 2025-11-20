@@ -10,15 +10,16 @@
   a { color: #fff }
 }
 
-.logo {
+.wordmark {
   width:               10rem;
   min-height:          2rem;
-  margin:              0 auto 1rem;
+  margin:              -0.5rem auto 0.5rem;
   background:          url("/wordmark.svg");
   background-size:     contain;
   background-repeat:   no-repeat;
   background-position: center;
   align-self:          stretch;
+  filter: drop-shadow(1px 1px 1px #0005);
 }
 
 .subtitle {

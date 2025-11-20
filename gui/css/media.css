@@ -1,26 +1,21 @@
+@media screen and (max-height: 480px) {
+  .nav {
+    display:   flex;
+    flex-flow: row nowrap;
+    .buttons {
+      align-self: center;
+      margin-top: 0;
+      flex-flow:  column wrap;
+      max-height: 100%;
+    }
+  };
+}
+
 @media screen and (max-width: 1440px) {
-  #editors {
-  }
   #sidebar {
     max-width: auto;
     > .row {
       flex-flow: column
-    }
-  }
-  .nav {
-    /*min-height: 5rem;*/
-    border-radius: 0.25rem;
-    /*flex-flow: row nowrap;*/
-    .logo {
-      height: 1rem;
-    }
-    .buttons {
-      /*flex-flow: row nowrap;*/
-      /*justify-content: space-around;*/
-      a, button { 
-        /*flex-flow: column;*/
-        padding: 0.5rem 1rem;
-      }
     }
   }
 }

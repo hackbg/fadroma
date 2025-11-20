@@ -6,19 +6,22 @@ export const Fields = {
 
   Text: (id: string, ...content: unknown[]) => Field({
     id,
-    content: [[`textarea.collapsible#text:${id}`, content.filter(Boolean).join('\n')]]
+    content: [[`textarea.collapsible#text:${id}`,
+      content.filter(x=>typeof x === 'string').join('\n')]]
   }),
 
   TS: (id: string, ...content: unknown[]) => Field({
     id, collapsed: false,
     header:  [['div.command', Icon('play'), 'Check']],
-    content: [[`textarea.collapsible#text:${id}`, content.filter(Boolean).join('\n')]]
+    content: [[`textarea.collapsible#text:${id}`,
+      content.filter(x=>typeof x === 'string').join('\n')]]
   }),
 
   TSTest: (id: string, ...content: unknown[]) => Field({
     id, collapsed: false,
     header:  [['div.command', Icon('play'), 'Test']],
-    content: [[`textarea.collapsible#text:${id}`, content.filter(Boolean).join('\n')]],
+    content: [[`textarea.collapsible#text:${id}`,
+      content.filter(x=>typeof x === 'string').join('\n')]],
   }),
 
   Simf: (id: string, ...content: unknown[]) => Field({

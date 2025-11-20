@@ -20,7 +20,7 @@ export const Config = Object.assign(function initConfig (
 
   Btc: () => [
     Feature(0, "enable:btc", "Bitcoin",
-      ["Test with local bitcoind in ", Link(urls.btcTest, "regtest"), " mode."],
+      ["Develop and test with local bitcoind in ", Link(urls.btcTest, "regtest"), " mode."],
       ["RPC", urls.btcRpc]),
     Feature(1, "enable:simf", "Simplicity",
       ["Compile and run ", Link(urls.simfRef, "SimplicityHL"), " programs on Bitcoin."],
@@ -32,7 +32,7 @@ export const Config = Object.assign(function initConfig (
     Feature(0, "enable:js", "ECMAScript",
       "JavaScript/TypeScript SDK."),
     Feature(1, "enable:deno", "Deno",
-      ["Next-gen TS/JS runtime."],
+      "Next-gen TS/JS runtime.",
       ["@std", urls.denoStd],
       ["API",  urls.denoApi]),
     Feature(1, "enable:node", "Node.js",

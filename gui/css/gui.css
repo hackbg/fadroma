@@ -58,7 +58,7 @@ input,
 textarea,
 select
 { font-size:   1rem;
-  padding:     0.5rem;
+  padding:     0.33rem 0.5rem;
   line-height: 1.33rem;
   &::placeholder { text-decoration: underline; }; };
 

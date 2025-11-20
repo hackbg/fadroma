@@ -53,7 +53,7 @@
 
 .handle-v,
 .handle-h
-{ min-width: 1rem; min-height: 1rem; display: flex;
+{ min-width: 1.5rem; min-height: 1rem; display: flex;
   svg { width: 1.25rem; height: 2rem } }
 
 .handle-v:hover
@@ -63,7 +63,7 @@
 { flex-grow: 1 }
 
 .handle-v
-{ flex-flow: column nowrap;
+{ flex-flow: column nowrap; align-items: center;
 
   .collapsed & .grow { display: none; } }
 

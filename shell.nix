@@ -9,10 +9,11 @@
   # Build package.
   pkg = p: (pkgs.callPackage p {});
   # Build Rust package.
-  rs = p: (pkg (pkgs.rustPlatform.buildRustPackage p));
+  rs = p: (pkgs.rustPlatform.buildRustPackage p);
   # Build Rust package from GitHub.
   rs-gh = owner: pname: version: sha256: cargoHash: (rs rec {
-    inherit pname version cargoHash; src = gh owner pname version sha256;
+    inherit pname version cargoHash;
+    src = gh owner pname version sha256;
     nativeBuildInputs = [pkgs.pkg-config];
     PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
   });
