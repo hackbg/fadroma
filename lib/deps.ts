@@ -33,10 +33,25 @@ export const {
 
 export type TcpConn = Deno.TcpConn;
 
-export { base16, base64, bech32, bech32m } from '@scure/base'
 export { default as Case } from 'case';
 export const getCreateLogUpdate = () =>
   import('log-update').then(c=>c.createLogUpdate)
+if (globalThis.Deno) {
+  await import("https://deno.land/x/indexeddb@v1.1.0/polyfill_memory.ts");
+}
+
+//export * as ZMQ    from 'npm:zeromq';
+export const getIndexd       = () => import('indexd');
+
+export const getBrowserLevel = () => import('browser-level');
+
+export const getBtcJs        = () => import('bitcoinjs-lib');
+
+export const getPbVarint     = () => import('protobuf-varint');
+
+export { base16, base64, bech32, bech32m } from '@scure/base'
+
+export { zipSync, strToU8 as zipStr } from 'fflate';
 
 //export { sha256 } from '@noble/hashes/sha2.js'
 //export { ripemd160 } from '@noble/hashes/legacy.js'
@@ -49,31 +64,3 @@ export const getCreateLogUpdate = () =>
 //export * as bip32 from '@scure/bip32'
 //export * as bip39 from '@scure/bip39'
 //export { wordlist as bip39_EN } from '@scure/bip39/wordlists/english'
-if (globalThis.Deno) {
-  await import("https://deno.land/x/indexeddb@v1.1.0/polyfill_memory.ts");
-}
-
-//export * as ZMQ    from 'npm:zeromq';
-export { default as Indexd } from 'indexd';
-export { BrowserLevel as DB } from 'browser-level';
-
-export * as BTCJS from 'bitcoinjs-lib';
-
-export { uint32 } from 'protobuf-varint';
-
-/** A parse that may fail but the source and error must still be preserved. */
-export type TryToParse<T, U> =
-  | [T, U,         undefined]
-  | [T, undefined, unknown];
-
-/** Show a stringified object. */
-export const tryToParse = <T, U>(src: T): TryToParse<T, U> => {
-  try {
-    const json = JSON.parse(src as string)
-    return [src, json, undefined]
-  } catch (e) {
-    return [src, undefined, e]
-  }
-};
-
-export { zipSync, strToU8 as zipStr } from 'fflate';

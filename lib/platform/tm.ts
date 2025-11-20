@@ -11,7 +11,7 @@ import type { Address, Hash, Uint128, Height, ChainContext, ToApi,
   BaseApi, BaseBatch, BaseBlock, BaseChain, BaseConnection, BaseTransaction,
 } from '../deps.ts';
 import {
-  randomId, base16, base64, uint32, camelize, baseChain, tryToParse
+  randomId, base16, base64, uint32, camelize, baseChain,
 } from '../deps.ts';
 const BaseError = globalThis.Error;
 /** A Tendermint error .*/
@@ -756,3 +756,18 @@ export type Vote           = { proposal: PropId
                              , voter:    Address
                              , power:    bigint
                              , value:    VoteValue };
+
+/** A parse that may fail but the source and error must still be preserved. */
+export type TryToParse<T, U> =
+  | [T, U,         undefined]
+  | [T, undefined, unknown];
+
+/** Show a stringified object. */
+export const tryToParse = <T, U>(src: T): TryToParse<T, U> => {
+  try {
+    const json = JSON.parse(src as string)
+    return [src, json, undefined]
+  } catch (e) {
+    return [src, undefined, e]
+  }
+};
