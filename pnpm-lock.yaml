@@ -9,44 +9,44 @@ importers:
   .:
     dependencies:
       '@hackbg/4mat':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:toolbox/4mat
       '@hackbg/cmds':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:toolbox/cmds
       '@hackbg/conf':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:toolbox/conf
       '@hackbg/dump':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:toolbox/dump
       '@hackbg/file':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:toolbox/file
       '@hackbg/hide':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:toolbox/hide
       '@hackbg/into':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:toolbox/into
       '@hackbg/logs':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:toolbox/logs
       '@hackbg/oops':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:toolbox/oops
       '@hackbg/port':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:toolbox/port
       '@hackbg/repo':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:toolbox/repo
       case:
         specifier: ^1.6.3
         version: 1.6.3
       dotenv:
-        specifier: ^16.3.1
-        version: 16.4.5
+        specifier: ^16.6.1
+        version: 16.6.1
       prompts:
         specifier: ^2.4.2
         version: 2.4.2
@@ -55,13 +55,13 @@ importers:
         specifier: workspace:^
         version: link:packages/compile
       '@fadroma/create':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:packages/create
       '@fadroma/cw':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:packages/cw
       '@fadroma/deploy':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:packages/deploy
       '@fadroma/devnet':
         specifier: workspace:^
@@ -70,16 +70,16 @@ importers:
         specifier: link:fixtures
         version: link:fixtures
       '@fadroma/namada':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:packages/namada
       '@fadroma/oci':
         specifier: workspace:^
         version: link:packages/oci
       '@fadroma/scrt':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:packages/scrt
       '@fadroma/stub':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:packages/stub
       '@ganesha/esbuild':
         specifier: workspace:^
@@ -94,32 +94,32 @@ importers:
         specifier: workspace:^
         version: 'link:'
       '@hackbg/ganesha':
-        specifier: '*'
+        specifier: workspace:^
         version: link:toolbox/ganesha
       '@hackbg/ubik':
         specifier: workspace:^
         version: link:toolbox/ubik
       '@types/dockerode':
-        specifier: ^3.3.23
-        version: 3.3.31
+        specifier: ^3.3.47
+        version: 3.3.47
       '@types/js-yaml':
         specifier: ^4.0.9
         version: 4.0.9
       '@types/node':
         specifier: latest
-        version: 22.5.0
+        version: 24.10.1
       '@types/prettyjson':
         specifier: ^0.0.30
         version: 0.0.30
       '@types/prompts':
-        specifier: ^2.4.8
+        specifier: ^2.4.9
         version: 2.4.9
       '@types/secure-random':
         specifier: ^1.1.3
         version: 1.1.3
       express:
-        specifier: ^4.20.0
-        version: 4.21.1
+        specifier: ^4.21.2
+        version: 4.21.2
       husky:
         specifier: ^8.0.3
         version: 8.0.3
@@ -128,10 +128,10 @@ importers:
         version: 13.3.0
       typedoc:
         specifier: 0.25.13
-        version: 0.25.13(typescript@5.7.2)
+        version: 0.25.13(typescript@5.9.3)
       typescript:
-        specifier: ^5.7.2
-        version: 5.7.2
+        specifier: ^5.9.3
+        version: 5.9.3
 
   fixtures:
     dependencies:
@@ -341,7 +341,7 @@ importers:
         version: link:ubik
       '@types/node':
         specifier: latest
-        version: 22.5.0
+        version: 24.10.1
       husky:
         specifier: ^8.0.3
         version: 8.0.3
@@ -416,7 +416,7 @@ importers:
         version: 1.6.3
       typedoc:
         specifier: 0.25.13
-        version: 0.25.13(typescript@5.7.2)
+        version: 0.25.13(typescript@5.9.3)
 
   toolbox/dome: {}
 
@@ -1126,6 +1126,7 @@ packages:
 
   '@agoric/make-hardener@0.1.3':
     resolution: {integrity: sha512-rc9M2ErE/Zu822OLCnAltr957ZVTsBvVZ7KA2unqDpjo3q7PqZF2hWFB1xXD2Qkfwt5exQ3BjFbkj+NUaTg4gA==}
+    deprecated: The `ses` package provides `harden` after `lockdown`. Do not use `@agoric/make-hardener` directly.
 
   '@agoric/transform-module@0.4.1':
     resolution: {integrity: sha512-4TJJHXeXAWu1FCA7yXCAZmhBNoGTB/BEAe2pv+J2X8W/mJTr9b395OkDCSRMpzvmSshLfBx6wT0D7dqWIWEC1w==}
@@ -1320,6 +1321,7 @@ packages:
 
   '@confio/ics23@0.6.8':
     resolution: {integrity: sha512-wB6uo+3A50m0sW/EWcU64xpV/8wShZ6bMTa7pF8eYsTrSkQA7oLUIJcs/wb8g4y2Oyq701BaGiO6n/ak5WXO1w==}
+    deprecated: Unmaintained. The codebase for this package was moved to https://github.com/cosmos/ics23 but then the JS implementation was removed in https://github.com/cosmos/ics23/pull/353. Please consult the maintainers of https://github.com/cosmos for further assistance.
 
   '@confio/relayer@0.7.0':
     resolution: {integrity: sha512-KhabtNcQlioS+EqhzoeCq76hf8nZJY+vq2i2/d/cE+QZEyTfhpsaSdVMf8CaDZ4Aw/eEGZyai3zkgURSBL5lEw==}
@@ -1334,9 +1336,11 @@ packages:
 
   '@cosmjs/crypto@0.29.4':
     resolution: {integrity: sha512-PmSxoFl/Won7kHZv3PQUUgdmEiAMqdY7XnEnVh9PbU7Hht6uo7PQ+M0eIGW3NIXYKmn6oVExER+xOfLfq4YNGw==}
+    deprecated: This uses elliptic for cryptographic operations, which contains several security-relevant bugs. To what degree this affects your application is something you need to carefully investigate. See https://github.com/cosmos/cosmjs/issues/1708 for further pointers. Starting with version 0.34.0 the cryptographic library has been replaced. However, private keys might still be at risk.
 
   '@cosmjs/crypto@0.29.5':
     resolution: {integrity: sha512-2bKkaLGictaNL0UipQCL6C1afaisv6k8Wr/GCLx9FqiyFkh9ZgRHDyetD64ZsjnWV/N/D44s/esI+k6oPREaiQ==}
+    deprecated: This uses elliptic for cryptographic operations, which contains several security-relevant bugs. To what degree this affects your application is something you need to carefully investigate. See https://github.com/cosmos/cosmjs/issues/1708 for further pointers. Starting with version 0.34.0 the cryptographic library has been replaced. However, private keys might still be at risk.
 
   '@cosmjs/encoding@0.29.5':
     resolution: {integrity: sha512-G4rGl/Jg4dMCw5u6PEZHZcoHnUBlukZODHbm/wcL4Uu91fkn5jVo5cXXZcvs4VCkArVGrEj/52eUgTZCmOBGWQ==}
@@ -1610,6 +1614,7 @@ packages:
   '@humanwhocodes/config-array@0.11.14':
     resolution: {integrity: sha512-3T8LkOmg45BV5FICb15QQMsyUSWrQ8AygVfC7ZG32zOalnqrilm018ZVCw0eapXux8FtA33q8PSRSstjee3jSg==}
     engines: {node: '>=10.10.0'}
+    deprecated: Use @eslint/config-array instead
 
   '@humanwhocodes/module-importer@1.0.1':
     resolution: {integrity: sha512-bxveV4V8v5Yb4ncFTT3rPSgZBOpCkjfK0y4oVVVJwIuDVBRMDXrPyXRL988i5ap9m9bnyEEjWfm5WkBmtffLfA==}
@@ -1617,6 +1622,7 @@ packages:
 
   '@humanwhocodes/object-schema@2.0.3':
     resolution: {integrity: sha512-93zYdMES/c1D69yZiKDBj0V24vqNzB/koF26KPaagAfd3P/4gUlh3Dys5ogAK+Exi9QyzlD8x/08Zt7wIKcDcA==}
+    deprecated: Use @eslint/object-schema instead
 
   '@isaacs/cliui@8.0.2':
     resolution: {integrity: sha512-O8jcjabXaleOG9DQ0+ARXWZBTfnP4WNAqzuiJK7ll44AmxGKv/J2M4TPjxjY3znBCfvBXFzucm1twdyFybFqEA==}
@@ -1887,6 +1893,9 @@ packages:
   '@types/dockerode@3.3.31':
     resolution: {integrity: sha512-42R9eoVqJDSvVspV89g7RwRqfNExgievLNWoHkg7NoWIqAmavIbgQBb4oc0qRtHkxE+I3Xxvqv7qVXFABKPBTg==}
 
+  '@types/dockerode@3.3.47':
+    resolution: {integrity: sha512-ShM1mz7rCjdssXt7Xz0u1/R2BJC7piWa3SJpUBiVjCf2A3XNn4cP6pUVaD8bLanpPVVn4IKzJuw3dOvkJ8IbYw==}
+
   '@types/eslint-scope@3.7.7':
     resolution: {integrity: sha512-MzMFlSLBqNF2gcHWO0G1vP/YQyfvrxZ0bF+u7mzUdZ1/xK4A4sru+nraZz5i3iEIk1l1uyicaDVTB4QbbEkAYg==}
 
@@ -1980,6 +1989,9 @@ packages:
   '@types/node@18.11.2':
     resolution: {integrity: sha512-BWN3M23gLO2jVG8g/XHIRFWiiV4/GckeFIqbU/C4V3xpoBBWSMk4OZomouN0wCkfQFPqgZikyLr7DOYDysIkkw==}
 
+  '@types/node@18.19.130':
+    resolution: {integrity: sha512-GRaXQx6jGfL8sKfaIDD6OupbIHBr9jv7Jnaml9tB7l4v068PAOXqfcujMMo5PhbIs6ggR1XODELqahT2R8v0fg==}
+
   '@types/node@18.19.45':
     resolution: {integrity: sha512-VZxPKNNhjKmaC1SUYowuXSRSMGyQGmQjvvA1xE4QZ0xce2kLtEhPDS+kqpCPBZYgqblCLQ2DAjSzmgCM5auvhA==}
 
@@ -1988,6 +2000,9 @@ packages:
 
   '@types/node@22.5.0':
     resolution: {integrity: sha512-DkFrJOe+rfdHTqqMg0bSNlGlQ85hSoh2TPzZyhHsXnMtligRWpxUySiyw8FY14ITt24HVCiQPWxS3KO/QlGmWg==}
+
+  '@types/node@24.10.1':
+    resolution: {integrity: sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ==}
 
   '@types/normalize-package-data@2.4.4':
     resolution: {integrity: sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA==}
@@ -2015,6 +2030,9 @@ packages:
 
   '@types/ssh2@1.15.1':
     resolution: {integrity: sha512-ZIbEqKAsi5gj35y4P4vkJYly642wIbY6PqoN0xiyQGshKUGXR9WQjF/iF9mXBQ8uBKy3ezfsCkcoHKhd0BzuDA==}
+
+  '@types/ssh2@1.15.5':
+    resolution: {integrity: sha512-N1ASjp/nXH3ovBHddRJpli4ozpk6UdDYIX4RJWFa9L1YKnzdhTlVmiGHm4DZnj/jLbqZpes4aeR30EFGQtvhQQ==}
 
   '@types/stack-utils@2.0.3':
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}
@@ -2181,6 +2199,7 @@ packages:
 
   acorn-import-assertions@1.9.0:
     resolution: {integrity: sha512-cmMwop9x+8KFhxvKrKfPYmN6/pKTYYHBqLa0DfvVZcKMJWNyWLnaqND7dx/qn66R7ewM1UX5XMaDVP5wlVTaVA==}
+    deprecated: package has been renamed to acorn-import-attributes
     peerDependencies:
       acorn: ^8
 
@@ -2270,8 +2289,12 @@ packages:
     resolution: {integrity: sha512-n5M855fKb2SsfMIiFFoVrABHJC8QtHwVx+mHWP3QcEqBHYienj5dHSgjbxtC0WEZXYt4wcD6zrQElDPhFuZgfA==}
     engines: {node: '>=12'}
 
-  ansi-sequence-parser@1.1.1:
-    resolution: {integrity: sha512-vJXt3yiaUL4UU546s3rPXlsry/RnM730G1+HkpKE012AN0sx1eOrxSu95oKDIonskeLTijMgqWZ3uDEe3NFvyg==}
+  ansi-regex@6.2.2:
+    resolution: {integrity: sha512-Bq3SmSpyFHaWjPk8If9yc6svM8c56dB5BAtW4Qbw5jHTwwXXcTLoRMkpDJp6VL0XzlWaCHTXrkFURMYmD0sLqg==}
+    engines: {node: '>=12'}
+
+  ansi-sequence-parser@1.1.3:
+    resolution: {integrity: sha512-+fksAx9eG3Ab6LDnLs3ZqZa8KVJ/jYnX+D4Qe1azX+LFGFAXqynCQLOdLpNYN/l9e7l6hMWwZbrnctqr6eSQSw==}
 
   ansi-styles@3.2.1:
     resolution: {integrity: sha512-VT0ZI6kZRdTh8YyJw3SMbYm/u+NqfsAxEpWO0Pf9sq8/e94WxxOpPKx9FR1FlyCtOVDNOQ+8ntlqFxiRc+r5qA==}
@@ -2285,8 +2308,8 @@ packages:
     resolution: {integrity: sha512-Cxwpt2SfTzTtXcfOlzGEee8O+c+MmUgGrNiBcXnuWxuFJHe6a5Hz7qwhwe5OgaSYI0IJvkLqWX1ASG+cJOkEiA==}
     engines: {node: '>=10'}
 
-  ansi-styles@6.2.1:
-    resolution: {integrity: sha512-bN798gFfQX+viw3R7yrGWRqnrN2oRkEkUjjl4JNn4E8GxxbjtG3FbrEIIY3l8/hrwUwIeCZvi4QuOTP4MErVug==}
+  ansi-styles@6.2.3:
+    resolution: {integrity: sha512-4Dj6M28JB+oAH8kFkTLUo+a2jwOFkuqb3yucU0CANcRRUbxS0cP0nZYCGjcc3BNXwRIsUVmDGgzawme7zvJHvg==}
     engines: {node: '>=12'}
 
   ansi-wrap@0.1.0:
@@ -2574,6 +2597,9 @@ packages:
   brace-expansion@2.0.1:
     resolution: {integrity: sha512-XnAIvQ8eM+kC6aULx6wuQiwVsnzsi9d3WxzV3FpWTGA19F621kwdbsAcFKXgKUHZWsy+mY6iL1sHTxWEFCytDA==}
 
+  brace-expansion@2.0.2:
+    resolution: {integrity: sha512-Jt0vHyM+jmUBqojB7E1NIYadt0vI0Qxjxd2TErW94wDz+E2LAm5vKMXXwg6ZZBTHPuUlDgQHKXvjGBdfcF1ZDQ==}
+
   braces@2.3.2:
     resolution: {integrity: sha512-aNdbnj9P8PjdXU4ybaWLK2IF3jc/EoDYbC7AazW6to3TRsfXxscC9UXOB5iDiEQrkyIbWp2SLQda4+QAa7nc3w==}
     engines: {node: '>=0.10.0'}
@@ -2703,8 +2729,16 @@ packages:
     resolution: {integrity: sha512-kpqOvwXnjjN44D89K5ccQC+RUrsy7jB/XLlRrx0D7/2HNcTPqzsb6XgYoErwko6QsV184CA2YgS1fxDiiDZMWA==}
     engines: {node: '>=8'}
 
+  call-bind-apply-helpers@1.0.2:
+    resolution: {integrity: sha512-Sp1ablJ0ivDkSzjcaJdxEunN5/XvksFJ2sMBFfq6x0ryhQV/2b/KwFe21cMpmHtPOSij8K99/wSfoEuTObmuMQ==}
+    engines: {node: '>= 0.4'}
+
   call-bind@1.0.7:
     resolution: {integrity: sha512-GHTSNSYICQ7scH7sZ+M2rFopRoLh8t2bLSW6BbgrtLsahOIB5iyAVJf9GjWK3cYTDaMj4XdBpM1cA6pIS0Kv2w==}
+    engines: {node: '>= 0.4'}
+
+  call-bound@1.0.4:
+    resolution: {integrity: sha512-+ys997U96po4Kx/ABpBCqhA9EuxJaQWDQg7295H4hBphv3IZg0boBKuwYpt4YXp6MZ5AmZQnU/tyMTlRpaSejg==}
     engines: {node: '>= 0.4'}
 
   callsites@3.1.0:
@@ -3001,6 +3035,10 @@ packages:
     resolution: {integrity: sha512-iRDPJKUPVEND7dHPO8rkbOnPpyDygcDFtWjpeWNCgy8WP2rXcxXL8TskReQl6OrB2G7+UJrags1q15Fudc7G6w==}
     engines: {node: '>= 8'}
 
+  cross-spawn@7.0.6:
+    resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
+    engines: {node: '>= 8'}
+
   crypto-browserify@3.12.0:
     resolution: {integrity: sha512-fz4spIh+znjO2VjL+IdhEpRJ3YN6sMzITSBijk6FK2UvTqruSQW+/cCZTSNsMiZNvUeq0CqurF+dAbyiGOY6Wg==}
 
@@ -3231,9 +3269,17 @@ packages:
     resolution: {integrity: sha512-ZmdL2rui+eB2YwhsWzjInR8LldtZHGDoQ1ugH85ppHKwpUHL7j7rN0Ti9NCnGiQbhaZ11FpR+7ao1dNsmduNUg==}
     engines: {node: '>=12'}
 
+  dotenv@16.6.1:
+    resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
+    engines: {node: '>=12'}
+
   dotignore@0.1.2:
     resolution: {integrity: sha512-UGGGWfSauusaVJC+8fgV+NVvBXkCTmVv7sk6nojDZZvuOUNGUy0Zk4UpHQD6EDjS0jpBwcACvH4eofvyzBcRDw==}
     hasBin: true
+
+  dunder-proto@1.0.1:
+    resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
+    engines: {node: '>= 0.4'}
 
   duplexer2@0.1.4:
     resolution: {integrity: sha512-asLFVfWWtJ90ZyOUHMqk7/S2w2guQKxUI2itj3d92ADHhxUSbCMGi1f1cBcJ7xM1To+pE/Khbwo1yuNbMEPKeA==}
@@ -3333,6 +3379,10 @@ packages:
     resolution: {integrity: sha512-jxayLKShrEqqzJ0eumQbVhTYQM27CfT1T35+gCgDFoL82JLsXqTJ76zv6A0YLOgEnLUMvLzsDsGIrl8NFpT2gQ==}
     engines: {node: '>= 0.4'}
 
+  es-define-property@1.0.1:
+    resolution: {integrity: sha512-e3nRfgfUZ4rNGL232gUgX06QNyyez04KdjFrF+LTRoOXmrOgFKDg4BCdsjW8EnT69eqdYGmRpJwiPVYNrCaW3g==}
+    engines: {node: '>= 0.4'}
+
   es-errors@1.3.0:
     resolution: {integrity: sha512-Zf5H2Kxt2xjTvbJvP2ZWLEICxA6j+hAmMzIlypy4xcBg1vKVnx89Wy0GbS+kf5cwCVFFzdCFh2XSCFNULS6csw==}
     engines: {node: '>= 0.4'}
@@ -3348,6 +3398,10 @@ packages:
 
   es-object-atoms@1.0.0:
     resolution: {integrity: sha512-MZ4iQ6JwHOBQjahnjwaC1ZtIBH+2ohjamzAO3oaHcXYup7qxjF2fixyH+Q71voWHeOkI2q/TnJao/KfXYIZWbw==}
+    engines: {node: '>= 0.4'}
+
+  es-object-atoms@1.1.1:
+    resolution: {integrity: sha512-FGgH2h8zKNim9ljj7dankFPcICIK9Cp5bm+c2gQSYePhpaG5+esrLODihIorn+Pe6FGJzWhXQotPv73jTaldXA==}
     engines: {node: '>= 0.4'}
 
   es-set-tostringtag@2.0.3:
@@ -3428,6 +3482,7 @@ packages:
   eslint@8.57.0:
     resolution: {integrity: sha512-dZ6+mexnaTIbSBZWgou51U6OmzIhYM2VcNdtiTtI7qPNZm35Akpr0f6vtw3w1Kmn5PYo+tZVfh13WrhpS6oLqQ==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
 
   esm@3.2.25:
@@ -3518,8 +3573,8 @@ packages:
   exponential-backoff@3.1.1:
     resolution: {integrity: sha512-dX7e/LHVJ6W3DE1MHWi9S1EYzDESENfLrYohG2G++ovZrYOkm4Knwa0mc1cn84xJOR4KEU0WSchhLbd0UklbHw==}
 
-  express@4.21.1:
-    resolution: {integrity: sha512-YSFlK1Ee0/GC8QaO91tHcDxJiE/X4FbpAyQWkxAvG6AXCuR65YzK8ua6D9hvi/TzUfZMpc+BwuM1IPw8fmQBiQ==}
+  express@4.21.2:
+    resolution: {integrity: sha512-28HqgMZAmih1Czt9ny7qr6ek2qddF4FclbMzwhCREB6OFfH+rXAnuNCwo1/wFvrtbgsQDb4kSbX9de9lFbrXnA==}
     engines: {node: '>= 0.10.0'}
 
   ext@1.7.0:
@@ -3802,9 +3857,17 @@ packages:
     resolution: {integrity: sha512-5uYhsJH8VJBTv7oslg4BznJYhDoRI6waYCxMmCdnTrcCrHA/fCFKoTFz2JKKE0HdDFUF7/oQuhzumXJK7paBRQ==}
     engines: {node: '>= 0.4'}
 
+  get-intrinsic@1.3.0:
+    resolution: {integrity: sha512-9fSjSaos/fRIVIp+xSJlE6lfwhES7LNtKaCBIamHsjr2na1BiABJPo0mOjjz8GJDURarmCPGqaiVg5mfjb98CQ==}
+    engines: {node: '>= 0.4'}
+
   get-package-type@0.1.0:
     resolution: {integrity: sha512-pjzuKtY64GYfWizNAJ0fr9VqttZkNiK2iS430LtIHzjBEr6bX8Am2zm4sW4Ro5wjWW5cAlRL1qAMTcXbjNAO2Q==}
     engines: {node: '>=8.0.0'}
+
+  get-proto@1.0.1:
+    resolution: {integrity: sha512-sTSfBjoXBp89JvIKIefqw7U2CCebsc74kiY6awiGogKtoSGbgjYE/G/+l9sF3MWFPNc9IcoOC4ODfKHfxFmp0g==}
+    engines: {node: '>= 0.4'}
 
   get-stream@6.0.1:
     resolution: {integrity: sha512-ts6Wi+2j3jQjqi70w5AlN8DFnkSwC+MqmxEzdEALB2qXZYV3X/b1CTfgPLGJNMeAWxdPfU8FO1ms3NUfaHCPYg==}
@@ -3864,6 +3927,7 @@ packages:
 
   glob@7.2.3:
     resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==}
+    deprecated: Glob versions prior to v9 are no longer supported
 
   glob@9.3.5:
     resolution: {integrity: sha512-e1LleDykUz2Iu+MTYdkSsuWX8lvAjAcs0Xef0lNIu0S2wOAzuTxCJtcd9S3cijlwYF18EsU3rzb8jPVobxDh9Q==}
@@ -3902,6 +3966,10 @@ packages:
 
   gopd@1.0.1:
     resolution: {integrity: sha512-d65bNlIadxvpb/A2abVdlqKqV563juRnZ1Wtk6s1sIR8uNsXR70xqIzVqxVf1eTqDunwT2MkczEeaezCKTZhwA==}
+
+  gopd@1.2.0:
+    resolution: {integrity: sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg==}
+    engines: {node: '>= 0.4'}
 
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
@@ -3971,6 +4039,10 @@ packages:
 
   has-symbols@1.0.3:
     resolution: {integrity: sha512-l3LCuF6MgDNwTDKkdYGEihYjt5pRPbEg46rtlmnSPlUbgmB8LOIrKJbYYFBSbnPaJexMKtiPO8hmeRjRz2Td+A==}
+    engines: {node: '>= 0.4'}
+
+  has-symbols@1.1.0:
+    resolution: {integrity: sha512-1cDNdwJ2Jaohmb3sg4OmKaMBwuC48sYni5HUw2DvsC8LjGTLK9h+eb1X6RyuOHe4hT0ULCW68iomhjUoKUqlPQ==}
     engines: {node: '>= 0.4'}
 
   has-tostringtag@1.0.2:
@@ -4098,6 +4170,7 @@ packages:
 
   inflight@1.0.6:
     resolution: {integrity: sha512-k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==}
+    deprecated: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
 
   inherits@2.0.3:
     resolution: {integrity: sha512-x00IRNXNy63jwGkJmzPigoySHbaqpNuzKbBOmzK+g2OdZpQ9w+sxCN+VSB3ja7IAge2OP2qpfxTjeNcyjmW1uw==}
@@ -4830,6 +4903,7 @@ packages:
 
   lodash.get@4.4.2:
     resolution: {integrity: sha512-z+Uw/vLuy6gQe8cfaFWD7p0wVv8fJl3mbzXh33RS+0oW2wvUqiRXiQ69gLWSLpgB5/6sU+r6BlQR0MBILadqTQ==}
+    deprecated: This package is deprecated. Use the optional chaining (?.) operator instead.
 
   lodash.memoize@3.0.4:
     resolution: {integrity: sha512-eDn9kqrAmVUC1wmZvlQ6Uhde44n+tXpqPrN8olQJbttgh0oKclk+SF54P47VEGE9CEiMeRwAP8BaM7UHvBkz2A==}
@@ -4842,6 +4916,7 @@ packages:
 
   lodash.template@4.5.0:
     resolution: {integrity: sha512-84vYFxIkmidUiFxidA/KjjH9pAycqW+h980j7Fuz5qxRtO9pgB7MDFTdys1N7A5mcucRiDyEq4fusljItR1T/A==}
+    deprecated: This package is deprecated. Use https://socket.dev/npm/package/eta instead.
 
   lodash.templatesettings@4.2.0:
     resolution: {integrity: sha512-stgLz+i3Aa9mZgnjr/O+v9ruKZsPsndy7qPZOchbqk2cnTU1ZaldKK+v7m54WoKIyxiuMZTKT2H81F8BeAc3ZQ==}
@@ -4959,6 +5034,10 @@ packages:
   matchdep@2.0.0:
     resolution: {integrity: sha512-LFgVbaHIHMqCRuCZyfCtUOq9/Lnzhi7Z0KFUE2fhD54+JN2jLh3hC02RLkqauJ3U4soU6H1J3tfj/Byk7GoEjA==}
     engines: {node: '>= 0.10.0'}
+
+  math-intrinsics@1.1.0:
+    resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
+    engines: {node: '>= 0.4'}
 
   maximatch@0.1.0:
     resolution: {integrity: sha512-9ORVtDUFk4u/NFfo0vG/ND/z7UQCVZBL539YW0+U1I7H1BkZwizcPx5foFv7LCPcBnm2U6RjFnQOsIvN4/Vm2A==}
@@ -5170,6 +5249,7 @@ packages:
   node-domexception@1.0.0:
     resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
     engines: {node: '>=10.5.0'}
+    deprecated: Use your platform's native DOMException instead
 
   node-fetch@3.3.2:
     resolution: {integrity: sha512-dRB78srN/l6gqWulah9SrxeYnxeddIG30+GOqK/9OlLVyLg3HPnr6SqOWTWOXKRwC2eGYCkZ59NNuSgvSrpgOA==}
@@ -5241,6 +5321,10 @@ packages:
 
   object-inspect@1.13.2:
     resolution: {integrity: sha512-IRZSRuzJiynemAXPYtPe5BoI/RESNYR7TYm50MC5Mqbd3Jmw5y790sErYw3V6SryFJD64b74qQQs9wn5Bg/k3g==}
+    engines: {node: '>= 0.4'}
+
+  object-inspect@1.13.4:
+    resolution: {integrity: sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew==}
     engines: {node: '>= 0.4'}
 
   object-is@1.1.6:
@@ -5455,11 +5539,11 @@ packages:
     resolution: {integrity: sha512-Xa4Nw17FS9ApQFJ9umLiJS4orGjm7ZzwUrwamcGQuHSzDyth9boKDaycYdDcZDuqYATXw4HFXgaqWTctW/v1HA==}
     engines: {node: '>=16 || 14 >=14.18'}
 
-  path-to-regexp@0.1.10:
-    resolution: {integrity: sha512-7lf7qcQidTku0Gu3YDPc8DJ1q7OOucfa/BSsIwjuh56VU7katFvuM8hULfkwB3Fns/rsVF7PwPKVw1sl5KQS9w==}
+  path-to-regexp@0.1.12:
+    resolution: {integrity: sha512-RA1GjUVMnvYFxuqovrEqZoxxW5NUZqbwKtYz/Tt7nXerk0LbLblQmrsgdeOxV5SFHf0UDggjS/bSeOZwt1pmEQ==}
 
-  path-to-regexp@6.2.2:
-    resolution: {integrity: sha512-GQX3SSMokngb36+whdpRXE+3f9V8UzyAorlYvOGx87ufGHehNTn5lCxrKtLyZ4Yl/wEKnNnr98ZzOwwDZV5ogw==}
+  path-to-regexp@6.3.0:
+    resolution: {integrity: sha512-Yhpw4T9C6hPpgPeA28us07OJeqZ5EzQTkbfwuhsUg0c237RomFoETJgmp2sa3F/41gfLE6G5cqcYwznmeEeOlQ==}
 
   path-type@1.1.0:
     resolution: {integrity: sha512-S4eENJz1pkiQn9Znv33Q+deTOKmbl+jj1Fl+qiP/vYezj+S8x+J3Uo0ISrx/QoEvIlOaDWJhPaRd1flJ9HXZqg==}
@@ -5834,6 +5918,7 @@ packages:
 
   resolve-url@0.2.1:
     resolution: {integrity: sha512-ZuF55hVUQaaczgOIwqWzkEcEidmlD/xl44x1UZnhOXcYuFN2S6+rcxpG+C1N3So0wvNI3DmJICUFfu2SxhBmvg==}
+    deprecated: https://github.com/lydell/resolve-url#deprecated
 
   resolve.exports@2.0.2:
     resolution: {integrity: sha512-X2UW6Nw3n/aMgDVy+0rSqgHlv39WZAlZrXCdnbyEiKm17DSqHX4MmQMaST3FbeWR5FTuRcUwYAziZajji0Y7mg==}
@@ -5864,10 +5949,12 @@ packages:
 
   rimraf@2.7.1:
     resolution: {integrity: sha512-uWjbaKIK3T1OSVptzX7Nl6PvQ3qAGtKEtVRjRuazjfL3Bx5eI409VZSqgND+4UNnmzLVdPj9FqFJNPqBZFve4w==}
+    deprecated: Rimraf versions prior to v4 are no longer supported
     hasBin: true
 
   rimraf@3.0.2:
     resolution: {integrity: sha512-JZkJMZkAGFFPP2YqXZXPbMlMBgsxzE8ILs4lMIX/2o0L9UBw9O/Y3o6wFw/i9YLapcUJWwqbi3kdxIPdC62TIA==}
+    deprecated: Rimraf versions prior to v4 are no longer supported
     hasBin: true
 
   rimraf@5.0.10:
@@ -5988,8 +6075,24 @@ packages:
   shiki@0.14.7:
     resolution: {integrity: sha512-dNPAPrxSc87ua2sKJ3H5dQ/6ZaY8RNnaAqK+t0eG7p0Soi2ydiqbGOTaZCqaYvA/uZYfS1LJnemt3Q+mSfcPCg==}
 
+  side-channel-list@1.0.0:
+    resolution: {integrity: sha512-FCLHtRD/gnpCiCHEiJLOwdmFP+wzCmDEkc9y7NsYxeF4u7Btsn1ZuwgwJGxImImHicJArLP4R0yX4c2KCrMrTA==}
+    engines: {node: '>= 0.4'}
+
+  side-channel-map@1.0.1:
+    resolution: {integrity: sha512-VCjCNfgMsby3tTdo02nbjtM/ewra6jPHmpThenkTYh8pG9ucZ/1P8So4u4FGBek/BjpOVsDCMoLA/iuBKIFXRA==}
+    engines: {node: '>= 0.4'}
+
+  side-channel-weakmap@1.0.2:
+    resolution: {integrity: sha512-WPS/HvHQTYnHisLo9McqBHOJk2FkHO/tlpvldyrnem4aeQp4hai3gythswg6p01oSoTl58rcpiFAjF2br2Ak2A==}
+    engines: {node: '>= 0.4'}
+
   side-channel@1.0.6:
     resolution: {integrity: sha512-fDW/EZ6Q9RiO8eFG8Hj+7u/oW+XrPTIChwCOM2+th2A6OblDtYYIpve9m+KvI9Z4C9qSEXlaGR6bTEYHReuglA==}
+    engines: {node: '>= 0.4'}
+
+  side-channel@1.1.0:
+    resolution: {integrity: sha512-ZX99e6tRweoUXqR+VBrslhda51Nh5MTQwou5tnUDgbtyM0dBgmhEDtWGP/xbKn6hqfPRHujUNwz5fy/wbbhnpw==}
     engines: {node: '>= 0.4'}
 
   signal-exit@3.0.7:
@@ -6007,6 +6110,7 @@ packages:
 
   sinon@14.0.0:
     resolution: {integrity: sha512-ugA6BFmE+WrJdh0owRZHToLd32Uw3Lxq6E6LtNRU+xTVBefx632h03Q7apXWRsRdZAJ41LB8aUfn2+O4jsDNMw==}
+    deprecated: 16.1.1
 
   sisteransi@1.0.5:
     resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
@@ -6052,6 +6156,7 @@ packages:
 
   source-map-resolve@0.5.3:
     resolution: {integrity: sha512-Htz+RnsXWk5+P2slx5Jh3Q66vhQj1Cllm0zvnaY98+NFx+Dv2CF/f5O/t8x+KaNdrdIAsruNzoh/KpialbqAnw==}
+    deprecated: See https://github.com/lydell/source-map-resolve#deprecated
 
   source-map-support@0.5.13:
     resolution: {integrity: sha512-SHSKFHadjVA5oR4PPqhtAVdcBWwRYVd6g6cAXnIbRiIwc2EhPrTuKUBdSLvlEKyIP3GCf89fltvcZiP9MMFA1w==}
@@ -6061,6 +6166,7 @@ packages:
 
   source-map-url@0.4.1:
     resolution: {integrity: sha512-cPiFOTLUKvJFIg4SKVScy4ilPPW6rFgMgfuZJPNoDuMs3nC1HbMUycBoJw77xFIp6z1UJQJOfx6C9GMH80DiTw==}
+    deprecated: See https://github.com/lydell/source-map-url#deprecated
 
   source-map@0.5.7:
     resolution: {integrity: sha512-LbrmJOMUSdEVxIKvdcJzQC+nQhe8FUZQTXQy6+I75skNgn3OoQ0DZA8YnFa7gp8tqtL3KPf1kmo0R5DoApeSGQ==}
@@ -6207,6 +6313,10 @@ packages:
 
   strip-ansi@7.1.0:
     resolution: {integrity: sha512-iq6eVVI64nQQTRYq2KtEg2d2uU7LElhTJwsH4YzIHZshxlgZms/wIc4VoDQTlG/IvVIrBKG06CrZnp0qv7hkcQ==}
+    engines: {node: '>=12'}
+
+  strip-ansi@7.1.2:
+    resolution: {integrity: sha512-gmBGslpoQJtgnMAvOVqGZpEz9dyoKTCzy2nfz/n8aIFhN/jCE/rCmcxabB6jOOHV+0WNnylOxaxBQPSvcWklhA==}
     engines: {node: '>=12'}
 
   strip-bom-string@1.0.0:
@@ -6500,6 +6610,7 @@ packages:
   tslint@6.1.3:
     resolution: {integrity: sha512-IbR4nkT96EQOvKE2PW/djGz8iGNeJ4rF2mBfiYaR/nvUWYKJhLwimoJKgjIFEIDibBtOevj7BqCRL4oHeWWUCg==}
     engines: {node: '>=4.8.0'}
+    deprecated: TSLint has been deprecated in favor of ESLint. Please see https://github.com/palantir/tslint/issues/4534 for more information.
     hasBin: true
     peerDependencies:
       typescript: '>=2.3.0-dev || >=2.4.0-dev || >=2.5.0-dev || >=2.6.0-dev || >=2.7.0-dev || >=2.8.0-dev || >=2.9.0-dev || >=3.0.0-dev || >= 3.1.0-dev || >= 3.2.0-dev || >= 4.0.0-dev'
@@ -6625,6 +6736,11 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
   ua-parser-js@0.7.38:
     resolution: {integrity: sha512-fYmIy7fKTSFAhG3fuPlubeGaMoAd6r0rSnfEsO5nEY55i26KSLt9EH7PLQiiqPUhNqYIJvSkTy1oArIcXAbPbA==}
 
@@ -6670,6 +6786,9 @@ packages:
 
   undici-types@6.19.8:
     resolution: {integrity: sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw==}
+
+  undici-types@7.16.0:
+    resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
 
   union-value@1.0.1:
     resolution: {integrity: sha512-tJfXmxMeWYnczCVs7XAEvIV7ieppALdyepWMkHkwciRpZraG/xwT+s2JN8+pr1+8jCRf80FFzvr+MpQeeoF4Xg==}
@@ -6717,6 +6836,7 @@ packages:
 
   urix@0.1.0:
     resolution: {integrity: sha512-Am1ousAhSLBeB9cG/7k7r2R0zj50uDRlZHPGbazid5s9rlF1F/QKYObEKSIunSjIOkJZqwRRLpvewjEkM7pSqg==}
+    deprecated: Please see https://github.com/lydell/urix#deprecated
 
   url@0.11.4:
     resolution: {integrity: sha512-oCwdVC7mTuWiPyjLUz/COz5TLk6wgp0RCsN+wHZ2Ekneac9w8uuV0njcbbie2ME+Vs+d6duwmYuR3HgQXs1fOg==}
@@ -7616,18 +7736,6 @@ snapshots:
     dependencies:
       marked: 4.3.0
 
-  '@ganesha/node-legacy@4.0.2(typescript@5.3.3)':
-    dependencies:
-      '@ganesha/core': 3.0.1
-      '@ganesha/ts': 2.0.1(typescript@5.3.3)
-      front-matter: 4.0.2
-      joycon: 3.1.1
-      jsonc-parser: 3.3.1
-      pirates: 4.0.6
-      source-map-support: 0.5.21
-    transitivePeerDependencies:
-      - typescript
-
   '@ganesha/node-legacy@4.0.2(typescript@5.7.2)':
     dependencies:
       '@ganesha/core': 3.0.1
@@ -7640,12 +7748,14 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@ganesha/node@3.2.0(typescript@5.3.3)':
+  '@ganesha/node-legacy@4.0.2(typescript@5.9.3)':
     dependencies:
       '@ganesha/core': 3.0.1
-      '@ganesha/ts': 2.0.1(typescript@5.3.3)
+      '@ganesha/ts': 2.0.1(typescript@5.9.3)
       front-matter: 4.0.2
+      joycon: 3.1.1
       jsonc-parser: 3.3.1
+      pirates: 4.0.6
       source-map-support: 0.5.21
     transitivePeerDependencies:
       - typescript
@@ -7660,12 +7770,15 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@ganesha/ts@2.0.1(typescript@5.3.3)':
+  '@ganesha/node@3.2.0(typescript@5.9.3)':
     dependencies:
       '@ganesha/core': 3.0.1
-      joycon: 3.1.1
+      '@ganesha/ts': 2.0.1(typescript@5.9.3)
+      front-matter: 4.0.2
       jsonc-parser: 3.3.1
-      typescript: 5.3.3
+      source-map-support: 0.5.21
+    transitivePeerDependencies:
+      - typescript
 
   '@ganesha/ts@2.0.1(typescript@5.7.2)':
     dependencies:
@@ -7673,6 +7786,13 @@ snapshots:
       joycon: 3.1.1
       jsonc-parser: 3.3.1
       typescript: 5.7.2
+
+  '@ganesha/ts@2.0.1(typescript@5.9.3)':
+    dependencies:
+      '@ganesha/core': 3.0.1
+      joycon: 3.1.1
+      jsonc-parser: 3.3.1
+      typescript: 5.9.3
 
   '@gerrit0/mini-shiki@1.24.4':
     dependencies:
@@ -7705,7 +7825,7 @@ snapshots:
   '@hackbg/ensuite@1.5.4':
     dependencies:
       '@hackbg/file': 2.0.3
-      '@hackbg/ganesha': 4.2.0(typescript@5.3.3)
+      '@hackbg/ganesha': 4.2.0(typescript@5.9.3)
       '@hackbg/logs': 2.3.2
       '@types/js-yaml': 4.0.9
       '@types/markdown-it': 13.0.9
@@ -7718,7 +7838,7 @@ snapshots:
       markdown-it-highlightjs: 4.1.0
       markdown-it-table-of-contents: 0.6.0
       pug: 3.0.3
-      typescript: 5.3.3
+      typescript: 5.9.3
       why-is-node-still-running: 1.0.0
       ws: 8.18.0
     transitivePeerDependencies:
@@ -7738,17 +7858,6 @@ snapshots:
       tmp: 0.2.3
       toml: 3.0.0
 
-  '@hackbg/ganesha@4.2.0(typescript@5.3.3)':
-    dependencies:
-      '@ganesha/core': 3.0.1
-      '@ganesha/node': 3.2.0(typescript@5.3.3)
-      '@ganesha/node-legacy': 4.0.2(typescript@5.3.3)
-      '@ganesha/ts': 2.0.1(typescript@5.3.3)
-      cross-spawn: 7.0.3
-      pkg-up: 4.0.0
-    optionalDependencies:
-      typescript: 5.3.3
-
   '@hackbg/ganesha@4.2.0(typescript@5.7.2)':
     dependencies:
       '@ganesha/core': 3.0.1
@@ -7759,6 +7868,17 @@ snapshots:
       pkg-up: 4.0.0
     optionalDependencies:
       typescript: 5.7.2
+
+  '@hackbg/ganesha@4.2.0(typescript@5.9.3)':
+    dependencies:
+      '@ganesha/core': 3.0.1
+      '@ganesha/node': 3.2.0(typescript@5.9.3)
+      '@ganesha/node-legacy': 4.0.2(typescript@5.9.3)
+      '@ganesha/ts': 2.0.1(typescript@5.9.3)
+      cross-spawn: 7.0.3
+      pkg-up: 4.0.0
+    optionalDependencies:
+      typescript: 5.9.3
 
   '@hackbg/logs@2.3.2':
     dependencies:
@@ -7832,7 +7952,7 @@ snapshots:
   '@jest/console@29.7.0':
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 22.5.0
+      '@types/node': 18.11.2
       chalk: 4.1.2
       jest-message-util: 29.7.0
       jest-util: 29.7.0
@@ -7845,14 +7965,14 @@ snapshots:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 22.5.0
+      '@types/node': 18.11.2
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       ci-info: 3.9.0
       exit: 0.1.2
       graceful-fs: 4.2.11
       jest-changed-files: 29.7.0
-      jest-config: 29.7.0(@types/node@22.5.0)(ts-node@10.9.2(@types/node@18.11.2)(typescript@5.3.3))
+      jest-config: 29.7.0(@types/node@18.11.2)(ts-node@10.9.2(@types/node@18.11.2)(typescript@5.3.3))
       jest-haste-map: 29.7.0
       jest-message-util: 29.7.0
       jest-regex-util: 29.6.3
@@ -7877,7 +7997,7 @@ snapshots:
     dependencies:
       '@jest/fake-timers': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 22.5.0
+      '@types/node': 18.11.2
       jest-mock: 29.7.0
 
   '@jest/expect-utils@29.7.0':
@@ -7895,7 +8015,7 @@ snapshots:
     dependencies:
       '@jest/types': 29.6.3
       '@sinonjs/fake-timers': 10.3.0
-      '@types/node': 22.5.0
+      '@types/node': 18.11.2
       jest-message-util: 29.7.0
       jest-mock: 29.7.0
       jest-util: 29.7.0
@@ -7917,7 +8037,7 @@ snapshots:
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
       '@jridgewell/trace-mapping': 0.3.25
-      '@types/node': 22.5.0
+      '@types/node': 18.11.2
       chalk: 4.1.2
       collect-v8-coverage: 1.0.2
       exit: 0.1.2
@@ -7987,7 +8107,7 @@ snapshots:
       '@jest/schemas': 29.6.3
       '@types/istanbul-lib-coverage': 2.0.6
       '@types/istanbul-reports': 3.0.4
-      '@types/node': 22.5.0
+      '@types/node': 18.11.2
       '@types/yargs': 17.0.33
       chalk: 4.1.2
 
@@ -8187,14 +8307,20 @@ snapshots:
 
   '@types/docker-modem@3.0.6':
     dependencies:
-      '@types/node': 22.5.0
-      '@types/ssh2': 1.15.1
+      '@types/node': 24.10.1
+      '@types/ssh2': 1.15.5
 
   '@types/dockerode@3.3.31':
     dependencies:
       '@types/docker-modem': 3.0.6
-      '@types/node': 22.5.0
+      '@types/node': 24.10.1
       '@types/ssh2': 1.15.1
+
+  '@types/dockerode@3.3.47':
+    dependencies:
+      '@types/docker-modem': 3.0.6
+      '@types/node': 24.10.1
+      '@types/ssh2': 1.15.5
 
   '@types/eslint-scope@3.7.7':
     dependencies:
@@ -8213,11 +8339,11 @@ snapshots:
   '@types/glob@8.1.0':
     dependencies:
       '@types/minimatch': 5.1.2
-      '@types/node': 22.5.0
+      '@types/node': 24.10.1
 
   '@types/graceful-fs@4.1.9':
     dependencies:
-      '@types/node': 22.5.0
+      '@types/node': 18.11.2
 
   '@types/hast@3.0.4':
     dependencies:
@@ -8302,9 +8428,13 @@ snapshots:
 
   '@types/mkdirp@1.0.2':
     dependencies:
-      '@types/node': 22.5.0
+      '@types/node': 24.10.1
 
   '@types/node@18.11.2': {}
+
+  '@types/node@18.19.130':
+    dependencies:
+      undici-types: 5.26.5
 
   '@types/node@18.19.45':
     dependencies:
@@ -8318,6 +8448,10 @@ snapshots:
     dependencies:
       undici-types: 6.19.8
 
+  '@types/node@24.10.1':
+    dependencies:
+      undici-types: 7.16.0
+
   '@types/normalize-package-data@2.4.4': {}
 
   '@types/object-hash@1.3.4': {}
@@ -8330,21 +8464,25 @@ snapshots:
 
   '@types/prompts@2.4.9':
     dependencies:
-      '@types/node': 22.5.0
+      '@types/node': 24.10.1
       kleur: 3.0.3
 
   '@types/rimraf@3.0.2':
     dependencies:
       '@types/glob': 8.1.0
-      '@types/node': 22.5.0
+      '@types/node': 24.10.1
 
   '@types/secure-random@1.1.3':
     dependencies:
-      '@types/node': 22.5.0
+      '@types/node': 24.10.1
 
   '@types/ssh2@1.15.1':
     dependencies:
-      '@types/node': 18.19.45
+      '@types/node': 18.19.130
+
+  '@types/ssh2@1.15.5':
+    dependencies:
+      '@types/node': 18.19.130
 
   '@types/stack-utils@2.0.3': {}
 
@@ -8668,7 +8806,9 @@ snapshots:
 
   ansi-regex@6.0.1: {}
 
-  ansi-sequence-parser@1.1.1: {}
+  ansi-regex@6.2.2: {}
+
+  ansi-sequence-parser@1.1.3: {}
 
   ansi-styles@3.2.1:
     dependencies:
@@ -8680,7 +8820,7 @@ snapshots:
 
   ansi-styles@5.2.0: {}
 
-  ansi-styles@6.2.1: {}
+  ansi-styles@6.2.3: {}
 
   ansi-wrap@0.1.0: {}
 
@@ -9037,6 +9177,10 @@ snapshots:
     dependencies:
       balanced-match: 1.0.2
 
+  brace-expansion@2.0.2:
+    dependencies:
+      balanced-match: 1.0.2
+
   braces@2.3.2:
     dependencies:
       arr-flatten: 1.1.0
@@ -9298,6 +9442,11 @@ snapshots:
       package-hash: 4.0.0
       write-file-atomic: 3.0.3
 
+  call-bind-apply-helpers@1.0.2:
+    dependencies:
+      es-errors: 1.3.0
+      function-bind: 1.1.2
+
   call-bind@1.0.7:
     dependencies:
       es-define-property: 1.0.0
@@ -9305,6 +9454,11 @@ snapshots:
       function-bind: 1.1.2
       get-intrinsic: 1.2.4
       set-function-length: 1.2.2
+
+  call-bound@1.0.4:
+    dependencies:
+      call-bind-apply-helpers: 1.0.2
+      get-intrinsic: 1.3.0
 
   callsites@3.1.0: {}
 
@@ -9640,6 +9794,12 @@ snapshots:
       shebang-command: 2.0.0
       which: 2.0.2
 
+  cross-spawn@7.0.6:
+    dependencies:
+      path-key: 3.1.1
+      shebang-command: 2.0.0
+      which: 2.0.2
+
   crypto-browserify@3.12.0:
     dependencies:
       browserify-cipher: 1.0.1
@@ -9873,9 +10033,17 @@ snapshots:
 
   dotenv@16.4.5: {}
 
+  dotenv@16.6.1: {}
+
   dotignore@0.1.2:
     dependencies:
       minimatch: 3.1.2
+
+  dunder-proto@1.0.1:
+    dependencies:
+      call-bind-apply-helpers: 1.0.2
+      es-errors: 1.3.0
+      gopd: 1.2.0
 
   duplexer2@0.1.4:
     dependencies:
@@ -10031,6 +10199,8 @@ snapshots:
     dependencies:
       get-intrinsic: 1.2.4
 
+  es-define-property@1.0.1: {}
+
   es-errors@1.3.0: {}
 
   es-get-iterator@1.1.3:
@@ -10050,6 +10220,10 @@ snapshots:
   es-module-lexer@1.5.4: {}
 
   es-object-atoms@1.0.0:
+    dependencies:
+      es-errors: 1.3.0
+
+  es-object-atoms@1.1.1:
     dependencies:
       es-errors: 1.3.0
 
@@ -10266,7 +10440,7 @@ snapshots:
 
   execa@7.2.0:
     dependencies:
-      cross-spawn: 7.0.3
+      cross-spawn: 7.0.6
       get-stream: 6.0.1
       human-signals: 4.3.1
       is-stream: 3.0.0
@@ -10304,7 +10478,7 @@ snapshots:
 
   exponential-backoff@3.1.1: {}
 
-  express@4.21.1:
+  express@4.21.2:
     dependencies:
       accepts: 1.3.8
       array-flatten: 1.1.1
@@ -10325,7 +10499,7 @@ snapshots:
       methods: 1.1.2
       on-finished: 2.4.1
       parseurl: 1.3.3
-      path-to-regexp: 0.1.10
+      path-to-regexp: 0.1.12
       proxy-addr: 2.0.7
       qs: 6.13.0
       range-parser: 1.2.1
@@ -10567,7 +10741,7 @@ snapshots:
 
   foreground-child@3.3.0:
     dependencies:
-      cross-spawn: 7.0.3
+      cross-spawn: 7.0.6
       signal-exit: 4.1.0
 
   fork-stream@0.0.4: {}
@@ -10655,7 +10829,25 @@ snapshots:
       has-symbols: 1.0.3
       hasown: 2.0.2
 
+  get-intrinsic@1.3.0:
+    dependencies:
+      call-bind-apply-helpers: 1.0.2
+      es-define-property: 1.0.1
+      es-errors: 1.3.0
+      es-object-atoms: 1.1.1
+      function-bind: 1.1.2
+      get-proto: 1.0.1
+      gopd: 1.2.0
+      has-symbols: 1.1.0
+      hasown: 2.0.2
+      math-intrinsics: 1.1.0
+
   get-package-type@0.1.0: {}
+
+  get-proto@1.0.1:
+    dependencies:
+      dunder-proto: 1.0.1
+      es-object-atoms: 1.1.1
 
   get-stream@6.0.1: {}
 
@@ -10802,6 +10994,8 @@ snapshots:
     dependencies:
       get-intrinsic: 1.2.4
 
+  gopd@1.2.0: {}
+
   graceful-fs@4.2.11: {}
 
   graphemer@1.4.0: {}
@@ -10912,6 +11106,8 @@ snapshots:
   has-proto@1.0.3: {}
 
   has-symbols@1.0.3: {}
+
+  has-symbols@1.1.0: {}
 
   has-tostringtag@1.0.2:
     dependencies:
@@ -11067,7 +11263,7 @@ snapshots:
     dependencies:
       es-errors: 1.3.0
       hasown: 2.0.2
-      side-channel: 1.0.6
+      side-channel: 1.1.0
 
   interpret@1.4.0: {}
 
@@ -11391,7 +11587,7 @@ snapshots:
       '@jest/expect': 29.7.0
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 22.5.0
+      '@types/node': 18.11.2
       chalk: 4.1.2
       co: 4.6.0
       dedent: 1.5.3
@@ -11461,37 +11657,6 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
-  jest-config@29.7.0(@types/node@22.5.0)(ts-node@10.9.2(@types/node@18.11.2)(typescript@5.3.3)):
-    dependencies:
-      '@babel/core': 7.25.2
-      '@jest/test-sequencer': 29.7.0
-      '@jest/types': 29.6.3
-      babel-jest: 29.7.0(@babel/core@7.25.2)
-      chalk: 4.1.2
-      ci-info: 3.9.0
-      deepmerge: 4.3.1
-      glob: 7.2.3
-      graceful-fs: 4.2.11
-      jest-circus: 29.7.0
-      jest-environment-node: 29.7.0
-      jest-get-type: 29.6.3
-      jest-regex-util: 29.6.3
-      jest-resolve: 29.7.0
-      jest-runner: 29.7.0
-      jest-util: 29.7.0
-      jest-validate: 29.7.0
-      micromatch: 4.0.7
-      parse-json: 5.2.0
-      pretty-format: 29.7.0
-      slash: 3.0.0
-      strip-json-comments: 3.1.1
-    optionalDependencies:
-      '@types/node': 22.5.0
-      ts-node: 10.9.2(@types/node@18.11.2)(typescript@5.3.3)
-    transitivePeerDependencies:
-      - babel-plugin-macros
-      - supports-color
-
   jest-diff@27.5.1:
     dependencies:
       chalk: 4.1.2
@@ -11523,7 +11688,7 @@ snapshots:
       '@jest/environment': 29.7.0
       '@jest/fake-timers': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 22.5.0
+      '@types/node': 18.11.2
       jest-mock: 29.7.0
       jest-util: 29.7.0
 
@@ -11535,7 +11700,7 @@ snapshots:
     dependencies:
       '@jest/types': 29.6.3
       '@types/graceful-fs': 4.1.9
-      '@types/node': 22.5.0
+      '@types/node': 18.11.2
       anymatch: 3.1.3
       fb-watchman: 2.0.2
       graceful-fs: 4.2.11
@@ -11574,7 +11739,7 @@ snapshots:
   jest-mock@29.7.0:
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 22.5.0
+      '@types/node': 18.11.2
       jest-util: 29.7.0
 
   jest-pnp-resolver@1.2.3(jest-resolve@29.7.0):
@@ -11609,7 +11774,7 @@ snapshots:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 22.5.0
+      '@types/node': 18.11.2
       chalk: 4.1.2
       emittery: 0.13.1
       graceful-fs: 4.2.11
@@ -11637,7 +11802,7 @@ snapshots:
       '@jest/test-result': 29.7.0
       '@jest/transform': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 22.5.0
+      '@types/node': 18.11.2
       chalk: 4.1.2
       cjs-module-lexer: 1.3.1
       collect-v8-coverage: 1.0.2
@@ -11683,7 +11848,7 @@ snapshots:
   jest-util@29.7.0:
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 22.5.0
+      '@types/node': 18.11.2
       chalk: 4.1.2
       ci-info: 3.9.0
       graceful-fs: 4.2.11
@@ -11702,7 +11867,7 @@ snapshots:
     dependencies:
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 22.5.0
+      '@types/node': 18.11.2
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       emittery: 0.13.1
@@ -11711,13 +11876,13 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 18.19.45
+      '@types/node': 18.11.2
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
   jest-worker@29.7.0:
     dependencies:
-      '@types/node': 22.5.0
+      '@types/node': 18.11.2
       jest-util: 29.7.0
       merge-stream: 2.0.0
       supports-color: 8.1.1
@@ -12042,7 +12207,7 @@ snapshots:
       ansi-escapes: 5.0.0
       cli-cursor: 4.0.0
       slice-ansi: 5.0.0
-      strip-ansi: 7.1.0
+      strip-ansi: 7.1.2
       wrap-ansi: 8.1.0
 
   log4js@6.9.1:
@@ -12170,6 +12335,8 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  math-intrinsics@1.1.0: {}
+
   maximatch@0.1.0:
     dependencies:
       array-differ: 1.0.0
@@ -12285,7 +12452,7 @@ snapshots:
 
   minimatch@9.0.5:
     dependencies:
-      brace-expansion: 2.0.1
+      brace-expansion: 2.0.2
 
   minimist-options@4.1.0:
     dependencies:
@@ -12406,7 +12573,7 @@ snapshots:
       '@sinonjs/fake-timers': 11.2.2
       '@sinonjs/text-encoding': 0.7.3
       just-extend: 6.2.0
-      path-to-regexp: 6.2.2
+      path-to-regexp: 6.3.0
 
   node-domexception@1.0.0: {}
 
@@ -12529,6 +12696,8 @@ snapshots:
   object-hash@1.3.1: {}
 
   object-inspect@1.13.2: {}
+
+  object-inspect@1.13.4: {}
 
   object-is@1.1.6:
     dependencies:
@@ -12745,9 +12914,9 @@ snapshots:
       lru-cache: 10.4.3
       minipass: 7.1.2
 
-  path-to-regexp@0.1.10: {}
+  path-to-regexp@0.1.12: {}
 
-  path-to-regexp@6.2.2: {}
+  path-to-regexp@6.3.0: {}
 
   path-type@1.1.0:
     dependencies:
@@ -12849,7 +13018,7 @@ snapshots:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.2
-      '@types/node': 22.5.0
+      '@types/node': 18.11.2
       long: 4.0.0
 
   proxy-addr@2.0.7:
@@ -12963,11 +13132,11 @@ snapshots:
 
   qs@6.11.0:
     dependencies:
-      side-channel: 1.0.6
+      side-channel: 1.1.0
 
   qs@6.13.0:
     dependencies:
-      side-channel: 1.0.6
+      side-channel: 1.1.0
 
   querystring-es3@0.2.1: {}
 
@@ -13355,10 +13524,30 @@ snapshots:
 
   shiki@0.14.7:
     dependencies:
-      ansi-sequence-parser: 1.1.1
+      ansi-sequence-parser: 1.1.3
       jsonc-parser: 3.3.1
       vscode-oniguruma: 1.7.0
       vscode-textmate: 8.0.0
+
+  side-channel-list@1.0.0:
+    dependencies:
+      es-errors: 1.3.0
+      object-inspect: 1.13.4
+
+  side-channel-map@1.0.1:
+    dependencies:
+      call-bound: 1.0.4
+      es-errors: 1.3.0
+      get-intrinsic: 1.3.0
+      object-inspect: 1.13.4
+
+  side-channel-weakmap@1.0.2:
+    dependencies:
+      call-bound: 1.0.4
+      es-errors: 1.3.0
+      get-intrinsic: 1.3.0
+      object-inspect: 1.13.4
+      side-channel-map: 1.0.1
 
   side-channel@1.0.6:
     dependencies:
@@ -13366,6 +13555,14 @@ snapshots:
       es-errors: 1.3.0
       get-intrinsic: 1.2.4
       object-inspect: 1.13.2
+
+  side-channel@1.1.0:
+    dependencies:
+      es-errors: 1.3.0
+      object-inspect: 1.13.4
+      side-channel-list: 1.0.0
+      side-channel-map: 1.0.1
+      side-channel-weakmap: 1.0.2
 
   signal-exit@3.0.7: {}
 
@@ -13400,7 +13597,7 @@ snapshots:
 
   slice-ansi@5.0.0:
     dependencies:
-      ansi-styles: 6.2.1
+      ansi-styles: 6.2.3
       is-fullwidth-code-point: 4.0.0
 
   snapdragon-node@2.1.1:
@@ -13607,7 +13804,7 @@ snapshots:
     dependencies:
       eastasianwidth: 0.2.0
       emoji-regex: 9.2.2
-      strip-ansi: 7.1.0
+      strip-ansi: 7.1.2
 
   string.prototype.trim@1.2.9:
     dependencies:
@@ -13647,6 +13844,10 @@ snapshots:
   strip-ansi@7.1.0:
     dependencies:
       ansi-regex: 6.0.1
+
+  strip-ansi@7.1.2:
+    dependencies:
+      ansi-regex: 6.2.2
 
   strip-bom-string@1.0.0: {}
 
@@ -14096,6 +14297,14 @@ snapshots:
       shiki: 0.14.7
       typescript: 5.7.2
 
+  typedoc@0.25.13(typescript@5.9.3):
+    dependencies:
+      lunr: 2.3.9
+      marked: 4.3.0
+      minimatch: 9.0.5
+      shiki: 0.14.7
+      typescript: 5.9.3
+
   typedoc@0.27.5(typescript@5.7.2):
     dependencies:
       '@gerrit0/mini-shiki': 1.24.4
@@ -14108,6 +14317,8 @@ snapshots:
   typescript@5.3.3: {}
 
   typescript@5.7.2: {}
+
+  typescript@5.9.3: {}
 
   ua-parser-js@0.7.38: {}
 
@@ -14156,6 +14367,8 @@ snapshots:
   undici-types@5.26.5: {}
 
   undici-types@6.19.8: {}
+
+  undici-types@7.16.0: {}
 
   union-value@1.0.1:
     dependencies:
@@ -14520,9 +14733,9 @@ snapshots:
 
   wrap-ansi@8.1.0:
     dependencies:
-      ansi-styles: 6.2.1
+      ansi-styles: 6.2.3
       string-width: 5.1.2
-      strip-ansi: 7.1.0
+      strip-ansi: 7.1.2
 
   wrappy@1.0.2: {}
 

@@ -1,6 +1,7 @@
 {
   "name": "@fadroma/stub",
   "main": "stub.ts",
+  "version": "0.0.0",
   "peerDependencies": {
     "@hackbg/fadroma": "workspace:*"
   },
