@@ -1,4 +1,4 @@
-import { setImmediate, argv, exit, fileURLToPath } from '../deps.ts';
+import { setImmediate, argv, fileURLToPath } from '../deps.ts';
 
 /** The identity function. */
 export const identity = <T>(x: T): T => x;
@@ -8,6 +8,7 @@ export const nop = (..._: unknown[]) => identity;
 
 /** Something that may have a `name`. */
 export type Name = { name: string };
+
 /** Set the name of something. Optionally, assign metadata.
   *
   * * By default, the `name` property of functions is read-only,
@@ -15,13 +16,15 @@ export type Name = { name: string };
   *
   * * Metadata added by this function is coped by descriptor,
   *   which means getters and setters will work as defined. */ 
-export function Name <T, U> (name: string, named: T, props?: U): T & Name {
+export function Name <T, U> (name: string, named: T, props?: U): T & U & Name {
   // Rename function via property
-  if (typeof name === 'string') named =
-    Object.defineProperty(named, 'name', { configurable: true, value: name })
+  if (typeof name === 'string') named = Object.defineProperty(named, 'name', {
+    configurable: true, value: name
+  });
   // Copy properties via descriptors
-  return Object.defineProperties(named,
-    props ? Object.getOwnPropertyDescriptors(props) : {}) as T & Name;
+  return Object.defineProperties(named, props
+    ? Object.getOwnPropertyDescriptors(props)
+    : {}) as T & U & Name;
 }
 
 /** Stub test step. When reached, terminates without passing or failing,
@@ -36,13 +39,10 @@ export function Name <T, U> (name: string, named: T, props?: U): T & Name {
   *       expect('Manual todo with more info', todo('the more info')));
   *
   **/
-export const todo = (...info: string[]) => Name(
-  info.join(' '),
+export const todo = (...info: string[]) => Name(info.join(' '),
   function trackTodo (_context: unknown) {
     throw Object.assign(new Error(info.join(' ')), { todo: true })
-  }, {
-    info, todo: true, skip: true
-  });
+  }, { info, todo: true, skip: true });
 
 /** Used to recognize entrypoint. */
 export type Meta = Partial<ImportMeta>;

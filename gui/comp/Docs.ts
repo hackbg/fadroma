@@ -1,4 +1,4 @@
-import { elById } from './lib.ts';
+import { elById } from '../lib.ts';
 
 export async function loadDocs (href: string) {
   const main = elById("main");
@@ -50,4 +50,3 @@ export async function loadDocs (href: string) {
   }
 
 }
-

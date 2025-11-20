@@ -1,19 +1,20 @@
-import { DOM } from '../lib/index.ts';
-import { on, elById, Link, Icon } from './lib.ts';
-import { urls } from './urls.ts';
-import { updateProject } from './edit.ts';
+import { DOM } from '../../lib/index.ts';
+import { on, elById, Link } from '../lib.ts';
+import { urls } from '../urls.ts';
+import { Editor } from './Editor.ts';
+import { Feature } from './Feature.ts';
 
-export const Features = Object.assign(function initFeatures (
+export const Config = Object.assign(function initConfig (
   el = elById("features")
 ) {
-  on(el, "change", updateProject);
-  DOM.append(el, ...Features.Btc());
-  DOM.append(el, ...Features.Ecma());
-  DOM.append(el, ...Features.Env());
-  DOM.append(el, ...Features.Rust());
-  DOM.append(el, ...Features.Sol());
-  DOM.append(el, ...Features.Tm());
-  DOM.append(el, ...Features.Ci());
+  on(el, "change", Editor.update);
+  DOM.append(el, ...Config.Btc());
+  DOM.append(el, ...Config.Ecma());
+  DOM.append(el, ...Config.Env());
+  DOM.append(el, ...Config.Rust());
+  DOM.append(el, ...Config.Sol());
+  DOM.append(el, ...Config.Tm());
+  DOM.append(el, ...Config.Ci());
   return el;
 }, {
 
@@ -104,34 +105,3 @@ export const Features = Object.assign(function initFeatures (
 
 });
 
-export const Feature = Object.assign(function initFeature (
-  depth, id, name = ``, description = `` as string|(unknown[]), ...links: [string, string?][]
-) {
-  return DOM([`li.feature[data-depth=${depth}]`,
-    ['div.row.between',
-      [`label`, [`input[type=checkbox][checked=checked]`, { id }], name],
-      Feature.Links(links)],
-    ['p.grow', ...(typeof description === 'object')?description:[description]]
-  ]);
-}, {
-
-  Disabled: function DisabledFeature (
-    depth:       number,
-    id:          string,
-    name:        string = ``,
-    description: string|(unknown[]) = ``,
-    ...links:   [string, string?][]
-  ) {
-    return DOM([`li.feature.disabled[data-depth=${depth}]`,
-      ['div.row.between', [`label`, `⏳️  ${name}`], Feature.Links(links)],
-      ['p.grow', ...(typeof description === 'object')?description:[description]]]);
-  },
-
-  Links (
-    links: [string, string?][]
-  ) {
-    return ['div.row.links', ...links.map(([text, href = '#'])=>
-      ['a.flex[target=_blank]', { href }, Icon("book"), text])]
-  },
-
-});

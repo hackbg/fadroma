@@ -1,8 +1,8 @@
-import { on, elById } from './lib.ts';
-import { initEditors, saveProject, loadExample } from './edit.ts';
-import { loadDocs } from './doc.ts';
+import { on, elById } from '../lib.ts';
+import { Editor } from './Editor.ts';
+import { loadDocs } from './Docs.ts';
 
-export async function initNavigation () {
+export const Nav = async function initNavigation () {
   on(elById("buttonbar"), "click", navigate);
 }
 
@@ -10,9 +10,9 @@ export async function navigate (e: Event) {
   let target = e.target as HTMLElement;
   do {
     if (target.dataset.action) switch (target.dataset.action) {
-      case 'new':  e.preventDefault(); return initEditors();
-      case 'load': e.preventDefault(); return loadExample();
-      case 'save': e.preventDefault(); return saveProject();
+      case 'new':  e.preventDefault(); return Editor();
+      case 'load': e.preventDefault(); return Editor.load();
+      case 'save': e.preventDefault(); return Editor.save();
       case 'docs': e.preventDefault(); return loadDocs("/docs/deno/index.html");
       default: return;
     }

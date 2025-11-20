@@ -15,7 +15,7 @@
     { background: #fff8 }
     &:hover
     { background: #fff8 }
-    &:focus, &:hover:focus
+    &:focus, &:hover:focus, .field:hover &:focus
     { background: #fff;
       outline:    none; } }
 

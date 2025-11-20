@@ -32,3 +32,12 @@ export function pinSize <T> (el: HTMLElement, cb: Fn<[number, number], T>) {
   if ('ok' in result) return result.ok;
   throw result.error;
 }
+
+export function download (name: string, type: string, ...parts: unknown[]) {
+  const file = new File(parts as BlobPart[], name, { type });
+  const url  = URL.createObjectURL(file);
+  const link = Object.assign(document.createElement('a'), { href: url, download: name });
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
