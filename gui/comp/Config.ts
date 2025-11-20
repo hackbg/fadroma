@@ -43,7 +43,7 @@ export const Config = Object.assign(function initConfig (
       ["Compare", urls.pnpmCompare]),
     Feature.Disabled(1, "enable:eslint", "ESLint", "Static analyzer.",
       ["Config", urls.eslintConf]),
-    Feature.Disabled(1, "enable:vite", "Vite", "Front-end bundler."),
+    Feature.Disabled(1, "enable:vite", "Vite", "Build your front-end in the same repo."),
   ],
 
   Env: () => [
@@ -55,11 +55,11 @@ export const Config = Object.assign(function initConfig (
     Feature(1, "enable:direnv", "Direnv",
       ["Automatically load Nix shell when entering project directory."],
       ["Wiki", urls.direnvWiki]),
+    Feature(1, "enable:git", "Git",
+      "Automatically init Git repo in new project."),
     Feature.Disabled(1, "enable:editorconfig", "EditorConfig",
       "IDE-agnostic settings.",
       ["Spec", urls.edConfSpec]),
-    Feature.Disabled(1, "enable:scripts", "Scripts",
-      "Shell scripts under bin/ for common tasks."),
   ],
 
   Rust: () => [

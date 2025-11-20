@@ -1,5 +1,5 @@
 #editors {
-  min-width:  40vw;
+  min-width:  48vw;
   display:    flex;
   flex-flow:  column;
   padding:    0.5rem 0.25rem;
@@ -28,7 +28,6 @@
     border: none;
     box-shadow: none;
     background: none;
-    padding-top: 0;
     font-family: monospace;
     min-height: 3rem;
     line-height: 1.25;
@@ -36,7 +35,7 @@
     scrollbar-width: initial;
 
     &:focus
-    { background: #fff } };
+    { background: #fff; } };
 
   .field .name
   { text-transform: none; }
@@ -45,7 +44,7 @@
   { font-size: 1rem; min-height: 2rem; } }
 
 .field .name
-{ color: #555;
+{ color:          #555;
   font-size:      0.875rem;
   font-weight:    bold;
   font-weight:    550;
@@ -165,4 +164,9 @@
   .command:hover { opacity: 1 }
   .file:hover & { background: #fff4 }
   &:focus-within { background: #fff }
+}
+
+#title {
+  font-size: 1.25rem;
+  font-weight: 250;
 }

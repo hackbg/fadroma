@@ -14,10 +14,10 @@
 
 html,
 body
-{ font-size:  18px;
-  min-height: 100%;
-  margin:     0;
-  padding:    0; }
+{ font-size: 18px;
+  height:    100%;
+  margin:    0;
+  padding:   0; }
 
 html
 { background-color: #65b34c;
@@ -28,12 +28,11 @@ html
     url('bg.svg'); }
 
 body
-{ color: #444;
-  display: flex;
+{ color:           #444;
+  display:         flex;
   justify-content: center;
-  height: 100%;
-  background: radial-gradient(at left, #0000, #2311);
-  overflow: hidden; }
+  background:      radial-gradient(at left, #0000, #2311);
+  overflow:        hidden; }
 
 a[href]
 { color: #090; }

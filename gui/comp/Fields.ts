@@ -1,4 +1,4 @@
-import { DOM } from '../../lib/index.ts';
+import { DOM, Bytes } from '../../lib/index.ts';
 import { Icon } from '../lib.ts';
 import { Field } from './Field.ts';
 
@@ -12,16 +12,9 @@ export const Fields = {
 
   TS: (id: string, ...content: unknown[]) => Field({
     id, collapsed: false,
-    header:  [['div.command', Icon('play'), 'Check']],
+    header:  [['div.command', Icon('play'), 'Check'], ['div.command', Icon('play'), 'Run']],
     content: [[`textarea.collapsible#text:${id}`,
       content.filter(x=>typeof x === 'string').join('\n')]]
-  }),
-
-  TSTest: (id: string, ...content: unknown[]) => Field({
-    id, collapsed: false,
-    header:  [['div.command', Icon('play'), 'Test']],
-    content: [[`textarea.collapsible#text:${id}`,
-      content.filter(x=>typeof x === 'string').join('\n')]],
   }),
 
   Simf: (id: string, ...content: unknown[]) => Field({

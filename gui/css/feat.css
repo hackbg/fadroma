@@ -29,12 +29,13 @@
 
 .feature
 { min-height: 1.33rem;
-  margin:0;
-  padding:0;
-  display:flex;
-  flex-flow:column nowrap;
-  padding:0 0.5rem 0 0;
-  align-items:stretch;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-flow: column nowrap;
+  padding: 0 0.5rem 0 0;
+  align-items: stretch;
+  user-select: none;
 
   &[data-depth="0"]
   { padding-top: 1rem; label { font-weight: 700; } }

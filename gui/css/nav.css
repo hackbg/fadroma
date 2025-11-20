@@ -1,12 +1,12 @@
 .nav {
-  align-items: center;
-  align-self:  center;
-  min-height:  1.5rem;
-  text-shadow: 1px 1px 0 #0008;
-  flex-shrink: 0;
-  padding-top: 0.5rem;
-  color:       #fff;
-  user-select: none;
+  align-items:  center;
+  min-height:   1.5rem;
+  text-shadow:  1px 1px 0 #0008;
+  flex-shrink:  0;
+  padding-top:  0.5rem;
+  padding-left: 0.5rem;
+  color:        #fff;
+  user-select:  none;
   a { color: #fff }
 }
 
@@ -40,7 +40,7 @@
   letter-spacing: 0;
   font-weight: normal;
   padding: 0.66rem 0.5rem 0.66rem 1rem;
-  margin: 0.33rem 0 0.33rem -0.5rem;
+  margin: 0 0 0.33rem -0.5rem;
   &:hover {
     background: linear-gradient(to right, transparent, rgb(144, 19, 254), rgb(150, 20, 255));
   }

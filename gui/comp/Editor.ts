@@ -8,12 +8,15 @@ export const Editor = Name('Editor', function initEditor (el = elById("editors")
   simf   = true,
   nix    = true,
   direnv = true,
+  node   = true,
+  deno   = true,
+  vite   = false,
 } = {}) {
   pinSize(el, () => {
     el.innerHTML = '';
     el.appendChild(DOM(...Editor.Info()));
     el.appendChild(DOM(...Editor.Simf()));
-    el.appendChild(DOM(...Editor.Esm({ btc, simf })));
+    el.appendChild(DOM(...Editor.Esm({ btc, simf, node, deno, vite })));
     el.appendChild(DOM(...Editor.Env({ btc, simf, nix, direnv })));
   });
   el.querySelectorAll('textarea').forEach(Field.computeHeight);
@@ -41,20 +44,35 @@ export const Editor = Name('Editor', function initEditor (el = elById("editors")
     const makeExecutable = (x: string) => {
       if (archive[x]) archive[x] = [archive[x], { os: 3, attrs: 0o755 << 16 }];
     };
+    archive['.git/config'] = zipStr([
+      '[core]',
+      'repositoryformatversion = 0',
+      'filemode                = true',
+      'bare                    = false',
+      'logallrefupdates        = true',
+    ].filter(Boolean).join('\n')+'\n');
+    archive['.git/description'] = zipStr('Created at https://fadroma.tech');
+    archive['.git/HEAD']        = zipStr('ref: refs/heads/main');
+    archive['.git/objects']     = { info: {}, pack: {} };
+    archive['.git/refs']        = { heads: {}, tags: {} };
+    archive['.gitignore']       = zipStr([
+      '.direnv', 'coverage', 'node_modules', 'target'
+    ].filter(Boolean).join('\n')+'\n');
     makeExecutable('test.ts');
     makeExecutable('shell.nix');
     download(`${+new Date()}-${title}.zip`, 'application/zip', zipSync(archive))
   },
 
   Info: () => [
+
     ['div.row.gap.fields',
-      ['div.field.grow',
-        ['div.name', 'Title'],
+
+      ['div.field.grow', ['div.name', 'Title'],
         ['input#title[type=text][focused=focused]', {
           placeholder: 'name your project'
         }]],
-      ['div.field',
-        ['div.name', 'Licence'],
+
+      ['div.field', ['div.name', 'Licence'],
         ['select#licence',
           ['option', 'AGPL 3.0 or later'],
           ['option', 'AGPL 3.0 only'],
@@ -67,31 +85,32 @@ export const Editor = Name('Editor', function initEditor (el = elById("editors")
   ],
 
   Simf: () => [
+    Fields.Text("src/main.simf", 'fn main () {', '}'),
     Fields.Witness("src/main.wit", ' '),
-    Fields.Text("src/main.simf", 'fn main () {',
-      '}'),
   ],
 
   Esm: ({
     btc  = false,
     simf = false,
     deno = false,
+    node = false,
     vite = false,
   } = {}) => [
 
     Fields.TS("index.ts",
-      ESImport("../lib/index.ts", btc && 'Btc', simf && 'Simf'),
+      ESImport("@hackbg/fadroma", btc && 'Btc', simf && 'Simf'),
       `export async function deploy () {}`),
 
-    Fields.TSTest("test.ts",
-      deno
-        ? `#!/usr/bin/env -S deno run -I --coverage --allow-env --allow-run --allow-net`
-        : `#!/usr/bin/env -S npx tsx`,
-      ESImport("../lib/index.ts", 'Test', btc && 'Btc', simf && 'Simf'),
+    Fields.TS("test.ts",
+      deno ? `#!/usr/bin/env -S deno run -I --coverage --allow-env --allow-run --allow-net` :
+      node ? `#!/usr/bin/env -S npx tsx` :
+      null,
+      ESImport("@hackbg/fadroma", btc && 'Btc', simf && 'Simf'),
       `import { deploy } from './index.ts';`,
-      `export default Test.suite(import.meta, "Test",`,
-      `  Test.the("Deploy", deploy),`,
-      `  Test.the("Invoke"));`),
+      `const { suite, the, is, equals, has } = Test;`,
+      `export default suite(import.meta, "Test",`,
+      `  the("Deploy", () => deploy()),`,
+      `  the("Invoke"));`),
 
     Fields.Text("package.json",
       `{`,
@@ -103,8 +122,10 @@ export const Editor = Name('Editor', function initEditor (el = elById("editors")
       `  "dependencies": {`,
       `    "@hackbg/fadroma": "*"`,
       `  },`,
-      `  "devDependencies": {`,
-      vite && `    "vite": "*"`,
+      `  "devDependencies": {`, [
+        (node && `    "tsx":  "^4.20.6"`),
+        (vite && `    "vite": "^7.2.2"`),
+      ].filter(Boolean).join(',\n'),
       `  }`,
       `}`,
     ),
@@ -125,7 +146,6 @@ export const Editor = Name('Editor', function initEditor (el = elById("editors")
     ),
 
     deno && Fields.Text("deno.json", "{}"),
-    deno && Fields.TS("deps.ts", ' '),
   ],
 
   Env: ({
