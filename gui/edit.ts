@@ -2,13 +2,18 @@ import { DOM, Bytes } from '../lib/index.ts';
 import { elById, pinSize, textVal, Icon } from './lib.ts';
 import { zipSync, zipStr } from '../lib/deps.ts';
 
-export function initEditors (el = elById("editors")) {
+export function initEditors (el = elById("editors"), {
+  btc    = true,
+  simf   = true,
+  nix    = true,
+  direnv = true,
+} = {}) {
   pinSize(el, () => {
     el.innerHTML = '';
-    DOM.append(el, ...ProjectInfo());
-    DOM.append(el, ...ProjectSimf());
-    DOM.append(el, ...ProjectEsm({ btc: true, simf: true }));
-    DOM.append(el, ...ProjectEnv({ btc: true, simf: true, nix: true, direnv: true }));
+    el.appendChild(DOM(...ProjectInfo()));
+    el.appendChild(DOM(...ProjectSimf()));
+    el.appendChild(DOM(...ProjectEsm({ btc, simf })));
+    el.appendChild(DOM(...ProjectEnv({ btc, simf, nix, direnv })));
   });
   el.querySelectorAll('textarea').forEach(setDefaultHeight);
   return el
@@ -17,7 +22,7 @@ export function initEditors (el = elById("editors")) {
 export async function loadExample () {
 }
 
-export async function updateProject (e) {
+export async function updateProject (_e) {
 }
 
 export async function saveProject () {
@@ -27,10 +32,11 @@ export async function saveProject () {
   elById("editors").querySelectorAll('[data-path]').forEach((el: HTMLElement)=>{
     archive[el.dataset.path] = zipStr(el.querySelector('textarea')?.value);
   });
+  downloadFile(`${+new Date()}-${title}.zip`, 'application/zip', zipSync(archive))
+}
 
-  const name = `${+new Date()}-${title}.zip`
-  const zip  = zipSync(archive);
-  const file = new File([zip as BlobPart], name, { type: 'application/zip' });
+function downloadFile (name: string, type: string, ...parts: BlobPart[]) {
+  const file = new File(parts, name, { type });
   const url  = URL.createObjectURL(file);
   const link = Object.assign(document.createElement('a'), { href: url, download: name });
   document.body.appendChild(link);
@@ -39,8 +45,8 @@ export async function saveProject () {
 }
 
 const ProjectInfo = () => [
-  DOM([
-    'div.row.gap.fields',
+
+  ['div.row.gap.fields',
     ['div.field.grow',
       ['div.name', 'Title'],
       ['input#title[type=text][focused=focused]', { placeholder: 'name your project' }]],
@@ -51,14 +57,13 @@ const ProjectInfo = () => [
         ['option', 'AGPL 3.0 only'],
         ['option', 'GPL 3.0 or later'],
         ['option', 'GPL 3.0 only'],
-        ['option', 'Closed source (inquire)']]]]),
-  TextField("README",
-    "Created at https://fadroma.tech"),
+        ['option', 'Closed source (inquire)']]]],
+
+  TextField("README", "Created at https://fadroma.tech"),
 ];
 
 const ProjectSimf = () => [
-  WitnessField("src/main.wit",
-    ' '),
+  WitnessField("src/main.wit", ' '),
   SimfField("src/main.simf",
     '  let oracle_height: u32 = witness::ORACLE_HEIGHT;',
     '  let oracle_price:  u32 = witness::ORACLE_PRICE;',
@@ -69,9 +74,15 @@ const ProjectSimf = () => [
 const ProjectEsm = ({
   btc = false, simf = false
 } = {}) => [
+
   TSField("index.ts",
-    `import { Btc, Simf } from '../lib/index.ts';`,
+    (btc||simf)&&`import { ${
+      [btc  && 'Btc'
+      ,simf && 'Simf'
+      ].filter(Boolean).join(', ')
+    } } from '../lib/index.ts';`,
     `export async function deploy () {}`),
+
   TSTestField("test.ts",
     `import { Test, Btc, Simf } from '../lib/index.ts';`,
     `import { deploy } from './index.ts';`,
@@ -123,40 +134,66 @@ const ProjectEnv = ({
   TextField(".envrc", "use nix"),
 ];
 
-const Field = (id, header, ...content) =>
-  [`div.field.file.collapsed#${id}[data-path=${id}]`,
-    ['div.handle-v', { onclick: toggleField(id) },
+const Field = Object.assign(function defineField ({
+  id,
+  collapsed = true,
+  header    = [],
+  content   = []
+}) {
+  return [`div.field.file${collapsed?'.collapsed':''}#${id}[data-path=${id}]`,
+    ['div.handle-v', { onclick: Field.toggle(id) },
       ['svg.icon', ['use[href=icons.svg#chevron-right]']],
       ['div.grow']],
     ['div.flex.col.grow',
       ['div.flex.row',
-        ['div.name', { onclick: toggleField(id) }, id],
-        ['div.handle-h', { onclick: toggleField(id) }], ...header],
+        ['div.name', { onclick: Field.toggle(id) }, id],
+        ['div.handle-h', { onclick: Field.toggle(id) }], ...header],
       ...content]];
+}, {
+  toggle: function toggleField (id) {
+    return () => {
+      const el = elById(id);
+      console.log({id, el});
+      const icon = el.querySelector('.icon') as SVGUseElement;
+      el.classList.toggle('collapsed');
+      if (el.classList.contains('collapsed')) {
+        icon.firstChild.href.baseVal = 'icons.svg#chevron-right';
+      } else {
+        icon.firstChild.href.baseVal = 'icons.svg#chevron-down';
+        const textarea = el.querySelector('textarea');
+        if (textarea) {
+          textarea.focus();
+          setDefaultHeight(textarea);
+        }
+      }
+    }
+  }
+})
 
-const TextField = (id, ...content) =>
-  DOM(Field(id, [], [`textarea.collapsible#text:${id}`, content.filter(Boolean).join('\n')]));
-
-const TSField = (id, ...content) =>
-  DOM(Field(id, [
-    ['div.command', Icon('play'), 'Check'],
-  ], [`textarea.collapsible#text:${id}`, content.filter(Boolean).join('\n')]));
-
-const TSTestField = (id, ...content) =>
-  DOM(Field(id, [
-    ['div.command', Icon('play'), 'Test'],
-  ], [`textarea.collapsible#text:${id}`, content.filter(Boolean).join('\n')]));
-
-const SimfField = (id, ...content) =>
-  DOM(Field(id, [
-    ['div.command', Icon('play'), 'Compile'],
-  ], ['div.collapsible',
+const TextField = (id, ...content) => Field({
+  id,
+  content: [[`textarea.collapsible#text:${id}`, content.filter(Boolean).join('\n')]]
+});
+const TSField = (id, ...content) => Field({
+  id, collapsed: false,
+  header:  [['div.command', Icon('play'), 'Check']],
+  content: [[`textarea.collapsible#text:${id}`, content.filter(Boolean).join('\n')]]
+});
+const TSTestField = (id, ...content) => Field({
+  id, collapsed: false,
+  header:  [['div.command', Icon('play'), 'Test']],
+  content: [[`textarea.collapsible#text:${id}`, content.filter(Boolean).join('\n')]],
+});
+const SimfField = (id, ...content) => Field({
+  id, collapsed: false,
+  header:  [['div.command', Icon('play'), 'Compile']],
+  content: [['div.collapsible',
     //SimfFn('main', ...content),
     //SimfFn('checksig'),
     //SimfFn('checksigfromstack'),
-    ['div.row', ['div.grow'], ['div.command', Icon('circle-with-plus'), 'Add declaration']]
-  ]));
-
+    ['div.row', ['div.grow'], ['div.command', Icon('circle-with-plus'), 'Define']]
+  ]]
+});
 const SimfFn = (name, ...content) =>
   ['div.col.fn',
     ['div.row.align-center',
@@ -171,15 +208,15 @@ const SimfFn = (name, ...content) =>
     ['textarea', content.join('\n')||' '],
     '}'];
 
-const WitnessField = (id, ...content) =>
-  DOM(Field(id, [
-  ], ['div.col.collapsible',
+const WitnessField = (id, ...content) => Field({
+  id, collapsed: false,
+  content: [['div.col.collapsible',
     WitnessRow('u32', 'ORACLE_HEIGHT', '1000'),
     WitnessRow('u32', 'ORACLE_PRICE',  '100000'),
     WitnessRow('sig', 'ORACLE_SIG',    ''),
     WitnessRow('sig', 'OWNER_SIG',     ''),
-    ['div.row', ['div.grow'], ['div.command', Icon('circle-with-plus'), 'Add witness']]
-  ]));
+    ['div.row', ['div.grow'], ['div.command', Icon('circle-with-plus'), 'Witness']]]]
+});
 
 const WitnessRow = (t: 'sig'|'u32', k: string, v: string|Bytes) =>
   ['div.witness',
@@ -190,13 +227,13 @@ const WitnessRow = (t: 'sig'|'u32', k: string, v: string|Bytes) =>
 
 const HexField = (id, ...content) =>
   DOM([`div.field.file.hex#${id}`,
-    ['div.handle-v', { onclick: toggleField(id) },
+    ['div.handle-v', { onclick: Field.toggle(id) },
       ['svg.icon.expanded', ['use[href=icons.svg#chevron-down]']],
       ['div.grow']],
     ['div.flex.col.grow',
       ['div.flex.row',
-        ['div.name', { onclick: toggleField(id) }, id],
-        ['div.handle-h', { onclick: toggleField(id) }]],
+        ['div.name', { onclick: Field.toggle(id) }, id],
+        ['div.handle-h', { onclick: Field.toggle(id) }]],
       HexRow('00000000 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................'),
       HexRow('00000010 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................'),
       HexRow('00000020 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................'),
@@ -205,24 +242,6 @@ const HexField = (id, ...content) =>
 const HexRow = (addr, bytes, chars) =>
   ['div.row.hex-row', addr, bytes, chars];
 
-function toggleField (id) {
-  return () => {
-    const el = elById(id);
-    console.log({id, el});
-    const icon = el.querySelector('.icon') as SVGUseElement;
-    el.classList.toggle('collapsed');
-    if (el.classList.contains('collapsed')) {
-      icon.firstChild.href.baseVal = 'icons.svg#chevron-right';
-    } else {
-      icon.firstChild.href.baseVal = 'icons.svg#chevron-down';
-      const textarea = el.querySelector('textarea');
-      if (textarea) {
-        textarea.focus();
-        setDefaultHeight(textarea);
-      }
-    }
-  }
-}
 
 function setDefaultHeight (textarea: HTMLTextAreaElement) {
   textarea.style.height ||= `${1.5*(1+Math.max(2, textarea.value.split('\n').length))}em`;

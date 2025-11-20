@@ -9,14 +9,12 @@
     <link rel="stylesheet" href="edit.css" />
     <link rel="stylesheet" href="doc.css" />
   </head>
-  <body>
-    <nav class="row nav align-start" id="navbar">
+  <body class="row align-stretch justify-center">
+    <nav class="col nav align-start" id="navbar">
       <noscript><strong>Contains JavaScript.</strong><br />Enable JS to proceed.</noscript>
       <a class="hackbg subtitle" href="https://hack.bg" style=""><strong>Hack.bg</strong> presents:</a>
       <div class="logo"></div>
       <span class="subtitle">dApp workbench</span>
-    </nav>
-    <div class="row justify-center overflow-hidden">
       <nav class="col buttons" id="buttonbar">
         <script type="module">import { initNavigation } from './nav.ts'; initNavigation();</script>
         <button data-action="new" class="rel">
@@ -32,6 +30,8 @@
         <a href="/cov/index.html">
           <svg class="icon"><use href="icons.svg#code"></use></svg> Coverage</a>
       </nav>
+    </nav>
+    <div class="row justify-center overflow-hidden">
       <div class="row rel gap align-stretch" id="main">
         <section id="editors" class="box">
           <script type="module">import { initEditors } from './edit.ts'; initEditors();</script>

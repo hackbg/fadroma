@@ -142,7 +142,6 @@ input[type=checkbox].collapse
 
 #main
 { border: 0.5rem solid transparent;
-  align-items: flex-start;
   overflow: auto }
 
 #sidebar,

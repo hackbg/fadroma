@@ -10,7 +10,8 @@ export const DOM = Object.assign(
     return frag;
   }, {
     append (el: Node, ...els: Node[]) {
-      els.forEach(e=>el.appendChild(e));
+      for (const e of els) el.appendChild(e);
+      //el.appendChild(DOM(...els));
       return el;
     }
   });

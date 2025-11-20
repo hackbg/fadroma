@@ -1,15 +1,10 @@
 @media screen and (max-width: 960px) {
   #main {
-    flex-flow: column-reverse;
-    align-items: stretch;
     padding: 0 0 2.5rem;
   }
 }
 
 @media screen and (max-width: 1440px) {
-  body {
-    flex-flow: column; overflow: auto; height: auto
-  }
   #editors {
   }
   #sidebar {
@@ -19,17 +14,17 @@
     }
   }
   .nav {
-    min-height: 5rem;
+    /*min-height: 5rem;*/
     border-radius: 0.25rem;
-    flex-flow: row nowrap;
+    /*flex-flow: row nowrap;*/
     .logo {
-      margin: 0.5rem
+      height: 1rem;
     }
     .buttons {
-      flex-flow: row nowrap;
-      justify-content: space-around;
+      /*flex-flow: row nowrap;*/
+      /*justify-content: space-around;*/
       a, button { 
-        flex-flow: column;
+        /*flex-flow: column;*/
         padding: 0.5rem 1rem;
       }
     }
@@ -42,5 +37,9 @@
     height: 100%;
     /*max-height: 100%;*/
     /*align-self: center;*/
+  }
+  #navbar {
+    align-self: stretch;
+    flex-shrink: 0;
   }
 }
