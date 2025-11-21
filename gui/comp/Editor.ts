@@ -15,10 +15,9 @@ export const Editor = Name('Editor', function initEditor (el = elById("editors")
 } = {}) {
   pinSize(el, () => {
     el.innerHTML = '';
-    el.appendChild(DOM(...Editor.Info()));
-    el.appendChild(DOM(...Editor.Simf()));
-    el.appendChild(DOM(...Editor.Esm({ btc, simf, node, deno, vite })));
-    el.appendChild(DOM(...Editor.Env({ btc, element, simf, nix, direnv })));
+    el.appendChild(DOM(['div.box', ...Editor.Env({ btc, element, simf, nix, direnv })]));
+    el.appendChild(DOM(['div.box', ...Editor.Simf()]));
+    el.appendChild(DOM(['div.box', ...Editor.Esm({ btc, simf, node, deno, vite })]));
   });
   el.querySelectorAll('textarea').forEach(Field.computeHeight);
   return el
@@ -64,27 +63,6 @@ export const Editor = Name('Editor', function initEditor (el = elById("editors")
     makeExecutable('shell.nix');
     download(`${+new Date()}-${title}.zip`, 'application/zip', zipSync(archive))
   },
-
-  Info: () => [
-
-    ['div.row.gap.fields',
-
-      ['div.field.grow', ['div.name', 'Title'],
-        ['input#title[type=text][focused=focused]', {
-          placeholder: 'name your project'
-        }]],
-
-      ['div.field', ['div.name', 'Licence'],
-        ['select#licence',
-          ['option', 'AGPL 3.0 or later'],
-          ['option', 'AGPL 3.0 only'],
-          ['option', 'GPL 3.0 or later'],
-          ['option', 'GPL 3.0 only'],
-          ['option', 'Closed source (inquire)']]]],
-
-    Fields.Text("README",
-      "Created at https://fadroma.tech"),
-  ],
 
   Simf: () => [
     Fields.Text("src/main.simf", 'fn main () {', '}'),
@@ -160,6 +138,21 @@ export const Editor = Name('Editor', function initEditor (el = elById("editors")
     simf    = false,
     element = false,
   } = {}) => [
+    ['div.row.gap.fields',
+
+      ['div.field.grow', ['div.name', 'Title'],
+        ['input#title[type=text][focused=focused]', {
+          placeholder: 'name your project'
+        }]],
+
+      ['div.field', ['div.name', 'Licence'],
+        ['select#licence',
+          ['option', 'AGPL 3.0 or later'],
+          ['option', 'AGPL 3.0 only'],
+          ['option', 'GPL 3.0 or later'],
+          ['option', 'GPL 3.0 only'],
+          ['option', 'Closed source (inquire)']]]],
+    direnv && Fields.Text(".envrc", "use nix"),
     nix && Fields.Text("shell.nix",
       `#!/usr/bin/env nix-shell`,
       `{ pkgs ? import<nixpkgs> {} }: let`,
@@ -211,7 +204,7 @@ export const Editor = Name('Editor', function initEditor (el = elById("editors")
         : []),
 
       `\n]; }`),
-    direnv && Fields.Text(".envrc", "use nix"),
+    Fields.Text("README", "Created at https://fadroma.tech"),
   ],
 
 });

@@ -2,10 +2,14 @@
   min-width:  48vw;
   display:    flex;
   flex-flow:  column;
-  padding:    0.5rem 0.25rem;
   flex-grow:  1;
-  background: #cacaca;
-  background: linear-gradient(to right, #d8d8d8, #c8c8c8);
+  gap:        0.5rem;
+
+  &>.box {
+    background: linear-gradient(to right, #d8d8d8, #c8c8c8);
+    margin-right: 0.5rem;
+    border-top: none;
+  }
 
   input, textarea, select
   { border:     none;
@@ -100,10 +104,10 @@
     .icon { margin: 0.25rem 0.125rem 0.25rem 0.25rem }; } }
 
 .field.file
-{ flex-shrink:   0;
-  flex-flow:     row nowrap;
-  border-bottom: 1px solid #8888;
-  min-height:    2rem;
+{ flex-shrink: 0;
+  flex-flow:  row nowrap;
+  border-top: 1px solid #8888;
+  min-height: 2rem;
   /*transition: background ease-in 0.166s;*/
   background: #fff0;
 

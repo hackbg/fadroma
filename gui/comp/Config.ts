@@ -8,13 +8,12 @@ export const Config = Object.assign(function initConfig (
   el = elById("sidebar")
 ) {
   on(el, "change", Editor.update);
+  DOM.append(el, DOM(['ul.features', ...Config.Env()]));
   DOM.append(el, DOM(['ul.features', ...Config.Btc()]));
   DOM.append(el, DOM(['ul.features', ...Config.Ecma()]));
-  DOM.append(el, DOM(['ul.features', ...Config.Env()]));
   DOM.append(el, DOM(['ul.features', ...Config.Rust()]));
   DOM.append(el, DOM(['ul.features', ...Config.Sol()]));
   DOM.append(el, DOM(['ul.features', ...Config.Tm()]));
-  DOM.append(el, DOM(['ul.features', ...Config.Ci()]));
   return el;
 }, {
 
@@ -50,19 +49,21 @@ export const Config = Object.assign(function initConfig (
   ],
 
   Env: () => [
-    Feature(0, "enable:environment", "Environment",
-      "DX enhancements for the discerning terminal dweller."),
-    Feature(1, "enable:nix", "Nix Shell",
+    Feature(0, "enable:git", "Git",
+      "Automatically init Git repo in new project."),
+    Feature(0, "enable:nix", "Nix Shell",
       ["Obtain dependencies from ", Link(urls.nixPkgs, "nixpkgs")],
       ["Install", urls.nixInstall]),
-    Feature(1, "enable:direnv", "Direnv",
+    Feature(0, "enable:direnv", "Direnv",
       ["Automatically load Nix shell when entering project directory."],
       ["Wiki", urls.direnvWiki]),
-    Feature(1, "enable:git", "Git",
-      "Automatically init Git repo in new project."),
-    Feature.Disabled(1, "enable:editorconfig", "EditorConfig",
+    Feature.Disabled(0, "enable:editorconfig", "EditorConfig",
       "IDE-agnostic settings.",
       ["Spec", urls.edConfSpec]),
+    Feature.Disabled(0, "enable:gha",   "GHA",
+      "Config for GitHub Actions."),
+    Feature.Disabled(0, "enable:drone", "Drone",
+      "Config for Drone CI."),
   ],
 
   Rust: () => [
@@ -95,15 +96,6 @@ export const Config = Object.assign(function initConfig (
       ["Client for ", Link(urls.scrtHome, "Secret"), "."]),
     Feature.Disabled(1, "enable:cw", "CosmWasm",
       "Write contracts for the Cosmos ecosystem."),
-  ],
-
-  Ci: () => [
-    Feature.Disabled(0, "enable:ci", "CI",
-      "Automated verification workflous."),
-    Feature.Disabled(1, "enable:gha",   "GHA",
-      "Config for GitHub Actions."),
-    Feature.Disabled(1, "enable:drone", "Drone",
-      "Config for Drone CI."),
   ],
 
 });
