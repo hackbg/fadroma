@@ -5,16 +5,16 @@ import { Editor } from './Editor.ts';
 import { Feature } from './Feature.ts';
 
 export const Config = Object.assign(function initConfig (
-  el = elById("features")
+  el = elById("sidebar")
 ) {
   on(el, "change", Editor.update);
-  DOM.append(el, ...Config.Btc());
-  DOM.append(el, ...Config.Ecma());
-  DOM.append(el, ...Config.Env());
-  DOM.append(el, ...Config.Rust());
-  DOM.append(el, ...Config.Sol());
-  DOM.append(el, ...Config.Tm());
-  DOM.append(el, ...Config.Ci());
+  DOM.append(el, DOM(['ul.features', ...Config.Btc()]));
+  DOM.append(el, DOM(['ul.features', ...Config.Ecma()]));
+  DOM.append(el, DOM(['ul.features', ...Config.Env()]));
+  DOM.append(el, DOM(['ul.features', ...Config.Rust()]));
+  DOM.append(el, DOM(['ul.features', ...Config.Sol()]));
+  DOM.append(el, DOM(['ul.features', ...Config.Tm()]));
+  DOM.append(el, DOM(['ul.features', ...Config.Ci()]));
   return el;
 }, {
 
@@ -22,8 +22,11 @@ export const Config = Object.assign(function initConfig (
     Feature(0, "enable:btc", "Bitcoin",
       ["Develop and test with local bitcoind in ", Link(urls.btcTest, "regtest"), " mode."],
       ["RPC", urls.btcRpc]),
-    Feature(1, "enable:simf", "Simplicity",
-      ["Compile and run ", Link(urls.simfRef, "SimplicityHL"), " programs on Bitcoin."],
+    Feature(0, "enable:btc", "Elements",
+      ["Develop and test with local elementsd in ", Link(urls.btcTest, "regtest"), " mode."],
+      ["RPC", urls.btcRpc]),
+    Feature(0, "enable:simf", "SimplicityHL",
+      ["Compile and run ", Link(urls.simfRef, "SimplicityHL"), " programs with Simply."],
       ["Language", urls.simfRef],
       ["Jets", urls.simfJets]),
   ],
@@ -32,7 +35,7 @@ export const Config = Object.assign(function initConfig (
     Feature(0, "enable:js", "ECMAScript",
       "JavaScript/TypeScript SDK."),
     Feature(1, "enable:deno", "Deno",
-      "Next-gen TS/JS runtime.",
+      "Run on next-gen TS/JS runtime by default.",
       ["@std", urls.denoStd],
       ["API",  urls.denoApi]),
     Feature(1, "enable:node", "Node.js",

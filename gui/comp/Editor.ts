@@ -59,6 +59,7 @@ export const Editor = Name('Editor', function initEditor (el = elById("editors")
     archive['.gitignore']       = zipStr([
       '.direnv', 'coverage', 'node_modules', 'target'
     ].filter(Boolean).join('\n')+'\n');
+    makeExecutable('index.ts');
     makeExecutable('test.ts');
     makeExecutable('shell.nix');
     download(`${+new Date()}-${title}.zip`, 'application/zip', zipSync(archive))
@@ -189,6 +190,8 @@ export const Editor = Name('Editor', function initEditor (el = elById("editors")
 
       ...(simf
         ? [ ``
+          , `  pkgs.mcpp`
+          , ``
           , `  (rs-gh "starkware-bitcoin" "simply" "3e1d0589"`
           , `    "sha256-EKfeEsr/sG/SorT2GK/ovMvI2QaoTMZ1wehbCcSjEmQ="`
           , `    "sha256-N2i5IJtKU1iPkpBaX90LgA7gw8B3n+K5hbByJOMRV3o=")` ]
@@ -204,7 +207,7 @@ export const Editor = Name('Editor', function initEditor (el = elById("editors")
           , `    withWallet = true;`
           , `    withGui = false;`
           , `    doCheck = false;`
-          , ` })` ]
+          , `  })` ]
         : []),
 
       `\n]; }`),

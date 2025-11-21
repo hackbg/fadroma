@@ -1,12 +1,10 @@
 #sidebar
 { min-width: 30vw;
-  padding: 0 0.5rem 0.5rem;
   max-width: 48%;
+  padding-right: 0.5rem;
   /*color: #fff;*/
   /*text-shadow: 1px 1px 0 #0008;*/
   /*font-weight: 500;*/
-  background: linear-gradient(to left, #c8c8c8, #cfcfcf);
-  border-top: 1px solid #fffa;
   /*color: #fff;*/
 
   .field .name { margin-top: 1rem }
@@ -19,8 +17,10 @@
     &:hover { text-decoration: underline } } }
 
 .features
-{ padding:    0;
-  margin:     0 0.33rem 0.5rem;
+{ padding:    0.5rem;
+  background: linear-gradient(to left, #c8c8c8, #cfcfcf);
+  border-top: 1px solid #fffa;
+  margin:     0;
   flex-grow:  1;
   list-style: none;
   display:    flex;
@@ -38,7 +38,7 @@
   user-select: none;
 
   &[data-depth="0"]
-  { padding-top: 1rem; label { font-weight: 700; } }
+  { label { font-weight: 700; } }
 
   &[data-depth="1"]
   { padding-left: 0.75rem; }
