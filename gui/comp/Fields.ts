@@ -1,34 +1,35 @@
 import { DOM, Bytes } from '../../lib/index.ts';
-import { Icon } from '../lib.ts';
 import { Field } from './Field.ts';
+import { Command } from './Command.ts';
 
 export const Fields = {
 
-  Text: (id: string, ...content: unknown[]) => Field({
-    id,
-    content: [[`textarea.collapsible#text:${id}`,
-      content.filter(x=>typeof x === 'string').join('\n')]]
+  textarea: (id: string, ...content: string[]) =>
+    [`textarea.collapsible#text:${id}`,
+      {autocomplete: "off", autocorrect: "off", autocapitalize: "off", spellcheck: false},
+      content.filter(x=>typeof x === 'string').join('\n')],
+
+  Text: (id: string, ...content: string[]) => Field({
+    id, content: [Fields.textarea(id, ...content)],
   }),
 
-  TS: (id: string, ...content: unknown[]) => Field({
-    id, collapsed: false,
-    header:  [['div.command', Icon('play'), 'Check'], ['div.command', Icon('play'), 'Run']],
-    content: [[`textarea.collapsible#text:${id}`,
-      content.filter(x=>typeof x === 'string').join('\n')]]
+  TS: (id: string, ...content: string[]) => Field({
+    id, content: [Fields.textarea(id, ...content)],
+    collapsed: false, header: [Command('play', 'Check'), Command('play', 'Run')],
   }),
 
   Simf: (id: string, ...content: unknown[]) => Field({
-    id, collapsed: false,
-    header:  [['div.command', Icon('play'), 'Compile']],
+    id, collapsed: false, header: [Command('play', 'Compile')],
     content: [['div.collapsible',
       //SimfFn('main', ...content: unknown[]),
       //SimfFn('checksig'),
       //SimfFn('checksigfromstack'),
-      ['div.row', ['div.grow'], ['div.command', Icon('circle-with-plus'), 'Define']]
+      ...content,
+      ['div.row', ['div.grow'], Command('circle-with-plus', 'Define')]
     ]]
   }),
   
-  SimfFn: (name, ...content: unknown[]) =>
+  SimfFn: (name: string, ...content: unknown[]) =>
     ['div.col.fn',
       ['div.row.align-center',
         ['strong.keyword', 'fn '],
@@ -36,7 +37,7 @@ export const Fields = {
         '(', [`input[type=text][size=2]`], ')',
         ' { ',
         ['div.grow'],
-        ['div.command', Icon('circle-with-cross'), 'Remove']],
+        Command('circle-with-cross', 'Remove')],
       ['textarea', content.join('\n')||' '],
       '}'],
 
@@ -47,7 +48,7 @@ export const Fields = {
       Fields.WitnessRow('u32', 'ORACLE_PRICE',  '100000'),
       Fields.WitnessRow('sig', 'ORACLE_SIG',    ''),
       Fields.WitnessRow('sig', 'OWNER_SIG',     ''),
-      ['div.row', ['div.grow'], ['div.command', Icon('circle-with-plus'), 'Witness']]]]
+      ['div.row', ['div.grow'], Command('circle-with-plus', 'Witness')]]]
   }),
 
   WitnessRow: (t: 'sig'|'u32', k: string, v: string|Bytes) =>
@@ -55,7 +56,7 @@ export const Fields = {
       ['input[type=text].grow', { value: k, placeholder: 'name' }],
       ['label', ['select', ['option', { value: t }, t]]],
       ['label.row', ['input[type=text].grow', { value: v, placeholder: 'value' }]],
-      ['div.command', Icon('circle-with-cross'), 'Remove']],
+      Command('circle-with-cross', 'Remove')],
 
   Hex: (id: string, ...content: unknown[]) =>
     DOM([`div.field.file.hex#${id}`,

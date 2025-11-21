@@ -87,7 +87,11 @@ export const Editor = Name('Editor', function initEditor (el = elById("editors")
 
   Simf: () => [
     Fields.Text("src/main.simf", 'fn main () {', '}'),
-    Fields.Witness("src/main.wit", ' '),
+    Fields.Witness("src/main.wit", 
+      Fields.WitnessRow('u32', 'ORACLE_HEIGHT', '1000'),
+      Fields.WitnessRow('u32', 'ORACLE_PRICE',  '100000'),
+      Fields.WitnessRow('sig', 'ORACLE_SIG',    ''),
+      Fields.WitnessRow('sig', 'OWNER_SIG',     '')),
   ],
 
   Esm: ({
