@@ -153,7 +153,7 @@
 
 .fn {
   input, textarea { background: none }
-  .keyword, input { padding: 0.25rem; height; 1.5rem; line-height: 1rem; }
+  .keyword, input { padding: 0.25rem; height: 1.5rem; line-height: 1rem; }
   .keyword { display: inline-block; font-style: italic }
   &:hover { input, textarea { background: none } }
   .command { opacity: 0.8 }
