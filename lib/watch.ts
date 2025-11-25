@@ -26,13 +26,15 @@ export async function watch (mode: Fn<[string, string[]]>, options: unknown[]) {
   // main update function
   async function update ({
     force = false, kind = null, paths = [],
-    filter = (x: string) => !(
+    filter = (x: string = '') => !(
+      (!x)||
+      (x.length===0)||
       x.endsWith('~')||
       x.includes('/.git/')||
       x.includes('/toolbox/')||
       x.includes('/coverage/')||
       x.includes('/.deno.lock')||
-      x.includes('/node_modules/.deno/')
+      x.includes('/node_modules/.deno')
     ),
   } = {}) {
     // non-forced updates go through the debounce
@@ -40,11 +42,11 @@ export async function watch (mode: Fn<[string, string[]]>, options: unknown[]) {
       // ignore access events; todo: configurable
       if (kind === 'access') return;
       // ignore paths we don't care about
-      paths = paths.filter(filter);
+      paths = paths.map(toRealPath).filter(filter).map(x=>x.trim());
       // skip if only ignored paths were updated
       if (paths.length === 0) return;
       // convert paths to relative and filter again
-      paths = paths.map(toRealPath).filter(Boolean).map(toRelativePath(cwd()));
+      paths = paths.filter(Boolean).map(toRelativePath(cwd()));
       // log update at bottom left corner
       stdout.write(`\x1b[${stdout.rows||1};1H` + `\x1b[0K`
         + blue(bold(kind) + ' ' + paths.join(', ').slice(0, stdout.columns)));
