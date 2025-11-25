@@ -41,7 +41,6 @@ export function Name <T, U> (name: string, named: T, props?: U): T & U & Name {
   **/
 export const todo = (...info: string[]) => Name(info.join(' '),
   function trackTodo (_context: unknown) {
-    console.trace({info});
     throw Object.assign(new Error(info.join(' ')), { todo: true })
   }, { info, todo: true, skip: true });
 

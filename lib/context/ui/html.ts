@@ -1,14 +1,15 @@
 import { domAttrs, domParse } from './dom.ts';
+import { Svg } from './svg.ts';
 
 /** Create a DOM tree in a DocumentFragment. */
 export const Html = Object.assign(
   function Html (...args: unknown[]): DocumentFragment {
     // Canonical input form is one or more nested tuples at top:
     // `DOM('div', 'content', [...]) -> `DOM(['div', 'content', [...]])`
-    if (args[0] && !args[0][Symbol.iterator]) return DOM(args);
+    if (args[0] && !args[0][Symbol.iterator]) return Html(args);
     // Collect elements:
     const frag = new DocumentFragment();
-    for (const arg of args) domAdd(frag, arg);
+    for (const arg of args) htmlAdd(frag, arg);
     return frag;
   }, {
     append (el: Node, ...els: Node[]) {
@@ -18,7 +19,7 @@ export const Html = Object.assign(
     }
   });
 
-function domAdd (frag: DocumentFragment, arg: unknown[]) {
+function htmlAdd (frag: DocumentFragment, arg: unknown) {
   // Falsy args are skipped.
   if (!arg) return;
   // Non-tuples shouldn't be here.
@@ -30,7 +31,7 @@ function domAdd (frag: DocumentFragment, arg: unknown[]) {
   const { tag, id, attrs = {}, classes = [] } = domParse(spec);
   // SVG must be handled in separate namespace:
   if (tag === 'svg') {
-    const svg = SVG(arg);
+    const svg = Svg(arg);
     frag.appendChild(svg.firstChild);
     return;
   }
@@ -51,7 +52,7 @@ function domAdd (frag: DocumentFragment, arg: unknown[]) {
         el.appendChild(prop);
       } else if (prop[Symbol.iterator]) {
         // Iterables are added as nested DOM tuples:
-        el.appendChild(DOM(prop));
+        el.appendChild(Html(prop));
       } else {
         // Non-iterables are merged onto the element:
         for (const [k, v] of Object.entries(prop)) {

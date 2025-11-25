@@ -1,11 +1,15 @@
 import { domAttrs, domParse } from './dom.ts';
 
+globalThis.document ??= {
+  createElementNS: () => ({}),
+};
+
 /** Create a SVG tree in a DocumentFragment.
   *
   * This mirrors the logic of DOM but in the SVG namespace.
   * TODO: Abstract. */
 export function Svg (...args: unknown[]): SVGSVGElement {
-  if (args[0] && !args[0][Symbol.iterator]) return SVG(args);
+  if (args[0] && !args[0][Symbol.iterator]) return Svg(args);
   const frag = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   for (const arg of args) svgAdd(frag, arg);
   return frag;

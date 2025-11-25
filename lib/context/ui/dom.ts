@@ -1,5 +1,7 @@
 // TODO: abstract shared logic between html and svg here
 
+globalThis.DocumentFragment ??= class {} as unknown as typeof DocumentFragment;
+
 // Properly set element attributes.
 export function domAttrs (element: Element, attributes: Record<string, string>) {
   // Wrap each KV pair into attribute node:
