@@ -1,16 +1,16 @@
 #!/usr/bin/env -S deno run --allow-read --allow-env --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443 --allow-net=127.0.0.1:18443
 import { Test, Temp, joined, Log, } from '../index.ts';
-import { Simplicity } from './simf.ts';
+import { Simf } from './simf.ts';
 const { the, is, has, includes, } = Test;
 const name = 'Hello';
 const mock = () => { const mocked = []; return { path: '/mock/', mocked, mkdir: mock, writeFile: mock }; };
 const config = { name, source: Example() };
 const log = x => (...y: unknown[]) => Log(x).log(...y);
-export default Test.suite(import.meta, 'Simplicity',
-  the('Project', () => { return Simplicity(config) },
+export default Test.suite(import.meta, 'Simf',
+  the('Project', () => { return Simf(config) },
     is('object'),
     has('write', 'function'),
-    the('Write', async (p: Simplicity) => {
+    the('Write', async (p: Simf) => {
       console.log(0, p.write);
       console.log(1, await p.write());
       console.log(2, await p.write(mock()));
@@ -21,14 +21,14 @@ export default Test.suite(import.meta, 'Simplicity',
       has('paths',
         has('/mock/README.md',    includes(name)),
         has(`/mock/${name}.simf`, includes(Example()))))),
-  the('Compiler', () => Temp('simf', Simplicity)(config),
-    the('Write', (p: Simplicity) => p.write()),
+  the('Compiler', () => Temp('simf', Simf)(config),
+    the('Write', (p: Simf) => p.write()),
     is('object'),
     has('build'),
-    the('Build', (p: Simplicity) => p.build())),
+    the('Build', (p: Simf) => p.build())),
   the('Run'));
 
-    //the('Run',   (p: Simplicity) => Btc(p.run)()))));
+    //the('Run',   (p: Simf) => Btc(p.run)()))));
 export function Example () {
   return joined('\n', [
     `fn main() {`,

@@ -4,7 +4,6 @@ import Context  from './context.test.ts';
 import Platform from './platform.test.ts';
 import Watch    from './watch.test.ts';
 import { Test, traceConsole } from "./context.ts";
-traceConsole();
 export default Test.suite(import.meta, 'Fadroma',
   Format,
   Context,

@@ -5,15 +5,21 @@ import { Editor } from './Editor.ts';
 import { Feature } from './Feature.ts';
 
 export const Config = Object.assign(function initConfig (
-  el = elById("sidebar")
+  el     = elById("sidebar"),
+  elEnv  = elById('sidebar-env'),
+  elBtc  = elById('sidebar-btc'),
+  elEs   = elById('sidebar-es'),
+  elRust = elById('sidebar-rust'),
+  elSol  = elById('sidebar-sol'),
+  elTm   = elById('sidebar-tm')
 ) {
   on(el, "change", Editor.update);
-  DOM.append(el, DOM(['ul.features', ...Config.Env()]));
-  DOM.append(el, DOM(['ul.features', ...Config.Btc()]));
-  DOM.append(el, DOM(['ul.features', ...Config.Ecma()]));
-  DOM.append(el, DOM(['ul.features', ...Config.Rust()]));
-  DOM.append(el, DOM(['ul.features', ...Config.Sol()]));
-  DOM.append(el, DOM(['ul.features', ...Config.Tm()]));
+  DOM.append(elEnv,  DOM(['ul.features', ...Config.Env()]));
+  DOM.append(elBtc,  DOM(['ul.features', ...Config.Btc()]));
+  DOM.append(elEs,   DOM(['ul.features', ...Config.Ecma()]));
+  DOM.append(elRust, DOM(['ul.features', ...Config.Rust()]));
+  DOM.append(elSol,  DOM(['ul.features', ...Config.Sol()]));
+  DOM.append(elTm,   DOM(['ul.features', ...Config.Tm()]));
   return el;
 }, {
 
@@ -31,21 +37,19 @@ export const Config = Object.assign(function initConfig (
   ],
 
   Ecma: () => [
-    Feature(0, "enable:js", "ECMAScript",
-      "JavaScript/TypeScript SDK."),
-    Feature(1, "enable:deno", "Deno",
+    Feature(0, "enable:deno", "Deno",
       "Run on next-gen TS/JS runtime by default.",
       ["@std", urls.denoStd],
       ["API",  urls.denoApi]),
-    Feature(1, "enable:node", "Node.js",
+    Feature(0, "enable:node", "Node.js",
       ["Will use ", Link(urls.tsxNpm, "tsx"), " to run TypeScript."],
       ["API", urls.nodeApi]),
-    Feature(1, "enable:pnpm", "PNPM",
+    Feature(0, "enable:pnpm", "PNPM",
       ["Recommended package manager."],
       ["Compare", urls.pnpmCompare]),
-    Feature.Disabled(1, "enable:eslint", "ESLint", "Static analyzer.",
+    Feature.Disabled(0, "enable:eslint", "ESLint", "Static analyzer.",
       ["Config", urls.eslintConf]),
-    Feature.Disabled(1, "enable:vite", "Vite", "Build your front-end in the same repo."),
+    Feature.Disabled(0, "enable:vite", "Vite", "Build your front-end in the same repo."),
   ],
 
   Env: () => [

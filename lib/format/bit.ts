@@ -1,17 +1,15 @@
 import { Name } from './function.ts';
-/** False, zero, empty string, null, undefined, zip, nada, zilch. */
-export type Falsy = 0 | '' | false | null | undefined;
-/** Null or undefined. */
-export type Nullish = null | undefined;
+/** Null, undefined, or false. */
+export type Nil = null | undefined | false;
 /** Soft optional. */
-export type Maybe<T> = T|Falsy;
+export type Maybe<T> = T|Nil;
 /** A binary flag helper. */
-export type Flag = ((_?: number|[number]|Uint8Array) => boolean) & {
+export type Bit = ((_?: number|[number]|Uint8Array) => boolean) & {
   bit:  number,
   mask: number,
 };
 /** Specify a flag. */
-export const Flag = (name: string, bit: number): Flag =>
+export const Bit = (name: string, bit: number): Bit =>
   Name(`bit ${bit}: ${name}`, function testFlag (
     value: number|[number]|Uint8Array = null
   ): boolean {
@@ -20,4 +18,4 @@ export const Flag = (name: string, bit: number): Flag =>
     const mask = 1 << bit;
     const masked = Number(value) & mask;
     return masked !== 0;
-  } as Flag, { bit, mask: 1 << bit });
+  } as Bit, { bit, mask: 1 << bit });

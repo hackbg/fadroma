@@ -1,20 +1,24 @@
-import type { Fn } from '../index.ts';
-import { env, stdout, stderr, process, getCreateLogUpdate, inspect } from '../deps.ts';
-import { joined, Ansi, stackTrace } from '../format.ts';
+import type { Fn } from '../../index.ts';
+import { env, stdout, stderr, process, getCreateLogUpdate, inspect } from '../../deps.ts';
+import { joined, Ansi, stackTrace } from '../../format.ts';
+
 const { red, yellow, dim, gray, blue } = Ansi;
+
 const createLogUpdate = ('stderr' in process) ? await getCreateLogUpdate() : null;
-/** Logging interface. */
-export type Log = {
+
+/** Logger. */
+export interface Log {
   prefix:     string,
   format?:    Fn<unknown[], string>,
   formatOne?: Fn<[string],  string>,
-  info  (...args: unknown[]): unknown;
-  log   (...args: unknown[]): unknown;
-  debug (...args: unknown[]): unknown;
-  warn  (...args: unknown[]): unknown;
-  error (...args: unknown[]): unknown;
-  trace (...args: unknown[]): unknown;
+  info:       Fn;
+  log:        Fn;
+  debug:      Fn;
+  warn:       Fn;
+  error:      Fn;
+  trace:      Fn;
 };
+
 /** Create logger. */
 export function Log <T extends Log> (
   context: Partial<T> = {},
@@ -46,6 +50,7 @@ export function Log <T extends Log> (
   }
   return context as T;
 }
+
 /** Enable tracing for all `console.log` calls,
   * colorize them, and reroute to stderr. */
 export function traceConsole () {

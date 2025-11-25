@@ -1,8 +1,8 @@
-import type { Fn, Stringy } from '../index.ts';
+import type { Fn, Str } from '../index.ts';
 import { cwd } from '../deps.ts';
 import { bold, gray } from './ansi.ts';
 
-export function formatError (e: Error, name?: Stringy) {
+export function formatError (e: Error, name?: Str) {
   const [head, ...tail] = (e?.stack||'').split('\n');
   const stack = tail.map(x=>x
     .replace('('+cwd()+'/', '(')

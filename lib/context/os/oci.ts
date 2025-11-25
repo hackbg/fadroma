@@ -1,4 +1,4 @@
-import type { StepsWith } from '../index.ts';
+import type { StepsWith } from '../../index.ts';
 
 /** TODO: A context for building and running containers
   * either via Podman/Buildah, or via Docker. */

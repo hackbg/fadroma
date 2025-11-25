@@ -1,4 +1,4 @@
-#sidebar
+[id^=sidebar]
 { min-width: 30vw;
   max-width: 48%;
   padding-right: 0.5rem;

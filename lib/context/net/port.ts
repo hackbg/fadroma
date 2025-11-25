@@ -1,9 +1,12 @@
-import type { Step, Fn } from '../index.ts';
-import { Error, Name, Pipe } from '../format.ts';
-import { Socket } from '../deps.ts';
+import type { Step, Fn } from '../../index.ts';
+import { Error, Name, Pipe } from '../../format.ts';
+import { Socket } from '../../deps.ts';
 
 /** Keep track of port assignments. */
-export type Ports<T = unknown> = { ports: Record<number, T> };
+export interface Ports<T = unknown> {
+  ports: Record<number, T>
+};
+
 /** Add ports to context. */
 export function Ports (context = {}, ...fns: Fn[]) {
   return Pipe(...fns)({ ports: {}, ...context })
@@ -228,4 +231,3 @@ export function portWait <T> ({
 //export { backOff } from 'exponential-backoff'
 //export * from './port-endpoint'
 //export * from './port-wait'
-

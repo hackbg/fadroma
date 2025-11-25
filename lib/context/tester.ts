@@ -1,6 +1,6 @@
 import type { Fn, Reflects, Async, Prototype, Meta } from '../index.ts';
-import { Log } from './log.ts';
-import { ok, equal, throws, rejects, stdout, exit, argv,
+import { Log, traceConsole } from './ui/log.ts';
+import { ok, equal, throws, rejects, stdout, argv,
   setImmediate, inspect } from '../deps.ts';
 import { Ansi, Error, Name, Seq, Step as toStep,
   spaced, lines, msec, toString, merged, isMain,
@@ -36,6 +36,7 @@ export function suite (meta: Meta, name: string, ...steps: (Step|string)[]) {
 };
 /** Run single test step, then exit interpreter. */
 async function testAndExit (test: Step, args: string[]) {
+  traceConsole();
   const context = await Testing({ args });
   try {
     await testRun(test, args, context);
@@ -48,7 +49,7 @@ const testRun = async <T extends Testing> (
   test: Step<T>, _args?: string[], context?: Async<T>
 ): Promise<{ context: Testing, result: Result }> => ({
   context: (context = await (context || Testing())) as T,
-  result:  await withInfiniteStack(Step(test), undefined, context) as T
+  result: await withInfiniteStack(Step(test), undefined, context) as T
 });
 /** Test stack and context. Passed to eacgh step as second argument. */
 export type Testing = Stack & Log & Result & Options & Categories;
@@ -200,7 +201,13 @@ export type Result = {
   *
   **/
 export function the <T extends Testing, U> (
-  name: string|null, step0?: Fn<unknown[], U>, step1?: Fn<[U, T], unknown>, ...steps: unknown[]
+  name: string|null,
+  step0?: Fn<unknown[], U>,
+  step1?: Fn<[U, T], unknown>,
+  ...steps: unknown[]
+): Step<T, void>;
+export function the <T extends Testing> (
+  name: string|null, ...steps: (Step<T>|string)[]
 ): Step<T, void>;
 export function the <T extends Testing> (
   name: string|null, ...steps: (Step<T>|string)[]

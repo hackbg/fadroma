@@ -1,6 +1,6 @@
-import type { Async, AsyncIter, Log, Reader } from '../../index.ts';
-import { Connect, Listen } from '../../context.ts';
-import { UTF8, Bytes, Fn, Name, Pipe, Flag,
+import type { Async, AsyncIter, Log } from '../../index.ts';
+import { Tcp } from '../../context.ts';
+import { UTF8, Bytes, Fn, Name, Pipe, Bit,
   readBytes, readUntilDone, write, merged } from '../../format.ts';
 /** A ZeroMQ connection. */
 export type Conn = (AsyncIter<Frame> & ConnOpts) | { socket?: unknown };
@@ -25,7 +25,7 @@ export const Pub = merged(function zmqPub (at: number|string|URL, handler: Fn<[u
     let stopped  = false;
     const send   = (..._: unknown[]) => { throw new Error('zmq pub send: not implemented') };
     const close  = () => { stopped = true; (socket as any).close(); };
-    const socket = await Listen(at, async connection => {
+    const socket = await Tcp.Listen(at, async connection => {
       connection.on('error', error => { throw error });
       await Pub.shake(connection);
       return handler(connection);
@@ -45,7 +45,7 @@ export const Sub = merged(async function zmqSub (to: number|string|URL, handler:
   return Name(`ZMQ SUB ${to}`, async function zmqSubscriber (
     _: unknown
   ): Promise<Sub> {
-    const socket = await Connect(to);
+    const socket = await Tcp.Connect(to);
     await Sub.shake(socket);
     const subscribe = async (topicName: string) => {
       const topic = UTF8.encode(topicName) as Uint8Array;
@@ -115,8 +115,8 @@ function zmqHello (input?: unknown): Hello & Bytes {
 /** A ZeroMQ frame packet. */
 export type Frame = Flags & { size: number, command?: Cmd, offset?: number, payload?: Bytes };
 /** Known ZeroMQ frame flags. */
-export type Flags = { more: Flag, long: Flag, cmd: Flag, };
-export const Flags = { cmd: Flag('CMD', 2), long: Flag('LONG', 1), more: Flag('MORE', 0), };
+export type Flags = { more: Bit, long: Bit, cmd: Bit, };
+export const Flags = { cmd: Bit('CMD', 2), long: Bit('LONG', 1), more: Bit('MORE', 0), };
 export const Frame = merged(zmqFrame, {
   read:  Pipe(readUntilDone, zmqFrame),
   write: (frame: Frame) => w => w.write(zmqFrame(frame)),

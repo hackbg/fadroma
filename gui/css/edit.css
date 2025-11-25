@@ -1,4 +1,10 @@
-#editors {
+[id^=editors] {
+  align-self: stretch;
+  background: #ccc8;
+}
+
+.editors {
+  background: #d4d4d4;
   min-width:  48vw;
   display:    flex;
   flex-flow:  column;
@@ -41,11 +47,15 @@
     &:focus
     { background: #fff; } };
 
-  .field .name
-  { text-transform: none; }
+  .field .name {
+    text-transform: none;
+  }
 
-  .field.file .name
-  { font-size: 1rem; min-height: 2rem; } }
+  .field.file .name {
+    font-size:  1rem;
+    min-height: 1.5rem;
+  }
+}
 
 .field .name
 { color:          #555;

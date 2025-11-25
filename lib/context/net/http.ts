@@ -1,28 +1,27 @@
-import type { Fn, Step } from '../index.ts';
-import { HttpServer } from '../deps.ts';
-import { Pipe, Name } from '../format.ts';
+import type { Fn, Step } from '../../index.ts';
+import { HttpServer } from '../../deps.ts';
+import { Pipe, Name } from '../../format.ts';
 import { tcpAddr } from './tcp.ts';
 import { Ports } from './port.ts';
 
 /** HTTP context. */
-export type Http = Ports & {
-  serve (at: number, handler: Fn<[Request]>): Server,
+export interface Http extends Ports {
+  serve (at: number, handler: Fn<[Request]>): Http.Server,
   fetch (url: string|URL): Promise<ReturnType<typeof fetch>>,
 };
 
-export type Server = { url?: URL } & Router;
-
-/** URL router. */
-export type Router = { url?: string, method?: string, body?: string };
-
-/** URL route. */
-export type Route = <T extends Request>(_: unknown, ...handlers: Fn<[T]>[]) => Fn<[T]>;
-
-/** URL route handler. */
-export type Handler = Step<Router>;
+export namespace Http {
+  export type Server = { url?: URL } & Router;
+  /** URL router. */
+  export type Router = { url?: string, method?: string, body?: string };
+  /** URL route. */
+  export type Route = <T extends Request>(_: unknown, ...handlers: Fn<[T]>[]) => Fn<[T]>;
+  /** URL route handler. */
+  export type Handler = Step<Router>;
+}
 
 /** Define HTTP server. */
-export const serveHttp = (at: number|string|URL, ...routes: Handler[]) => {
+export const serveHttp = (at: number|string|URL, ...routes: Http.Handler[]) => {
   at = tcpAddr(at);
   return Name(`HTTP ${at.toString()}`,
     function runHttpServer (ctx: Ports = Ports()): HttpServer {
@@ -45,8 +44,8 @@ export const route = (path, ...routes) => Name(path,
 export const matchRoute = (expected) => (actual) => false; // TODO
 
 /** Only handle if HTTP method matches. */
-export const method = (method, ...routes: Route[]) => Name(method,
-  async function onMethod (context: Router) {
+export const method = (method, ...routes: Http.Route[]) => Name(method,
+  async function onMethod (context: Http.Router) {
     if (context.method === method) return Pipe(...routes)(context);
   }, { method, routes });
 
@@ -62,7 +61,7 @@ export const param = (name: string, fn) =>
     req.params[name] = await fn(req);
 
 /** If condition doesn't match, return with specified code. */
-export const guard = (code: number, ...handlers: Handler[]) =>
+export const guard = (code: number, ...handlers: Http.Handler[]) =>
   async (req: Request & { params: Record<string, unknown> }) => {
     if (!await (Pipe(...handlers)(req))) return code };
 
@@ -89,4 +88,3 @@ export const guard = (code: number, ...handlers: Handler[]) =>
   //}
   //_get = http.get
 //}
-

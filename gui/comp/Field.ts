@@ -16,7 +16,7 @@ export const Field = Name('Field', function ({ id, collapsed = true, header = []
     (['svg.icon', [`use[href=${'icons.svg#'+(collapsed?'chevron-right':'chevron-down')}]`]]),
 
   Header: (id: string, ...header: unknown[]) =>
-    (['div.flex.row',
+    (['div.flex.row.align-center',
       ['div.name', Field.toggle(id), id],
       ['div.handle-h', Field.toggle(id)],
       ...header]),

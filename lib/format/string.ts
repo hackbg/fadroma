@@ -1,10 +1,36 @@
-import type { Falsy, Bytes } from '../index.ts';
+import type { Maybe, Bytes } from '../index.ts';
 import { Case, stdout } from '../deps.ts';
 import { NO_COLOR } from './ansi.ts';
 import { Fn, identity } from './function.ts';
-
 /** String, or something with a `toString` method. */
-export type Stringy = string|{ toString(): string };
+export type Str = string|{ toString(): string };
+/** Concatenate strings. */
+export function Str (...strs: Array<Maybe<Str>|Array<Maybe<Str>>>) {
+  return chunks(...strs).join('');
+}
+/** Flatten and filter nested arrays of strings. */
+export const chunks = (...strs: Array<Maybe<Str>|Array<Maybe<Str>>>) =>
+  strs.flat().filter(Boolean).map(x=>x!.toString());
+/** Join nested arrays of strings. */
+export const joined = (joiner: string, ...strs: Array<Maybe<Str>|Array<Maybe<Str>>>) =>
+  chunks(...strs).join(joiner);
+export const glued  = Fn(joined, '');
+export const spaced = Fn(joined, ' ');
+export const lines  = Fn(joined, '\n');
+export const joiner = (x?: Str, y = ' ') => x ? (x.toString() + y) : '';
+export function chunked (separator: string = '') {
+  return function unchunk (...chunks: unknown[]): string {
+    let buffer = '';
+    let first = true;
+    for (let chunk of chunks) {
+      if (!chunk) continue;
+      if (typeof chunk !== 'string') chunk = unchunk(...chunk as unknown[]);
+      if (first) { first = false } else { buffer += separator; }
+      buffer += chunk;
+    }
+    return buffer
+  }
+}
 
 export const UTF8 = {
   encoder: new TextEncoder(),
@@ -22,21 +48,6 @@ export const UTF8 = {
     return UTF8.decoder.decode(x); // TODO optimize
   },
 }
-
-export const chunks = (...strs: Array<Falsy|Stringy|Array<Falsy|Stringy>>) =>
-  strs.flat().filter(Boolean).map(x=>x!.toString());
-
-export const str = (...strs: Array<Falsy|Stringy|Array<Falsy|Stringy>>) =>
-  chunks(...strs).join('');
-
-export const joined = (joiner: string, ...strs: Array<Falsy|Stringy|Array<Falsy|Stringy>>) =>
-  chunks(...strs).join(joiner);
-
-export const glued  = Fn(joined, '');
-export const spaced = Fn(joined, ' ');
-export const lines  = Fn(joined, '\n');
-
-export const joiner = (x?: Stringy, y = ' ') => x ? (x.toString() + y) : '';
 
 export const see = (arg: unknown) => {
   const color = !NO_COLOR // FIXME move these to color.ts:
@@ -156,19 +167,5 @@ export function toString <T> (stringOrToString: (string|((_:T)=>string))) {
     Object.setPrototypeOf(mixin, proto);
     Object.setPrototypeOf(object, mixin);
     return object;
-  }
-}
-
-export function chunked (separator: string = '') {
-  return function unchunk (...chunks: unknown[]): string {
-    let buffer = '';
-    let first = true;
-    for (let chunk of chunks) {
-      if (!chunk) continue;
-      if (typeof chunk !== 'string') chunk = unchunk(...chunk as unknown[]);
-      if (first) { first = false } else { buffer += separator; }
-      buffer += chunk;
-    }
-    return buffer
   }
 }

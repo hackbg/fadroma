@@ -1,7 +1,7 @@
 /** ANSI colors. */
 
 // TODO id -> color registry
-import type { Stringy } from '../index.ts';
+import type { Str } from '../index.ts';
 import { env } from '../deps.ts';
 
 export const ifColor  = x => NO_COLOR ? '' : x;
@@ -22,16 +22,16 @@ export const ORANGE   = FG255(208);
 export const reset  = (...args: unknown[]) => [...args, RESET].join('');
 export const fg255  = (x: number) => (text: string) => `\x1b[38;5;${x}m`+`${text}${RESET}`;
 export const bg255  = (x: number) => (text: string) => `\x1b[48;5;${x}m`+`${text}${RESET}`;
-export const bold   = (...x: Stringy[]) => reset(BOLD, ...x);
-export const dim    = (...x: Stringy[]) => reset(DIM, ...x);
-export const red    = (...x: Stringy[]) => reset(RED, ...x);
-export const green  = (...x: Stringy[]) => reset(GREEN, ...x);
-export const yellow = (...x: Stringy[]) => reset(YELLOW, ...x);
-export const blue   = (...x: Stringy[]) => reset(BLUE, ...x);
-export const purple = (...x: Stringy[]) => reset(PURPLE, ...x);
-export const orange = (...x: Stringy[]) => reset(ORANGE, ...x); // FIXME
+export const bold   = (...x: Str[]) => reset(BOLD, ...x);
+export const dim    = (...x: Str[]) => reset(DIM, ...x);
+export const red    = (...x: Str[]) => reset(RED, ...x);
+export const green  = (...x: Str[]) => reset(GREEN, ...x);
+export const yellow = (...x: Str[]) => reset(YELLOW, ...x);
+export const blue   = (...x: Str[]) => reset(BLUE, ...x);
+export const purple = (...x: Str[]) => reset(PURPLE, ...x);
+export const orange = (...x: Str[]) => reset(ORANGE, ...x); // FIXME
 
-export const gray = (depth: number, x: Stringy) => reset(GRAY(depth), x);
+export const gray = (depth: number, x: Str) => reset(GRAY(depth), x);
 export const GRAY = (depth: number) => [
   '\x1b[38;5;255m',
   '\x1b[38;5;254m',

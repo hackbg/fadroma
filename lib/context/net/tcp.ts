@@ -1,8 +1,7 @@
-import type { Fn } from '../index.ts';
-import type { Socket } from '../deps.ts';
-import { createTcpServer, createConnection } from '../deps.ts';
+import type { Fn } from '../../index.ts';
+import type { Socket } from '../../deps.ts';
+import { createTcpServer, createConnection } from '../../deps.ts';
 
-export type Listen = {};
 export function Listen (at: number|string|URL, handler: Fn<[Socket]>) {
   const { port, hostname } = tcpAddr(at);
   const server = createTcpServer(handler);
@@ -16,7 +15,6 @@ export function Listen (at: number|string|URL, handler: Fn<[Socket]>) {
   });
 };
 
-export type Connect = {};
 export function Connect (to: number|string|URL) {
   const { port, hostname } = tcpAddr(to);
   return createConnection({ port: Number(port), host: hostname });

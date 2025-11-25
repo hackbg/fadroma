@@ -1,5 +1,5 @@
 import { Service, Dir, Exec, Spawn, Port } from '../context.ts';
-import { Fn, Name, joined, merged } from '../format.ts';
+import { Fn, joined, merged } from '../format.ts';
 import { Sub } from './btc/zeromq.ts';
 
 export function Btc (...options: Partial<Btc>[]): Btc {

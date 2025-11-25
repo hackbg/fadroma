@@ -3,22 +3,31 @@ import { Name, DOM } from '../../lib/index.ts';
 import { zipSync, zipStr } from '../../lib/deps.ts';
 import { Field } from './Field.ts';
 import { Fields } from './Fields.ts';
-export const Editor = Name('Editor', function initEditor (el = elById("editors"), {
-  btc     = true,
-  element = true,
-  simf    = true,
-  nix     = true,
-  direnv  = true,
-  node    = true,
-  deno    = true,
-  vite    = false,
-} = {}) {
-  pinSize(el, () => {
-    el.innerHTML = '';
-    el.appendChild(DOM(['div.box', ...Editor.Env({ btc, element, simf, nix, direnv })]));
-    el.appendChild(DOM(['div.box', ...Editor.Simf()]));
-    el.appendChild(DOM(['div.box', ...Editor.Esm({ btc, simf, node, deno, vite })]));
-  });
+export const Editor = Name('Editor', function initEditor (
+  el     = elById("editors"),
+  elEnv  = elById('editors-env'),
+  elBtc  = elById('editors-btc'),
+  elEs   = elById('editors-es'),
+  elRust = elById('editors-rust'),
+  elSol  = elById('editors-sol'),
+  elTm   = elById('editors-tm'),
+  options = {
+    btc:     true,
+    element: true,
+    simf:    true,
+    nix:     true,
+    direnv:  true,
+    node:    true,
+    deno:    true,
+    vite:    false,
+  }
+) {
+  DOM.append(elEnv,  DOM(['div.box.editors', ...Editor.Env(options)]));
+  DOM.append(elBtc,  DOM(['div.box.editors', ...Editor.Simf(options)]));
+  DOM.append(elEs,   DOM(['div.box.editors', ...Editor.Esm(options)]));
+  DOM.append(elRust, DOM(['div.grow']));
+  DOM.append(elSol,  DOM(['div.grow']));
+  DOM.append(elTm,   DOM(['div.grow']));
   el.querySelectorAll('textarea').forEach(Field.computeHeight);
   return el
 }, {
