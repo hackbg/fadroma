@@ -1,10 +1,10 @@
-import type { Fn, Reflects, Async, Prototype, Meta } from '../index.ts';
-import { Log, traceConsole } from './ui/log.ts';
+import type { Fn, Async, Prototype, Meta } from './index.ts';
+import { Log, traceConsole } from './context.ts';
 import { ok, equal, throws, rejects, stdout, argv,
-  setImmediate, inspect } from '../deps.ts';
-import { Ansi, Error, Name, Seq, Step as toStep,
-  spaced, lines, msec, toString, merged, isMain,
-  todo, withInfiniteStack, alignTrace } from '../format.ts';
+  setImmediate, inspect } from './deps.ts';
+import { Ansi, Error, Main, Name, Seq, Step as toStep,
+  spaced, lines, msec, toString, merged,
+  todo, withInfiniteStack, alignTrace } from './format.ts';
 /** Test entrypoint. When test module is run (not imported),
   * tests in the `suite` run, and a report is printed.
   *
@@ -30,27 +30,21 @@ import { Ansi, Error, Name, Seq, Step as toStep,
   **/
 export function suite (meta: Meta, name: string, ...steps: (Step|string)[]) {
   const suite = the(name, ...steps);
-  const enter = isMain(meta, argv[1]);
-  if (enter) setImmediate(()=>testAndExit(suite, argv.slice(2)));
+  const enter = Main.is(meta, argv[1]);
+  if (enter) setImmediate(async function runTestSuite () {
+    const args = argv.slice(2);
+    traceConsole();
+    const context = await Testing({ args });
+    try {
+      // Run test suite, collecting results into test report.
+      await withInfiniteStack(Step(suite), undefined, context);
+    } finally {
+      // Print test report.
+      stdout.write('\n' + lines(Report({ context })) + '\n');
+    }
+  });
   return suite as Step;
 };
-/** Run single test step, then exit interpreter. */
-async function testAndExit (test: Step, args: string[]) {
-  traceConsole();
-  const context = await Testing({ args });
-  try {
-    await testRun(test, args, context);
-  } finally {
-    stdout.write('\n' + lines(testReport({ context })) + '\n');
-  }
-}
-/** Run test suite, collecting results into test report. */
-const testRun = async <T extends Testing> (
-  test: Step<T>, _args?: string[], context?: Async<T>
-): Promise<{ context: Testing, result: Result }> => ({
-  context: (context = await (context || Testing())) as T,
-  result: await withInfiniteStack(Step(test), undefined, context) as T
-});
 /** Test stack and context. Passed to eacgh step as second argument. */
 export type Testing = Stack & Log & Result & Options & Categories;
 /** Create empty test context. */
@@ -130,7 +124,7 @@ function Category (
   }, props)) as Category;
 }
 /** Collect summary of test results. */
-function testReport ({ context, details = [] }) {
+function Report ({ context, details = [] }) {
   let line = '';
   const thrown = new Set();
   for (const {threw, stack: origin} of context.fail.results) {
@@ -157,7 +151,7 @@ function testReport ({ context, details = [] }) {
 export type Frame = Name & { t0: number, index: number };
 /** Test step. */
 export type Step <C extends Testing = Testing, A = unknown, B = A> =
-  Reflects & ((_: A, __?: C) => Async<B>) & { skip?: boolean };
+  Fn.Reflects & ((_: A, __?: C) => Async<B>) & { skip?: boolean };
 /** Ensure test step is function. */
 function Step <T extends Testing>(step: Step<T>|string) {
   if (typeof step === 'string') return todo(step);

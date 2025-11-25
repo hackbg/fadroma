@@ -21,10 +21,12 @@ export namespace Http {
 }
 
 /** Define HTTP server. */
-export const serveHttp = (at: number|string|URL, ...routes: Http.Handler[]) => {
+export function Http (at: number|string|URL, ...routes: Http.Handler[]) {
   at = tcpAddr(at);
   return Name(`HTTP ${at.toString()}`,
-    function runHttpServer (ctx: Ports = Ports()): HttpServer {
+    function runHttpServer <P extends Ports> (ctx: P = Ports() as P):
+      HttpServer
+    {
       const { port, hostname = '127.0.0.1' } = at;
       const server = new HttpServer();
       server.listen(`${hostname}:${port}`);
@@ -35,10 +37,11 @@ export const serveHttp = (at: number|string|URL, ...routes: Http.Handler[]) => {
 }
 
 /** Define URL route. */
-export const route = (path, ...routes) => Name(path,
-  async function routeRequest (context: Request) {
+Http.Route = function httpRoute (path: string, ...routes) {
+  return Name(path, async function routeRequest (context: Request) {
     if (matchRoute(path)(context.url)) return Pipe(...routes)(context)
   }, { routes });
+}
 
 /** Match URL from request against route patterns. */
 export const matchRoute = (expected) => (actual) => false; // TODO
@@ -50,10 +53,10 @@ export const method = (method, ...routes: Http.Route[]) => Name(method,
   }, { method, routes });
 
 /** Only handle if HTTP method is GET. */
-export const get = (path, ...routes) => route(path, method('get', ...routes));
+export const get = (path, ...routes) => Http.Route(path, method('get', ...routes));
 
 /** Only handle if HTTP method is POST. */
-export const post = (path, ...routes) => route(path, method('post', ...routes));
+export const post = (path, ...routes) => Http.Route(path, method('post', ...routes));
 
 /** Set request parameter. */
 export const param = (name: string, fn) =>

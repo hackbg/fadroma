@@ -11,9 +11,10 @@ export async function denoCheck (
 ) {
   if (args.length === 0) args = ['index.ts'];
   try {
-    console.log(`\ndeno check -I`, ...args);
+    stdout.write('\x1b[3J');
+    stdout.write(`\x1b[${stdout.rows||1};1H` + `\x1b[0K`);
+    stdout.write([`Running`, bold([`deno check -I`, ...args].join(' '))].join(' '));
     const ran = await execImpl('deno', ["check", "-I", ...args]);
-    console.clear();
     console.log(yellow('stdout:'), ran.stdout);
     console.log(yellow('stderr:'), ran.stderr);
     console.log('🟢 The types check out.');

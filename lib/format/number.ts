@@ -48,7 +48,7 @@ export const pickRandom = <T>(set: Set<T>): T =>
   [...set][Math.floor(Math.random()*set.size)];
 /** Generate Uint8Array of given length. */
 export const randomBytes = (n: number = 16) =>
-  webcrypto.getRandomValues(new Uint8Array(n))
+  (webcrypto as any).getRandomValues(new Uint8Array(n));
 /** Generate random valid bech32 address.
   * Default length is 32 bytes (canonical addr in Cosmos) */
 export const randomBech32  = (prefix = 'hackbg', n = 32) =>

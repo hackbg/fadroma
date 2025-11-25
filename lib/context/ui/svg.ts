@@ -1,8 +1,8 @@
 import { domAttrs, domParse } from './dom.ts';
 
 globalThis.document ??= {
-  createElementNS: () => ({}),
-};
+  createElementNS: () => ({}) as any,
+} as any;
 
 /** Create a SVG tree in a DocumentFragment.
   *
@@ -30,7 +30,7 @@ function svgAdd (frag: SVGSVGElement, arg: unknown) {
       el.append(document.createTextNode(prop));
     } else if (typeof prop === 'object') {
       if (prop[Symbol.iterator]) {
-        SVG(prop).childNodes.forEach(n=>el.append(n));
+        Svg(prop).childNodes.forEach(n=>el.append(n));
       } else {
         for (const [k, v] of Object.entries(prop)) el[k] = v;
       }

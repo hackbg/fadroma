@@ -18,19 +18,15 @@ export function Btc (...options: Partial<Btc>[]): Btc {
     txIndex   = false,
     ...rest
   } = merged(...options);
-
-  const context = {
-    node, spawnNode,
-    cli, execCli,
+  const localnet = Service('BTC Localnet',
+    spawnNode,
+    Dir(walletDir,
+      execCli('createwallet', walletDir),
+      execCli(`-rpcwallet=${walletDir}`, '-generate')));
+  const context = { node, spawnNode, cli, execCli,
     regTest, rpcPort, rpcUser, rpcPass, rpcQueue,
     dataRoot, dataDir, walletDir, zmqPort, txIndex,
-    localnet: Service('BTC Localnet', () => spawnNode(),
-      Dir(walletDir, execCli('createwallet', walletDir),
-        execCli(`-rpcwallet=${walletDir}`, '-generate'))),
-    subscribe,
-    ...rest
-  };
-
+    localnet, subscribe, ...rest };
   function spawnNode (...args: string[]) {
     return Service(`Spawn(${node})`, Port(rpcPort, Dir(dataDir, 
       Spawn(node, '-server',

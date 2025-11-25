@@ -1,5 +1,5 @@
 #!/usr/bin/env -S deno run -I --coverage --allow-env --allow-net --allow-run --allow-read=/tmp/fadroma --allow-write=/tmp/fadroma
-import { suite, the, has, is, equals }  from "./tester.ts";
+import { suite, the, has, is, equals }  from "../tester.ts";
 import { execImpl, spawnImpl } from '../deps.ts';
 import { Dir, Temp, Zip, Txt, Bin } from './os/fs.ts';
 import { Exec, Spawn, Env } from './os/svc.ts';
@@ -9,11 +9,8 @@ import { Fn } from '../index.ts';
 export const testDir = the('Dir',
   the('Current', () => Dir(), is('function'), has('path', equals(''))), 
   the('Defined', () => Dir('test'), is('function'), has('path'),
-    async (d, { log }) => { log({d0:await d}); return d; },
     Name('Create', async (d: Fn, { log }) => {
-      log({d1:d});
       const result = await d(mock());
-      log({d2: result});
       return result })),
   the('Temp', () => { return Temp(); }, is('function'), has('prefix'),
     the('Create', (t: Fn) => { return t(mock()); },
@@ -27,10 +24,12 @@ export const testZip = the('Zip',
   has('name', 'string'),
   has('tree', 'object'),
   the('Write',
-    () => Dir(`/tmp/fadroma/${+new Date()}`,
-      Zip('helloworld.zip',
-        Dir('hello', Txt('hello.txt')),
-        Dir('world', Bin('world.bin')))),
+    () => {
+      const txt = Txt('hello.txt');
+      const bin = Bin('world.bin');
+      const zip = Zip('helloworld.zip', Dir('hello', txt), Dir('world', bin));
+      return Dir(`/tmp/fadroma/${+new Date()}`, zip)
+    },
     is('function'),
     has('path', 'string'),
     has('entries', 'object', 'Array'),
@@ -39,11 +38,17 @@ export const testZip = the('Zip',
     d => console.log(d)));
 
 export const testExec = the('Exec', () => Exec('true', 'foo', Env('ENV', "1")),
-  has({ command: 'true', options: ['foo'] }),
+  has('command', equals('true')),
+  has('options',
+    has('0', equals('foo')),
+    has('1', has('name', 'ENV'), has('value', '1'))),
   (exec: Fn) => exec({ exec: execImpl }));
 
 export const testSpawn = the('Spawn', () => Spawn('true', 'foo', Env('ENV', "2")),
-  has({ daemon: 'true', options: ['foo'] }),
+  has('daemon', equals('true')),
+  has('options',
+    has('0', equals('foo')),
+    has('1', has('name', 'ENV'), has('value', '1'))),
   (spawn: Fn) => spawn({ pids: {}, spawn: spawnImpl }),
   has('argv'), has('env'), has('pid'))
 

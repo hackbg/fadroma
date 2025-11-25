@@ -74,7 +74,7 @@ export function Main (
   alt?: unknown
 ) {
   const [_, argv1, ...args] = argv
-  if (isMain(meta || {}, argv1)) setImmediate(async ()=>{
+  if (Main.is(meta || {}, argv1)) setImmediate(async ()=>{
     try {
       await Promise.resolve(main(args));
       //exit(0);
@@ -88,11 +88,12 @@ export function Main (
   return main
 }
 
-export const isMain = (meta: boolean|Partial<ImportMeta>, argv1: string) =>
-  (!(meta === false)) && (false
+Main.is = function isMain (meta: boolean|Partial<ImportMeta>, argv1: string) {
+  return (!(meta === false)) && (false
     || (meta === true)
     || (!!meta?.main)
     || (meta?.url && fileURLToPath(meta?.url) == argv1));
+}
 
 /** Handle T or Promise<T> as Promise<T> */
 export type Async<T = unknown> = T|Promise<T>;
@@ -106,27 +107,23 @@ export const Async = <X, F extends (_: unknown)=>unknown> (
   ? (x as unknown as { then: (_:F)=>Promise<unknown> }).then(f)
   : f(x);
 
-/** Function arguments. */
-export type Takes<T extends unknown[]> = (...args: T) => unknown;
-
-/** Function return type. */
-export type Returns<T> = (...args: unknown[]) => T;
-
-/** Annotations added by [Name]. */
-export type Reflects<F extends Fn[] = Fn[]> = { stack?: string[], steps?: F };
-
 /** Gradually elaboratable function type. */
 export type Fn<Inputs extends unknown[] = unknown[], Output = unknown> =
-  & Takes<Inputs> & Returns<Output>;
-
+  Fn.Takes<Inputs> & Fn.Returns<Output>;
+export namespace Fn {
+  /** Function arguments. */
+  export type Takes<T extends unknown[]> = (...args: T) => unknown;
+  /** Function return type. */
+  export type Returns<T> = (...args: unknown[]) => T;
+  /** Annotations added by [Name]. */
+  export type Reflects<F extends Fn[] = Fn[]> = { stack?: string[], steps?: F };
+}
 /** A sequence of functions. */
 export type Pipe<Output, Inputs extends []> = 
-  Reflects & Fn<Inputs, Async<Output>>;
-
+  Fn.Reflects & Fn<Inputs, Async<Output>>;
 /** Part of a [Pipe]. */
 export type Step<T = unknown, U = T> =
-  Reflects & Takes<[T]> & Returns<Async<U>>;
-
+  Fn.Reflects & Fn.Takes<[T]> & Fn.Returns<Async<U>>;
 /** Add originating test step to stack trace.
   *
   * Since there is a degree of indirection involved when composing functions
@@ -140,11 +137,9 @@ export function Step (
   if (step.stack) error.stack += '\n  From:\n' + step.stack.join('\n')
   return error
 }
-
 /** A function that composes multiple steps into one step. */
 export type Steps<T = unknown, U = T> =
   (...steps: Step<T>[])  => Step<T, U>;
-
 /** A function that composes multiple steps and adds an annotation. */
 export type StepsWith<X = unknown, T = unknown, U = T> =
   (_: X, ...steps: Step<T>[]) => Step<T, U>;
@@ -289,8 +284,8 @@ export const when = (condition: boolean, ...fns: Step<unknown>[]) =>
 /** Specify a ternary condition. */
 export const either = <C> (
   condition:  boolean|((_: C)=>Async<boolean>),
-  whenTrue:   Takes<[C]>,
-  whenFalse?: Takes<[C]>
+  whenTrue:   Fn.Takes<[C]>,
+  whenFalse?: Fn.Takes<[C]>
 ) => Object.assign(async function branch (state: C) {
   if (typeof condition === 'function') condition = await condition(state);
   if (condition) return whenTrue(state);
@@ -300,15 +295,14 @@ export const either = <C> (
 /** Create promise, Leaking `resolve` and `reject` methods
   * from the executor, which allows the promise
   * to be resolved from elsewhere. */
-export const defer = (callback?) => {
-  let resolve, reject;
+export const defer = (callback?: Function) => {
+  let resolve: Function, reject: Function;
   const promise = new Promise((arg0, arg1)=>{
     resolve = arg0;
     reject  = arg1;
     if (callback) callback(resolve, reject);
   });
   return Object.assign(promise, { resolve, reject });
-  return promise
 }
 
 /** Object with Symbol.asyncIterator method. */

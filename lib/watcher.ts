@@ -2,8 +2,8 @@ import type { Meta } from './index.ts';
 import { Fn, Main, msec } from './format.ts';
 import { bold, blue } from './format/ansi.ts';
 import { cwd, resolvePath, realpathSync, stdout, watchFs } from './deps.ts';
-export * from './watch/denoCheck.ts';
-export * from './watch/runTest.ts';
+export * from './watcher/denoCheck.ts';
+export * from './watcher/runTest.ts';
 /** Entrypoint that reruns on file change. */
 export const entrypoint = function watchEntrypoint (
   meta: Meta, mode: Fn<[string, string[]]>, ...options: unknown[]
@@ -34,9 +34,11 @@ export async function watch (mode: Fn<[string, string[]]>, options: unknown[]) {
       x.includes('/toolbox/')||
       x.includes('/coverage/')||
       x.includes('/.deno.lock')||
+      x.includes('/.direnv/')||
       x.includes('/node_modules/.deno')
     ),
   } = {}) {
+    
     // non-forced updates go through the debounce
     if (!force) {
       // ignore access events; todo: configurable
@@ -48,8 +50,7 @@ export async function watch (mode: Fn<[string, string[]]>, options: unknown[]) {
       // convert paths to relative and filter again
       paths = paths.filter(Boolean).map(toRelativePath(cwd()));
       // log update at bottom left corner
-      stdout.write(`\x1b[${stdout.rows||1};1H` + `\x1b[0K`
-        + blue(bold(kind) + ' ' + paths.join(', ').slice(0, stdout.columns)));
+      stdout.write(blue(bold(kind) + ' ' + paths.join(', ').slice(0, stdout.columns)));
     }
     if (timer) clearTimeout(timer);
     timer = setTimeout(async () => {
@@ -58,7 +59,8 @@ export async function watch (mode: Fn<[string, string[]]>, options: unknown[]) {
         await mode(kind, paths, ...options)
       } finally {
         stdout.write(
-          `\x1b[${stdout.rows||1};${1}H` + blue('waiting for changes') +
+          `\x1b[${stdout.rows||1};${1}H` +
+          blue('Waiting for changes in ' + bold(cwd())) +
           `\x1b[${stdout.rows||1};1H` +
           `\x1b[${Math.max(0, stdout.columns - 10)}G` +
           blue(msec(performance.now() - t0)));

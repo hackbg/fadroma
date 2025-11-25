@@ -16,7 +16,7 @@ export const webcrypto = globalThis.crypto ?? (await import('node:crypto')).webc
 
 import process from 'node:process';
 export { process };
-export const { stdout, stderr, argv, env, cwd, exit } = process;
+export const { stdin, stdout, stderr, argv, env, cwd, exit } = process;
 
 export { realpathSync } from 'node:fs';
 export { mkdir, rm, mkdtemp, writeFile } from 'node:fs/promises';

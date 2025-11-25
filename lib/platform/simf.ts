@@ -8,12 +8,13 @@ export interface Simf {
   deposit:  Exec
   withdraw: Exec
 }
-/** Define Simplicity program. */
-export function Simf (path: string): Simf;
-/** Define Simplicity program's SDK entrypoint. */
-export function Simf (meta: Meta, path: string): Simf;
 /** Simplicity program constructor. */
-export function Simf (...args: unknown[]): Simf {
+export const Simf: {
+  /** Define Simplicity program. */
+  (path: string): Simf;
+  /** Define Simplicity program's SDK entrypoint. */
+  (meta: Meta, path: string): Simf;
+} = function Simf (...args: unknown[]): Simf {
   if (typeof args[0] === 'string') args.unshift(null);
   let [meta, path] = args as [Meta, ...string[]];
   path = resolvePath(meta?.url ? fileURLToPath(meta?.url) : '', '..', path);
@@ -23,8 +24,8 @@ export function Simf (...args: unknown[]): Simf {
     withdraw: Exec('simply', 'withdraw', '--entrypoint',  path,
                                          '--txid',        'TODO',
                                          '--destination', 'TODO') };
-  if (meta.main) simfCli(simf);
-  return simf;
+  if (meta?.main) simfCli(simf);
+  return simf as Simf;
 }
 /** Simplicity CLI wrapper. */
 async function simfCli (simf: Simf) {

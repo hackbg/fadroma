@@ -33,13 +33,14 @@ export namespace Dir {
   *     await makeDirWithFiles({ cwd: '/path/to/somewhere/' });
   *     // created "/path/to/somewhere/foo/hello.txt" and wrote "world'
   **/
-export function Dir <D extends Dir> (...entries: Dir.Entry<D>[]):
-  Dir.Entry<D>;
-export function Dir <D extends Dir> (subpath: string, ...entries: Dir.Entry<D>[]):
-  Dir.Entry<D>;
-export function Dir <D extends Dir> (...opts: unknown[]):
-  Dir.Entry<D>
-{
+export const Dir: {
+  /** Specify contents of directory.. */
+  <D extends Dir> (...entries: Dir.Entry<D>[]):
+    Dir.Entry<D>;
+  /** Specify contents of subdirectory. */
+  <D extends Dir> (subpath: string, ...entries: Dir.Entry<D>[]):
+    Dir.Entry<D>;
+} = function Dir <D extends Dir> (...opts: unknown[]): Dir.Entry<D> {
   let path = '';
   while (typeof opts[0] === 'string') path = joinPath(path, opts.shift() as string);
   const entries = opts as Dir.Entry<D>[];
@@ -60,7 +61,8 @@ export function Temp <D extends Dir> (
   return Name(`Temp(${prefix})`, inTemporaryDirectory, props);
   async function inTemporaryDirectory (dir: string|D, ...context: unknown[]): Promise<D> {
     dir = LocalFS(dir);
-    dir = LocalFS(dir, await dir.mkdtemp(joinPath(tmpdir(), `fadroma`, `${prefix}-`)));
+    const temp = await dir.mkdtemp(joinPath(tmpdir(), `fadroma`, `${prefix}-`));
+    dir = LocalFS(dir, temp as string);
     const result = await Pipe(...ops as Dir.Entry<D>[])(dir, context) as D;
     await dir.rimraf();
     return result;
@@ -80,9 +82,10 @@ export function Txt <T = string|number|object|null> (
   }
 }
 /** Define text file format. */
-export const textFormat = <T = string|number|object|null> (format: Returns<string>) =>
-  (path: string, value?: T|T[]|Step<T>, ...steps: Array<T|Step<T>>) =>
-    Txt(path, value, ...steps, format as (_:T)=>Async<T>);
+export const textFormat =
+  <T = string|number|object|null> (format: Fn.Returns<string>) =>
+    (path: string, value?: T|T[]|Step<T>, ...steps: Array<T|Step<T>>) =>
+      Txt(path, value, ...steps, format as (_:T)=>Async<T>);
 /** Specify a binary data file. */
 export function Bin (
   path: string, value?: number|Bytes, ...steps: Step<Bytes>[]
