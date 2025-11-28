@@ -7,12 +7,17 @@ export { inspect, stripVTControlCharacters } from 'node:util';
 export { spawn as spawnImpl } from 'node:child_process';
 export type { ChildProcess } from 'node:child_process';
 export type { Buffer } from 'node:buffer';
-export { createServer as createHttpServer,
-  Server as HttpServer } from 'node:http';
-export { createServer as createTcpServer, createConnection,
-  Server as TcpServer, Socket } from 'node:net';
 
-export const webcrypto = globalThis.crypto ?? (await import('node:crypto')).webcrypto;
+export { createServer as createTcpServer
+       , createConnection
+       , Server as TcpServer
+       , Socket } from 'node:net';
+
+export { createServer as createHttpServer
+       , Server as HttpServer } from 'node:http';
+
+export const webcrypto =
+  globalThis.crypto ?? (await import('node:crypto')).webcrypto;
 
 import process from 'node:process';
 export { process };
@@ -20,8 +25,10 @@ export const { stdin, stdout, stderr, argv, env, cwd, exit } = process;
 
 export { realpathSync } from 'node:fs';
 export { mkdir, rm, mkdtemp, writeFile } from 'node:fs/promises';
-import { join as joinPath, resolve as resolvePath, relative as relativePath, } from 'node:path';
-export { joinPath, resolvePath, relativePath }
+export { dirname
+       , join     as joinPath
+       , resolve  as resolvePath
+       , relative as relativePath } from 'node:path';
 
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';

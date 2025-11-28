@@ -4,3 +4,6 @@
 [submodule "@fadroma/simf/SimplicityHL"]
 	path = @fadroma/simf/SimplicityHL
 	url = https://github.com/BlockstreamResearch/SimplicityHL
+[submodule "lib/platform/simf/simply-wasm"]
+	path = lib/platform/simf/simply-wasm
+	url = https://github.com/hackbg/simply.git

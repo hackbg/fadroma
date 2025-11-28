@@ -10,8 +10,12 @@ export const entrypoint = function watchEntrypoint (
 ) {
   return Main(meta, Fn(watch, mode, options||[]))
 };
-const toRealPath = (x: string) => { try { return realpathSync(x) } catch (e) { if (e.code!=='ENOENT') throw e } };
-const toRelativePath = (cwd: string) => (x: string) => resolvePath(x).replace(cwd, '.');
+const toRealPath = (x: string) => {
+  try { return realpathSync(x) } catch (e) { if (e.code!=='ENOENT') throw e }
+};
+const toRelativePath = (cwd: string) => (x: string) => {
+  return resolvePath(x).replace(cwd, '.');
+};
 /** Run a watcher function. */
 export async function watch (mode: Fn<[string, string[]]>, options: unknown[]) {
   // todo: make configurable

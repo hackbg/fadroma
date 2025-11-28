@@ -1,1 +1,4 @@
 simc
+pkg/*.wasm
+simplicityhl
+simply-wasm

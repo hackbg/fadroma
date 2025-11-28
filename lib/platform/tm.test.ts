@@ -1,4 +1,3 @@
-
 import { expect } from '../deps.ts';
 
 export const testChain = (chain: ChainTest) => expect(chain.name,

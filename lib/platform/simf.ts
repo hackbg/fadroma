@@ -1,34 +1,58 @@
-import { Meta, Main } from '../index.ts';
-import { fileURLToPath, resolvePath, argv, stdout, stderr } from '../deps.ts';
+import { Meta } from '../index.ts';
 import { Exec } from '../context.ts';
+import { fileURLToPath, resolvePath, argv, stdout, stderr, dirname } from '../deps.ts';
+
 /** Simplicity program. */
 export interface Simf {
+  /** Path to program. */
   path:     string
   build:    Exec
   deposit:  Exec
   withdraw: Exec
 }
+
 /** Simplicity program constructor. */
 export const Simf: {
   /** Define Simplicity program. */
   (path: string): Simf;
-  /** Define Simplicity program's SDK entrypoint. */
+  /** Define Simplicity program as SDK entrypoint. */
   (meta: Meta, path: string): Simf;
 } = function Simf (...args: unknown[]): Simf {
   if (typeof args[0] === 'string') args.unshift(null);
   let [meta, path] = args as [Meta, ...string[]];
   path = resolvePath(meta?.url ? fileURLToPath(meta?.url) : '', '..', path);
-  const simf: Simf = { path,
-    build:    Exec('simply', 'build',    '--entrypoint',  path),
-    deposit:  Exec('simply', 'deposit',  '--entrypoint',  path),
-    withdraw: Exec('simply', 'withdraw', '--entrypoint',  path,
-                                         '--txid',        'TODO',
-                                         '--destination', 'TODO') };
-  if (meta?.main) simfCli(simf);
+  const pre = ['--entrypoint', path, '--target-dir', dirname(path)];
+  const simf: Simf = {
+    path,
+    build:    Exec('simply', 'build',    ...pre),
+    deposit:  Exec('simply', 'deposit',  ...pre),
+    withdraw: Exec('simply', 'withdraw', ...pre, '--txid', 'TODO', '--destination', 'TODO')
+  };
+  if (meta?.main) {
+    console.log(simf.path);
+    simfCli(simf);
+  }
   return simf as Simf;
 }
+
+/** Simplicity WASM-based builder. */
+Simf.Wasm = async function loadSimfWasm (
+  decoder: string|URL|Uint8Array
+): Promise<Decoder> {
+  const { default: init, Decode } = await import('./simf/pkg/fadroma_simf_bg.js');
+  if (decoder instanceof Uint8Array) {
+    await init(decoder)
+  } else if (decoder) {
+    await init(await fetch(decoder))
+  } else {
+    throw new Error('Provide decoder as path, URL or Uint8Array')
+  }
+  Simf.Wasm = async () => Decode as unknown as Decoder;
+  return Decode as unknown as Decoder;
+}
+
 /** Simplicity CLI wrapper. */
-async function simfCli (simf: Simf) {
+Simf.Cli = async function simfCli (simf: Simf) {
   const [_, __, command, ...args] = argv;
   switch (command.trim()) {
     case undefined:  stderr.write(' build  deposit  withdraw');         break;

@@ -1,9 +1,4 @@
-test:
-  deno test --coverage --allow-net --allow-read=./pkg/fadroma_namada_bg.wasm
-  deno coverage
-check:
-  deno check index.ts
-build-debug:
-  wasm-pack build --dev --target web && rm -v pkg/package.json pkg/.gitignore
-build-release:
+wasm:
   wasm-pack build --release --target web && rm -v pkg/package.json pkg/.gitignore
+wasm-dev:
+  wasm-pack build --dev --target web && rm -v pkg/package.json pkg/.gitignore
