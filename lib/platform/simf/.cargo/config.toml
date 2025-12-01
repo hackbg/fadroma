@@ -1,0 +1,8 @@
+#[target.wasm32-unknown-emscripten.fadroma-simf]
+#rustc-flags = "-Cpanic=abort -Clink-arg=--no-entry"
+#[target.wasm32-unknown-emscripten]
+#rustc-flags = "-C link-arg=--no-entry"
+#[target.wasm32-unknown-emscripten.secp256k1-zkp]
+#rustc-flags = "-C link-arg=--no-entry"
+#[target.wasm32-unknown-emscripten.secp256k1-zkp-sys]
+#rustc-flags = "-C link-arg=--no-entry"

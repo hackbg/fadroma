@@ -1,4 +1,10 @@
 wasm:
-	wasm-pack build --release --target web && rm -v pkg/package.json pkg/.gitignore
+  CC=emcc cargo build --target wasm32-unknown-emscripten
 wasm-dev:
-	wasm-pack build --dev --target web && rm -v pkg/package.json pkg/.gitignore
+  CC=emcc cargo build --target wasm32-unknown-emscripten --release
+wasm-pack:
+  CC=emcc RUSTFLAGS=-Cpanic=abort wasm-pack build --release --target web -- --target wasm32-unknown-emscripten
+  rm -v pkg/package.json pkg/.gitignore
+wasm-pack-dev:
+  CC=emcc RUSTFLAGS=-Cpanic=abort wasm-pack build --target web -- --target wasm32-unknown-emscripten
+  rm -v pkg/package.json pkg/.gitignore

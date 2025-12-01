@@ -104,7 +104,6 @@ dependencies = [
  "hex-conservative",
  "hex_lit",
  "secp256k1",
- "serde",
 ]
 
 [[package]]
@@ -112,9 +111,6 @@ name = "bitcoin-internals"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30bdbe14aa07b06e6cfeffc529a1f099e5fbe249524f8125358604df99a4bed2"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "bitcoin-io"
@@ -135,7 +131,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5285c8bcaa25876d07f37e3d30c303f2609179716e11d688f51e8f1fe70063e2"
 dependencies = [
  "bitcoin-internals",
- "serde",
 ]
 
 [[package]]
@@ -146,7 +141,6 @@ checksum = "bb18c03d0db0247e147a21a6faafd5a7eb851c743db062de72018b6b7e8e4d16"
 dependencies = [
  "bitcoin-io",
  "hex-conservative",
- "serde",
 ]
 
 [[package]]
@@ -263,15 +257,13 @@ dependencies = [
  "bech32",
  "bitcoin",
  "secp256k1-zkp",
- "serde",
- "serde_json",
 ]
 
 [[package]]
 name = "fadroma-simf"
 version = "0.1.0"
 dependencies = [
- "elements",
+ "cc",
  "hex",
  "js-sys",
  "serde_json",
@@ -580,7 +572,6 @@ dependencies = [
  "bitcoin_hashes",
  "rand",
  "secp256k1-sys",
- "serde",
 ]
 
 [[package]]
@@ -595,21 +586,16 @@ dependencies = [
 [[package]]
 name = "secp256k1-zkp"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52a44aed3002b5ae975f8624c5df3a949cfbf00479e18778b6058fcd213b76e3"
 dependencies = [
  "bitcoin-private",
  "rand",
  "secp256k1",
  "secp256k1-zkp-sys",
- "serde",
 ]
 
 [[package]]
 name = "secp256k1-zkp-sys"
 version = "0.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57f08b2d0b143a22e07f798ae4f0ab20d5590d7c68e0d090f2088a48a21d1654"
 dependencies = [
  "cc",
  "secp256k1-sys",

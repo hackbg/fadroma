@@ -1,35 +1,22 @@
 /* tslint:disable */
 /* eslint-disable */
-export class Simf {
-  private constructor();
-  free(): void;
-  [Symbol.dispose](): void;
-  static build(source: string, options: object): object;
-}
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
-  readonly simf_build: (a: any, b: any) => [number, number, number];
-  readonly __wbg_simf_free: (a: number, b: number) => void;
-  readonly rust_0_6_free: (a: number) => void;
-  readonly rust_0_6_malloc: (a: number) => number;
-  readonly rust_0_6_calloc: (a: number, b: number) => number;
-  readonly rustsecp256k1zkp_v0_10_0_default_illegal_callback_fn: (a: number, b: number) => void;
-  readonly rustsecp256k1zkp_v0_10_0_default_error_callback_fn: (a: number, b: number) => void;
   readonly rustsecp256k1_v0_10_0_context_create: (a: number) => number;
+  readonly rustsecp256k1_v0_10_0_context_destroy: (a: number) => void;
   readonly rustsecp256k1_v0_10_0_default_error_callback_fn: (a: number, b: number) => void;
   readonly rustsecp256k1_v0_10_0_default_illegal_callback_fn: (a: number, b: number) => void;
-  readonly rustsecp256k1_v0_10_0_context_destroy: (a: number) => void;
-  readonly __wbindgen_malloc: (a: number, b: number) => number;
-  readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
-  readonly __wbindgen_exn_store: (a: number) => void;
-  readonly __externref_table_alloc: () => number;
-  readonly __wbindgen_externrefs: WebAssembly.Table;
-  readonly __wbindgen_free: (a: number, b: number, c: number) => void;
-  readonly __externref_table_dealloc: (a: number) => void;
-  readonly __wbindgen_start: () => void;
+  readonly rustsecp256k1zkp_v0_10_0_default_error_callback_fn: (a: number, b: number) => void;
+  readonly rustsecp256k1zkp_v0_10_0_default_illegal_callback_fn: (a: number, b: number) => void;
+  readonly rust_0_6_calloc: (a: number, b: number) => number;
+  readonly rust_0_6_free: (a: number) => void;
+  readonly rust_0_6_malloc: (a: number) => number;
+  readonly _start: () => void;
+  readonly _emscripten_stack_restore: (a: number) => void;
+  readonly emscripten_stack_get_current: () => number;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;

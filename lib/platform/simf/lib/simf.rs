@@ -4,31 +4,20 @@ use js_sys::{JsString, Object, Error, Reflect, Boolean, Array, JSON};
 use simplicityhl::{
     dummy_env,
     Arguments, CompiledProgram, SatisfiedProgram, WitnessValues, Value,
-    simplicity::{human_encoding::Forest, jet::Elements, CommitNode, BitIter},
     str::WitnessName,
+    simplicity::{
+        CommitNode, BitIter,
+        human_encoding::Forest,
+        jet::Elements,
+        elements::{
+            taproot::{LeafVersion, TaprootBuilder, TaprootSpendInfo},
+            Address, AddressParams, Script, secp256k1_zkp as secp256k1,
+        },
+    },
 };
-use elements::{
-    taproot::{LeafVersion, TaprootBuilder, TaprootSpendInfo},
-    Address, AddressParams, Script, secp256k1_zkp as secp256k1,
-};
-macro_rules! attempt {
-    ($expr:expr) => {
-        $expr.map_err(|e|Error::new(&format!("{e}")))?
-    }
-}
-macro_rules! attempt {
-    ($expr:expr) => { $expr.map_err(|e|Error::new(&format!("{e}")))? }
-}
-macro_rules! get {
-    ($obj:expr, $key:expr) => {
-        Reflect::get(&$obj, &JsString::from($key).into())?
-    }
-}
-macro_rules! set {
-    ($obj:expr, $key:expr, $value:expr) => {{
-        Reflect::set(&$obj, &JsString::from($key).into(), &$value.into())?;
-    }}
-}
+macro_rules! attempt { ($expr:expr) => { $expr.map_err(|e|Error::new(&format!("{e}")))? } }
+macro_rules! get { ($obj:expr, $key:expr) => { Reflect::get(&$obj, &JsString::from($key).into())? } }
+macro_rules! set { ($obj:expr, $key:expr, $value:expr) => {{ Reflect::set(&$obj, &JsString::from($key).into(), &$value.into())?; }} }
 macro_rules! each {
     ($obj:expr => |$key:ident,$val:ident|$cb:expr) => {{
         Object::entries(&$obj.into()).for_each(&mut |entry, _, _| {
@@ -41,6 +30,11 @@ macro_rules! each {
 }
 
 pub type Maybe<T> = Result<T, Error>;
+
+pub fn set_panic_hook () {
+    #[cfg(feature = "console_error_panic_hook")]
+    console_error_panic_hook::set_once();
+}
 
 #[wasm_bindgen]
 pub fn build (source: JsString, options: Object) -> Maybe<Object> {
@@ -59,7 +53,7 @@ pub fn build (source: JsString, options: Object) -> Maybe<Object> {
 fn set_build_source (result: &Object, source: &JsString) -> Maybe<String> {
     let source = source.as_string().unwrap_or_default();
     set!(result, "source", JsString::from(source.clone()));
-    Ok(())
+    Ok(source)
 }
 
 fn set_build_options (result: &Object, options: &Object) -> Maybe<(bool, bool)> {
@@ -124,14 +118,15 @@ fn set_build_bytes (
     witness:  &Option<WitnessValues>,
     prune:    bool
 ) -> Maybe<Vec<u8>> {
+    //let program_bytes = vec![];
     let program_bytes = if let Some(witness) = witness {
-        let sat = attempt!(if prune {
+        let satisfied = attempt!(if prune {
             let env = dummy_env::dummy();
             compiled.satisfy_with_env(witness.clone(), Some(&env))
         } else {
             compiled.satisfy(witness.clone())
         });
-        let node = sat.redeem();
+        let node = satisfied.redeem();
         let (program_bytes, witness_bytes) = node.encode_to_vec();
         let bounds = node.bounds();
         set!(result, "witness", witness_bytes.clone());

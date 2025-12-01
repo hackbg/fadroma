@@ -1,6 +1,6 @@
 import { Meta } from '../index.ts';
 import { Exec } from '../context.ts';
-import { fileURLToPath, resolvePath, argv, stdout, stderr, dirname } from '../deps.ts';
+import { env, fileURLToPath, resolvePath, argv, stdout, stderr, dirname } from '../deps.ts';
 
 /** Simplicity program. */
 export interface Simf {
@@ -37,15 +37,15 @@ export const Simf: {
 
 /** Simplicity WASM-based builder. */
 Simf.Wasm = async function loadSimfWasm (
-  decoder: string|URL|Uint8Array
+  wasm: string|URL|Uint8Array = env['FADROMA_SIMF_WASM']
 ): Promise<Decoder> {
-  const { default: init, Decode } = await import('./simf/pkg/fadroma_simf_bg.js');
-  if (decoder instanceof Uint8Array) {
-    await init(decoder)
-  } else if (decoder) {
-    await init(await fetch(decoder))
+  const { default: init, Decode } = await import('./simf/pkg/fadroma_simf.js');
+  if (wasm instanceof Uint8Array) {
+    await init(wasm)
+  } else if (wasm) {
+    await init(await fetch(wasm))
   } else {
-    throw new Error('Provide decoder as path, URL or Uint8Array')
+    throw new Error('Provide wasm as path, URL or Uint8Array')
   }
   Simf.Wasm = async () => Decode as unknown as Decoder;
   return Decode as unknown as Decoder;
