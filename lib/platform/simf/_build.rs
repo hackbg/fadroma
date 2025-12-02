@@ -3,6 +3,7 @@ use std::env;
 use std::path::Path;
 fn main() {
     println!("cargo:rerun-if-changed=depend"); 
+    println!("cargo::rustc-env=TARGET=wasm32-unknown-emscripten");
     let simplicity_path = Path::new("depend/simplicity");
     let mut build = cc::Build::new();
     let files: Vec<_> = vec![
@@ -45,6 +46,8 @@ fn main() {
     }
     // Fix missing libc in WASM
     if env::var("CARGO_CFG_TARGET_ARCH").unwrap() == "wasm32" {
+        build.compiler("emcc");
+        build.target("wasm32-unknown-emscripten");
         build.include("wasm-sysroot");
     }
     build.compile("ElementsSimplicity");

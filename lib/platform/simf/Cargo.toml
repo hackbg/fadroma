@@ -4,14 +4,14 @@ version = "0.1.0"
 edition = "2021"
 resolver = "2"
 [lib]
-crate-type = [ "cdylib" ]
+crate-type = [ "cdylib", "rlib" ]
 path = "lib/simf.rs"
 [dependencies]
 simplicityhl = { path = "./simplicityhl", features = ["serde"] }
 hex = "0.4.3"
 js-sys = "0.3.70"
 serde_json = "1.0"
-wasm-bindgen = "0.2.93"
+wasm-bindgen = "0.2.106"
 web-sys = "0.3.70"
 [patch.crates-io]
 secp256k1-zkp = { path = "./rust-secp256k1-zkp" }
@@ -22,12 +22,11 @@ cc = "1.0.83"
 [profile.release]
 lto = true
 [profile.dev]
-opt-level = 3
 lto = true
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = false
+wasm-opt = ["--enable-bulk-memory-opt", "-O"]
 [package.metadata.wasm-pack.profile.dev]
-wasm-opt = false
+wasm-opt = ["--enable-bulk-memory-opt", "-O3"]
 [package.metadata.wasm-pack.profile.dev.wasm-bindgen]
 omit-default-module-path = true
 [package.metadata.wasm-pack.profile.release.wasm-bindgen]

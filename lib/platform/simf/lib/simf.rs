@@ -37,6 +37,16 @@ pub fn set_panic_hook () {
 }
 
 #[wasm_bindgen]
+struct Simf;
+
+#[wasm_bindgen]
+impl Simf {
+    #[wasm_bindgen]
+    pub fn build (source: JsString, options: Object) -> Maybe<Object> {
+        build(source, options)
+    }
+}
+#[wasm_bindgen]
 pub fn build (source: JsString, options: Object) -> Maybe<Object> {
     let result         = Object::new();
     let source         = set_build_source(&result, &source)?;
