@@ -50,7 +50,7 @@ export function Spawn (daemon: string, ...options: (Step<Run>|string)[]): Spawn 
     const { argv, env } = Run(daemon, ...options);
     const [ cmd, ...args ] = argv;
     const opts = { env, cwd: context?.dir ?? cwd() }
-    return { argv, env, ...await context.spawn(cmd, args, opts) } as Run & ChildProcess;
+    return Object.assign(context.spawn(cmd, args, opts), { argv, env }) as Run & ChildProcess;
   }, { daemon, options });
 }
 /** Command invocation. */
