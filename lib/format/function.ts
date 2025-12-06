@@ -118,9 +118,6 @@ export namespace Fn {
   /** Annotations added by [Name]. */
   export type Reflects<F extends Fn[] = Fn[]> = { stack?: string[], steps?: F };
 }
-/** A sequence of functions. */
-export type Pipe<Output, Inputs extends []> = 
-  Fn.Reflects & Fn<Inputs, Async<Output>>;
 /** Part of a [Pipe]. */
 export type Step<T = unknown, U = T> =
   Fn.Reflects & Fn.Takes<[T]> & Fn.Returns<Async<U>>;
@@ -183,6 +180,9 @@ export function Fn <F extends ((..._:unknown[])=>unknown)> (
 const curriedArgs = (args: unknown[]) => args.map(String)
   .map((x: string) => x==='undefined'?'_':x).join(', ');
 
+/** A sequence of functions. */
+export type Pipe<Output = unknown, Inputs extends [] = []> = 
+  Fn.Reflects & Fn<Inputs, Async<Output>>;
 /** Combine functions, passing return value of each step
   * as first argument to next step.
   *
