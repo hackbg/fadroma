@@ -1,4 +1,4 @@
-import { DOM } from '../../lib/index.ts';
+import { Html } from '../../lib/index.ts';
 import { Icon } from '../lib.ts';
 
 export const Feature = Object.assign(function initFeature (
@@ -8,7 +8,7 @@ export const Feature = Object.assign(function initFeature (
   description = `` as string|(unknown[]),
   ...links: [string, string?][]
 ) {
-  return DOM([`li.feature[data-depth=${depth}]`,
+  return Html([`li.feature[data-depth=${depth}]`,
     ['div.row.between',
       [`label`, [`input[type=checkbox][checked=checked]`, { id }], name],
       Feature.Links(links)],
@@ -23,7 +23,7 @@ export const Feature = Object.assign(function initFeature (
     description: string|(unknown[]) = ``,
     ...links:   [string, string?][]
   ) {
-    return DOM([`li.feature.disabled[data-depth=${depth}]`,
+    return Html([`li.feature.disabled[data-depth=${depth}]`,
       ['div.row.between', [`label`, `⏳️  ${name}`], Feature.Links(links)],
       ['p.grow', ...(typeof description === 'object')?description:[description]]]);
   },

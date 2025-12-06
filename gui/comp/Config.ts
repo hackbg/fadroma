@@ -1,4 +1,4 @@
-import { DOM } from '../../lib/index.ts';
+import { Html } from '../../lib/index.ts';
 import { on, elById, Link } from '../lib.ts';
 import { urls } from '../urls.ts';
 import { Editor } from './Editor.ts';
@@ -14,12 +14,12 @@ export const Config = Object.assign(function initConfig (
   elTm   = elById('sidebar-tm')
 ) {
   on(el, "change", Editor.update);
-  DOM.append(elEnv,  DOM(['ul.features', ...Config.Env()]));
-  DOM.append(elBtc,  DOM(['ul.features', ...Config.Btc()]));
-  DOM.append(elEs,   DOM(['ul.features', ...Config.Ecma()]));
-  DOM.append(elRust, DOM(['ul.features', ...Config.Rust()]));
-  DOM.append(elSol,  DOM(['ul.features', ...Config.Sol()]));
-  DOM.append(elTm,   DOM(['ul.features', ...Config.Tm()]));
+  Html.append(elEnv,  Html(['ul.features', ...Config.Env()]));
+  Html.append(elBtc,  Html(['ul.features', ...Config.Btc()]));
+  Html.append(elEs,   Html(['ul.features', ...Config.Ecma()]));
+  Html.append(elRust, Html(['ul.features', ...Config.Rust()]));
+  Html.append(elSol,  Html(['ul.features', ...Config.Sol()]));
+  Html.append(elTm,   Html(['ul.features', ...Config.Tm()]));
   return el;
 }, {
 

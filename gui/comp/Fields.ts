@@ -1,4 +1,5 @@
-import { DOM, Bytes } from '../../lib/index.ts';
+import { Html } from '../../lib/context/ui/html.ts';
+import { Bytes } from '../../lib/index.ts';
 import { Field } from './Field.ts';
 import { Command } from './Command.ts';
 
@@ -59,7 +60,7 @@ export const Fields = {
       Command('circle-with-cross', 'Remove')],
 
   Hex: (id: string, ...content: unknown[]) =>
-    DOM([`div.field.file.hex#${id}`,
+    Html([`div.field.file.hex#${id}`,
       ['div.handle-v', { onclick: Field.toggle(id) },
         ['svg.icon.expanded', ['use[href=icons.svg#chevron-down]']],
         ['div.grow']],

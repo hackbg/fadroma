@@ -1,5 +1,5 @@
 import { pinSize, elById, textVal, download } from '../lib.ts';
-import { Name, DOM } from '../../lib/index.ts';
+import { Name, Html } from '../../lib/index.ts';
 import { zipSync, zipStr } from '../../lib/deps.ts';
 import { Field } from './Field.ts';
 import { Fields } from './Fields.ts';
@@ -22,12 +22,12 @@ export const Editor = Name('Editor', function initEditor (
     vite:    false,
   }
 ) {
-  DOM.append(elEnv,  DOM(['div.box.editors', ...Editor.Env(options)]));
-  DOM.append(elBtc,  DOM(['div.box.editors', ...Editor.Simf(options)]));
-  DOM.append(elEs,   DOM(['div.box.editors', ...Editor.Esm(options)]));
-  DOM.append(elRust, DOM(['div.grow']));
-  DOM.append(elSol,  DOM(['div.grow']));
-  DOM.append(elTm,   DOM(['div.grow']));
+  Html.append(elEnv,  Html(['div.box.editors', ...Editor.Env(options)]));
+  Html.append(elBtc,  Html(['div.box.editors', ...Editor.Simf(options)]));
+  Html.append(elEs,   Html(['div.box.editors', ...Editor.Esm(options)]));
+  Html.append(elRust, Html(['div.grow']));
+  Html.append(elSol,  Html(['div.grow']));
+  Html.append(elTm,   Html(['div.grow']));
   el.querySelectorAll('textarea').forEach(Field.computeHeight);
   return el
 }, {
@@ -112,7 +112,7 @@ export const Editor = Name('Editor', function initEditor (
       `  "version": "0.1.0",`,
       `  "licence": "AGPL-3.0-or-later",`,
       `  "dependencies": {`,
-      `    "@hackbg/fadroma": "3.0.0-rc.1"`,
+      `    "@hackbg/fadroma": "https://github.com/hackbg/fadroma.git#v3-alpha"`,
       `  },`,
       `  "devDependencies": {`, [
         (node && `    "tsx":  "^4.20.6"`),

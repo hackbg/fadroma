@@ -1,5 +1,5 @@
 import { elById } from '../lib.ts';
-import { DOM } from '../../lib/index.ts';
+import { Html } from '../../lib/index.ts';
 
 export async function loadDocs (href: string) {
   const main = elById("main");
@@ -9,7 +9,7 @@ export async function loadDocs (href: string) {
   const docs = new DOMParser().parseFromString(html, 'text/html');
   docs.querySelectorAll(".namespaceSection").forEach(loadSection);
   main.innerHTML = '';
-  main.appendChild(DOM(['div.docs', sect]));
+  main.appendChild(Html(['div.docs', sect]));
 
   function loadSection (section: HTMLElement) {
     section.querySelectorAll("span.italic")
