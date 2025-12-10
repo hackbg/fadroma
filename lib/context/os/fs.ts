@@ -71,6 +71,10 @@ export function Temp <D extends Dir> (
     return result;
   }
 }
+/** Create temporary directory. */
+Temp.make = async function tempMake (prefix: string = '') {
+  return (await Temp(prefix)()).path
+}
 /** Specify a text file. */
 export function Txt <T = string|number|object|null> (
   path: string, value?: T|T[], ...steps: Array<T|Step<T>>
