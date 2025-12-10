@@ -19,8 +19,8 @@ export type Decimal256<P extends Num> = Decimal<P, 256>; // deprecated
 export { base16, base64, bech32, bech32m }
 export type Base<B extends number> = { __base: B,
   random: (bytes?: number) => string & { __base: B },
-  encode: (_: Bytes)      => string & { __base: B },
-  decode: (_: string)     => Bytes };
+  encode: (_: Bytes)       => string & { __base: B },
+  decode: (_: string)      => Bytes };
 export const Base64 = { __base: 64,
   random: (n = 64) => base64.encode(randomBytes(n)),
   encode: Pipe(Bytes, base64.encode),

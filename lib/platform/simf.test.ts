@@ -1,13 +1,13 @@
-#!/usr/bin/env -S deno run --allow-read --allow-env --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443 --allow-net=127.0.0.1:18443,liquidtestnet.com:443,blockstream.info:443
+#!/usr/bin/env -S deno run --allow-read --allow-env --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443 --allow-net=127.0.0.1:8941,liquidtestnet.com:443,blockstream.info:443
 import { Test } from '../index.ts';
 import { resolvePath, stdout } from '../deps.ts';
 import { Simf } from './simf.ts';
+import { Btc } from './btc.ts';
+
 const { the, is, has } = Test;
 const wasm = resolvePath(import.meta.dirname, "simf/pkg/fadroma_simf_bg.wasm");
 const path = resolvePath(import.meta.dirname, 'simf/example/01.simf');
-//const FAUCET  = `https://liquidtestnet.com/faucet?address=`
-const FAUCET  = `http://127.0.0.1/faucet?address=`
-const BALANCE = `https://blockstream.info/liquidtestnet/api/address`
+
 export default Test.suite(import.meta, 'Simf',
   the('Wasm', /*async () => Simf.Wasm(await Deno.readFile(wasm)),
     has('build', is('function'))*/),
@@ -15,28 +15,24 @@ export default Test.suite(import.meta, 'Simf',
     the('Define',     () => Simf(path)),
     the('Entrypoint', () => Simf({}, path)),
     the('Deploy',     (_: unknown, context: Test.Testing) =>
-      Simf.Localnet(async (daemon) => {
-        daemon.stdout.pipe(stdout);
-        daemon.stderr.pipe(stdout);
+      Btc.Localnet(async (daemon) => {
+        //daemon.stdout.pipe(stdout);
+        //daemon.stderr.pipe(stdout);
+        await new Promise(resolve=>setTimeout(resolve, 1000));
         const program   = Simf(path);
         const built     = await program.build();
-        context.log({built});
         const deposited = await program.deposit();
-        context.log({deposited});
         //context.log(await callFaucet(deposited));
-        context.log('Balance:', await callUrl(`http://127.0.0.1:8941/rest/chaininfo.json`));
-        context.log('Balance:', await checkBalance(deposited));
+        context.log('Chain info:',  await daemon.rest.chaininfo());
+        context.log('Wallet info:', await daemon.rpc.getwalletinfo());
+        context.log('UTXOs:',       await daemon.rest.getutxos('51210217e403ddb181872c32a0cd468c710040b2f53d8cac69f18dad07985ee37e9a7151ae-0.json'));
+        context.log('Generate:',    await daemon.rpc.generate());
+        context.log('UTXOs:',       await daemon.rest.getutxos(`http://127.0.0.1:8941/rest/getutxos/${deposited}-0.json`));
+        //context.log('Balance:', await checkBalance(deposited));
         const txid = "FIXME";
-        await program.withdraw({ txid });
+        const withdrawn = await program.withdraw({ txid, dest: deposited });
       }))));
-const callFaucet   = (address: string) => callUrl(`${FAUCET}${address}`);
-const checkBalance = (address: string) => callUrl(`${BALANCE}/${address}/utxo`);
-async function callUrl (url: string|URL) {
-  const result = await fetch(url);
-  const text = await result.text();
-  if (result.status !== 200) {
-    throw Object.assign(new Error(`${url}: ${result.status}`), { text })
-  } else {
-    return text;
-  }
-}
+
+//const FAUCET  = `https://liquidtestnet.com/faucet?address=`
+//const FAUCET  = `http://127.0.0.1/faucet?address=`
+//const BALANCE = `https://blockstream.info/liquidtestnet/api/address`
