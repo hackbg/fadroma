@@ -15,22 +15,38 @@ export default Test.suite(import.meta, 'Simf',
     the('Define',     () => Simf(path)),
     the('Entrypoint', () => Simf({}, path)),
     the('Deploy',     (_: unknown, context: Test.Testing) =>
-      Btc.Localnet(async (daemon) => {
+      Btc.Daemon({
+        txindex:                 true, 
+        persistmempool:          false,
+        dnsseed:                 false,
+        server:                  true,
+        chain:                   'elementsregtest',
+        rest:                    true, 
+        discover:                false,
+        rpcport:                 8941,
+        rpcallowip:              '127.0.0.1',
+        rpcuser:                 'fadroma',
+        rpcpassword:             'fadroma',
+        validatepegin:           false,
+        defaultpeggedassetname:  'fadroma',
+        initialfreecoins:        '100000000000000',
+        initialreissuancetokens: '200000000',
+      }, async (daemon: Btc.Daemon) => {
         //daemon.stdout.pipe(stdout);
         //daemon.stderr.pipe(stdout);
         await new Promise(resolve=>setTimeout(resolve, 1000));
         const program   = Simf(path);
-        const built     = await program.build();
+        const _built    = await program.build();
         const deposited = await program.deposit();
-        //context.log(await callFaucet(deposited));
         context.log('Chain info:',  await daemon.rest.chaininfo());
-        context.log('Wallet info:', await daemon.rpc.getwalletinfo());
+        context.log('Wallet info:', await daemon.rpc.createwallet('1'));
+        context.log('Wallet info:', await daemon.rpc.getwalletinfo('1'));
         context.log('UTXOs:',       await daemon.rest.getutxos('51210217e403ddb181872c32a0cd468c710040b2f53d8cac69f18dad07985ee37e9a7151ae-0.json'));
         context.log('Generate:',    await daemon.rpc.generate());
         context.log('UTXOs:',       await daemon.rest.getutxos(`http://127.0.0.1:8941/rest/getutxos/${deposited}-0.json`));
         //context.log('Balance:', await checkBalance(deposited));
         const txid = "FIXME";
-        const withdrawn = await program.withdraw({ txid, dest: deposited });
+        const _withdrawn = await program.withdraw({ txid, dest: deposited });
       }))));
 
 //const FAUCET  = `https://liquidtestnet.com/faucet?address=`
