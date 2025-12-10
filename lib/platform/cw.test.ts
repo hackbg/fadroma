@@ -1,6 +1,6 @@
-import { testSuite, expect } from '@hackbg/fadroma';
-import * as CosmWasm from './index.ts';
-export default testSuite(import.meta, 'CosmWasm',
-  expect('Program', expect('Upload'), expect('Instantiate'), expect('Method')),
-  expect('Project', expect('Init'), expect('Build'), expect('Deploy'),
-    expect('SDK', expect('Test'), expect('CLI'), expect('GUI'))));
+import * as CosmWasm from './cw.ts';
+import { suite, the } from '../tester.ts';
+export default suite(import.meta, 'CosmWasm',
+  the('Program', the('Upload'), the('Instantiate'), the('Method')),
+  the('Project', the('Init'), the('Build'), the('Deploy'),
+    the('SDK', the('Test'), the('CLI'), the('GUI'))));

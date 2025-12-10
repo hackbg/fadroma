@@ -1,3 +1,4 @@
+import { testSuite, expect } from '@hackbg/fadroma';
 import { expect } from '../deps.ts';
 
 export const testChain = (chain: ChainTest) => expect(chain.name,
@@ -16,7 +17,6 @@ export type ChainTest = {
   testProgram?:  ChainTestCase,
   testProject?:  ChainTestCase,
 };
-import { testSuite, expect } from '@hackbg/fadroma';
 export default testSuite(import.meta, 'Tendermint',
   expect('Localnet', expect('Connect'), expect('Subscribe')),
   expect('Fetch', expect('Block'), expect('Account'), expect('TX')),

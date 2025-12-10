@@ -1,5 +1,5 @@
 #!/usr/bin/env -S deno run --allow-env
-import { suite, the } from '../context/tester.ts';
+import { suite, the } from '../tester.ts';
 export default suite(import.meta, 'Solana',
   the('Web3',
     the('Localnet', the('Connect'), the('Subscribe')),
