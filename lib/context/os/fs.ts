@@ -1,7 +1,7 @@
 import type { Async, Fn, Bytes, Step } from '../../index.ts';
 import { joinPath, tmpdir, zipSync } from '../../deps.ts';
 import { mkdir, rm, mkdtemp, writeFile, resolvePath, cwd } from '../../deps.ts';
-import { Pipe, Name, chunked } from '../../format.ts';
+import { Base16, Pipe, Name, chunked } from '../../format.ts';
 import { Log } from '../ui/log.ts';
 /** A directory, with optional implementations of methods for writing to it. */
 export type Dir = {
@@ -53,18 +53,21 @@ export const Dir: {
     return result;
   }
 }
-/** Specify a temporary directory. */
+/** Specify a temporary directory, optionally running some ops in it.
+  *
+  * If no ops are passed this returns the created dir;
+  * if ops are passed, runs them piped then deletes the dir. */
 export function Temp <D extends Dir> (
   prefix: string = '', ...ops: Dir.Entry<D>[]
 ): Dir.Entry<D> {
   const props = { prefix, ops };
   return Name(`Temp(${prefix})`, inTemporaryDirectory, props);
   async function inTemporaryDirectory (dir: string|D, ...context: unknown[]): Promise<D> {
-    dir = LocalFS(dir);
-    const temp = await dir.mkdtemp(joinPath(tmpdir(), `fadroma`, `${prefix}-`));
-    dir = LocalFS(dir, temp as string);
+    const path = joinPath(tmpdir(), 'fadroma', `${prefix}-${Base16.random(8)}`);
+    dir = LocalFS(dir)
+    dir = await LocalFS(dir).mkdir(path) as D;
     const result = await Pipe(...ops as Dir.Entry<D>[])(dir, context) as D;
-    await dir.rimraf();
+    if (ops.length > 0) await dir.rimraf();
     return result;
   }
 }
@@ -134,12 +137,16 @@ function LocalFS <D extends Dir> (dir: string|D, path: string = ''): D {
   dir ??= {} as D;
   if (typeof dir !== 'object') dir = { path: joinPath(dir, path) } as D;
 
-  dir.path ??= path;
-  dir.tree ??= {};
+  dir.path ||= path;
+  dir.tree ||= {};
   dir.tree[dir.path] = {};
 
   const opts = { recursive: true };
-  dir.mkdir ??= async (sub: string) => mkdir(resolvePath(cwd(), sub), opts);
+  dir.mkdir ??= async (sub: string) => {
+    const path = resolvePath(cwd(), sub);
+    await mkdir(path, opts)
+    return LocalFS(dir, path);
+  };
   dir.rimraf ??= async (sub: string) => rm(joinPath(...[dir.path, sub].filter(Boolean)), opts);
   dir.mkdtemp ??= async (p) => mkdtemp(p);
   dir.writeFile ??= async (p, q, r) => writeFile(p, q, r);
