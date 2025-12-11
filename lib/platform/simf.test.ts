@@ -28,22 +28,30 @@ export default Test.suite(import.meta, 'Simf',
         rpcuser:                 'fadroma',
         rpcpassword:             'fadroma',
         validatepegin:           false,
-        defaultpeggedassetname:  'fadroma',
-        initialfreecoins:        '100000000000000',
-        initialreissuancetokens: '200000000',
+        defaultpeggedassetname:  'bitcoin',
+        initialfreecoins:        1_000_000_00000000,
+        initialreissuancetokens: 1_00000000,
+        bech32_hrp:              'tex',
+        blech32_hrp:             'tlq',
+        pubkeyprefix:            36,
+        scriptprefix:            13,
+        blindedprefix:           23,
       }, async (daemon: Btc.Daemon) => {
         //daemon.stdout.pipe(stdout);
         //daemon.stderr.pipe(stdout);
         await new Promise(resolve=>setTimeout(resolve, 1000));
         await daemon.rpc.createwallet('1');
         await daemon.rpc.rescanblockchain();
-        context.log('Wallet info:', await daemon.rpc.getwalletinfo());
+        //context.log(await daemon.rpc.getwalletinfo()); // TODO assert balance
         const address = await daemon.rpc.getnewaddress();
-        context.log('New address:', address);
+        const valid8d = await daemon.rpc.validateaddress(address);
+        context.log('New address:', address, valid8d);
         const program = Simf(path);
         const built = await program.build();
+        context.log({built});
         const dest = await program.deposit();
-        const txid = await daemon.rpc.sendtoaddress(address, 1000);
-        console.log({built, dest, txid});
+        context.log({dest});
+        const txid = await daemon.rpc.sendtoaddress(dest, 1000);
+        context.log({txid});
         const _withdrawn = await program.withdraw({ txid, dest });
       }))));

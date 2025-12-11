@@ -89,23 +89,28 @@ export function Btc (...options: Partial<Btc>[]): Btc {
 export namespace Btc {
 
   export interface DaemonOptions {
-    chain?:                   string,
-    daemon?:                  string,
-    datadir?:                 string,
-    debug?:                   string[]|string,
+    bech32_hrp?:              string;
+    blech32_hrp?:             string;
+    blindedprefix?:           number;
+    chain?:                   string;
+    daemon?:                  string;
+    datadir?:                 string;
+    debug?:                   string[]|string;
     defaultpeggedassetname?:  string;
     discover?:                boolean;
-    dnsseed?:                 boolean,
+    dnsseed?:                 boolean;
     initialfreecoins?:        string|number|bigint;
     initialreissuancetokens?: string|number|bigint;
-    persistmempool?:          boolean,
-    rest?:                    boolean,
-    rpcallowip?:              string[]|string,
+    persistmempool?:          boolean;
+    pubkeyprefix?:            number;
+    rest?:                    boolean;
+    rpcallowip?:              string[]|string;
     rpcpassword?:             string;
-    rpcport?:                 number|string,
+    rpcport?:                 number|string;
     rpcuser?:                 string;
-    server?:                  boolean,
-    txindex?:                 boolean,
+    scriptprefix?:            number;
+    server?:                  boolean;
+    txindex?:                 boolean;
     validatepegin?:           false;
   }
 
@@ -148,6 +153,11 @@ export namespace Btc {
       discover                = null,
       txindex                 = null,
       rest                    = null,
+      blindedprefix           = null,
+      bech32_hrp              = null,
+      blech32_hrp             = null,
+      pubkeyprefix            = null,
+      scriptprefix            = null,
     } = options
     const spawn = Spawn(daemon, ...[
       (server                  !== null) && (server ? '-server' : null),
@@ -166,6 +176,11 @@ export namespace Btc {
       (rest                    !== null) && `-rest=${rest ? '1': '0'}`,
       (discover                !== null) && `-discover=${discover ? '1':'0'}`,
       (txindex                 !== null) && `-txindex=${txindex ? '1':'0'}`,
+      (blindedprefix           !== null) && `-blindedprefix=${blindedprefix}`,
+      (bech32_hrp              !== null) && `-bech32_hrp=${bech32_hrp}`,
+      (blech32_hrp             !== null) && `-blech32_hrp=${blech32_hrp}`,
+      (pubkeyprefix            !== null) && `-pubkeyprefix=${pubkeyprefix}`,
+      (scriptprefix            !== null) && `-scriptprefix=${scriptprefix}`,
       //'-debug=rpc', //'-debug=zmq',
     ].filter(Boolean));
     const process = await spawn();
@@ -185,6 +200,7 @@ export namespace Btc {
     rescanblockchain: Fn,
     getwalletinfo:    Fn,
     getnewaddress:    Fn,
+    validateaddress:  Fn,
     sendtoaddress:    Fn,
   } {
     const callRpc = (method: string) => async (...params: unknown[]) => {
@@ -198,6 +214,7 @@ export namespace Btc {
       rescanblockchain: callRpc('rescanblockchain'),
       getwalletinfo:    callRpc('getwalletinfo'),
       getnewaddress:    callRpc('getnewaddress'),
+      validateaddress:  callRpc('validateaddress'),
       sendtoaddress:    callRpc('sendtoaddress'),
     }
   }
