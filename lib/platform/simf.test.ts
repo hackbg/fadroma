@@ -16,12 +16,12 @@ export default Test.suite(import.meta, 'Simf',
     the('Entrypoint', () => Simf({}, path)),
     the('Deploy',     (_: unknown, context: Test.Testing) =>
       Btc.Daemon({
-        txindex:                 true, 
+        txindex:                 true,
         persistmempool:          false,
         dnsseed:                 false,
         server:                  true,
         chain:                   'elementsregtest',
-        rest:                    true, 
+        rest:                    true,
         discover:                false,
         rpcport:                 8941,
         rpcallowip:              '127.0.0.1',
@@ -35,20 +35,15 @@ export default Test.suite(import.meta, 'Simf',
         //daemon.stdout.pipe(stdout);
         //daemon.stderr.pipe(stdout);
         await new Promise(resolve=>setTimeout(resolve, 1000));
-        const program   = Simf(path);
-        const _built    = await program.build();
-        const deposited = await program.deposit();
-        context.log('Chain info:',  await daemon.rest.chaininfo());
-        context.log('Wallet info:', await daemon.rpc.createwallet('1'));
-        context.log('Wallet info:', await daemon.rpc.getwalletinfo('1'));
-        context.log('UTXOs:',       await daemon.rest.getutxos('51210217e403ddb181872c32a0cd468c710040b2f53d8cac69f18dad07985ee37e9a7151ae-0.json'));
-        context.log('Generate:',    await daemon.rpc.generate());
-        context.log('UTXOs:',       await daemon.rest.getutxos(`http://127.0.0.1:8941/rest/getutxos/${deposited}-0.json`));
-        //context.log('Balance:', await checkBalance(deposited));
-        const txid = "FIXME";
-        const _withdrawn = await program.withdraw({ txid, dest: deposited });
+        await daemon.rpc.createwallet('1');
+        await daemon.rpc.rescanblockchain();
+        context.log('Wallet info:', await daemon.rpc.getwalletinfo());
+        const address = await daemon.rpc.getnewaddress();
+        context.log('New address:', address);
+        const program = Simf(path);
+        const built = await program.build();
+        const dest = await program.deposit();
+        const txid = await daemon.rpc.sendtoaddress(address, 1000);
+        console.log({built, dest, txid});
+        const _withdrawn = await program.withdraw({ txid, dest });
       }))));
-
-//const FAUCET  = `https://liquidtestnet.com/faucet?address=`
-//const FAUCET  = `http://127.0.0.1/faucet?address=`
-//const BALANCE = `https://blockstream.info/liquidtestnet/api/address`
