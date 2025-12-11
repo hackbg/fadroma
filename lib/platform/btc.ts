@@ -195,13 +195,13 @@ export namespace Btc {
 
   /** Daemon's primary JSON-RPC API. */
   export const Rpc = function btcRpc (url: string): {
-    generate:         Fn,
-    createwallet:     Fn,
-    rescanblockchain: Fn,
-    getwalletinfo:    Fn,
-    getnewaddress:    Fn,
-    validateaddress:  Fn,
-    sendtoaddress:    Fn,
+    generatetoaddress: Fn,
+    createwallet:      Fn,
+    rescanblockchain:  Fn,
+    getwalletinfo:     Fn,
+    getnewaddress:     Fn,
+    validateaddress:   Fn,
+    sendtoaddress:     Fn,
   } {
     const callRpc = (method: string) => async (...params: unknown[]) => {
       const body = { jsonrpc: "1.0", id: 1, method, params, };
@@ -209,13 +209,13 @@ export namespace Btc {
       return JSON.parse(text).result
     };
     return {
-      generate:         callRpc('generate'),
-      createwallet:     callRpc('createwallet'),
-      rescanblockchain: callRpc('rescanblockchain'),
-      getwalletinfo:    callRpc('getwalletinfo'),
-      getnewaddress:    callRpc('getnewaddress'),
-      validateaddress:  callRpc('validateaddress'),
-      sendtoaddress:    callRpc('sendtoaddress'),
+      generatetoaddress: callRpc('generatetoaddress'),
+      createwallet:      callRpc('createwallet'),
+      rescanblockchain:  callRpc('rescanblockchain'),
+      getwalletinfo:     callRpc('getwalletinfo'),
+      getnewaddress:     callRpc('getnewaddress'),
+      validateaddress:   callRpc('validateaddress'),
+      sendtoaddress:     callRpc('sendtoaddress'),
     }
   }
 

@@ -39,19 +39,18 @@ export default Test.suite(import.meta, 'Simf',
       }, async (daemon: Btc.Daemon) => {
         //daemon.stdout.pipe(stdout);
         //daemon.stderr.pipe(stdout);
+        const { rpc, rest } = daemon;
         await new Promise(resolve=>setTimeout(resolve, 1000));
-        await daemon.rpc.createwallet('1');
-        await daemon.rpc.rescanblockchain();
-        //context.log(await daemon.rpc.getwalletinfo()); // TODO assert balance
-        const address = await daemon.rpc.getnewaddress();
-        const valid8d = await daemon.rpc.validateaddress(address);
-        context.log('New address:', address, valid8d);
+        await rpc.createwallet('1');
+        await rpc.rescanblockchain();
+        //context.log(await rpc.getwalletinfo()); // TODO assert balance
+        const address = await rpc.getnewaddress();
+        //const valid8d = await rpc.validateaddress(address);
         const program = Simf(path);
-        const built = await program.build();
-        context.log({built});
+        //const built = await program.build();
         const dest = await program.deposit();
-        context.log({dest});
-        const txid = await daemon.rpc.sendtoaddress(dest, 1000);
-        context.log({txid});
+        const txid = await rpc.sendtoaddress(dest, 1000);
+        await rpc.generatetoaddress(1, address);
+        context.log({txid}, await rest.getutxos(`${txid}-0`));
         const _withdrawn = await program.withdraw({ txid, dest });
       }))));
