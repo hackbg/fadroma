@@ -110,6 +110,10 @@ export namespace Btc {
   }
 
   export interface Daemon extends ChildProcess {
+    stdout: ReadableStream
+    stderr: ReadableStream
+    rpc:    ReturnType<typeof Rpc>
+    rest:   ReturnType<typeof Rest>,
   }
 
   /** Launch an Elementsd localnet suitable
@@ -174,8 +178,35 @@ export namespace Btc {
     }
   }
 
+  /** Daemon's primary JSON-RPC API. */
+  export const Rpc = function btcRpc (url: string): {
+    generate:         Fn,
+    createwallet:     Fn,
+    rescanblockchain: Fn,
+    getwalletinfo:    Fn,
+    getnewaddress:    Fn,
+    sendtoaddress:    Fn,
+  } {
+    const callRpc = (method: string) => async (...params: unknown[]) => {
+      const body = { jsonrpc: "1.0", id: 1, method, params, };
+      const text = await callUrl(url, 'POST', body);
+      return JSON.parse(text).result
+    };
+    return {
+      generate:         callRpc('generate'),
+      createwallet:     callRpc('createwallet'),
+      rescanblockchain: callRpc('rescanblockchain'),
+      getwalletinfo:    callRpc('getwalletinfo'),
+      getnewaddress:    callRpc('getnewaddress'),
+      sendtoaddress:    callRpc('sendtoaddress'),
+    }
+  }
+
   /** Daemon's optional REST API. */
-  export const Rest = function btcRest (url: string, id = String(+ new Date())) {
+  export const Rest = function btcRest (url: string): {
+    chaininfo: Fn,
+    getutxos:  Fn,
+  } {
     return {
       async chaininfo () {
         return JSON.parse(await callUrl(`${url}/rest/chaininfo.json`))
@@ -186,35 +217,11 @@ export namespace Btc {
     }
   }
 
-  /** Daemon's JSON-RPC API. */
-  export const Rpc = function btcRpc (url: string, id = String(+ new Date())) {
-    return {
-      async generate (...params: unknown[]) {
-        return JSON.parse(await callUrl(url, 'POST', {
-          jsonrpc: "1.0", id: `${id}:${+new Date()}`,
-          method: 'generate', params,
-        }))
-      },
-      async createwallet (...params: unknown[]) {
-        return JSON.parse(await callUrl(url, 'POST', {
-          jsonrpc: "1.0", id: +new Date(),
-          method: 'getwalletinfo', params,
-        }))
-      },
-      async getwalletinfo (...params: unknown[]) {
-        return JSON.parse(await callUrl(url, 'POST', {
-          jsonrpc: "1.0", id: `${id}:${+new Date()}`,
-          method: 'getwalletinfo', params,
-        }))
-      },
-    }
-  }
-
   /** Daemon's ZeroMQ publishers. */
   export const Zmq = () => { throw new Error('TODO') };
 
   async function callUrl (url: string|URL, method = 'GET', body?: BodyInit) {
-    const result = await fetch(url, { method, body });
+    const result = await fetch(url, { method, body: JSON.stringify(body) });
     const text = await result.text();
     const code = result.status;
     if (code !== 200) {
