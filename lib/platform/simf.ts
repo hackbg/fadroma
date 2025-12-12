@@ -1,4 +1,4 @@
-import { Async, Fn, Meta, Pipe, Exec } from '../index.ts';
+import { Async, Fn, Meta, Pipe, Exec, Name } from '../index.ts';
 import { exit, env, argv, stdout, stderr, dirname,
          fileURLToPath, resolvePath } from '../deps.ts';
 
@@ -51,9 +51,9 @@ export function Simf (...args: unknown[]): Simf {
 }
 
 const parseStdout   = (re: RegExp) => ({ stdout }: { stdout: string }) => stdout.match(re)[1];
-const parseBuild    = parseStdout(/Build artifacts written to: (.*)\n/);
-const parseDeposit  = parseStdout(/P2TR address: (.*)\n/);
-const parseWithdraw = parseStdout(/Transaction ID: (.*)\n/);
+const parseBuild    = Name('Parse(simply build)',    parseStdout(/Build artifacts written to: (.*)\n/));
+const parseDeposit  = Name('Parse(simply deposit)',  parseStdout(/P2TR address: (.*)\n/));
+const parseWithdraw = Name('Parse(simply withdraw)', parseStdout(/Transaction ID: (.*)\n/));
 
 /** SimplicityHL utilities. */
 export namespace Simf {
@@ -66,12 +66,9 @@ export namespace Simf {
       case undefined:
         stderr.write('Commands:\n  build\n  deposit\n  withdraw');
         return exit(1);
-      case 'build': return Promise.resolve(simf.build())
-        .then(showOutput);
-      case 'deposit': return Promise.resolve(simf.deposit())
-        .then(showOutput); 
-      case 'withdraw': return Promise.resolve(simf.withdraw())
-        .then(showOutput);
+      case 'build': return Promise.resolve(simf.build()).then(showOutput);
+      case 'deposit': return Promise.resolve(simf.deposit()).then(showOutput); 
+      case 'withdraw': return Promise.resolve(simf.withdraw()).then(showOutput);
       default:
         throw new Error(`invalid command: ${command}`)
     }
@@ -88,16 +85,19 @@ export namespace Simf {
   export const Wasm = async function simfWasm (
     wasm: string|URL|Uint8Array = env['FADROMA_SIMF_WASM']
   ): Promise<unknown> {
-    const module = await import('./simf/pkg/fadroma_simf_bg.js');
-    const init = (module as unknown as { default: Fn }).default
-    if (wasm instanceof Uint8Array) {
-      await init(wasm)
-    } else if (wasm) {
-      await init(await fetch(wasm))
-    } else {
-      throw new Error('Provide wasm as path, URL or Uint8Array')
-    }
-    return module;
+    const wrap = await import('./simf/pkg/fadroma_simf.js');
+    await wrap.default(wasm);
+    return wrap;
+    //console.log({module});
+    //const init = (module as unknown as { default: Fn }).default;
+    //if (wasm instanceof Uint8Array) {
+      //await init(wasm);
+    //} else if (wasm) {
+      //await init(await fetch(wasm));
+    //} else {
+      //throw new Error('Provide wasm as path, URL or Uint8Array');
+    //}
+    //return module;
   }
 
 }

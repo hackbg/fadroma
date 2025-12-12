@@ -1,4 +1,12 @@
 export function __syscall_getcwd () {}
+export function rustsecp256k1_v0_10_0_xonly_pubkey_tweak_add_check () {}
+export function rustsecp256k1_v0_10_0_xonly_pubkey_tweak_add () {}
+export function rustsecp256k1_v0_10_0_xonly_pubkey_from_pubkey () {}
+export function __assert_fail () {}
+export function rustsecp256k1_v0_10_0_ec_pubkey_serialize () {}
+export function rustsecp256k1_v0_10_0_context_preallocated_destroy () {}
+export function rustsecp256k1_v0_10_0_context_preallocated_create () {}
+export function rustsecp256k1_v0_10_0_context_preallocated_size () {}
 //export function rustsecp256k1_v0_10_0_xonly_pubkey_parse (...args) { console.log({args}); }
 //export function rustsecp256k1_v0_10_0_xonly_pubkey_tweak_add (...args) { console.log({args}); }
 //export function rustsecp256k1_v0_10_0_xonly_pubkey_from_pubkey (...args) { console.log({args}); }
