@@ -1,12 +1,19 @@
-export function __syscall_getcwd () {}
-export function rustsecp256k1_v0_10_0_xonly_pubkey_tweak_add_check () {}
-export function rustsecp256k1_v0_10_0_xonly_pubkey_tweak_add () {}
-export function rustsecp256k1_v0_10_0_xonly_pubkey_from_pubkey () {}
-export function __assert_fail () {}
-export function rustsecp256k1_v0_10_0_ec_pubkey_serialize () {}
-export function rustsecp256k1_v0_10_0_context_preallocated_destroy () {}
-export function rustsecp256k1_v0_10_0_context_preallocated_create () {}
-export function rustsecp256k1_v0_10_0_context_preallocated_size () {}
+export function __assert_fail () { throw new Error('not implemented') }
+export function __syscall_getcwd () { throw new Error('not implemented') }
+export function rustsecp256k1_v0_10_0_context_preallocated_clone_size () { throw new Error('not implemented') }
+export function rustsecp256k1_v0_10_0_context_preallocated_create () { throw new Error('not implemented') }
+export function rustsecp256k1_v0_10_0_context_preallocated_destroy () { throw new Error('not implemented') }
+export function rustsecp256k1_v0_10_0_context_preallocated_size () { throw new Error('not implemented') }
+export function rustsecp256k1_v0_10_0_ec_pubkey_serialize () { throw new Error('not implemented') }
+export function rustsecp256k1_v0_10_0_xonly_pubkey_from_pubkey () { throw new Error('not implemented') }
+export function rustsecp256k1_v0_10_0_xonly_pubkey_parse () { throw new Error('not implemented') }
+export function rustsecp256k1_v0_10_0_xonly_pubkey_serialize () { throw new Error('not implemented') }
+export function rustsecp256k1_v0_10_0_xonly_pubkey_tweak_add () { throw new Error('not implemented') }
+export function rustsecp256k1_v0_10_0_xonly_pubkey_tweak_add_check () { throw new Error('not implemented') }
+export function rustsecp256k1zkp_v0_10_0_generator_serialize () { throw new Error('not implemented') }
+export function rustsecp256k1zkp_v0_10_0_pedersen_commitment_serialize () { throw new Error('not implemented') }
+export function rustsecp256k1zkp_v0_10_0_surjectionproof_serialize () { throw new Error('not implemented') }
+export function rustsecp256k1zkp_v0_10_0_surjectionproof_serialized_size () { throw new Error('not implemented') }
 //export function rustsecp256k1_v0_10_0_xonly_pubkey_parse (...args) { console.log({args}); }
 //export function rustsecp256k1_v0_10_0_xonly_pubkey_tweak_add (...args) { console.log({args}); }
 //export function rustsecp256k1_v0_10_0_xonly_pubkey_from_pubkey (...args) { console.log({args}); }

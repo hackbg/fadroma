@@ -1,53 +1,8 @@
-use wasm_bindgen::prelude::*;
-use std::collections::HashMap;
-use js_sys::{JsString, Object, Error, Reflect, Boolean, Array, JSON};
-use simplicityhl::{
-    dummy_env,
-    Arguments, CompiledProgram, SatisfiedProgram, WitnessValues, Value,
-    str::WitnessName,
-    simplicity::{
-        CommitNode, BitIter,
-        human_encoding::Forest,
-        jet::Elements,
-        elements::{
-            taproot::{LeafVersion, TaprootBuilder, TaprootSpendInfo},
-            Address, AddressParams, Script, secp256k1_zkp as secp256k1,
-        },
-    },
-};
-macro_rules! attempt { ($expr:expr) => { $expr.map_err(|e|Error::new(&format!("{e}")))? } }
-macro_rules! get { ($obj:expr, $key:expr) => { Reflect::get(&$obj, &JsString::from($key).into())? } }
-macro_rules! set { ($obj:expr, $key:expr, $value:expr) => {{ Reflect::set(&$obj, &JsString::from($key).into(), &$value.into())?; }} }
-macro_rules! each {
-    ($obj:expr => |$key:ident,$val:ident|$cb:expr) => {{
-        Object::entries(&$obj.into()).for_each(&mut |entry, _, _| {
-            let entry = Array::from(&entry);
-            let $key = entry.get(0);
-            let $val = entry.get(1);
-            $cb
-        });
-    }}
-}
+use crate::*;
 
-pub type Maybe<T> = Result<T, Error>;
-
-pub fn set_panic_hook () {
-    #[cfg(feature = "console_error_panic_hook")]
-    console_error_panic_hook::set_once();
-}
-
-#[wasm_bindgen]
-struct Simf;
-
-#[wasm_bindgen]
-impl Simf {
-    #[wasm_bindgen]
-    pub fn build (source: JsString, options: Object) -> Maybe<Object> {
-        build(source, options)
-    }
-}
 #[wasm_bindgen]
 pub fn build (source: JsString, options: Object) -> Maybe<Object> {
+    console_error_panic_hook::set_once();
     let result         = Object::new();
     let source         = set_build_source(&result, &source)?;
     let (debug, prune) = set_build_options(&result, &options)?;
@@ -160,7 +115,10 @@ fn set_build_bytes (
     Ok(program_bytes)
 }
 
-fn set_build_assembly (result: &Object, program_bytes: Vec<u8>) -> Maybe<Forest<Elements>> {
+fn set_build_assembly (
+    result: &Object,
+    program_bytes: Vec<u8>
+) -> Maybe<Forest<Elements>> {
     let decoded = attempt!(CommitNode::decode(BitIter::from(program_bytes.into_iter())));
     let assembly = Forest::<Elements>::from_program(decoded);
     set!(result, "assembly", assembly.string_serialize());

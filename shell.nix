@@ -28,6 +28,7 @@ in sh "fadroma" [
   pkgs.emscripten
   pkgs.binaryen
   pkgs.elements
+  pkgs.python3
   (rs-gh "starkware-bitcoin" "simply" "3e1d0589"
     "sha256-EKfeEsr/sG/SorT2GK/ovMvI2QaoTMZ1wehbCcSjEmQ="
     "sha256-N2i5IJtKU1iPkpBaX90LgA7gw8B3n+K5hbByJOMRV3o=")

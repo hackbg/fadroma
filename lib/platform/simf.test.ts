@@ -12,7 +12,7 @@ export default Test.suite(import.meta, 'Simf',
   the('Wasm', async () => Simf.Wasm(await Deno.readFile(wasm)),
     has('default', is('function'), init => init()),
     has('build', is('function'), build => {
-      return build("", {});
+      return build("fn main () {}", {});
     })),
   //the('Program',
     //the('Define',     () => Simf(path)),

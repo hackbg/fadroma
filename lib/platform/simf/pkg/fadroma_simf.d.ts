@@ -1,22 +1,13 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export class Simf {
-  private constructor();
-  free(): void;
-  [Symbol.dispose](): void;
-  static build(source: string, options: object): object;
-}
-
 export function build(source: string, options: object): object;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
-  readonly __wbg_simf_free: (a: number, b: number) => void;
   readonly build: (a: any, b: any) => [number, number, number];
-  readonly simf_build: (a: any, b: any) => [number, number, number];
   readonly rust_0_6_malloc: (a: number) => number;
   readonly rust_0_6_free: (a: number) => void;
   readonly rust_0_6_calloc: (a: number, b: number) => number;
@@ -28,10 +19,10 @@ export interface InitOutput {
   readonly rustsecp256k1_v0_10_0_default_illegal_callback_fn: (a: number, b: number) => void;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+  readonly __wbindgen_free: (a: number, b: number, c: number) => void;
   readonly __wbindgen_exn_store: (a: number) => void;
   readonly __externref_table_alloc: () => number;
   readonly __wbindgen_externrefs: WebAssembly.Table;
-  readonly __wbindgen_free: (a: number, b: number, c: number) => void;
   readonly __externref_table_dealloc: (a: number) => void;
   readonly __wbindgen_start: () => void;
 }
