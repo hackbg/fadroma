@@ -8,6 +8,7 @@ build = "build.rs"
 crate-type = [ "cdylib", "rlib" ]
 [dependencies]
 simplicityhl = { path = "./dep/simplicityhl", features = ["serde"] }
+elements = "0.26.1"
 console_error_panic_hook = "0.1.7"
 hex = "0.4.3"
 js-sys = "0.3.70"

@@ -7,13 +7,32 @@ import { Btc } from './btc.ts';
 const { the, is, has } = Test;
 const wasm = resolvePath(import.meta.dirname, "simf/pkg/fadroma_simf_bg.wasm");
 const path = resolvePath(import.meta.dirname, 'simf/example/01.simf');
+const example = `
+fn main() {
+    let ab: u16 = <(u8, u8)>::into((0x10, 0x01));
+    let c: u16 = 0x1001;
+    assert!(jet::eq_16(ab, c));
+    let ab: u8 = <(u4, u4)>::into((0b1011, 0b1101));
+    let c: u8 = 0b10111101;
+    assert!(jet::eq_8(ab, c));
+}
+`.trim();
 
 export default Test.suite(import.meta, 'Simf',
   the('Wasm', async () => Simf.Wasm(await Deno.readFile(wasm)),
     has('default', is('function'), init => init()),
-    has('build', is('function'), build => {
-      return build("fn main () {}", {});
-    })),
+    has('build', is('function'),
+      build => {
+        const result = build('fn main () {}', {});
+        console.log({result});
+        return result;
+      },
+      build => {
+        const result = build(example, {});
+        console.log({result});
+        return result;
+      },
+       )),
   //the('Program',
     //the('Define',     () => Simf(path)),
     //the('Entrypoint', () => Simf({}, path)),

@@ -293,11 +293,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "elements"
+version = "0.26.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9d562b364c5d2aced40b01b3f73fc968311787e6813957593d4ffa94cd8733e3"
+dependencies = [
+ "bech32",
+ "bitcoin",
+ "secp256k1-zkp",
+ "serde_json",
+]
+
+[[package]]
 name = "fadroma-simf"
 version = "0.1.0"
 dependencies = [
  "cc",
  "console_error_panic_hook",
+ "elements 0.26.1",
  "hex",
  "js-sys",
  "serde_json",
@@ -737,7 +750,7 @@ dependencies = [
  "bitcoin",
  "bitcoin_hashes",
  "byteorder",
- "elements",
+ "elements 0.25.2",
  "getrandom",
  "ghost-cell",
  "hex-conservative",

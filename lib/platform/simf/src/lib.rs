@@ -16,11 +16,12 @@ pub(crate) use simplicityhl::{
         CommitNode, BitIter,
         human_encoding::Forest,
         jet::Elements,
-        elements::{
-            taproot::{LeafVersion, TaprootBuilder, TaprootSpendInfo},
-            Address, AddressParams, Script, secp256k1_zkp as secp256k1,
-        },
     },
+};
+
+pub(crate) use elements::{
+    taproot::{LeafVersion, TaprootBuilder, TaprootSpendInfo},
+    Address, AddressParams, Script, secp256k1_zkp as secp256k1,
 };
 
 macro_rules! attempt { ($expr:expr) => { $expr.map_err(|e|Error::new(&format!("{e}")))? } }
@@ -42,4 +43,5 @@ macro_rules! each {
 
 pub(crate) type Maybe<T> = Result<T, Error>;
 
-mod simf; pub use self::simf::*;
+mod compile; pub use self::compile::*;
+mod deploy; pub use self::deploy::*;
