@@ -2,9 +2,9 @@ extern crate cc;
 use std::env;
 use std::path::Path;
 fn main() {
-    println!("cargo:rerun-if-changed=depend"); 
+    println!("cargo:rerun-if-changed=dep/jets"); 
     println!("cargo::rustc-env=TARGET=wasm32-unknown-emscripten");
-    let simplicity_path = Path::new("depend/simplicity");
+    let simplicity_path = Path::new("dep/jets/simplicity");
     let mut build = cc::Build::new();
     let files: Vec<_> = vec![
         "bitstream.c",
@@ -37,9 +37,9 @@ fn main() {
         .flag_if_supported("-fno-zero-call-used-regs")
         .opt_level(2)
         .files(files)
-        .file(Path::new("depend/wrapper.c"))
-        .file(Path::new("depend/env.c"))
-        .file(Path::new("depend/jets_wrapper.c"))
+        .file(Path::new("dep/jets/wrapper.c"))
+        .file(Path::new("dep/jets/env.c"))
+        .file(Path::new("dep/jets/jets_wrapper.c"))
         .include(simplicity_path.join("include"));
     if cfg!(not(fuzzing)) {
         build.define("PRODUCTION", None);
