@@ -277,7 +277,7 @@ input[type=checkbox].collapse
   min-height:          2rem;
   background:          url("/wordmark.svg");
   background-size:     contain;
-  background-repeat:   no-repeat;
+  background-repeat:   no-repeat; 
   background-position: center;
   align-self:          stretch;
   filter: drop-shadow(1px 1px 1px #0005);

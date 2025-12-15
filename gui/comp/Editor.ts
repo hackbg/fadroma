@@ -394,7 +394,6 @@ export namespace Field {
 export namespace Fields {
 
   export function TextArea (id: string, ...content: string[]) {
-    console.log({ id, content });
     return [`textarea.collapsible#text:${id}`,
       {autocomplete: "off", autocorrect: "off", autocapitalize: "off", spellcheck: false},
       content.filter(x=>typeof x === 'string').join('\n')];
@@ -411,22 +410,27 @@ export namespace Fields {
 
   export const Simf = (id: string, ...content: string[]) => Field({
     id, collapsed: false, header: [
-      Command('play', 'Compile', { onclick: compileSimf }),
+      Command('play', 'Compile', { onclick: compileSimf(id) }),
       //Command('circle-with-plus', 'Define')
     ], content: [
       Fields.TextArea(id, ...content),
-      ['div.row', ['div.grow']] ] });
-
+      [`div.row#result:${id}`, ['div.grow']],
+    ] });
 
   let simf = null
-  async function compileSimf (e) {
-    simf ??= await import('../../lib/platform/simf/pkg/fadroma_simf.js')
-    console.log(e.target)
-    const resp = await fetch('/wasm/simf.wasm');
-    const wasm = await resp.bytes();
-    console.log({simf, resp, wasm});
-    console.log(await simf.default(wasm));
-    console.log(simf.build('fn main () {}', {}))
+  function compileSimf (id) {
+    return async e => {
+      simf ??= await import('../../lib/platform/simf/pkg/fadroma_simf.js')
+      console.log(e.target)
+      const resp = await fetch('/wasm/simf.wasm');
+      const wasm = await resp.bytes();
+      console.log({simf, resp, wasm});
+      console.log(await simf.default(wasm));
+
+      const result = simf.build('fn main () {}', {});
+      elById(`result:${id}`).style.whiteSpace = 'pre';
+      elById(`result:${id}`).innerText = JSON.stringify(result, null, 2);
+    }
   }
 
   export const SimfFn = (name: string, ...content: unknown[]) =>
