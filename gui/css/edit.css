@@ -14,9 +14,12 @@
 }
 
 .editor-wrapper {
-  resize: vertical;
+  /*resize: vertical;*/
   overflow: auto;
-  margin: 0.25rem 0 0.75rem -1.5rem;
+  margin: 0 0 0.5rem -1.5rem;
+  border-top: 1px solid #fff8;
+  background: #fff4;
+  /*max-width: 100%;*/
   .collapsed & {
     min-height: 0;
     overflow: hidden;
@@ -170,7 +173,7 @@
   border: 1px solid white;
   min-height: 2rem;
   background: #f0f0f0e0;
-  &.collapsed { background: linear-gradient(to right, #fffa, #fff8); }
+  &.collapsed { background: linear-gradient(to right, #fff8, #fff7); }
   color: #333;
   /*transition: background ease-in 0.166s;*/
   /*background: #d4d4d4;*/
@@ -268,3 +271,5 @@
 .hex-row
 { font-family: monospace; white-space: pre;
   padding: 0 0.5rem; font-weight: 600 }
+
+.simf-result { padding: 0.25rem 0.5rem; gap: 0.5rem; & > strong { opacity: 0.8; }; border-top: 1px solid #fff8; & > div { font-family: monospace }; & > .w { width: 2.5rem } }

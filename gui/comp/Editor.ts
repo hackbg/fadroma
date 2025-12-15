@@ -15,15 +15,42 @@ export function Config (
     ['div.field.head.grow', ['div.name', 'Download']],
     ['div.field.head.grow', ['div.name', 'Examples']],
     ['div.field.head.grow', ['div.name', 'Clear']]]));
-  Html.append(features, Html(['div', 'Stack:', ['ul#features-active']]));
-  Html.append(features, Html(['ul.features',
-    ['details', { open: true }, ['summary', 'Environment'], Html(['ul.features', ...Config.Env()])],
-    ['details', { open: true }, ['summary', 'Bitcoin'],     Html(['ul.features', ...Config.Btc()])],
-    ['details', { open: true }, ['summary', 'ECMAScript'],  Html(['ul.features', ...Config.Ecma()])],
-    ['details', { open: true }, ['summary', 'Rust'],        Html(['ul.features', ...Config.Rust()])],
-    ['details', { open: true }, ['summary', 'Solana'],      Html(['ul.features', ...Config.Sol()])],
-    ['details', { open: true }, ['summary', 'Tendermint'],  Html(['ul.features', ...Config.Tm()])],
-  ]));
+  Html.append(features,
+    Html(['div', 'Stack:', ['ul#features-active']]),
+    Html(['ul.features',
+
+      Config.Section(false, 'Environment',
+        [true,  0, "enable:git",          "Git",          "Automatically init Git repo in new project."],
+        [true,  0, "enable:nix",          "Nix Shell",    ["Obtain dependencies from ", Link(urls.nixPkgs, "nixpkgs")], ["Install", urls.nixInstall]],
+        [true,  0, "enable:direnv",       "Direnv",       ["Automatically load Nix shell when entering project directory."], ["Wiki", urls.direnvWiki]],
+        [false, 0, "enable:editorconfig", "EditorConfig", "IDE-agnostic settings.", ["Spec", urls.edConfSpec]],
+        [false, 0, "enable:gha",          "GHA",          "Config for GitHub Actions."],
+        [false, 0, "enable:drone",        "Drone",        "Config for Drone CI."],
+      ),
+
+      Config.Section(true, 'Bitcoin',
+        [true, 0, "enable:btc",      "Bitcoin",      ["Develop and test with local bitcoind in ", Link(urls.btcTest, "regtest"), " mode."], ["RPC", urls.btcRpc]],
+        [true, 0, "enable:elements", "Elements",     ["Develop and test with local elementsd in ", Link(urls.btcTest, "regtest"), " mode."], ["RPC", urls.btcRpc]],
+        [true, 0, "enable:simf",     "SimplicityHL", ["Compile and run ", Link(urls.simfRef, "SimplicityHL"), " programs."], ["Language", urls.simfRef], ["Jets", urls.simfJets]]),
+
+      Config.Section(false, 'ECMAScript',
+        [true, 0, "enable:deno", "Deno", "Run on next-gen TS/JS runtime by default.",
+          ["@std", urls.denoStd],
+          ["API",  urls.denoApi]],
+        [true, 0, "enable:node", "Node.js",
+          ["Will use ", Link(urls.tsxNpm, "tsx"), " to run TypeScript."],
+          ["API", urls.nodeApi]],
+        [true, 0, "enable:pnpm", "PNPM", ["Recommended package manager."], ["Compare", urls.pnpmCompare]],
+        [false, 0, "enable:eslint", "ESLint", "Static analyzer.", ["Config", urls.eslintConf]],
+        [false, 0, "enable:vite", "Vite", "Build your front-end in the same repo."]),
+
+      ['details', { open: false }, ['summary', 'Rust'],        Html(['ul.features', ...Config.Rust()])],
+
+      ['details', { open: false }, ['summary', 'Solana'],      Html(['ul.features', ...Config.Sol()])],
+
+      ['details', { open: false }, ['summary', 'Tendermint'],  Html(['ul.features', ...Config.Tm()])],
+
+    ]));
   return sidebar;
 }
 
@@ -56,22 +83,17 @@ export function Command (icon: string|null, ...content: unknown[]) {
 
 export namespace Config {
 
-  export const Env = () => [
-    Feature(0, "enable:git", "Git",
-      "Automatically init Git repo in new project."),
-    Feature(0, "enable:nix", "Nix Shell",
-      ["Obtain dependencies from ", Link(urls.nixPkgs, "nixpkgs")],
-      ["Install", urls.nixInstall]),
-    Feature(0, "enable:direnv", "Direnv",
-      ["Automatically load Nix shell when entering project directory."],
-      ["Wiki", urls.direnvWiki]),
-    Feature.Disabled(0, "enable:editorconfig", "EditorConfig",
-      "IDE-agnostic settings.",
-      ["Spec", urls.edConfSpec]),
-    Feature.Disabled(0, "enable:gha",   "GHA",
-      "Config for GitHub Actions."),
-    Feature.Disabled(0, "enable:drone", "Drone",
-      "Config for Drone CI."), ];
+  export function Section (
+    open: boolean,
+    title: string,
+    ...features: Array<[boolean, number, string, ...unknown[]]>
+  ) {
+    return ['details', { open },
+      ['summary', title],
+      Html(['ul.features', ...features.map(
+        ([enabled, n, name, ...rest])=>(((!enabled) ? Feature.Disabled : Feature)(n, name, ...rest))
+      )])];
+  }
 
   export const Btc = () => [
     Feature(0, "enable:btc", "Bitcoin",
@@ -84,20 +106,6 @@ export namespace Config {
       ["Compile and run ", Link(urls.simfRef, "SimplicityHL"), " programs."],
       ["Language", urls.simfRef],
       ["Jets", urls.simfJets]), ];
-  export const Ecma = () => [
-    Feature(0, "enable:deno", "Deno",
-      "Run on next-gen TS/JS runtime by default.",
-      ["@std", urls.denoStd],
-      ["API",  urls.denoApi]),
-    Feature(0, "enable:node", "Node.js",
-      ["Will use ", Link(urls.tsxNpm, "tsx"), " to run TypeScript."],
-      ["API", urls.nodeApi]),
-    Feature(0, "enable:pnpm", "PNPM",
-      ["Recommended package manager."],
-      ["Compare", urls.pnpmCompare]),
-    Feature.Disabled(0, "enable:eslint", "ESLint", "Static analyzer.",
-      ["Config", urls.eslintConf]),
-    Feature.Disabled(0, "enable:vite", "Vite", "Build your front-end in the same repo."), ];
   export const Rust = () => [
     Feature.Disabled(0, "enable:rust", "Rust",
       "Different targets may need different toolchains."),
@@ -265,20 +273,26 @@ export namespace Editor {
       const model    = Monaco.editor.createModel(content, language, Monaco.Uri.parse(uri));
       const wrapper  = Html.Div('.editor-wrapper');
       const editor   = Monaco.editor.create(wrapper, {
-        model:                textarea.monaco = model,
-        scrollBeyondLastLine: false,
-        wordWrap:             'on',
-        wrappingStrategy:     'advanced',
-        automaticLayout:      true,
-        minimap:              { enabled: false },
-        overviewRulerLanes:   0,
         language,
+        model:                   textarea.monaco = model,
+        scrollBeyondLastLine:    false,
+        wordWrap:                'on',
+        wrappingStrategy:        'advanced',
+        automaticLayout:         true,
+        minimap:                 { enabled: false },
+        overviewRulerLanes:      0,
+        scrollbar:               {
+          alwaysConsumeMouseWheel: false,
+          ignoreHorizontalScrollbarInContentHeight: true,
+          horizontal: 'hidden',
+          vertical: 'auto',
+        },
       });
       let ignoreEvent = false;
       const updateHeight = () => {
         if (ignoreEvent) return;
         const width  = Math.max(300,  wrapper.offsetWidth);
-        const height = Math.min(1000, editor.getContentHeight());
+        const height = Math.min(1000, editor.getContentHeight()) + 1;
         //wrapper.style.width  = `${width}px`;
         wrapper.style.height = `${height}px`;
         try {
@@ -415,6 +429,10 @@ export namespace Fields {
     ], content: [
       Fields.TextArea(id, ...content),
       [`div.row#result:${id}`, ['div.grow']],
+      [`div.row.simf-result`, ['strong', `Commit: `], [`div.grow#commit:${id}`]],
+      [`div.row.simf-result`, ['strong.w', `CMR: `],    [`div.grow#cmr:${id}`]],
+      [`div.row.simf-result`, ['strong.w', `AMR: `],    [`div.grow#amr:${id}`]],
+      [`div.row.simf-result`, ['strong.w', `IHR: `],    [`div.grow#ihr:${id}`]],
     ] });
 
   let simf = null
@@ -426,10 +444,12 @@ export namespace Fields {
       const wasm = await resp.bytes();
       console.log({simf, resp, wasm});
       console.log(await simf.default(wasm));
-
       const result = simf.build('fn main () {}', {});
       elById(`result:${id}`).style.whiteSpace = 'pre';
-      elById(`result:${id}`).innerText = JSON.stringify(result, null, 2);
+      elById(`commit:${id}`).innerText = result.commit;
+      elById(`cmr:${id}`).innerText = result.cmr;
+      elById(`amr:${id}`).innerText = result.amr;
+      elById(`ihr:${id}`).innerText = result.ihr;
     }
   }
 

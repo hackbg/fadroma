@@ -147,6 +147,7 @@ input[type=checkbox].collapse
   display: inline-block; }
 
 #main {
+  flex-grow: 1;
   border: 0.5rem solid transparent;
   overflow: auto;
   margin: 0;
@@ -234,7 +235,7 @@ input[type=checkbox].collapse
   #navbar {
     align-self: flex-start;
     flex-shrink: 0;
-    margin: 1.25rem 1rem;
+    margin: 0 0.5rem;
     padding: 1rem 0;
   }
 }
