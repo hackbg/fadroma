@@ -32,15 +32,20 @@
     </nav>
     <div class="row justify-center overflow-hidden">
       <div class="col rel gap align-stretch" id="main">
-        <section class="row"><div class="grow" id="editors-env"></div><div id="sidebar-env"></div></section>
-        <section class="row"><div class="grow" id="editors-btc"></div><div id="sidebar-btc"></div></section>
-        <section class="row"><div class="grow" id="editors-es"></div><div id="sidebar-es"></div></section>
-        <section class="row"><div class="grow" id="editors-rust"></div><div id="sidebar-rust"></div></section>
-        <section class="row"><div class="grow" id="editors-sol"></div><div id="sidebar-sol"></div></section>
-        <section class="row"><div class="grow" id="editors-tm"></div><div id="sidebar-tm"></div></section>
+        <section class="row">
+          <div class="grow" id="editors"></div>
+          <div id="sidebar">
+            <div id="sidebar-env"></div>
+            <div id="sidebar-btc"></div>
+            <div id="sidebar-es"></div>
+            <div id="sidebar-rust"></div>
+            <div id="sidebar-sol"></div>
+            <div id="sidebar-tm"></div>
+          </div>
+        </section>
+
         <script type="module">
-          import('./comp/Editor.ts').then(({Editor})=>Editor());
-          import('./comp/Config.ts').then(({Config})=>Config());
+          import('./comp/Editor.ts').then(({Editor, Config})=>{Editor();Config();});
         </script>
       </div>
     </div>
