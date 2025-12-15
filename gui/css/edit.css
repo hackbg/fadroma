@@ -100,19 +100,6 @@
     &:focus
     { background: #fff; } };
 }
-
-.handle-v, .handle-h
-{ min-width: 1.5rem; min-height: 1rem; display: flex;
-  svg { width: 1.25rem; height: 1.75rem } }
-.handle-h
-{ flex-grow: 1 }
-.handle-v
-{ flex-flow: column nowrap; align-items: center;
-  .collapsed & .grow { display: none; }
-  &:hover { background: #fff4; cursor: pointer } }
-.hex-row
-{ font-family: monospace; white-space: pre;
-  padding: 0 0.5rem; font-weight: 600 }
 .field
 { display:   flex;
   flex-flow: row nowrap;
@@ -141,7 +128,7 @@
 
 .field .name {
   text-transform: none;
-  color:          #555;
+  color:          #000;
   font-size:      0.875rem;
   font-weight:    bold;
   font-weight:    550;
@@ -177,9 +164,10 @@
 { flex-shrink: 0;
   flex-flow:  row nowrap;
   border-top: 1px solid #8884;
+  border: 1px solid white;
   min-height: 2rem;
   background: #f0f0f0e0;
-  &.collapsed { background: linear-gradient(to right, #fff8, #fff6); }
+  &.collapsed { background: linear-gradient(to right, #fffa, #fff8); }
   color: #333;
   /*transition: background ease-in 0.166s;*/
   /*background: #d4d4d4;*/
@@ -248,3 +236,16 @@
     width: 4rem;
   }
 }
+
+.handle-v, .handle-h
+{ min-width: 1.5rem; min-height: 1rem; display: flex;
+  svg { width: 1.25rem; height: 1.75rem } }
+.handle-h
+{ flex-grow: 1 }
+.handle-v
+{ flex-flow: column nowrap; align-items: center;
+  .collapsed & .grow { display: none; }
+  &:hover { background: #fff4; cursor: pointer } }
+.hex-row
+{ font-family: monospace; white-space: pre;
+  padding: 0 0.5rem; font-weight: 600 }

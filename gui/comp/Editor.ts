@@ -253,20 +253,44 @@ export namespace Editor {
       `\n]; }`
   )]);
 
-  export const init = el => el.querySelectorAll('textarea').forEach(textarea=>{
-    Field.computeHeight(textarea);
-    const model = Monaco.editor.createModel(textarea.innerText, 'nix', Monaco.Uri.parse(`fadroma://${+new Date()}`));
-    const wrapper = document.createElement('div');
-    wrapper.className = 'editor-wrapper';
-    const editor = Monaco.editor.create(wrapper, {
-      model:    textarea.monaco = model,
-      language: 'nix',
-      theme:    'gruvbox-dark',
-      automaticLayout: true,
-    });
-    textarea.parentElement.appendChild(wrapper);
-    textarea.parentElement.removeChild(textarea);
-  })
+  export const init = el => {
+    elById('title').focus();
+    el.querySelectorAll('textarea').forEach(textarea=>{
+      Field.computeHeight(textarea);
+      const model = Monaco.editor.createModel(textarea.innerText, 'nix', Monaco.Uri.parse(`fadroma://${+new Date()}`));
+      const wrapper = document.createElement('div');
+      wrapper.className = 'editor-wrapper';
+      const editor = Monaco.editor.create(wrapper, {
+        scrollBeyondLastLine: false,
+        wordWrap: 'on',
+        wrappingStrategy: 'advanced',
+        minimap: { enabled: false },
+        overviewRulerLanes: 0,
+        model:    textarea.monaco = model,
+        language: 'nix',
+        theme:    'gruvbox-dark',
+        automaticLayout: true,
+      });
+      let ignoreEvent = false;
+      const updateHeight = () => {
+        const width  = Math.max(300,  wrapper.offsetWidth);
+        const height = Math.min(1000, editor.getContentHeight());
+        //wrapper.style.width  = `${width}px`;
+        wrapper.style.height = `${height}px`;
+        try {
+          ignoreEvent = true;
+          console.log({width, height});
+          editor.layout({ width, height });
+        } finally {
+          ignoreEvent = false;
+        }
+      };
+      editor.onDidContentSizeChange(updateHeight);
+      updateHeight();
+      textarea.parentElement.appendChild(wrapper);
+      textarea.parentElement.removeChild(textarea);
+    })
+  }
 
   export function update (e: InputEvent) {
     let target = e.target as HTMLElement;

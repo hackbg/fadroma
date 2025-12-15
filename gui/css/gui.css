@@ -117,6 +117,9 @@ input[type=checkbox]
 .between
 { justify-content: space-between }
 
+.justify-evenly
+{ justify-content: space-evenly; }
+
 .justify-center
 { justify-content: center; }
 
@@ -206,8 +209,9 @@ input[type=checkbox].collapse
     display:   flex;
     flex-flow: row nowrap;
     padding-top: 0;
-    margin-top: 0;
-    &:nth-child(2) { flex-flow: row nowrap }
+    margin: 0.5rem 0.5rem 0;
+    .logo { margin: 1rem 0 0 }
+    & > .col { flex-flow: row nowrap; align-items: center; }
     .hackbg { margin-top: 0 }
   }
   #sidebar {
@@ -255,28 +259,27 @@ input[type=checkbox].collapse
 .logo {
   width:               10rem;
   min-height:          8rem;
-  margin:              -0.5rem auto 0;
+  margin:              0 auto;
   background:          url("/logo.svg");
   background-size:     contain;
   background-repeat:   no-repeat;
   background-position: center;
   align-self:          stretch;
   filter: drop-shadow(1px 1px 1px #0005);
-  border-bottom: 1px solid #fff;
 }
 
 .wordmark {
   width:               10rem;
+  margin:              -1rem auto 0;
   min-height:          2rem;
-  margin:              -0.5rem auto 0;
   background:          url("/wordmark.svg");
   background-size:     contain;
   background-repeat:   no-repeat;
   background-position: center;
   align-self:          stretch;
   filter: drop-shadow(1px 1px 1px #0005);
-  border-bottom: 1px solid #fff;
-  border-top: 1px solid #fff;
+  border-bottom: 1px solid #fff8;
+  border-top: 1px solid #fff8;
 }
 
 .subtitle {
@@ -289,6 +292,7 @@ input[type=checkbox].collapse
   font-size: 0.9rem;
   font-weight: 700;
   text-align: center;
+  /*border-bottom: 1px solid #fff;*/
 }
 
 .hackbg {
@@ -298,6 +302,7 @@ input[type=checkbox].collapse
   font-weight: normal;
   padding: 0.66rem 0.5rem 0.66rem 1rem;
   margin: 0 0 0.5rem -0.5rem;
+  border-bottom: none;
   &:hover {
     background: linear-gradient(to right, transparent, rgb(144, 19, 254), rgb(150, 20, 255));
   }
