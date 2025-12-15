@@ -33,7 +33,9 @@ body
   flex-flow:       row;
   justify-content: center;
   background:      radial-gradient(at left, #0000, #2311);
-  overflow:        hidden; }
+  overflow:        hidden; 
+  box-shadow: 0.5rem 0.5rem 1rem #0001 inset;
+}
 
 a[href]
 { color: #090; }
@@ -232,7 +234,8 @@ input[type=checkbox].collapse
   #navbar {
     align-self: flex-start;
     flex-shrink: 0;
-    margin: 3rem 1rem;
+    margin: 1.25rem 1rem;
+    padding: 1rem 0;
   }
 }
 .nav {
@@ -242,11 +245,11 @@ input[type=checkbox].collapse
   flex-shrink:  0;
   color:        #fff;
   user-select:  none;
-  background: #fff1;
-  border: 1px solid #fff2;
-  border-radius: 1px;
   padding: 0 0 1rem 0;
-  box-shadow: 2px 2px 5px #0002;
+  /*background: #fff1;*/
+  /*border: 1px solid #fff3;*/
+  /*border-radius: 1px;*/
+  /*box-shadow: 2px 2px 5px #0002;*/
   a { color: #fff }
 }
 

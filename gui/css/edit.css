@@ -16,11 +16,12 @@
 .editor-wrapper {
   resize: vertical;
   overflow: auto;
-  margin-left: -1.5rem;
-  min-height: 4rem;
+  margin: 0.25rem 0 0.75rem -1.5rem;
   .collapsed & {
     min-height: 0;
     overflow: hidden;
+    display: none;
+    visibility: hidden;
   }
 }
 
@@ -105,16 +106,17 @@
   flex-flow: row nowrap;
   &[data-disabled]
   { display: none; visibility: hidden; }
-  .name
-  { user-select:    none;
+  .name {
+    user-select:    none;
     padding:        0 0.33rem;
 
-    #editors &
-    { text-transform: none;
-      padding:        0.25rem;
+    #editors & { 
+      text-transform: none;
       align-items:    center;
       display:        flex;
-      flex-flow:      row nowrap; } }
+      flex-flow:      row nowrap;
+    }
+  }
   .command
   { display: flex;
     flex-flow: row nowrap;
@@ -137,7 +139,8 @@
 
 .field.file .name {
   font-size:  1rem;
-  min-height: 1.5rem;
+  min-height: 2rem;
+  padding: 0 0.33rem;
 }
 
 .field.head {
@@ -237,15 +240,31 @@
   }
 }
 
-.handle-v, .handle-h
-{ min-width: 1.5rem; min-height: 1rem; display: flex;
-  svg { width: 1.25rem; height: 1.75rem } }
-.handle-h
-{ flex-grow: 1 }
-.handle-v
-{ flex-flow: column nowrap; align-items: center;
-  .collapsed & .grow { display: none; }
-  &:hover { background: #fff4; cursor: pointer } }
+.handle-v,
+.handle-h {
+  min-width: 1.5rem;
+  min-height: 2rem;
+  display: flex;
+  svg {
+    width: 1.25rem; height: 2rem
+  }
+}
+.handle-h {
+  flex-grow: 1
+}
+.handle-v {
+  z-index: 1000;
+  flex-flow: column nowrap; 
+  align-items: center;
+  border-right: 1px solid #fff8;
+  .collapsed & .grow {
+    display: none;
+  }
+  &:hover {
+    background: #fff4;
+    cursor: pointer
+  }
+}
 .hex-row
 { font-family: monospace; white-space: pre;
   padding: 0 0.5rem; font-weight: 600 }

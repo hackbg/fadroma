@@ -156,50 +156,17 @@ export namespace Editor {
       Fields.WitnessRow('sig', 'ORACLE_SIG',    ''),
       Fields.WitnessRow('sig', 'OWNER_SIG',     '')),
     Fields.TS("index.ts",
-      ESHashBang({ deno, node }),
-      ESImport("@hackbg/fadroma", simf && 'Simf'),
+      ES.HashBang({ deno, node }),
+      ES.Import("@hackbg/fadroma", simf && 'Simf'),
       simf && `export default Simf(import.meta, "src/main.simf");`),
     Fields.TS("test.ts",
-      ESHashBang({ deno, node }),
-      ESImport("@hackbg/fadroma", btc && 'Btc', 'Test'),
+      ES.HashBang({ deno, node }),
+      ES.Import("@hackbg/fadroma", btc && 'Btc', 'Test'),
       `import Program from './index.ts';`,
       `export default Test.suite(import.meta, Btc(`,
       `  Test.the("Build",    Program.build),`,
       `  Test.the("Deposit",  Program.deposit),`,
       `  Test.the("Withdraw", Program.withdraw)));`),
-    Fields.Text("package.json",
-      `{`,
-      `  "name":    "untitled",`,
-      `  "type":    "module",`,
-      `  "main":    "index.ts",`,
-      `  "version": "0.1.0",`,
-      `  "licence": "AGPL-3.0-or-later",`,
-      `  "dependencies": {`,
-      `    "@hackbg/fadroma": "https://github.com/hackbg/fadroma.git#v3-alpha"`,
-      `  },`,
-      `  "devDependencies": {`, [
-        (node && `    "tsx":  "^4.20.6"`),
-        (vite && `    "vite": "^7.2.2"`),
-      ].filter(Boolean).join(',\n'),
-      `  }`,
-      `}`,
-    ),
-    Fields.Text("tsconfig.json",
-      `{`,
-      `  "compilerOptions": {`,
-      `    "strict":                    false,`,
-      `    "target":                    "esnext",`,
-      `    "module":                    "esnext",`,
-      `    "moduleResolution":          "bundler",`,
-      `    "allowImportingTsExtensions": true,`,
-      `    "noUnusedLocals":             false,`,
-      `    "noUnusedParameters":         false,`,
-      `    "isolatedModules":            false`,
-      `  }`,
-      `}`,
-    ),
-    deno && Fields.Text("deno.json", "{}"),
-    direnv && Fields.Text(".envrc", "use nix"),
     nix && Fields.Text("shell.nix",
       `#!/usr/bin/env nix-shell`,
       `{ pkgs ? import<nixpkgs> {} }: let`,
@@ -251,35 +218,72 @@ export namespace Editor {
         : []),
 
       `\n]; }`
-  )]);
+  ),
+  direnv && Fields.Text(".envrc", "use nix"),
+    Fields.Text("package.json",
+      `{`,
+      `  "name":    "untitled",`,
+      `  "type":    "module",`,
+      `  "main":    "index.ts",`,
+      `  "version": "0.1.0",`,
+      `  "licence": "AGPL-3.0-or-later",`,
+      `  "dependencies": {`,
+      `    "@hackbg/fadroma": "https://github.com/hackbg/fadroma.git#v3-alpha"`,
+      `  },`,
+      `  "devDependencies": {`, [
+        (node && `    "tsx":  "^4.20.6"`),
+        (vite && `    "vite": "^7.2.2"`),
+      ].filter(Boolean).join(',\n'),
+      `  }`,
+      `}`,
+    ),
+    Fields.Text("tsconfig.json",
+      `{`,
+      `  "compilerOptions": {`,
+      `    "strict":                    false,`,
+      `    "target":                    "esnext",`,
+      `    "module":                    "esnext",`,
+      `    "moduleResolution":          "bundler",`,
+      `    "allowImportingTsExtensions": true,`,
+      `    "noUnusedLocals":             false,`,
+      `    "noUnusedParameters":         false,`,
+      `    "isolatedModules":            false`,
+      `  }`,
+      `}`,
+    ),
+    deno && Fields.Text("deno.json", "{}"),
+    ]);
 
   export const init = el => {
     elById('title').focus();
     el.querySelectorAll('textarea').forEach(textarea=>{
       Field.computeHeight(textarea);
-      const model = Monaco.editor.createModel(textarea.innerText, 'nix', Monaco.Uri.parse(`fadroma://${+new Date()}`));
-      const wrapper = document.createElement('div');
-      wrapper.className = 'editor-wrapper';
-      const editor = Monaco.editor.create(wrapper, {
+      const content  = textarea.value;
+      console.log({textarea, content});
+      const language = textarea.dataset.language ??= 'nix';
+      const uri      = textarea.dataset.uri ??= `fadroma://${+new Date()}`;
+      const model    = Monaco.editor.createModel(content, language, Monaco.Uri.parse(uri));
+      const wrapper  = Html.Div('.editor-wrapper');
+      const editor   = Monaco.editor.create(wrapper, {
+        model:                textarea.monaco = model,
         scrollBeyondLastLine: false,
-        wordWrap: 'on',
-        wrappingStrategy: 'advanced',
-        minimap: { enabled: false },
-        overviewRulerLanes: 0,
-        model:    textarea.monaco = model,
-        language: 'nix',
-        theme:    'gruvbox-dark',
-        automaticLayout: true,
+        wordWrap:             'on',
+        wrappingStrategy:     'advanced',
+        automaticLayout:      true,
+        minimap:              { enabled: false },
+        overviewRulerLanes:   0,
+        language,
       });
       let ignoreEvent = false;
       const updateHeight = () => {
+        if (ignoreEvent) return;
         const width  = Math.max(300,  wrapper.offsetWidth);
         const height = Math.min(1000, editor.getContentHeight());
         //wrapper.style.width  = `${width}px`;
         wrapper.style.height = `${height}px`;
         try {
           ignoreEvent = true;
-          console.log({width, height});
+          //console.log({width, height});
           editor.layout({ width, height });
         } finally {
           ignoreEvent = false;
@@ -335,8 +339,10 @@ export namespace Editor {
     makeExecutable('shell.nix');
     download(`${+new Date()}-${title}.zip`, 'application/zip', zipSync(archive))
   }
+}
 
-  const ESImport = (mod: string, ...items: (string|false|null)[]) => {
+export namespace ES {
+  export function Import (mod: string, ...items: (string|false|null)[]) {
     items = items.filter(x=>(typeof x === 'string'))
     if (items.length > 0) {
       return `import { ${items.join(', ')} } from "${mod}";`
@@ -344,8 +350,7 @@ export namespace Editor {
       return ''
     }
   }
-
-  const ESHashBang = ({ deno = false, node = false }) =>
+  export const HashBang = ({ deno = false, node = false }) =>
     deno ? `#!/usr/bin/env -S deno run -I --coverage --allow-env --allow-run --allow-net\n` :
     node ? `#!/usr/bin/env -S npx tsx\n` :
     null;
@@ -387,24 +392,31 @@ export namespace Field {
 }
 
 export namespace Fields {
-  export const textarea = (id: string, ...content: string[]) =>
-    [`textarea.collapsible#text:${id}`,
+
+  export function TextArea (id: string, ...content: string[]) {
+    console.log({ id, content });
+    return [`textarea.collapsible#text:${id}`,
       {autocomplete: "off", autocorrect: "off", autocapitalize: "off", spellcheck: false},
       content.filter(x=>typeof x === 'string').join('\n')];
+  }
+
   export const Text = (id: string, ...content: string[]) => Field({
-    id, content: [Fields.textarea(id, ...content)], });
+    id, content: [Fields.TextArea(id, ...content)], });
+
   export const TS = (id: string, ...content: string[]) => Field({
     id, collapsed: false, header: [
       Command('play', 'Check'), Command('play', 'Run')
     ], content: [
-      Fields.textarea(id, ...content) ], });
+      Fields.TextArea(id, ...content) ], });
+
   export const Simf = (id: string, ...content: string[]) => Field({
     id, collapsed: false, header: [
       Command('play', 'Compile', { onclick: compileSimf }),
       //Command('circle-with-plus', 'Define')
     ], content: [
-      Fields.textarea(id, ...content),
+      Fields.TextArea(id, ...content),
       ['div.row', ['div.grow']] ] });
+
 
   let simf = null
   async function compileSimf (e) {

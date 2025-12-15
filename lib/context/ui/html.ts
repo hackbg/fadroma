@@ -14,6 +14,10 @@ export function Html (...args: unknown[]): DocumentFragment {
 
 export namespace Html {
 
+  export function Div (spec: string) {
+    return Html([`div${spec}`]).firstChild as HTMLDivElement
+  }
+
   export function append (el: Node, ...els: Node[]) {
     for (const e of els) el.appendChild(e);
     return el;
