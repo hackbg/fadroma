@@ -1,8 +1,3 @@
-[id^=editors] {
-  align-self: stretch;
-  margin-right: 0.5rem;
-}
-
 .monaco-editor {
   --vscode-editor-background: transparent !important;
   --vscode-editorGutter-background: linear-gradient(to right, #0000, #0002) !important;
@@ -29,7 +24,32 @@
   }
 }
 
-#editors { display: flex; flex-flow: column nowrap; gap: 0.5rem }
+#editors {
+  background: #354a;
+  padding: 0.5rem;
+  display: flex; flex-flow: column nowrap; gap: 0.5rem;
+  padding-right: 0.5rem;
+  position: relative;
+  /*box-shadow: 0.25rem 0 1rem #0002;*/
+  /*&:before {*/
+    /*content: '';*/
+    /*position: absolute;*/
+    /*top: 0;*/
+    /*left: 0;*/
+    /*right: 0;*/
+    /*height: 0.5rem;*/
+    /*background: linear-gradient(to bottom, #000, #0000);*/
+  /*}*/
+  /*&:after {*/
+    /*content: '';*/
+    /*position: absolute;*/
+    /*bottom: 0;*/
+    /*left: 0;*/
+    /*right: 0;*/
+    /*height: 0.5rem;*/
+    /*background: linear-gradient(to top, #000, #0000);*/
+  /*}*/
+}
 
 .editors {
   min-width:  48vw;
@@ -57,7 +77,11 @@
     { background: #fff8 }
     &:focus, &:hover:focus, .field:hover &:focus
     { background: #fff;
-      outline:    none; } }
+      outline:    none;
+      &::placeholder {
+        color: #fa0f;
+        text-shadow: 1px 1px 0 #000;
+      } } }
 
   select
   { padding-left: 0.5rem }
@@ -75,20 +99,6 @@
 
     &:focus
     { background: #fff; } };
-
-  .field .name {
-    text-transform: none;
-    color:          #555;
-    font-size:      0.875rem;
-    font-weight:    bold;
-    font-weight:    550;
-    letter-spacing: 0.05rem;
-  }
-
-  .field.file .name {
-    font-size:  1rem;
-    min-height: 1.5rem;
-  }
 }
 
 .handle-v, .handle-h
@@ -129,9 +139,27 @@
 
     .icon { margin: 0.25rem 0.125rem 0.25rem 0.25rem }; } }
 
+.field .name {
+  text-transform: none;
+  color:          #555;
+  font-size:      0.875rem;
+  font-weight:    bold;
+  font-weight:    550;
+  letter-spacing: 0.05rem;
+}
+
+.field.file .name {
+  font-size:  1rem;
+  min-height: 1.5rem;
+}
+
 .field.head {
   background: #0004;
-  .name { color: #fff; margin: 0 0.5rem }
+  .name {
+    color: #fff;
+    margin: 0 0.5rem;
+    &.title { font-weight: bold }
+  }
   &:focus-within {
     background: linear-gradient(to right, #0006, #0004); 
   }
@@ -141,7 +169,7 @@
     flex-grow: 1;
     background: linear-gradient(to right, #0002, #0000);
     &:hover, &:focus, &:active, &:focus-visible { background: linear-gradient(to right, #0004, #0000) !important }
-    &:placeholder { color: #fff8 }
+    &:placeholder { color: #fffa }
   }
 }
 

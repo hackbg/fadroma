@@ -7,26 +7,24 @@ import { on } from '../lib.ts';
 import { urls } from '../urls.ts';
 
 export function Config (
-  el     = elById("sidebar"),
-  elEnv  = elById('sidebar-env'),
-  elBtc  = elById('sidebar-btc'),
-  elEs   = elById('sidebar-es'),
-  elRust = elById('sidebar-rust'),
-  elSol  = elById('sidebar-sol'),
-  elTm   = elById('sidebar-tm')
+  sidebar  = elById("sidebar"),
+  features = elById("features"),
 ) {
-  on(el, "change", Editor.update);
-  Html.prepend(el, Html(['div.row.gap.fields',
+  on(features, "change", Editor.update);
+  Html.prepend(sidebar, Html(['div.row.gap.fields',
     ['div.field.head.grow', ['div.name', 'Download']],
     ['div.field.head.grow', ['div.name', 'Examples']],
     ['div.field.head.grow', ['div.name', 'Clear']]]));
-  Html.append(elEnv,  Html(['ul.features', ...Config.Env()]));
-  Html.append(elBtc,  Html(['ul.features', ...Config.Btc()]));
-  Html.append(elEs,   Html(['ul.features', ...Config.Ecma()]));
-  Html.append(elRust, Html(['ul.features', ...Config.Rust()]));
-  Html.append(elSol,  Html(['ul.features', ...Config.Sol()]));
-  Html.append(elTm,   Html(['ul.features', ...Config.Tm()]));
-  return el;
+  Html.append(features, Html(['div', 'Stack:', ['ul#features-active']]));
+  Html.append(features, Html(['ul.features',
+    ['details', { open: true }, ['summary', 'Environment'], Html(['ul.features', ...Config.Env()])],
+    ['details', { open: true }, ['summary', 'Bitcoin'],     Html(['ul.features', ...Config.Btc()])],
+    ['details', { open: true }, ['summary', 'ECMAScript'],  Html(['ul.features', ...Config.Ecma()])],
+    ['details', { open: true }, ['summary', 'Rust'],        Html(['ul.features', ...Config.Rust()])],
+    ['details', { open: true }, ['summary', 'Solana'],      Html(['ul.features', ...Config.Sol()])],
+    ['details', { open: true }, ['summary', 'Tendermint'],  Html(['ul.features', ...Config.Tm()])],
+  ]));
+  return sidebar;
 }
 
 export function Feature (
@@ -57,31 +55,7 @@ export function Command (icon: string|null, ...content: unknown[]) {
 }
 
 export namespace Config {
-  export const Btc = () => [
-    Feature(0, "enable:btc", "Bitcoin",
-      ["Develop and test with local bitcoind in ", Link(urls.btcTest, "regtest"), " mode."],
-      ["RPC", urls.btcRpc]),
-    Feature(0, "enable:btc", "Elements",
-      ["Develop and test with local elementsd in ", Link(urls.btcTest, "regtest"), " mode."],
-      ["RPC", urls.btcRpc]),
-    Feature(0, "enable:simf", "SimplicityHL",
-      ["Compile and run ", Link(urls.simfRef, "SimplicityHL"), " programs with Simply."],
-      ["Language", urls.simfRef],
-      ["Jets", urls.simfJets]), ];
-  export const Ecma = () => [
-    Feature(0, "enable:deno", "Deno",
-      "Run on next-gen TS/JS runtime by default.",
-      ["@std", urls.denoStd],
-      ["API",  urls.denoApi]),
-    Feature(0, "enable:node", "Node.js",
-      ["Will use ", Link(urls.tsxNpm, "tsx"), " to run TypeScript."],
-      ["API", urls.nodeApi]),
-    Feature(0, "enable:pnpm", "PNPM",
-      ["Recommended package manager."],
-      ["Compare", urls.pnpmCompare]),
-    Feature.Disabled(0, "enable:eslint", "ESLint", "Static analyzer.",
-      ["Config", urls.eslintConf]),
-    Feature.Disabled(0, "enable:vite", "Vite", "Build your front-end in the same repo."), ];
+
   export const Env = () => [
     Feature(0, "enable:git", "Git",
       "Automatically init Git repo in new project."),
@@ -98,6 +72,32 @@ export namespace Config {
       "Config for GitHub Actions."),
     Feature.Disabled(0, "enable:drone", "Drone",
       "Config for Drone CI."), ];
+
+  export const Btc = () => [
+    Feature(0, "enable:btc", "Bitcoin",
+      ["Develop and test with local bitcoind in ", Link(urls.btcTest, "regtest"), " mode."],
+      ["RPC", urls.btcRpc]),
+    Feature(0, "enable:btc", "Elements",
+      ["Develop and test with local elementsd in ", Link(urls.btcTest, "regtest"), " mode."],
+      ["RPC", urls.btcRpc]),
+    Feature(0, "enable:simf", "SimplicityHL",
+      ["Compile and run ", Link(urls.simfRef, "SimplicityHL"), " programs."],
+      ["Language", urls.simfRef],
+      ["Jets", urls.simfJets]), ];
+  export const Ecma = () => [
+    Feature(0, "enable:deno", "Deno",
+      "Run on next-gen TS/JS runtime by default.",
+      ["@std", urls.denoStd],
+      ["API",  urls.denoApi]),
+    Feature(0, "enable:node", "Node.js",
+      ["Will use ", Link(urls.tsxNpm, "tsx"), " to run TypeScript."],
+      ["API", urls.nodeApi]),
+    Feature(0, "enable:pnpm", "PNPM",
+      ["Recommended package manager."],
+      ["Compare", urls.pnpmCompare]),
+    Feature.Disabled(0, "enable:eslint", "ESLint", "Static analyzer.",
+      ["Config", urls.eslintConf]),
+    Feature.Disabled(0, "enable:vite", "Vite", "Build your front-end in the same repo."), ];
   export const Rust = () => [
     Feature.Disabled(0, "enable:rust", "Rust",
       "Different targets may need different toolchains."),
@@ -139,7 +139,7 @@ export namespace Editor {
     vite =    false,
   } = {}) => Html(['div.box.editors',
     ['div.row.gap.fields',
-      ['div.field.head.grow', ['div.name', 'Title'],
+      ['div.field.head.grow', ['div.name.title', 'Title'],
         ['input#title[type=text][focused=focused]', { placeholder: 'name your project' }]],
       ['div.field.head', ['div.name', 'Licence'],
         ['select#licence',
@@ -376,11 +376,23 @@ export namespace Fields {
       Fields.textarea(id, ...content) ], });
   export const Simf = (id: string, ...content: string[]) => Field({
     id, collapsed: false, header: [
-      Command('play', 'Compile', { onclick: () => console.log('boo') }),
+      Command('play', 'Compile', { onclick: compileSimf }),
       //Command('circle-with-plus', 'Define')
     ], content: [
       Fields.textarea(id, ...content),
       ['div.row', ['div.grow']] ] });
+
+  let simf = null
+  async function compileSimf (e) {
+    simf ??= await import('../../lib/platform/simf/pkg/fadroma_simf.js')
+    console.log(e.target)
+    const resp = await fetch('/wasm/simf.wasm');
+    const wasm = await resp.bytes();
+    console.log({simf, resp, wasm});
+    console.log(await simf.default(wasm));
+    console.log(simf.build('fn main () {}', {}))
+  }
+
   export const SimfFn = (name: string, ...content: unknown[]) =>
     ['div.col.fn',
       ['div.row.align-center',

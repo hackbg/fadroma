@@ -4,11 +4,9 @@
     <meta charset="utf8" />
     <title>Fadroma by Hack.bg</title>
     <link rel="stylesheet" href="css/gui.css" />
-    <link rel="stylesheet" href="css/nav.css" />
     <link rel="stylesheet" href="css/feat.css" />
     <link rel="stylesheet" href="css/edit.css" />
     <link rel="stylesheet" href="css/doc.css" />
-    <link rel="stylesheet" href="css/media.css" />
   </head>
   <body class="align-stretch justify-center">
     <nav class="nav align-start" id="navbar">
@@ -30,24 +28,14 @@
         <a href="/cov/index.html"><svg class="icon"><use href="icons.svg#code"></use></svg> Coverage</a>
       </nav>
     </nav>
-    <div class="row justify-center overflow-hidden">
-      <div class="col rel gap align-stretch" id="main">
-        <section class="row">
-          <div class="grow" id="editors"></div>
-          <div id="sidebar">
-            <div id="sidebar-env"></div>
-            <div id="sidebar-btc"></div>
-            <div id="sidebar-es"></div>
-            <div id="sidebar-rust"></div>
-            <div id="sidebar-sol"></div>
-            <div id="sidebar-tm"></div>
-          </div>
-        </section>
-
-        <script type="module">
-          import('./comp/Editor.ts').then(({Editor, Config})=>{Editor();Config();});
-        </script>
-      </div>
+    <div id="main" class="row rel align-stretch justify-center overflow-hidden" style="box-shadow: 0rem 0 1rem #0002">
+        <div class="grow" id="editors"></div>
+        <div id="sidebar">
+          <div id="features"></div>
+        </div>
+      <script type="module">
+        import('./comp/Editor.ts').then(({Editor, Config})=>{Editor();Config();});
+      </script>
     </div>
   </body>
 </html>
