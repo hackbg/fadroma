@@ -15,3 +15,6 @@ wasm-release:
 inspect:
   wasm2wat pkg/fadroma_simf_bg.wasm | grep import
   wasm2wat pkg/fadroma_simf_bg.wasm | grep export
+# Run tests for this platform
+test:
+  ../simf.test.ts

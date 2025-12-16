@@ -4,33 +4,46 @@ version = "0.1.0"
 edition = "2021"
 resolver = "2"
 build = "build.rs"
+
 [lib]
 crate-type = [ "cdylib", "rlib" ]
+
+[build-dependencies]
+cc = "1"
+
+[patch.crates-io]
+secp256k1 = { path = "../../../deps/secp256k1" }
+secp256k1-sys = { path = "../../../deps/secp256k1/secp256k1-sys" }
+#secp256k1-zkp = { path = "../../../deps/secp256k1-zkp" }
+#secp256k1-zkp-sys = { path = "../../../deps/secp256k1-zkp/secp256k1-zkp-sys" }
+
 [dependencies]
 simplicityhl = { path = "../../../deps/simplicityhl@5fd6593", features = ["serde"] }
-elements = "0.26.1"
 console_error_panic_hook = "0.1.7"
 hex = "0.4.3"
 js-sys = "0.3.70"
 serde_json = "1.0"
 wasm-bindgen = "0.2.106"
 web-sys = "0.3.70"
-[dev-dependencies]
-wasm-bindgen-test = "0.3.13"
-[build-dependencies]
-cc = "1.0.83"
-[patch.crates-io]
-secp256k1-sys = { path = "../../../deps/secp256k1-sys@0.10.1/secp256k1-sys" }
+
+#[dependencies.secp256k1]
+#version = "0.31.1"
+
 [profile.release]
 debug = true
-#lto = true
-#[profile.dev]
-#lto = true
+lto = false
+
+[profile.dev]
+lto = false
+
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = ["--enable-bulk-memory-opt", "-O"]
+
 [package.metadata.wasm-pack.profile.dev]
 wasm-opt = ["--enable-bulk-memory-opt", "-O3"]
+
 [package.metadata.wasm-pack.profile.dev.wasm-bindgen]
 omit-default-module-path = true
+
 [package.metadata.wasm-pack.profile.release.wasm-bindgen]
 omit-default-module-path = true

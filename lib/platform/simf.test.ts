@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --allow-read --allow-env --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443 --allow-net=127.0.0.1:8941,liquidtestnet.com:443,blockstream.info:443
 import { Fn, Test } from '../index.ts';
-import { resolvePath } from '../deps.ts';
+import { resolvePath, equal } from '../deps.ts';
 import { Simf } from './simf.ts';
 import { Btc } from './btc.ts';
 const { the, is, has } = Test;
@@ -9,7 +9,7 @@ const progPath = resolvePath(import.meta.dirname, 'simf/example/01.simf');
 const testSimfWasmBuild = (source: string, cmr?: string) =>
   async (build: Fn, context) => {
     const result = await build(source, {}) as { cmr: string };
-    if (cmr) Test.equals(result.cmr, cmr)(context);
+    if (cmr) equal(result.cmr, cmr);
     return build;
   };
 const example0 = 'fn main () {}';
@@ -22,13 +22,14 @@ const example1 = `fn main() {
   let c: u8 = 0b10111101;
   assert!(jet::eq_8(ab, c));
 }`.trim();
+const cmr1 = 'e65e19e139a13583a0a7efb24be13c20d578f06f51b2a7fe7c7b9097072dbabe';
 export const testSimfWasm = the('WASM',
   () => Deno.readFile(wasmPath),
   (wasm: Uint8Array) => Simf.Wasm(wasm),
   has('default', is('function')),
   has('build', is('function'),
     testSimfWasmBuild(example0, cmr0),
-    testSimfWasmBuild(example1)));
+    testSimfWasmBuild(example1, cmr1)));
 export const testSimfProgram = the('Program',
   the('Define',     () => Simf(progPath)),
   the('Entrypoint', () => Simf({}, progPath)),

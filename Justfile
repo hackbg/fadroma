@@ -3,8 +3,8 @@ list:
 
 # Compile dev builds of all WASM modules
 wasm:
-  cd lib/platform/btc && just wasm
   cd lib/platform/simf && just wasm
+  cd lib/platform/btc && just wasm
   cd lib/platform/namada && just wasm
 
 # Report line counts

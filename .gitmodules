@@ -5,13 +5,13 @@
 	path = lib/platform/simf/simply-wasm
 	url = https://github.com/hackbg/simply.git
 [submodule "lib/platform/simf/dep/rust-secp256k1"]
-	path = deps/secp256k1-sys@0.10.1
+	path = deps/secp256k1
 	url = https://github.com/rust-bitcoin/rust-secp256k1/
 [submodule "lib/platform/simf/dep/rust-secp256k1-zkp"]
 	path = lib/platform/simf/dep/rust-secp256k1-zkp
 	url = https://github.com/BlockstreamResearch/rust-secp256k1-zkp
 [submodule "lib/platform/simf/dep/secp256k1-zkp"]
-	path = deps/secp256k1-zkp-sys@0.10.1
+	path = deps/secp256k1-zkp
 	url = https://github.com/BlockstreamResearch/rust-secp256k1-zkp
 [submodule "lib/platform/simf/dep/simplicity"]
 	path = deps/simplicity-lang@0.6.0
