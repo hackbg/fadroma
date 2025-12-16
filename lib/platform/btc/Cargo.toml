@@ -20,19 +20,20 @@ cc = "1.0.83"
 [dependencies.getrandom]
 version = "*"
 features = [ "js" ]
-[patch.crates-io]
-secp256k1-sys = { path = "../simf/dep/secp256k1/secp256k1-sys" }
+[dependencies.secp256k1]
+version = "0.31.1"
+#[patch.crates-io]
+#secp256k1-sys = { path = "../../../deps/secp256k1/secp256k1-sys" }
 [profile.release]
 debug = true
-#lto = true
-#[profile.dev]
-#lto = true
+lto = false
+[profile.dev]
+lto = false
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = ["--enable-bulk-memory-opt", "-O"]
-[package.metadata.wasm-pack.profile.dev]
-wasm-opt = ["--enable-bulk-memory-opt", "-O3"]
-[package.metadata.wasm-pack.profile.dev.wasm-bindgen]
-omit-default-module-path = true
+#[package.metadata.wasm-pack.profile.dev]
+#wasm-opt = ["--enable-bulk-memory-opt", "-O3"]
+#[package.metadata.wasm-pack.profile.dev.wasm-bindgen]
+#omit-default-module-path = true
 [package.metadata.wasm-pack.profile.release.wasm-bindgen]
 omit-default-module-path = true
-

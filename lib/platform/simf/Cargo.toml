@@ -7,7 +7,7 @@ build = "build.rs"
 [lib]
 crate-type = [ "cdylib", "rlib" ]
 [dependencies]
-simplicityhl = { path = "./dep/simplicityhl", features = ["serde"] }
+simplicityhl = { path = "../../../deps/simplicityhl@5fd6593", features = ["serde"] }
 elements = "0.26.1"
 console_error_panic_hook = "0.1.7"
 hex = "0.4.3"
@@ -20,7 +20,7 @@ wasm-bindgen-test = "0.3.13"
 [build-dependencies]
 cc = "1.0.83"
 [patch.crates-io]
-secp256k1-sys = { path = "./dep/secp256k1/secp256k1-sys" }
+secp256k1-sys = { path = "../../../deps/secp256k1-sys@0.10.1/secp256k1-sys" }
 [profile.release]
 debug = true
 #lto = true

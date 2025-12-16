@@ -557,7 +557,7 @@ input[type=checkbox].collapse
     { background: #fff8 }
     &:hover
     { background: #fff8 }
-    &:focus, &:hover:focus, .field:hover &:focus
+    &:focus, &:focus-visible, &:hover:focus, .field:hover &:focus
     { background: #fff;
       outline:    none;
       &::placeholder {
@@ -642,8 +642,16 @@ input[type=checkbox].collapse
       color: #fff;
       flex-grow: 1;
       background: linear-gradient(to right, #0002, #0000);
-      &:hover, &:focus, &:active, &:focus-visible { background: linear-gradient(to right, #0004, #0000) !important }
-      &:placeholder { color: #fffa }
+      &::placeholder {
+        color: #fffa;
+      }
+      &:hover, &:focus, &:active, &:focus-visible {
+        background: linear-gradient(to right, #0004, #0000) !important;
+        outline: none;
+        &::placeholder {
+          color: #fa0f !important;
+        }
+      }
     }
   }
   &.file {

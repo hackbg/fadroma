@@ -2,55 +2,47 @@
 import { Fn, Test } from '../index.ts';
 import { resolvePath, throws } from '../deps.ts';
 import { Btc } from './btc.ts';
-
 const { the, is, has } = Test;
 const wasmPath = resolvePath(import.meta.dirname, "btc/pkg/fadroma_btc_bg.wasm");
-const testBtcWasmInit = (init: Fn) => {
-  init();
-}
-const testBtcWasmCmr2P2TR = (cmrToP2TR: Fn) => {
-  throws(()=>cmrToP2TR());
-  const cmr  = "c40a10263f7436b4160acbef1c36fba4be4d95df181a968afeab5eac247adff7";
-  const p2tr = cmrToP2TR(cmr);
-  console.log({cmr, p2tr});
-  return cmrToP2TR
-}
 export const testBtcWasm = the('WASM',
   () => Deno.readFile(wasmPath),
   (wasm: Uint8Array) => Btc.Wasm(wasm),
-  has('default',     is('function'), testBtcWasmInit),
-  has('cmr_to_p2tr', is('function'), testBtcWasmCmr2P2TR));
-
+  has('default', is('function')),
+  has('cmr_to_p2tr', is('function'), (cmrToP2TR: Fn) => {
+    throws(()=>cmrToP2TR());
+    const cmr = "c40a10263f7436b4160acbef1c36fba4be4d95df181a968afeab5eac247adff7";
+    const p2tr = cmrToP2TR(cmr);
+    console.log({cmr, p2tr});
+    return cmrToP2TR
+  }));
 export const testBtcCli = the('CLI',
-  () => Btc().execCli(), is('function'), has('entries',
+  () => Btc().execCli(),
+  is('function'), has('entries',
     is('object', 'Array'),
     has('0', is('function'),
       has('command', 'bitcoin-cli'),
       has('options', is('object', 'Array')))),
   calledWithMock,
   is('object'));
-
 export const testBtcNode = the('Node',
-  () => Btc().spawnNode(), is('function'), has('services',
+  () => Btc().spawnNode(),
+  is('function'), has('services',
     has('length', 2)));
-
-export const testBtcOps =  the('Ops',
-    the('Send', 'OP_CHECKSIG'),
-    the('Subscribe', 'TX', 'Block'),
-    the('Query', 'Block', 'Transaction', 'Address'));
-
+export const testBtcOps = the('Ops',
+  the('Send', 'OP_CHECKSIG'),
+  the('Subscribe', 'TX', 'Block'),
+  the('Query', 'Block', 'Transaction', 'Address'));
 export default Test.suite(import.meta, 'Btc',
-  testBtcWasm,
-  testBtcCli,
-  testBtcNode,
-  testBtcOps);
+  testBtcWasm, testBtcCli, testBtcNode, testBtcOps);
 
 function cleanup (_, ctx: Test.Testing & { localnet?: { kill?: Fn } }) {
   if (ctx.localnet?.kill) ctx.localnet.kill()
 }
+
 function calledWithMock (fn) {
   return fn(mockContext());
 }
+
 function mockContext () {
   const mock = [];
   return {
