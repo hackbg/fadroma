@@ -20,6 +20,8 @@ cc = "1.0.83"
 [dependencies.getrandom]
 version = "*"
 features = [ "js" ]
+[patch.crates-io]
+secp256k1-sys = { path = "../simf/dep/secp256k1/secp256k1-sys" }
 [profile.release]
 debug = true
 #lto = true

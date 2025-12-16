@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --allow-env --allow-read --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443 --allow-net=127.0.0.1
 import { Fn, Test } from '../index.ts';
-import { resolvePath } from '../deps.ts';
+import { resolvePath, throws } from '../deps.ts';
 import { Btc } from './btc.ts';
 
 const { the, is, has } = Test;
@@ -9,8 +9,11 @@ const testBtcWasmInit = (init: Fn) => {
   init();
 }
 const testBtcWasmCmr2P2TR = (cmrToP2TR: Fn) => {
-  cmrToP2TR();
-  cmrToP2TR("c40a10263f7436b4160acbef1c36fba4be4d95df181a968afeab5eac247adff7");
+  throws(()=>cmrToP2TR());
+  const cmr  = "c40a10263f7436b4160acbef1c36fba4be4d95df181a968afeab5eac247adff7";
+  const p2tr = cmrToP2TR(cmr);
+  console.log({cmr, p2tr});
+  return cmrToP2TR
 }
 export const testBtcWasm = the('WASM',
   () => Deno.readFile(wasmPath),
