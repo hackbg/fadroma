@@ -58,6 +58,15 @@ const parseWithdraw = Name('Parse(simply withdraw)', parseStdout(/Transaction ID
 /** SimplicityHL utilities. */
 export namespace Simf {
 
+  /** Simplicity WASM loader. */
+  export const Wasm = async function simfWasm (
+    wasm: string|URL|Uint8Array = env['FADROMA_SIMF_WASM']
+  ): Promise<unknown> {
+    const wrap = await import('./simf/pkg/fadroma_simf.js');
+    await wrap.default(wasm);
+    return wrap;
+  }
+
   /** Simplicity CLI wrapper. */
   export const Cli = async function simfCli (simf: Simf) {
     const [_, __, command, ..._args] = argv;
@@ -79,25 +88,6 @@ export namespace Simf {
       stdout.write(o.stdout);
       return output;
     }
-  }
-
-  /** Simplicity WASM loader. */
-  export const Wasm = async function simfWasm (
-    wasm: string|URL|Uint8Array = env['FADROMA_SIMF_WASM']
-  ): Promise<unknown> {
-    const wrap = await import('./simf/pkg/fadroma_simf.js');
-    await wrap.default(wasm);
-    return wrap;
-    //console.log({module});
-    //const init = (module as unknown as { default: Fn }).default;
-    //if (wasm instanceof Uint8Array) {
-      //await init(wasm);
-    //} else if (wasm) {
-      //await init(await fetch(wasm));
-    //} else {
-      //throw new Error('Provide wasm as path, URL or Uint8Array');
-    //}
-    //return module;
   }
 
 }

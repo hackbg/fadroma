@@ -1,8 +1,8 @@
-t:
+list:
   @just --list
 wasm:
   time wasm-pack build --debug --no-opt --target web
   rm -v pkg/package.json pkg/.gitignore
 wasm-release:
   time wasm-pack build --release --target web
-  rm
+  rm -v pkg/package.json pkg/.gitignore

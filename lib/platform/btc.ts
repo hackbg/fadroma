@@ -1,6 +1,6 @@
 import { Sub } from './btc/zeromq.ts';
 import { Async, Fn, Pipe, Exec, Spawn, Temp, Service, Dir, Port, joined, merged } from '../index.ts';
-import type { ChildProcess } from '../deps.ts';
+import { ChildProcess, env } from '../deps.ts';
 
 export interface Btc {
   cli:       string,
@@ -87,6 +87,15 @@ export function Btc (...options: Partial<Btc>[]): Btc {
 }
 
 export namespace Btc {
+
+  /** Bitcoin WASM loader. */
+  export const Wasm = async function simfWasm (
+    wasm: string|URL|Uint8Array = env['FADROMA_BTC_WASM']
+  ): Promise<unknown> {
+    const wrap = await import('./btc/pkg/fadroma_btc.js');
+    await wrap.default(wasm);
+    return wrap;
+  }
 
   export interface DaemonOptions {
     bech32_hrp?:              string;

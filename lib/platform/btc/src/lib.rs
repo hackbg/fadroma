@@ -1,15 +1,12 @@
 extern crate console_error_panic_hook;
 pub(crate) use wasm_bindgen::prelude::*;
-pub(crate) use js_sys::{JsString, Object, Error, Reflect, Boolean, JSON};
-pub(crate) use simplicityhl::{
-    dummy_env,
-    Arguments, CompiledProgram, SatisfiedProgram, WitnessValues, Value,
-    str::WitnessName,
-    simplicity::{
-        CommitNode, BitIter,
-        human_encoding::Forest,
-        jet::Elements,
-    },
+pub(crate) use std::collections::HashMap;
+pub(crate) use js_sys::{
+    JsString, Object, Error, Reflect, Boolean, Array, JSON, Uint8Array
+};
+pub(crate) use elements::{
+    taproot::{LeafVersion, TaprootBuilder, TaprootSpendInfo},
+    Address, AddressParams, Script, secp256k1_zkp as secp256k1,
 };
 pub(crate) type Maybe<T> = Result<T, Error>;
 macro_rules! attempt { ($expr:expr) => { $expr.map_err(|e|Error::new(&format!("{e}")))? } }
@@ -26,6 +23,4 @@ macro_rules! each {
     }}
 }
 
-mod compile; pub use self::compile::*;
-
-mod deploy;  pub use self::deploy::*;
+mod btc; pub use self::btc::*;

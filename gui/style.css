@@ -538,7 +538,7 @@ input[type=checkbox].collapse
   flex-flow:  column;
   overflow:   auto;
   border:     none;
-  background: #354a;
+  background: #3544;
   padding: 0.5rem;
   gap: 0.5rem;
 
@@ -582,14 +582,25 @@ input[type=checkbox].collapse
     &:focus
     { background: #fff; } };
 }
-.field
-{ display:   flex;
+
+.field {
+  display:   flex;
   flex-flow: row nowrap;
-  &[data-disabled]
-  { display: none; visibility: hidden; }
+
+  &[data-disabled] {
+    display: none;
+    visibility: hidden;
+  }
+
   .name {
     user-select:    none;
     padding:        0 0.33rem;
+    text-transform: none;
+    color:          #000;
+    font-size:      0.875rem;
+    font-weight:    bold;
+    font-weight:    550;
+    letter-spacing: 0.05rem;
 
     #editors & { 
       text-transform: none;
@@ -598,8 +609,9 @@ input[type=checkbox].collapse
       flex-flow:      row nowrap;
     }
   }
-  .command
-  { display: flex;
+
+  .command {
+    display: flex;
     flex-flow: row nowrap;
     align-items: center;
     user-select: none;
@@ -608,111 +620,111 @@ input[type=checkbox].collapse
     border-left: 1px solid #fff;
     border-right: 1px solid #0002;
     box-shadow: 0 1px 0 white inset, 0 -1px 0 #0002 inset;
-    &:hover { text-decoration: underline; background: #fff3; }
-
-    .icon { margin: 0.25rem 0.125rem 0.25rem 0.25rem }; } }
-
-.field .name {
-  text-transform: none;
-  color:          #000;
-  font-size:      0.875rem;
-  font-weight:    bold;
-  font-weight:    550;
-  letter-spacing: 0.05rem;
-}
-
-.field.file .name {
-  font-size:  1rem;
-  min-height: 2rem;
-  padding: 0 0.33rem;
-}
-
-.field.head {
-  background: #0004;
-  .name {
-    color: #fff;
-    margin: 0 0.5rem;
-    &.title { font-weight: bold }
-  }
-  &:focus-within {
-    background: linear-gradient(to right, #0006, #0004); 
-  }
-  color: #fff;
-  input, select {
-    color: #fff;
-    flex-grow: 1;
-    background: linear-gradient(to right, #0002, #0000);
-    &:hover, &:focus, &:active, &:focus-visible { background: linear-gradient(to right, #0004, #0000) !important }
-    &:placeholder { color: #fffa }
-  }
-}
-
-.field.file
-{ flex-shrink: 0;
-  flex-flow:  row nowrap;
-  border-top: 1px solid #8884;
-  border: 1px solid white;
-  min-height: 2rem;
-  background: #f0f0f0e0;
-  &.collapsed { background: linear-gradient(to right, #fff8, #fff7); }
-  color: #333;
-  /*transition: background ease-in 0.166s;*/
-  /*background: #d4d4d4;*/
-
-  /*&:hover*/
-  /*{ background: #fff1 }*/
-
-  &:focus-within
-  { background: #fff; color: #333;
-    .name { color: #222; text-shadow: 1px 1px 3px #0002 } }
-
-  textarea
-  { margin-bottom: 0;
-    padding-left: 0.25rem;
-    &:focus-visible { outline: none } }
-
-  &.collapsed textarea,
-  &.collapsed .hex-row {
-    display: none; visibility: hidden; max-height: 0; max-width: 0;
-  }
-
-  > ul {
-    list-style: none;
-    padding:    0 0.5rem;
-    display:    flex;
-    flex-flow:  row nowrap;
-    margin-top: 0.25rem;
-    min-height: 1rem;
-
-    > li {
-      margin-right: 1rem
+    &:hover {
+      text-decoration: underline; background: #fff3;
     }
+    .icon {
+      margin: 0.25rem 0.125rem 0.25rem 0.25rem
+    };
   }
-
-  input, select {
-    padding: 0.125rem 0.5rem;
-    background: none;
-    border: 1px solid transparent;
-    box-shadow: none;
-    &:focus {
-      background: #fff; outline: none 
+  &.head {
+    background: #0004;
+    .name {
+      color: #fff;
+      margin: 0 0.5rem;
+      &.title { font-weight: bold }
     }
-  }
-
-  &:hover {
+    &:focus-within {
+      background: linear-gradient(to right, #0006, #0004); 
+    }
+    color: #fff;
     input, select {
-      background: #fff0;
-      border-bottom: 1px dotted #0008;
+      color: #fff;
+      flex-grow: 1;
+      background: linear-gradient(to right, #0002, #0000);
+      &:hover, &:focus, &:active, &:focus-visible { background: linear-gradient(to right, #0004, #0000) !important }
+      &:placeholder { color: #fffa }
+    }
+  }
+  &.file {
+    flex-shrink: 0;
+    flex-flow:  row nowrap;
+    border-top: 1px solid #8884;
+    border: 1px solid white;
+    min-height: 2rem;
+    background: #ddd;
+    .name {
+      font-size:  1rem;
+      min-height: 2rem;
+      padding: 0 0.33rem;
+    }
+    &.collapsed {
+      background: linear-gradient(to right, #dddd, #ddda);
+    }
+    color: #333;
+    /*transition: background ease-in 0.166s;*/
+    /*background: #d4d4d4;*/
+
+    /*&:hover*/
+    /*{ background: #fff1 }*/
+
+    &:focus-within {
+      background: #eeee;
+      color: #333;
+      .name {
+        color: #222; text-shadow: 1px 1px 3px #0002
+      }
+    }
+
+    textarea
+    { margin-bottom: 0;
+      padding-left: 0.25rem;
+      &:focus-visible { outline: none } }
+
+    &.collapsed textarea,
+    &.collapsed .hex-row {
+      display: none; visibility: hidden; max-height: 0; max-width: 0;
+    }
+
+    > ul {
+      list-style: none;
+      padding:    0 0.5rem;
+      display:    flex;
+      flex-flow:  row nowrap;
+      margin-top: 0.25rem;
+      min-height: 1rem;
+
+      > li {
+        margin-right: 1rem
+      }
+    }
+
+    input, select {
+      padding: 0.125rem 0.5rem;
+      background: none;
+      border: 1px solid transparent;
+      box-shadow: none;
       &:focus {
-        background: #fff;
+        background: #fff; outline: none 
+      }
+    }
+
+    &:hover {
+      input, select {
+        background: #fff0;
+        border-bottom: 1px dotted #0008;
+        &:focus {
+          background: #fff;
+        }
       }
     }
   }
 }
 
-.fields
-{ border-bottom: 1px solid #8888;
-  input, select { margin-left: -0.5rem; padding-left: 0.75rem } }
+.fields {
+  border-bottom: 1px solid #8888;
+  input, select { margin-left: -0.5rem; padding-left: 0.75rem }
+}
 
 .fn {
   input, textarea { background: none }

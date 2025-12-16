@@ -27,11 +27,9 @@
         <!--<a href="/cov/index.html"><svg class="icon"><use href="icons.svg#code"></use></svg> Coverage</a>-->
       </nav>
     </nav>
-    <div id="main" class="row rel align-stretch justify-center overflow-hidden" style="box-shadow: 0rem 0 1rem #0002">
-        <div class="grow" id="editors"></div>
-        <div id="sidebar">
-          <div id="features"></div>
-        </div>
+    <div id="main" class="row rel align-stretch justify-center overflow-hidden">
+      <div class="grow" id="editors"></div>
+      <div id="sidebar"><div id="features"></div></div>
       <script type="module">
         import('./comp/Editor.ts').then(({Editor, Config})=>{Editor();Config();});
       </script>

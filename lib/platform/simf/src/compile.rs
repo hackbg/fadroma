@@ -53,15 +53,6 @@ fn set_build_output (result: &Object, compiled: &CompiledProgram) -> Maybe<()> {
     set!(result, "cmr", format!("{}", hex::encode(&cmr.to_byte_array())));
     set!(result, "amr", format!("{}", hex::encode(&amr.map(|x|x.to_byte_array()).unwrap_or_default())));
     set!(result, "ihr", format!("{}", hex::encode(&ihr.map(|x|x.to_byte_array()).unwrap_or_default())));
-
-
-    let tap  = TaprootBuilder::new();
-    let tap  = attempt!(tap.add_leaf_with_ver(0, Script::from(cmr.as_ref().to_vec()), LeafVersion::from_u8(0xbe).expect("constant leaf version")));
-    let tap  = attempt!(tap.finalize(&secp256k1::SECP256K1, attempt!("50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0".try_into())));
-    let p2tr = Address::p2tr(secp256k1::SECP256K1, tap.internal_key(), tap.merkle_root(), None, &AddressParams::LIQUID_TESTNET);
-    set!(result, "p2tr", format!("{p2tr}"));
-    
-    //
     Ok(())
 }
 
