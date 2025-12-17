@@ -7,7 +7,6 @@ const { the, is, has } = Test;
 
 export const testSimfFixtures = {
   wasmPath: resolvePath(import.meta.dirname, "simf/pkg/fadroma_simf_bg.wasm"),
-  progPath: resolvePath(import.meta.dirname, 'simf/example/01.simf'),
   example0: {
     cmr: 'c40a10263f7436b4160acbef1c36fba4be4d95df181a968afeab5eac247adff7',
     p2tr: 'tex1p9jcvyzkdwdqtf49kta4xpc5g35xkfcexwfsl8v70w2gwttelncyshxjk56',
@@ -25,6 +24,28 @@ export const testSimfFixtures = {
       assert!(jet::eq_8(ab, c));
     }`,
   },
+  daemonOptions: {
+    txindex:                 true,
+    persistmempool:          false,
+    dnsseed:                 false,
+    server:                  true,
+    chain:                   'elementsregtest',
+    rest:                    true,
+    discover:                false,
+    rpcport:                 8941,
+    rpcallowip:              '127.0.0.1',
+    rpcuser:                 'fadroma',
+    rpcpassword:             'fadroma',
+    validatepegin:           false,
+    defaultpeggedassetname:  'bitcoin',
+    initialfreecoins:        1_000_000_00000000,
+    initialreissuancetokens: 1_00000000,
+    bech32_hrp:              'tex',
+    blech32_hrp:             'tlq',
+    pubkeyprefix:            36,
+    scriptprefix:            13,
+    blindedprefix:           23,
+  } as Btc.DaemonOptions
 };
 
 export const testSimfWasm = the('WASM',
@@ -38,55 +59,8 @@ export const testSimfWasm = the('WASM',
     testSimfWasmCmrToP2TR(testSimfFixtures.example0.cmr, testSimfFixtures.example0.p2tr),
     testSimfWasmCmrToP2TR(testSimfFixtures.example1.cmr, testSimfFixtures.example1.p2tr)));
 
-export const testSimfProgram = the('Program',
-  the('Define',     () => Simf(testSimfFixtures.progPath)),
-  the('Entrypoint', () => Simf({}, testSimfFixtures.progPath)),
-  the('Deploy',     (_: unknown, context: Test.Testing) =>
-    Btc.Daemon({
-      txindex:                 true,
-      persistmempool:          false,
-      dnsseed:                 false,
-      server:                  true,
-      chain:                   'elementsregtest',
-      rest:                    true,
-      discover:                false,
-      rpcport:                 8941,
-      rpcallowip:              '127.0.0.1',
-      rpcuser:                 'fadroma',
-      rpcpassword:             'fadroma',
-      validatepegin:           false,
-      defaultpeggedassetname:  'bitcoin',
-      initialfreecoins:        1_000_000_00000000,
-      initialreissuancetokens: 1_00000000,
-      bech32_hrp:              'tex',
-      blech32_hrp:             'tlq',
-      pubkeyprefix:            36,
-      scriptprefix:            13,
-      blindedprefix:           23,
-    }, async (daemon: Btc.Daemon) => {
-      //daemon.stdout.pipe(stdout);
-      //daemon.stderr.pipe(stdout);
-      const { rpc, rest } = daemon;
-      await new Promise(resolve=>setTimeout(resolve, 1000));
-      await rpc.createwallet('1');
-      await rpc.rescanblockchain();
-      //context.log(await rpc.getwalletinfo()); // TODO assert balance
-      const address = await rpc.getnewaddress();
-      //const valid8d = await rpc.validateaddress(address);
-      const prog = Simf(testSimfFixtures.progPath);
-      const built = await prog.build();
-      const dest = await prog.deposit();
-      const txid = await rpc.sendtoaddress(dest, 1000);
-      await rpc.generatetoaddress(1, address);
-      context.log('\n\n',{...prog, txid, built, dest}, await rest.getutxos(`${txid}-0`));
-      
-      const _withdrawn = await prog.withdraw({ txid, dest });
-    })));
-
 export default Test.suite(import.meta, 'Simf',
-  testSimfWasm,
-  //testSimfProgram,
-);
+  testSimfWasm, the('Deploy', testSimfDeploy));
 
 function testSimfWasmCompile (source: string, cmr?: string) {
   return (compile: Fn, context) => {
@@ -102,5 +76,28 @@ function testSimfWasmCmrToP2TR (cmr: string, expectedP2TR?: string) {
     const p2tr = cmrToP2TR(cmr);
     if (expectedP2TR) equal(p2tr, expectedP2TR);
     return cmrToP2TR
+  }
+}
+
+async function testSimfDeploy (_: never, context: Test.Testing) {
+  //const blob = await Deno.readFile(testSimfFixtures.wasmPath);
+  //const { compile, cmr_to_p2tr } = await Simf.Wasm(blob);
+  const { p2tr } = testSimfFixtures.example0;
+  return Btc.Daemon(testSimfFixtures.daemonOptions, testSimfDeployInner)
+  async function testSimfDeployInner (daemon: Btc.Daemon) {
+    //daemon.stdout.pipe(stdout);
+    //daemon.stderr.pipe(stdout);
+    const { rpc, rest } = daemon;
+    await new Promise(resolve=>setTimeout(resolve, 1000));
+    await rpc.createwallet('test-simf');
+    context.log(await rpc.getwalletinfo()); // TODO assert balance
+    await rpc.rescanblockchain();
+    context.log(await rpc.getwalletinfo()); // TODO assert balance
+    const address = await rpc.getnewaddress();
+    context.log(await rpc.validateaddress(address));
+    const txid = await rpc.sendtoaddress(p2tr, 1000);
+    await rpc.generatetoaddress(1, address);
+    context.log('\n\n', {address, txid}, await rest.getutxos(`${txid}-0`));
+    const _withdrawn = await prog.withdraw({ txid, dest });
   }
 }

@@ -134,10 +134,10 @@ export namespace Btc {
     * for testing SimplicityHL programs. */
   export const Daemon: {
     /** Launch with default settings and temporary datadir. */
-    <T> (callback: Fn<[ChildProcess], Async<T>>):
+    <T> (callback: Fn<[Daemon], Async<T>>):
       Promise<Async<T>>;
     /** Launch with specified options. */
-    <T> (options: string|DaemonOptions, callback: Fn<[ChildProcess], Async<T>>):
+    <T> (options: string|DaemonOptions, callback: Fn<[Daemon], Async<T>>):
       Promise<Async<T>>;
   } = async function btcDaemon <T> (...args: unknown[]): Promise<Async<T>> {
     const options: DaemonOptions =

@@ -61,10 +61,13 @@ export namespace Simf {
   /** Simplicity WASM loader. */
   export const Wasm = async function simfWasm (
     wasm: string|URL|Uint8Array = env['FADROMA_SIMF_WASM']
-  ): Promise<unknown> {
+  ) {
     const wrap = await import('./simf/pkg/fadroma_simf.js');
     await wrap.default(wasm);
-    return wrap;
+    return wrap as unknown as {
+      compile: Fn<[string, object?]>,
+      cmr_to_p2tr: Fn,
+    };
   }
 
   /** Simplicity CLI wrapper. */
