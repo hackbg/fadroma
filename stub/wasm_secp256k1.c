@@ -1,21 +1,8 @@
-#include "deps/secp256k1/secp256k1-sys/depend/secp256k1/include/secp256k1.h"
-#include "deps/secp256k1/secp256k1-sys/depend/secp256k1/include/secp256k1_preallocated.h"
-#include "deps/secp256k1/secp256k1-sys/depend/secp256k1/src/assumptions.h"
-#include "deps/secp256k1/secp256k1-sys/depend/secp256k1/src/checkmem.h"
-#include "deps/secp256k1/secp256k1-sys/depend/secp256k1/src/util.h"
-
-#include "deps/secp256k1/secp256k1-sys/depend/secp256k1/src/field_impl.h"
-#include "deps/secp256k1/secp256k1-sys/depend/secp256k1/src/scalar_impl.h"
-#include "deps/secp256k1/secp256k1-sys/depend/secp256k1/src/group_impl.h"
-#include "deps/secp256k1/secp256k1-sys/depend/secp256k1/src/ecmult_impl.h"
-#include "deps/secp256k1/secp256k1-sys/depend/secp256k1/src/ecmult_const_impl.h"
-#include "deps/secp256k1/secp256k1-sys/depend/secp256k1/src/ecmult_gen_impl.h"
-#include "deps/secp256k1/secp256k1-sys/depend/secp256k1/src/ecdsa_impl.h"
-#include "deps/secp256k1/secp256k1-sys/depend/secp256k1/src/eckey_impl.h"
-#include "deps/secp256k1/secp256k1-sys/depend/secp256k1/src/hash_impl.h"
-#include "deps/secp256k1/secp256k1-sys/depend/secp256k1/src/int128_impl.h"
-#include "deps/secp256k1/secp256k1-sys/depend/secp256k1/src/scratch_impl.h"
-#include "deps/secp256k1/secp256k1-sys/depend/secp256k1/src/selftest.h"
+#include "secp256k1.h"
+#include "secp256k1_preallocated.h"
+#include "assumptions.h"
+#include "checkmem.h"
+#include "util.h"
 
 size_t rustsecp256k1_v0_10_0_context_preallocated_size(unsigned int flags) {
     size_t ret = sizeof(rustsecp256k1_v0_10_0_context);

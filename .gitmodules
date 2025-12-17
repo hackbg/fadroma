@@ -19,3 +19,9 @@
 [submodule "lib/platform/simf/dep/simplicityhl"]
 	path = deps/simplicityhl@5fd6593
 	url = https://github.com/BlockstreamResearch/simplicityhl
+[submodule "deps/elements"]
+	path = deps/elements
+	url = https://github.com/ElementsProject/rust-elements/
+[submodule "deps/bitcoin"]
+	path = deps/bitcoin
+	url = https://github.com/rust-bitcoin/rust-bitcoin/

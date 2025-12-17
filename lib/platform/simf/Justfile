@@ -18,3 +18,6 @@ inspect:
 # Run tests for this platform
 test:
   ../simf.test.ts
+# Show dependency tree
+tree:
+  cargo tree --color=always --target=wasm32-unknown-unknown

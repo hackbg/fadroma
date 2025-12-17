@@ -12,12 +12,15 @@ crate-type = [ "cdylib", "rlib" ]
 cc = "1"
 
 [patch.crates-io]
-secp256k1 = { path = "../../../deps/secp256k1" }
-secp256k1-sys = { path = "../../../deps/secp256k1/secp256k1-sys" }
-#secp256k1-zkp = { path = "../../../deps/secp256k1-zkp" }
+#elements          = { path = "../../../deps/elements" }
+#secp256k1         = { path = "../../../deps/secp256k1" }
+#secp256k1-sys     = { path = "../../../deps/secp256k1/secp256k1-sys" }
+#secp256k1-zkp     = { path = "../../../deps/secp256k1-zkp" }
 #secp256k1-zkp-sys = { path = "../../../deps/secp256k1-zkp/secp256k1-zkp-sys" }
 
 [dependencies]
+#bitcoin = { path = "../../../deps/bitcoin/bitcoin" }
+#elements = { path = "../../../deps/elements" }
 elements = "0.26.1"
 console_error_panic_hook = "0.1.7"
 hex = "0.4.3"
@@ -27,7 +30,16 @@ wasm-bindgen = "0.2.106"
 web-sys = "0.3.70"
 
 #[dependencies.secp256k1]
-#version = "0.31.1"
+#path = "../../../deps/secp256k1"
+
+#[dependencies.secp256k1-sys]
+#path = "../../../deps/secp256k1/secp256k1-sys"
+
+#[dependencies.secp256k1-zkp]
+#path = "../../../deps/secp256k1-zkp"
+
+#[dependencies.secp256k1-zkp-sys]
+#path = "../../../deps/secp256k1-zkp/secp256k1-zkp-sys"
 
 [dependencies.getrandom]
 version = "*"

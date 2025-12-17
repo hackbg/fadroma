@@ -843,11 +843,3 @@ dependencies = [
  "quote",
  "syn",
 ]
-
-[[patch.unused]]
-name = "secp256k1"
-version = "0.32.0-beta.2"
-
-[[patch.unused]]
-name = "secp256k1-sys"
-version = "0.12.0"

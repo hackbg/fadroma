@@ -11,12 +11,6 @@ crate-type = [ "cdylib", "rlib" ]
 [build-dependencies]
 cc = "1"
 
-[patch.crates-io]
-secp256k1 = { path = "../../../deps/secp256k1" }
-secp256k1-sys = { path = "../../../deps/secp256k1/secp256k1-sys" }
-#secp256k1-zkp = { path = "../../../deps/secp256k1-zkp" }
-#secp256k1-zkp-sys = { path = "../../../deps/secp256k1-zkp/secp256k1-zkp-sys" }
-
 [dependencies]
 simplicityhl = { path = "../../../deps/simplicityhl@5fd6593", features = ["serde"] }
 console_error_panic_hook = "0.1.7"
@@ -25,9 +19,6 @@ js-sys = "0.3.70"
 serde_json = "1.0"
 wasm-bindgen = "0.2.106"
 web-sys = "0.3.70"
-
-#[dependencies.secp256k1]
-#version = "0.31.1"
 
 [profile.release]
 debug = true
