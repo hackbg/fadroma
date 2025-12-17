@@ -1,6 +1,5 @@
 extern crate console_error_panic_hook;
 pub(crate) use wasm_bindgen::prelude::*;
-pub(crate) use js_sys::{JsString, Object, Error, Reflect, Boolean, JSON};
 pub(crate) use simplicityhl::{
     dummy_env,
     Arguments, CompiledProgram, SatisfiedProgram, WitnessValues, Value,
@@ -10,6 +9,13 @@ pub(crate) use simplicityhl::{
         human_encoding::Forest,
         jet::Elements,
     },
+    elements::{
+        taproot::{LeafVersion, TaprootBuilder, TaprootSpendInfo},
+        Address, AddressParams, Script, secp256k1_zkp as secp256k1,
+    }
+};
+pub(crate) use js_sys::{
+    JsString, Object, Error, Reflect, Boolean, Array, JSON, Uint8Array
 };
 pub(crate) type Maybe<T> = Result<T, Error>;
 macro_rules! attempt { ($expr:expr) => { $expr.map_err(|e|Error::new(&format!("{e}")))? } }

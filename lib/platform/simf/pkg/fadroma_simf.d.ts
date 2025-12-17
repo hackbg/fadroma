@@ -1,13 +1,16 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export function build(source: string, options: object): object;
+export function cmr_to_p2tr(cmr: any): string;
+
+export function compile(source: string, options: object): object;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
-  readonly build: (a: any, b: any) => [number, number, number];
+  readonly cmr_to_p2tr: (a: any) => [number, number, number];
+  readonly compile: (a: any, b: any) => [number, number, number];
   readonly rust_0_6_malloc: (a: number) => number;
   readonly rust_0_6_free: (a: number) => void;
   readonly rust_0_6_calloc: (a: number, b: number) => number;

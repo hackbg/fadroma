@@ -1,76 +1,60 @@
-#include "secp256k1.h"
-#include "secp256k1_preallocated.h"
-#include "assumptions.h"
-#include "checkmem.h"
-#include "util.h"
+#include "secp256k1.c"
 
-size_t rustsecp256k1_v0_10_0_context_preallocated_size(unsigned int flags) {
-    size_t ret = sizeof(rustsecp256k1_v0_10_0_context);
-    /* A return value of 0 is reserved as an indicator for errors when we call this function internally. */
-    VERIFY_CHECK(ret != 0);
+/*#include "secp256k1.h"*/
+/*#include "secp256k1_preallocated.h"*/
+/*#include "assumptions.h"*/
+/*#include "checkmem.h"*/
+/*#include "util.h"*/
 
-    if (EXPECT((flags & SECP256K1_FLAGS_TYPE_MASK) != SECP256K1_FLAGS_TYPE_CONTEXT, 0)) {
-            rustsecp256k1_v0_10_0_callback_call(&default_illegal_callback,
-                                    "Invalid flags");
-            return 0;
-    }
+/*extern size_t rustsecp256k1_v0_10_0_context_preallocated_size(unsigned int flags); */
 
-    if (EXPECT(!SECP256K1_CHECKMEM_RUNNING() && (flags & SECP256K1_FLAGS_BIT_CONTEXT_DECLASSIFY), 0)) {
-            rustsecp256k1_v0_10_0_callback_call(&default_illegal_callback,
-                                    "Declassify flag requires running with memory checking");
-            return 0;
-    }
+/*size_t rustsecp256k1_v0_10_0_context_preallocated_clone_size(const rustsecp256k1_v0_10_0_context* ctx) {*/
+    /*VERIFY_CHECK(ctx != NULL);*/
+    /*ARG_CHECK(rustsecp256k1_v0_10_0_context_is_proper(ctx));*/
+    /*return sizeof(rustsecp256k1_v0_10_0_context);*/
+/*}*/
 
-    return ret;
-}
+/*rustsecp256k1_v0_10_0_context* rustsecp256k1_v0_10_0_context_preallocated_create(void* prealloc, unsigned int flags) {*/
+    /*size_t prealloc_size;*/
+    /*rustsecp256k1_v0_10_0_context* ret;*/
 
-size_t rustsecp256k1_v0_10_0_context_preallocated_clone_size(const rustsecp256k1_v0_10_0_context* ctx) {
-    VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(rustsecp256k1_v0_10_0_context_is_proper(ctx));
-    return sizeof(rustsecp256k1_v0_10_0_context);
-}
+    /*rustsecp256k1_v0_10_0_selftest();*/
 
-rustsecp256k1_v0_10_0_context* rustsecp256k1_v0_10_0_context_preallocated_create(void* prealloc, unsigned int flags) {
-    size_t prealloc_size;
-    rustsecp256k1_v0_10_0_context* ret;
+    /*prealloc_size = rustsecp256k1_v0_10_0_context_preallocated_size(flags);*/
+    /*if (prealloc_size == 0) {*/
+        /*return NULL;*/
+    /*}*/
+    /*VERIFY_CHECK(prealloc != NULL);*/
+    /*ret = (rustsecp256k1_v0_10_0_context*)prealloc;*/
+    /*ret->illegal_callback = default_illegal_callback;*/
+    /*ret->error_callback = default_error_callback;*/
 
-    rustsecp256k1_v0_10_0_selftest();
+    /*[> Flags have been checked by rustsecp256k1_v0_10_0_context_preallocated_size. <]*/
+    /*VERIFY_CHECK((flags & SECP256K1_FLAGS_TYPE_MASK) == SECP256K1_FLAGS_TYPE_CONTEXT);*/
+    /*rustsecp256k1_v0_10_0_ecmult_gen_context_build(&ret->ecmult_gen_ctx);*/
+    /*ret->declassify = !!(flags & SECP256K1_FLAGS_BIT_CONTEXT_DECLASSIFY);*/
 
-    prealloc_size = rustsecp256k1_v0_10_0_context_preallocated_size(flags);
-    if (prealloc_size == 0) {
-        return NULL;
-    }
-    VERIFY_CHECK(prealloc != NULL);
-    ret = (rustsecp256k1_v0_10_0_context*)prealloc;
-    ret->illegal_callback = default_illegal_callback;
-    ret->error_callback = default_error_callback;
+    /*return ret;*/
+/*}*/
 
-    /* Flags have been checked by rustsecp256k1_v0_10_0_context_preallocated_size. */
-    VERIFY_CHECK((flags & SECP256K1_FLAGS_TYPE_MASK) == SECP256K1_FLAGS_TYPE_CONTEXT);
-    rustsecp256k1_v0_10_0_ecmult_gen_context_build(&ret->ecmult_gen_ctx);
-    ret->declassify = !!(flags & SECP256K1_FLAGS_BIT_CONTEXT_DECLASSIFY);
+/*rustsecp256k1_v0_10_0_context* rustsecp256k1_v0_10_0_context_preallocated_clone(const rustsecp256k1_v0_10_0_context* ctx, void* prealloc) {*/
+    /*rustsecp256k1_v0_10_0_context* ret;*/
+    /*VERIFY_CHECK(ctx != NULL);*/
+    /*ARG_CHECK(prealloc != NULL);*/
+    /*ARG_CHECK(rustsecp256k1_v0_10_0_context_is_proper(ctx));*/
 
-    return ret;
-}
+    /*ret = (rustsecp256k1_v0_10_0_context*)prealloc;*/
+    /**ret = *ctx;*/
+    /*return ret;*/
+/*}*/
 
-rustsecp256k1_v0_10_0_context* rustsecp256k1_v0_10_0_context_preallocated_clone(const rustsecp256k1_v0_10_0_context* ctx, void* prealloc) {
-    rustsecp256k1_v0_10_0_context* ret;
-    VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(prealloc != NULL);
-    ARG_CHECK(rustsecp256k1_v0_10_0_context_is_proper(ctx));
+/*void rustsecp256k1_v0_10_0_context_preallocated_destroy(rustsecp256k1_v0_10_0_context* ctx) {*/
+    /*ARG_CHECK_VOID(ctx == NULL || rustsecp256k1_v0_10_0_context_is_proper(ctx));*/
 
-    ret = (rustsecp256k1_v0_10_0_context*)prealloc;
-    *ret = *ctx;
-    return ret;
-}
+    /*[> Defined as noop <]*/
+    /*if (ctx == NULL) {*/
+        /*return;*/
+    /*}*/
 
-void rustsecp256k1_v0_10_0_context_preallocated_destroy(rustsecp256k1_v0_10_0_context* ctx) {
-    ARG_CHECK_VOID(ctx == NULL || rustsecp256k1_v0_10_0_context_is_proper(ctx));
-
-    /* Defined as noop */
-    if (ctx == NULL) {
-        return;
-    }
-
-    rustsecp256k1_v0_10_0_ecmult_gen_context_clear(&ctx->ecmult_gen_ctx);
-}
+    /*rustsecp256k1_v0_10_0_ecmult_gen_context_clear(&ctx->ecmult_gen_ctx);*/
+/*}*/

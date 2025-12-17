@@ -1,10 +1,17 @@
 list:
   @just --list
 
+# Compile build image in which WASMs are compiled.
+wasm-img:
+  docker build -t hackbg/fadroma:dev .
+
+# Open WASM build shell.
+wasm-sh:
+  docker run -v .:/app:rw --workdir=/app -it hackbg/fadroma:dev
+
 # Compile dev builds of all WASM modules
 wasm:
   cd lib/platform/simf && just wasm
-  cd lib/platform/btc && just wasm
   cd lib/platform/namada && just wasm
 
 # Report line counts
