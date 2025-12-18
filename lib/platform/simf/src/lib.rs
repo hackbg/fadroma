@@ -1,5 +1,8 @@
 extern crate console_error_panic_hook;
-pub(crate) use std::sync::Arc;
+pub(crate) use std::{
+    str::FromStr,
+    sync::Arc
+};
 pub(crate) use wasm_bindgen::prelude::*;
 #[allow(unused)] pub(crate) use js_sys::{
     Array,
@@ -38,6 +41,7 @@ pub(crate) use wasm_bindgen::prelude::*;
         Script,
         Sequence,
         Transaction,
+        Txid,
         TxIn,
         TxInWitness,
         TxOut,
@@ -45,7 +49,7 @@ pub(crate) use wasm_bindgen::prelude::*;
         confidential::{
             Asset,
             Nonce,
-            Value as ConfidentialValue
+            Value as TxValue
         },
         pset::PartiallySignedTransaction,
         secp256k1_zkp as secp256k1,
@@ -59,18 +63,28 @@ pub(crate) use wasm_bindgen::prelude::*;
 /// Lame-ass workaround for WASM error "suffix"
 macro_rules! attempt { ($expr:expr) => { $expr.map_err(|e|JsError::new(&e))? }; }
 /// Standard result type
-pub(crate) type Maybe<T> = Result<T, Error>;
-/// Magic
-pub(crate) const UNSPENDABLE: &str =
-    "50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0";
+pub(crate) type Maybe<T> = Result<T, JsError>;
 /// Get property of JS object
-macro_rules! get(($obj:expr, $key:expr) => {
-    attempt!(Reflect::get(&$obj, &JsString::from($key).into()))});
+macro_rules! get(
+    ($obj:expr, $key:expr) => {
+        Reflect::get(&$obj, &JsString::from($key).into())
+            .map_err(|e|JsError::new(&format!("failed to get property: {}", $key)))? };
+    ($obj:expr, $key:expr, $fn:expr) => {
+        ($fn)(Reflect::get(&$obj, &JsString::from($key).into())
+            .map_err(|e|JsError::new(&format!("failed to get property: {}", $key)))?) };);
 /// Set property of JS object
 macro_rules! set(($obj:expr, $key:expr, $value:expr) => {{
     let value = $value;
-    attempt!(Reflect::set(&$obj, &JsString::from($key).into(), &value.into()));
-    value}});
+    Reflect::set(&$obj, &JsString::from($key).into(), &value.into())
+        .map_err(|e|JsError::new(&format!("failed to set property: {}", $key)))?;
+    value
+}});
+/// Construct an object
+macro_rules! obj(($($id:literal = $val:expr),+ $(,)?) => {{
+    let object = Object::new();
+    $(set!(object, $id, $val);)+
+    object
+}});
 /// Iterate over object entries (unused?)
 macro_rules! each {
     ($obj:expr => |$key:ident,$val:ident|$cb:expr) => {{

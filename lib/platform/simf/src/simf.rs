@@ -1,100 +1,232 @@
 use crate::*;
+#[wasm_bindgen] pub fn compile (source: JsString, options: Object) -> Maybe<Program> {
+    console_error_panic_hook::set_once();
+    let source = source.as_string().unwrap_or_default();
+    let mut debug = false;
+    let mut prune = false;
+    let mut args  = Arguments::default();
+    if options.is_object() {
+        debug = get!(options, "debug", |x: JsValue|x.is_truthy());
+        prune = get!(options, "prune", |x: JsValue|x.is_truthy());
+        args  = get!(options, "args", parse_args)?;
+    }
+    Program::compile(&source, args, debug, prune)
+}
 #[wasm_bindgen] pub struct Program {
-    source:    Arc<str>,
-    compiled:  CompiledProgram,
-    debug:     bool,
-    prune:     bool,
-    arguments: Arguments,
-    cmr:       Cmr,
-    amr:       Option<Amr>,
-    ihr:       Option<Ihr>,
-    commit:    Arc<CommitNode<Elements>>,
-    p2tr:      Address,
+    source:   Arc<str>,
+    compiled: CompiledProgram,
+    debug:    bool,
+    prune:    bool,
+    args:     Arguments,
+    commit:   Arc<CommitNode<Elements>>,
+    p2tr:     Address,
+    script:   Script,
+}
+impl Program {
+    fn compile (
+        source: &str,
+        args:   Arguments,
+        debug:  bool,
+        prune:  bool,
+    ) -> Maybe<Self> {
+        let compiled = CompiledProgram::new(source.clone(), args.clone(), debug);
+        let compiled = compiled.map_err(|e|JsError::new("compile failed: {e}"))?;
+        let commit = compiled.commit();
+        let script = Script::from(commit.cmr().to_byte_array().to_vec());
+        let source = Arc::new(source);
+        let p2tr = taproot_to_p2tr(&script_to_taproot(script.clone())?);
+        Ok(Self { source, p2tr, debug, prune, args, compiled, commit, script, })
+    }
 }
 #[wasm_bindgen] impl Program {
-    #[wasm_bindgen] pub fn compile (source: JsString, options: Object) -> Maybe<Self> {
-        console_error_panic_hook::set_once();
-        let result    = Object::new();
-        let source    = source.as_string().unwrap_or_default();
-        let debug     = get!(options, "debug").is_truthy();
-        let prune     = get!(options, "prune").is_truthy();
-        let arguments = get!(options, "arguments");
-        let arguments: Option<Arguments> = if arguments.is_object() {
-            set!(result, "arguments", arguments.clone());
-            if let Some(s) = JSON::stringify(&arguments)?.as_string() {
-                Some(attempt!(serde_json::from_str(&s)))
-            } else {
-                None
-            }
-        } else {
-            None
-        };
-        let compiled  = attempt!(CompiledProgram::new(source, arguments, debug));
-        let commit    = compiled.commit();
-        Ok(Self {
-            source: source.into(),
-            debug,
-            prune,
-            arguments,
-            compiled: attempt!(CompiledProgram::new(source, arguments, debug)),
-            cmr:      commit.cmr(),
-            amr:      commit.amr(),
-            ihr:      commit.ihr(),
-            commit,
-            p2tr:     cmr_to_p2tr_impl(&commit.cmr().to_byte_array())
-        })
-    }
     #[wasm_bindgen] pub fn spend (
+        &self,
         txid: JsString,
         dest: JsString,
-        prev: (),
-        utxo: (),
-        args: WithdrawArgs,
-        wits: Option<WitnessValues>
+        prev: JsString,
+        utxo: JsString,
+        wits: JsValue,
+    ) -> Maybe<Object> {
+        let txid: Txid = Txid::from_str(&txid.as_string()
+            .ok_or(JsError::new("no arg0: deposit transaction id"))?)?;
+        let dest: Address = Address::from_str(&dest.as_string()
+            .ok_or(JsError::new("no arg1: destination address"))?)?;
+        let prev: OutPoint = OutPoint::from_str(&prev.as_string()
+            .ok_or(JsError::new("no arg2: previous outpoint"))?)?;
+        //let value: Utxo = Utxo::from(utxo)
+            //.ok_or(JsError::new("wrong arg3: utxo"))?
+            //.value.explicit()args
+            //.ok_or(JsError::new("wrong arg3: utxo is not explicit"))?;
+        let Transaction { version, lock_time, input, output } = self.spend_impl(
+            txid,
+            dest,
+            prev,
+            parse_wits(&wits)?
+        )?;
+        Ok(obj! {
+            "input"     = tx_ins_to_js_value(&input)?,
+            "output"    = tx_outs_to_js_value(&output)?,
+            "version"   = version,
+            "lock_time" = match lock_time {
+                LockTime::Blocks(height) => obj!("block" = height.to_consensus_u32()),
+                LockTime::Seconds(time)  => obj!("seconds" = time.to_consensus_u32()),
+            },
+        })
+    }
+    fn spend_impl (
+        &self, txid: Txid, dest: Address, prev: OutPoint, wits: WitnessValues, value: u64
     ) -> Maybe<Transaction> {
-        let txid:   Txid          = attempt!(Txid::from_str(&txid));
-        let dest:   Address       = attempt!(Address::from_str(&dest));
-        let wits:   WitnessValues = wits.unwrap_or_default(); // TODO parse
-        let script: Script        = Script::from(self.compiled.commit().cmr().as_ref().to_vec())?;
-        let value = attempt!(utxo.value.explicit().ok_or(Error::new("UTXO value is not explicit")));
-        let fee   = 2000;
-        let tx_in = TxIn { previous_output: prev, is_pegin: false, script_sig: Script::new(), sequence: Sequence::MAX, asset_issuance: AssetIssuance::null(), witness: TxInWitness::empty(), };
-        let asset = AssetId::from_slice(&hex::decode("499a818545f6bae39fc03b637f2a4e1e64e590cac1bc3a6f6d71aa4443654c14").unwrap()).unwrap();
-        let tx_0  = TxOut { value: Value::Explicit(value - fee), script_pubkey: dest.script_pubkey(), asset: Asset::Explicit(asset.clone()), nonce: Nonce::Null, witness: TxOutWitness::default(), };
-        let tx_1  = TxOut::new_fee(fee, asset);
-        let tx    = Transaction { version: 2, lock_time: LockTime::ZERO.into(), input: vec![tx_in], output: vec![tx_0, tx_1], };
-        let tap   = TaprootBuilder::new();
-        let tap   = tap.add_leaf_with_ver(0, script.clone(), simplicity_leaf_version()).map_err(|e| anyhow!("Failed to add leaf to taproot builder: {}", e))?;
-        let tap   = tap.finalize(&secp256k1::SECP256K1, unspendable_key()).map_err(|e| anyhow!("Failed to finalize taproot builder: {}", e))?;
-        let redeem_node = self.compiled.satisfy_with_env(wits, Some(&dummy_env::dummy())).map_err(|e| anyhow::anyhow!("Failed to satisfy program: {}", e))?.redeem();
-        let (bounds, (program_bytes, witness_bytes)) = (redeem_node.bounds(), redeem_node.encode_to_vec());
-        let mut final_script_witness = vec![
-            witness_bytes, program_bytes, script.into_bytes(),
-            tap.control_block(&(script.clone(), simplicity_leaf_version())).unwrap().serialize()
-        ];
-        assert_eq!(final_script_witness[3][0] & 0xfe, 0xbe); // (control[0] & TAPROOT_LEAF_MASK) == TAPROOT_LEAF_TAPSIMPLICITY)
+        let control_bytes = self.control_bytes()?;
+        let script_bytes  = self.script.clone().into_bytes();
+        let satisfied     = self.compiled.satisfy_with_env(wits, Some(&dummy_env::dummy()))
+            .map_err(|e|JsError::new(&format!("does not satisfy: {e}")))?;
+        let (bounds, (program_bytes, witness_bytes)) = (
+            satisfied.bounds(), satisfied.encode_to_vec());
         if !bounds.cost.is_consensus_valid() {
-            return Err(anyhow::anyhow!(
-                "Program cost exceeded the maximum allowed cost, cost = {}",
-                bounds.cost
-            ));
+            return Err(JsError::new(&format!("bounds exceeded: {}", bounds.cost)));
         }
+        let mut final_script_witness = vec![
+           witness_bytes, program_bytes, script_bytes, control_bytes
+        ];
         // Add padding to the script witness if budget is exceeded
-        if let Some(padding) = bounds.cost.get_padding(&final_script_witness) {
+        if let Some(padding_bytes) = bounds.cost.get_padding(&final_script_witness) {
             // Annex has to be removed from the stack
             // https://github.com/ElementsProject/elements/blob/9748c00c3344b815d75c4b5c251b341fb34fa80f/src/script/interpreter.cpp#L3275
-            final_script_witness.push(padding);
+            final_script_witness.push(padding_bytes);
         } else {
-            println!("No padding needed");
+            //println!("No padding needed");
         }
         if !bounds.cost.is_budget_valid(&final_script_witness) {
-            return Err(anyhow::anyhow!("Budget exceeded, cost = {}", bounds.cost));
+            return Err(JsError::new(&format!("budget exceeded: {}", bounds.cost)));
         }
-        let mut partial_tx = PartiallySignedTransaction::from_tx(tx);
+        let mut partial_tx = script_to_transaction(prev, dest, value, 2000)?;
         partial_tx.inputs_mut()[0].final_script_witness = Some(final_script_witness);
-        Ok(partial_tx.extract_tx().unwrap())
+        partial_tx.extract_tx()
+    }
+    fn control_bytes (&self) -> Maybe<Vec<u8>> {
+        let tap = script_to_taproot(self.script.clone())?;
+        let ver = LeafVersion::from_u8(0xbe)
+            .map_err(|e|JsError::new(&format!("leaf version mismatch: {e}")))?;
+        let block = tap.control_block(&(self.script.clone(), ver))
+            .ok_or_else(||JsError::new("matching control block not found"))?;
+        let bytes = block.serialize();
+        // (control[0] & TAPROOT_LEAF_MASK) == TAPROOT_LEAF_TAPSIMPLICITY)
+        assert_eq!(bytes[0] & 0xfe, 0xbe);
+        Ok(bytes)
     }
 }
+
+fn parse_args (args: JsValue) -> Maybe<Arguments> {
+    if args.is_truthy() {
+        if !args.is_object() {
+            return Err(JsError::new("args: must be object"))
+        }
+        if let Some(s) = JSON::stringify(&args)
+            .map_err(|e|JsError::new(&format!("failed to stringify args: {e:?}")))?
+            .as_string()
+        {
+            return Ok(serde_json::from_str(&s)?);
+        }
+    }
+    Ok(Arguments::default())
+}
+
+fn parse_wits (wits: &JsValue) -> Maybe<WitnessValues> {
+    if wits.is_truthy() {
+        if !wits.is_object() {
+            return Err(JsError::new("wits: must be object"))
+        }
+        if let Some(s) = JSON::stringify(&wits)
+            .map_err(|e|JsError::new(&format!("failed to stringify wits: {e:?}")))?
+            .as_string()
+        {
+            return Ok(serde_json::from_str(&s)?);
+        }
+    }
+    Ok(WitnessValues::default())
+}
+
+fn script_to_transaction (
+    previous_output: OutPoint,
+    destination:     Address,
+    value:           u64,
+    fee:             u64,
+) -> Maybe<PartiallySignedTransaction> {
+    let asset = hex::decode(ASSET)
+        .map_err(|e|JsError::new(&format!("failed to decode asset: {e}")))?;
+    let asset = AssetId::from_slice(&asset)
+        .map_err(|e|JsError::new(&format!("failed to decode asset: {e}")))?;
+    let in_0 = TxIn {
+        previous_output,
+        is_pegin:       false,
+        script_sig:     Script::new(),
+        sequence:       Sequence::MAX,
+        asset_issuance: AssetIssuance::null(),
+        witness:        TxInWitness::empty(),
+    };
+    let out_0 = TxOut {
+        value:         TxValue::Explicit(value - fee),
+        script_pubkey: destination.script_pubkey(),
+        asset:         Asset::Explicit(asset.clone()),
+        nonce:         Nonce::Null,
+        witness:       TxOutWitness::default(),
+    };
+    let out_1 = TxOut::new_fee(fee, asset);
+    Ok(PartiallySignedTransaction::from_tx(Transaction {
+        version:   2,
+        lock_time: LockTime::ZERO.into(),
+        input:     vec![in_0],
+        output:    vec![out_0, out_1], 
+    }))
+}
+
+fn tx_ins_to_js_value (x: &[TxIn]) -> Maybe<JsValue> {
+    let results = Array::new();
+    Ok(results.into())
+}
+
+fn tx_outs_to_js_value (x: &[TxOut]) -> Maybe<JsValue> {
+    let results = Array::new();
+    Ok(results.into())
+}
+
+fn taproot_to_p2tr (tap: &TaprootSpendInfo) -> Address {
+    Address::p2tr(
+        secp256k1::SECP256K1,
+        tap.internal_key(),
+        tap.merkle_root(),
+        None,
+        &AddressParams::LIQUID_TESTNET
+    )
+}
+
+fn script_to_taproot (script: Script) -> Maybe<TaprootSpendInfo> {
+    let tap = TaprootBuilder::new();
+
+    let ver = LeafVersion::from_u8(0xbe)
+        .map_err(|e|JsError::new(&format!("failed to use constant leaf version: {e}")))?;
+
+    let key = hex::decode(UNSPENDABLE)
+        .map_err(|e|JsError::new(&format!("failed to parse unspendable key: {e}")))?;
+
+    let key = secp256k1::XOnlyPublicKey::from_slice(&key)
+        .map_err(|e|JsError::new(&format!("failed to parse unspendable key: {e}")))?;
+
+    let tap = tap.add_leaf_with_ver(0, script, ver)
+        .map_err(|e|JsError::new(&format!("failed to add leaf to taproot builder: {e}")))?;
+
+    let tap = tap.finalize(&secp256k1::SECP256K1, key)
+        .map_err(|e|JsError::new(&format!("failed to finalize taproot builder: {e}")))?;
+
+    Ok(tap)
+}
+
+/// Magic
+pub(crate) const UNSPENDABLE: &str =
+    "50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0";
+/// More magic
+pub(crate) const ASSET: &str =
+    "499a818545f6bae39fc03b637f2a4e1e64e590cac1bc3a6f6d71aa4443654c14";
 
 //#[wasm_bindgen]
 //pub fn compile (source: JsString, options: Object) -> Maybe<Object> {
