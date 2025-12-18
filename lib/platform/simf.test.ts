@@ -80,8 +80,8 @@ function testSimfWasmCmrToP2TR (cmr: string, expectedP2TR?: string) {
 }
 
 async function testSimfDeploy (_: never, context: Test.Testing) {
-  //const blob = await Deno.readFile(testSimfFixtures.wasmPath);
-  //const { compile, cmr_to_p2tr } = await Simf.Wasm(blob);
+  const blob = await Deno.readFile(testSimfFixtures.wasmPath);
+  const { spend } = await Simf.Wasm(blob);
   const { p2tr } = testSimfFixtures.example0;
   return Btc.Daemon(testSimfFixtures.daemonOptions, testSimfDeployInner)
   async function testSimfDeployInner (daemon: Btc.Daemon) {
