@@ -51,6 +51,7 @@ pub(crate) use wasm_bindgen::prelude::*;
             Nonce,
             Value as TxValue
         },
+        encode::deserialize as deserialize_tx,
         pset::PartiallySignedTransaction,
         secp256k1_zkp as secp256k1,
         taproot::{
@@ -68,14 +69,14 @@ pub(crate) type Maybe<T> = Result<T, JsError>;
 macro_rules! get(
     ($obj:expr, $key:expr) => {
         Reflect::get(&$obj, &JsString::from($key).into())
-            .map_err(|e|JsError::new(&format!("failed to get property: {}", $key)))? };
+            .map_err(|e|JsError::new(&format!("failed to get property {}", $key)))? };
     ($obj:expr, $key:expr, $fn:expr) => {
         ($fn)(Reflect::get(&$obj, &JsString::from($key).into())
-            .map_err(|e|JsError::new(&format!("failed to get property: {}", $key)))?) };);
+            .map_err(|_e|JsError::new(&format!("failed to get property {}", $key)))?) };);
 /// Set property of JS object
 macro_rules! set(($obj:expr, $key:expr, $value:expr) => {{
     let value = $value;
-    Reflect::set(&$obj, &JsString::from($key).into(), &value.into())
+    Reflect::set(&$obj, &JsString::from($key).into(), &value.clone().into())
         .map_err(|e|JsError::new(&format!("failed to set property: {}", $key)))?;
     value
 }});
@@ -95,6 +96,19 @@ macro_rules! each {
             $cb
         });
     }}
+}
+/// Map missing values to friendly [JsError]s.
+macro_rules! required (
+    ($expr:expr)=>{
+        $expr.ok_or(JsError::new(&format!("{}: not found", stringify!($expr))))};
+    ($msg:literal: $expr:expr)=>{
+        $expr.ok_or(JsError::new(&format!("{}: {}", stringify!($expr), $msg)))};
+);
+/// Map failures  to friendly [JsError]s.
+macro_rules! expected {
+    ($msg:literal: $expr:expr) => {
+        $expr.map_err(|e|JsError::new(&format!("failed to {}: {e}", $msg)))
+    };
 }
 // Above macros are available in subsequent modules
 mod simf; pub use self::simf::*;
