@@ -64,7 +64,7 @@ export default Test.suite(import.meta, 'Simf',
 
 function testSimfWasmCompile (source: string, cmr?: string) {
   return (compile: Fn, context) => {
-    const result = compile(source, {}) as { cmr: string };
+    const result = compile(source, {}).toJSON() as { cmr: string };
     if (cmr) equal(result.cmr, cmr);
     return compile;
   };

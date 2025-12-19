@@ -1,16 +1,48 @@
 /* tslint:disable */
 /* eslint-disable */
 
+export class Program {
+  private constructor();
+/**
+** Return copy of self without private attributes.
+*/
+  toJSON(): Object;
+/**
+* Return stringified version of self.
+*/
+  toString(): string;
+  free(): void;
+  [Symbol.dispose](): void;
+  spend(options: object): object;
+  toJSON(): object;
+  /**
+   * Programs have many properties, so we default to
+   * just stringifying them to the original source.
+   */
+  toString(): string;
+}
+
+/**
+ * Create a SimplicityHL P2TR address from the [Cmr]
+ * (Commitment Merkle root) of a compiled Simplicity program.
+ */
 export function cmr_to_p2tr(cmr: any): string;
 
-export function compile(source: string, options: object): object;
+/**
+ * Compile a SimplicityHL program.
+ */
+export function compile(source: string, options: object): Program;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
+  readonly __wbg_program_free: (a: number, b: number) => void;
   readonly cmr_to_p2tr: (a: any) => [number, number, number];
   readonly compile: (a: any, b: any) => [number, number, number];
+  readonly program_spend: (a: number, b: any) => [number, number, number];
+  readonly program_toJSON: (a: number) => any;
+  readonly program_toString: (a: number) => [number, number];
   readonly rust_0_6_malloc: (a: number) => number;
   readonly rust_0_6_free: (a: number) => void;
   readonly rust_0_6_calloc: (a: number, b: number) => number;

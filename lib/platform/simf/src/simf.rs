@@ -1,5 +1,47 @@
 use crate::*;
 
+/// Create a SimplicityHL P2TR address from the [Cmr]
+/// (Commitment Merkle root) of a compiled Simplicity program.
+#[wasm_bindgen]
+pub fn cmr_to_p2tr (cmr: JsValue) -> Maybe<JsString> {
+    console_error_panic_hook::set_once();
+    let tap = script_to_taproot(Script::from(bytes_to_vec(cmr)?))?;
+    Ok(format!("{}", taproot_to_p2tr(&tap)).into())
+}
+
+/// Helper for accepting either [Uint8Array] or base16 string.
+fn bytes_to_vec (cmr: JsValue) -> Maybe<Vec<u8>> {
+    if Uint8Array::instanceof(&cmr) { 
+        Ok(Uint8Array::unchecked_from_js(cmr).to_vec())
+    } else if JsString::is_type_of(&cmr) {
+        expected!("decode cmr": hex::decode(&required!(cmr.as_string())?))
+    } else {
+        return Err(JsError::new("need Uint8Array or hex string"))
+    }
+}
+
+/// Generate P2TR (pay-to-taproot) address from [TaprootSpendInfo].
+fn taproot_to_p2tr (tap: &TaprootSpendInfo) -> Address {
+    Address::p2tr(
+        secp256k1::SECP256K1,
+        tap.internal_key(),
+        tap.merkle_root(),
+        None,
+        &AddressParams::LIQUID_TESTNET
+    )
+}
+
+/// Generate [TaprootSpendInfo] for a given script.
+fn script_to_taproot (script: Script) -> Maybe<TaprootSpendInfo> {
+    let tap = TaprootBuilder::new();
+    let ver = expected!("use constant leaf version": LeafVersion::from_u8(0xbe))?;
+    let key = expected!("parse unspendable key": hex::decode(UNSPENDABLE))?;
+    let key = expected!("parse unspendable key": secp256k1::XOnlyPublicKey::from_slice(&key))?;
+    let tap = expected!("taproot: add leaf": tap.add_leaf_with_ver(0, script, ver))?;
+    let tap = expected!("taproot: finalize": tap.finalize(&secp256k1::SECP256K1, key))?;
+    Ok(tap)
+}
+
 /// Compile a SimplicityHL program.
 #[wasm_bindgen] pub fn compile (source: JsString, options: Object) -> Maybe<Program> {
     console_error_panic_hook::set_once();
@@ -15,7 +57,8 @@ use crate::*;
     Program::new(&source, args, debug, prune)
 }
 
-#[wasm_bindgen] pub struct Program {
+/// A valid compiled SimplicityHL program.
+#[wasm_bindgen(inspectable)] pub struct Program {
     source:   Arc<str>,
     compiled: CompiledProgram,
     debug:    bool,
@@ -27,6 +70,7 @@ use crate::*;
 }
 
 impl Program {
+    /// Internal constructor.
     fn new (source: &str, args: Arguments, debug: bool, prune: bool) -> Maybe<Self> {
         let compiled = CompiledProgram::new(source.clone(), args.clone(), debug);
         let compiled = expected!("compile failed": compiled)?;
@@ -39,6 +83,32 @@ impl Program {
 }
 
 #[wasm_bindgen] impl Program {
+
+    /// Programs have many properties, so we default to
+    /// just stringifying them to the original source.
+    #[wasm_bindgen(js_name = toString)]
+    pub fn to_string (&self) -> String {
+        self.source.to_string()
+    }
+
+
+    #[wasm_bindgen(js_name = toJSON)]
+    pub fn to_json (&self) -> Object {
+        self.try_to_json().unwrap_or_else(|e|JsValue::from(e).into())
+    }
+
+    fn try_to_json (&self) -> Maybe<Object> {
+        Ok(obj! {
+            "source" = self.source.to_string(),
+            "debug"  = self.debug,
+            "prune"  = self.prune,
+            "args"   = serde_json::to_string(&self.args)?,
+            "cmr"    = hex::encode(self.commit.cmr().to_byte_array()),
+            "ihr"    = self.commit.ihr().map(|ihr|hex::encode(ihr.to_byte_array())),
+            "amr"    = self.commit.amr().map(|ihr|hex::encode(ihr.to_byte_array())),
+            "p2tr"   = self.p2tr.to_string(),
+        })
+    }
 
     #[wasm_bindgen] pub fn spend (&self, options: Object) -> Maybe<Object> {
         if !options.is_object() {
@@ -57,9 +127,9 @@ impl Program {
                 break;
             }
         }
-        let previous    = required!(previous)?;
-        let utxo        = required!(utxo)?;
-        let value       = required!("value not explicit": utxo.value.explicit())?;
+        let previous = required!(previous)?;
+        let utxo     = required!(utxo)?;
+        let value    = required!("value not explicit": utxo.value.explicit())?;
         let Transaction { version, lock_time, input, output } =
             self.spend_impl(destination, previous, witness, value, 2000)?;
         Ok(obj! {
@@ -127,20 +197,24 @@ impl Program {
 fn parse_bool (x: JsValue) -> bool {
     x.is_truthy()
 }
+
 fn parse_addr (x: JsValue) -> Maybe<Address> {
     let address = required!("not string": x.as_string())?;
     let address = expected!("parse address": Address::from_str(&address))?;
     Ok(address)
 }
+
 fn parse_tx_id (bytes: JsValue) -> Maybe<Txid> {
     unimplemented!()
 }
+
 fn parse_tx_bytes (bytes: JsValue) -> Maybe<Transaction> {
     let bytes = required!("not string": bytes.as_string())?;
     let bytes = expected!("decode hex": hex::decode(bytes.trim()))?;
     let tx    = expected!("deserialize tx": deserialize_tx(&bytes))?;
     Ok(tx)
 }
+
 fn parse_args (args: JsValue) -> Maybe<Arguments> {
     if args.is_truthy() {
         if !args.is_object() {
@@ -155,6 +229,7 @@ fn parse_args (args: JsValue) -> Maybe<Arguments> {
     }
     Ok(Arguments::default())
 }
+
 fn parse_wits (wits: JsValue) -> Maybe<WitnessValues> {
     if wits.is_truthy() {
         if !wits.is_object() {
@@ -214,26 +289,6 @@ fn tx_outs_to_js_value (x: &[TxOut]) -> Maybe<JsValue> {
     Ok(results.into())
 }
 
-fn taproot_to_p2tr (tap: &TaprootSpendInfo) -> Address {
-    Address::p2tr(
-        secp256k1::SECP256K1,
-        tap.internal_key(),
-        tap.merkle_root(),
-        None,
-        &AddressParams::LIQUID_TESTNET
-    )
-}
-
-fn script_to_taproot (script: Script) -> Maybe<TaprootSpendInfo> {
-    let tap = TaprootBuilder::new();
-    let ver = expected!("use constant leaf version": LeafVersion::from_u8(0xbe))?;
-    let key = expected!("parse unspendable key": hex::decode(UNSPENDABLE))?;
-    let key = expected!("parse unspendable key": secp256k1::XOnlyPublicKey::from_slice(&key))?;
-    let tap = expected!("taproot: add leaf": tap.add_leaf_with_ver(0, script, ver))?;
-    let tap = expected!("taproot: finalize": tap.finalize(&secp256k1::SECP256K1, key))?;
-    Ok(tap)
-}
-
 /// Magic
 pub(crate) const UNSPENDABLE: &str =
     "50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0";
@@ -275,37 +330,6 @@ pub(crate) const ASSET: &str =
     ////Ok(result)
 //}
 
-//#[wasm_bindgen]
-//pub fn cmr_to_p2tr (cmr: JsValue) -> Maybe<JsString> {
-    //console_error_panic_hook::set_once();
-    //let cmr: Vec<u8> = if Uint8Array::instanceof(&cmr) { 
-        //Uint8Array::unchecked_from_js(cmr).to_vec()
-    //} else if JsString::is_type_of(&cmr) {
-        //attempt!(hex::decode(&cmr.as_string().unwrap_or_default()))
-    //} else {
-        //return Err(Error::new("cmr must be Uint8Array or hex string"))
-    //};
-    //let cmr  = attempt!(bytes_to_vec(cmr));
-    //let p2tr = attempt!(cmr_to_p2tr_impl(cmr.as_slice()));
-    //Ok(format!("{p2tr}").into())
-//}
-
-//fn bytes_to_vec (bytes: JsValue) -> Maybe<Vec<u8>> {
-    //if Uint8Array::instanceof(&cmr) { 
-        //Uint8Array::unchecked_from_js(cmr).to_vec()
-    //} else if JsString::is_type_of(&cmr) {
-        //attempt!(hex::decode(&cmr.as_string().unwrap_or_default()))
-    //} else {
-        //return Err(Error::new("need Uint8Array or hex string"))
-    //}
-//}
-
-//fn cmr_to_p2tr_impl (cmr: &[u8]) -> Maybe<Address> {
-    //let tap = TaprootBuilder::new();
-    //let tap = attempt!(tap.add_leaf_with_ver(0, Script::from(cmr.to_vec()), LeafVersion::from_u8(0xbe).expect("constant leaf version")));
-    //let tap = attempt!(tap.finalize(&secp256k1::SECP256K1, attempt!(secp256k1::XOnlyPublicKey::from_slice(&hex::decode(UNSPENDABLE).unwrap()))));
-    //Ok(Address::p2tr(secp256k1::SECP256K1, tap.internal_key(), tap.merkle_root(), None, &AddressParams::LIQUID_TESTNET))
-//}
 
 //fn set_build_source (result: &Object, source: &JsString) -> Maybe<String> {
     //let source = source.as_string().unwrap_or_default();
