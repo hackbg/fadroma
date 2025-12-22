@@ -1,7 +1,7 @@
-import type { Fn, Step, Async, Ports } from '../../index.ts';
-import type { ChildProcess } from '../../deps.ts';
-import { execImpl, spawnImpl, inspect, cwd } from '../../deps.ts';
-import { Error, Pipe, Name, toString } from '../../format.ts';
+import type { Fn, Step, Async, Ports } from '../index.ts';
+import type { ChildProcess } from '../deps.ts';
+import { execImpl, spawnImpl, inspect, cwd } from '../deps.ts';
+import { Error, Pipe, Name, toString } from '../format.ts';
 import { Dir } from './fs.ts';
 /** A collection of processes and network endpoints provided by them. */
 export type Service = Dir & Ports<number> & {
@@ -99,3 +99,4 @@ const toOpt = (opt: string|Step<Run>): Step<Run> =>
 const pushArg = (opt: string) =>
   Name(opt, (run: Run) => { run.argv.push(opt); return run });
 
+const parseStdout   = (re: RegExp) => ({ stdout }: { stdout: string }) => stdout.match(re)[1];

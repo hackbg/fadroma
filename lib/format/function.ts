@@ -1,4 +1,42 @@
 import { setImmediate, argv, fileURLToPath } from '../deps.ts';
+/** Gradually elaboratable function type. */
+export type Fn<Inputs extends unknown[] = unknown[], Output = unknown> =
+  Fn.Takes<Inputs> & Fn.Returns<Output>;
+/** Partial application of a function.
+  * Use this to prepare a function with arguments for testing.
+  *
+  * See:
+  *   - https://en.wikipedia.org/wiki/Currying
+  *   - https://en.wikipedia.org/wiki/Partial_application
+  * 
+  * Example:
+  *
+  *     // A function with 2 arguments:
+  *     const result = await fn(arg1, arg2)
+  *     const check = result => ok(result > 0)
+  *     check(result)
+  *
+  *     // Is tested like this:
+  *     expect("description",
+  *       curry(fn, arg1, arg2),
+  *       check)
+  */
+export function Fn <F extends ((..._:unknown[])=>unknown)> (
+  fn: F, ...args: Partial<Parameters<F>>
+) {
+  return Name(`${fn.name}(${curriedArgs(args)})`, fn.bind(null, ...args), {
+    fn, args, stack: new Error().stack?.split('\n').slice(3)
+  });
+}
+
+export namespace Fn {
+  /** Function arguments. */
+  export type Takes<T extends unknown[]> = (...args: T) => unknown;
+  /** Function return type. */
+  export type Returns<T> = (...args: unknown[]) => T;
+  /** Annotations added by [Name]. */
+  export type Reflects<F extends Fn[] = Fn[]> = { stack?: string[], steps?: F };
+}
 
 /** The identity function. */
 export const identity = <T>(x: T): T => x;
@@ -106,18 +144,6 @@ export const Async = <X, F extends (_: unknown)=>unknown> (
 ) => isThenable(x)
   ? (x as unknown as { then: (_:F)=>Promise<unknown> }).then(f)
   : f(x);
-
-/** Gradually elaboratable function type. */
-export type Fn<Inputs extends unknown[] = unknown[], Output = unknown> =
-  Fn.Takes<Inputs> & Fn.Returns<Output>;
-export namespace Fn {
-  /** Function arguments. */
-  export type Takes<T extends unknown[]> = (...args: T) => unknown;
-  /** Function return type. */
-  export type Returns<T> = (...args: unknown[]) => T;
-  /** Annotations added by [Name]. */
-  export type Reflects<F extends Fn[] = Fn[]> = { stack?: string[], steps?: F };
-}
 /** Part of a [Pipe]. */
 export type Step<T = unknown, U = T> =
   Fn.Reflects & Fn.Takes<[T]> & Fn.Returns<Async<U>>;
@@ -148,33 +174,6 @@ export function merged <T, U, V, W> (t: T, u: U, v: V, w: W): T & U & V & W;
 export function merged <T> (..._: Partial<T>[]): T;
 export function merged <T> (...fragments: Partial<T>[]): T {
   return Object.assign(...fragments.filter(Boolean) as [object], {}) as T;
-}
-
-/** Partial application of a function.
-  * Use this to prepare a function with arguments for testing.
-  *
-  * See:
-  *   - https://en.wikipedia.org/wiki/Currying
-  *   - https://en.wikipedia.org/wiki/Partial_application
-  * 
-  * Example:
-  *
-  *     // A function with 2 arguments:
-  *     const result = await fn(arg1, arg2)
-  *     const check = result => ok(result > 0)
-  *     check(result)
-  *
-  *     // Is tested like this:
-  *     expect("description",
-  *       curry(fn, arg1, arg2),
-  *       check)
-  */
-export function Fn <F extends ((..._:unknown[])=>unknown)> (
-  fn: F, ...args: Partial<Parameters<F>>
-) {
-  return Name(`${fn.name}(${curriedArgs(args)})`, fn.bind(null, ...args), {
-    fn, args, stack: new Error().stack?.split('\n').slice(3)
-  });
 }
 
 const curriedArgs = (args: unknown[]) => args.map(String)

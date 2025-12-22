@@ -1,10 +1,9 @@
 #!/usr/bin/env -S deno run -I --coverage --allow-env --allow-net --allow-run --allow-read=/tmp/fadroma --allow-write=/tmp/fadroma
 import { suite, the, has, is, equals }  from "../tester.ts";
 import { execImpl, spawnImpl } from '../deps.ts';
-import { Dir, Temp, Zip, Txt, Bin } from './os/fs.ts';
-import { Exec, Spawn, Env } from './os/svc.ts';
-import { Name } from '../format.ts';
-import { Fn } from '../index.ts';
+import { Dir, Temp, Zip, Txt, Bin } from './fs.ts';
+import { Exec, Spawn, Env } from './svc.ts';
+import { Name, Fn } from '../format.ts';
 
 export const testDir = the('Dir',
   the('Current', () => Dir(), is('function'), has('path', equals(''))), 

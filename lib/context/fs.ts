@@ -1,8 +1,8 @@
-import type { Async, Fn, Bytes, Step } from '../../index.ts';
-import { joinPath, tmpdir, zipSync } from '../../deps.ts';
-import { mkdir, rm, mkdtemp, writeFile, resolvePath, cwd } from '../../deps.ts';
-import { Base16, Pipe, Name, chunked } from '../../format.ts';
-import { Log } from '../ui/log.ts';
+import type { Async, Fn, Bytes, Step } from '../index.ts';
+import { Base16, Pipe, Name, chunked } from '../format.ts';
+import { joinPath, tmpdir, zipSync, mkdir, rm, mkdtemp, writeFile,
+  resolvePath, cwd } from '../deps.ts';
+import { Log } from './log.ts';
 /** A directory, with optional implementations of methods for writing to it. */
 export type Dir = {
   path:       string,

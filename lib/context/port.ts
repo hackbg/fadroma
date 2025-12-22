@@ -1,6 +1,6 @@
-import type { Step, Fn } from '../../index.ts';
-import { Error, Name, Pipe } from '../../format.ts';
-import { Socket } from '../../deps.ts';
+import type { Step, Fn } from '../index.ts';
+import { Error, Name, Pipe } from '../format.ts';
+import { Socket } from '../deps.ts';
 
 /** Keep track of port assignments. */
 export interface Ports<T = unknown> {

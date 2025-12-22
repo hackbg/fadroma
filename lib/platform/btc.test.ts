@@ -2,15 +2,6 @@
 import { Fn, Test } from '../index.ts';
 import { Btc } from './btc.ts';
 const { the, is, has } = Test;
-export const testBtcCli = the('CLI',
-  () => Btc().execCli(),
-  is('function'), has('entries',
-    is('object', 'Array'),
-    has('0', is('function'),
-      has('command', 'bitcoin-cli'),
-      has('options', is('object', 'Array')))),
-  calledWithMock,
-  is('object'));
 export const testBtcNode = the('Node',
   () => Btc().spawnNode(),
   is('function'), has('services',

@@ -1,6 +1,6 @@
-import type { Fn, Step } from '../../index.ts';
-import { HttpServer } from '../../deps.ts';
-import { Pipe, Name } from '../../format.ts';
+import type { Fn, Step } from '../index.ts';
+import { HttpServer } from '../deps.ts';
+import { Pipe, Name } from '../format.ts';
 import { tcpAddr } from './tcp.ts';
 import { Ports } from './port.ts';
 

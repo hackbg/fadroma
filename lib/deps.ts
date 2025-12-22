@@ -60,6 +60,18 @@ export { base16, base64, bech32, bech32m } from '@scure/base'
 
 export { zipSync, strToU8 as zipStr } from 'fflate';
 
+export async function fetchText (href: string|URL): Promise<string> {
+  if (('Deno' in globalThis) && ('readFile' in globalThis.Deno)) {
+    return new TextDecoder().decode(await Deno.readFile(new URL(href).pathname))
+  }
+  if ('fetch' in globalThis) {
+    const request = await fetch(href);
+    const text = await request.text();
+    return text
+  }
+  throw new Error('fetchText: not available')
+}
+
 //export { sha256 } from '@noble/hashes/sha2.js'
 //export { ripemd160 } from '@noble/hashes/legacy.js'
 //export { ed25519 } from '@noble/ed25519'

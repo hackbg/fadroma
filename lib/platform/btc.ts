@@ -1,174 +1,66 @@
-import { Sub } from './btc/zeromq.ts';
-import { Async, Fn, Pipe, Exec, Spawn, Temp, Service, Dir, Port, joined, merged } from '../index.ts';
-import { ChildProcess, env } from '../deps.ts';
-
-export interface Btc {
-  cli:       string,
-  node:      string,
-  regTest:   boolean,
-  dataRoot:  string,
-  dataDir:   string,
-  walletDir: string,
-  httpPort:  number,
-  zmqPort:   number,
-  rpcPort:   number,
-  rpcUser:   string,
-  rpcPass:   string,
-  rpcQueue:  number,
-  txIndex:   boolean,
-  /** Spawn Bitcoin daemon. */
-  spawnNode: (..._: string[]) => Spawn,
-  /** Call Bitcoin CLI. */
-  execCli:   (..._: string[]) => Exec,
-  /** Call Bitcoin RPC. */
-  rpc:       Fn,
-  /** Subscribe to Bitcoin note via ZeroMQ. */
-  subscribe: Fn<[Fn]>,
-  /** Run Bitcoin localnet. */
-  localnet:  Service,
-};
-
-export function Btc (...options: Partial<Btc>[]): Btc {
-  const {
-    cli       = 'bitcoin-cli',
-    node      = 'bitcoind', // elementsd
-    regTest   = true,
-    rpcPort   = regTest ? 18443 : 8443,
-    rpcUser   = 'fadroma',
-    rpcPass   = 'fadroma',
-    rpcQueue  = 32,
-    dataRoot  = '/tmp/fadroma/test/btc/',
-    dataDir   = joined('', dataRoot, 'data',   +new Date()),
-    walletDir = joined('', dataRoot, 'wallet', +new Date()),
-    zmqPort   = 48485,
-    txIndex   = false,
-    ...rest
-  } = merged(...options);
-  const localnet = Service('BTC Daemon',
-    spawnNode,
-    Dir(walletDir,
-      execCli('createwallet', walletDir),
-      execCli(`-rpcwallet=${walletDir}`, '-generate')));
-  const context = { node, spawnNode, cli, execCli,
-    regTest, rpcPort, rpcUser, rpcPass, rpcQueue,
-    dataRoot, dataDir, walletDir, zmqPort, txIndex,
-    localnet, subscribe, ...rest };
-  function spawnNode (...args: string[]) {
-    return Service(`Spawn(${node})`, Port(rpcPort, Dir(dataDir,
-      Spawn(node, '-server',
-        rpcPort && ('-rpcport=' + rpcPort),
-        rpcUser && `-rpcuser=fadroma`,
-        rpcPass && `-rpcpassword=${rpcPass}`,
-        dataDir && `-datadir=${dataDir}`,
-        regTest && '-regtest',
-        txIndex && '-txindex',
-        zmqPort && ('-zmqpubhashblock=tcp:/' + '/127.0.0.1:' + zmqPort),
-        zmqPort && ('-zmqpubhashtx=tcp:/'    + '/127.0.0.1:' + zmqPort),
-        rpcQueue && ('-rpcworkqueue=' + rpcQueue),
-        ...args)))) as Spawn;
+import { Async, Fn, Pipe, Spawn, Temp } from '../index.ts';
+import { ChildProcess } from '../deps.ts';
+/** A Bitcoin or Elements daemon. */
+export interface Btc extends Btc.Options {}
+/** Launch with default settings and temporary datadir.
+  * If callback is present, close after executing it. */
+export function Btc <T> (
+  callback?: Fn<[Btc], Async<T>>
+): Promise<Async<T>>;
+/** Launch with specified options.
+  * If callback is present, close after executing it. */
+export function Btc <T> (
+  options:   string|Btc.Options,
+  callback?: Fn<[Btc], Async<T>>
+): Promise<Async<T>>;
+/** Launch Bitcoin node. */
+export async function Btc <T> (...args: unknown[]): Promise<Async<T>> {
+  const options: Btc.Options =
+    (typeof args[0] === 'string')   ? { datadir: args.shift() } :
+    (typeof args[0] === 'function') ? { }                       : args.shift();
+  if (typeof options !== 'object') throw new Error('invalid options');
+  const spawn = Btc.spawn(options);
+  const { rpcuser, rpcpassword, rpcallowip, rpcport } = options;
+  const process = await spawn();
+  try {
+    const url = `http://${rpcuser}:${rpcpassword}@${rpcallowip}:${rpcport}`;
+    Object.assign(process, { rest: Btc.rest(url), rpc: Btc.rpc(url) });
+    return await Pipe(...args as Fn[])(process) as T;
+  } finally {
+    process.kill();
   }
-
-  function execCli (...args: string[]): Fn<[Dir]> {
-    return Dir(dataDir, Exec(cli,
-      rpcPort && ('-rpcport=' + rpcPort),
-      rpcUser && `-rpcuser=fadroma`,
-      rpcPass && `-rpcpassword=${rpcPass}`,
-      dataDir && `-datadir=${dataDir}`,
-      regTest && '-regtest',
-      ...args));
-  }
-
-  function subscribe (onZmq) {
-    //await portWait({ port: zmqPort });
-    return Sub(zmqPort, onZmq);
-  }
-
-  return context
 }
-
+/** Bitcoin internals. */
 export namespace Btc {
-
-  /** Bitcoin WASM loader. */
-  export const Wasm = async function simfWasm (
-    wasm: string|URL|Uint8Array = env['FADROMA_BTC_WASM']
-  ): Promise<unknown> {
-    const wrap = await import('./btc/pkg/fadroma_btc.js');
-    await wrap.default(wasm);
-    return wrap;
-  }
-
-  export interface DaemonOptions {
-    bech32_hrp?:              string;
-    blech32_hrp?:             string;
-    blindedprefix?:           number;
-    chain?:                   string;
-    daemon?:                  string;
-    datadir?:                 string;
-    debug?:                   string[]|string;
-    defaultpeggedassetname?:  string;
-    discover?:                boolean;
-    dnsseed?:                 boolean;
-    initialfreecoins?:        string|number|bigint;
-    initialreissuancetokens?: string|number|bigint;
-    persistmempool?:          boolean;
-    pubkeyprefix?:            number;
-    rest?:                    boolean;
-    rpcallowip?:              string[]|string;
-    rpcpassword?:             string;
-    rpcport?:                 number|string;
-    rpcuser?:                 string;
-    scriptprefix?:            number;
-    server?:                  boolean;
-    txindex?:                 boolean;
-    validatepegin?:           false;
-  }
-
-  export interface Daemon extends ChildProcess {
-    stdout: ReadableStream
-    stderr: ReadableStream
-    rpc:    ReturnType<typeof Rpc>
-    rest:   ReturnType<typeof Rest>,
-  }
-
+  /** Bitcoin daemon options. */
+  export type Options = Parameters<typeof spawn>[0];
   /** Launch an Elementsd localnet suitable
     * for testing SimplicityHL programs. */
-  export const Daemon: {
-    /** Launch with default settings and temporary datadir. */
-    <T> (callback: Fn<[Daemon], Async<T>>):
-      Promise<Async<T>>;
-    /** Launch with specified options. */
-    <T> (options: string|DaemonOptions, callback: Fn<[Daemon], Async<T>>):
-      Promise<Async<T>>;
-  } = async function btcDaemon <T> (...args: unknown[]): Promise<Async<T>> {
-    const options: DaemonOptions =
-      (typeof args[0] === 'string') ? { datadir: args.shift() } :
-      (typeof args[0] === 'function') ? {} : args.shift();
-    if (typeof options !== 'object') throw new Error('invalid options');
-    const {
-      daemon                  = 'elementsd',
-      chain                   = 'regtest',
-      datadir                 = await Temp.make(chain),
-      rpcuser                 = `fadroma`,
-      rpcpassword             = `fadroma`,
-      rpcport                 = '8941',
-      rpcallowip              = '127.0.0.1',
-      validatepegin           = null,
-      defaultpeggedassetname  = null,
-      initialfreecoins        = null,
-      initialreissuancetokens = null,
-      persistmempool          = null,
-      dnsseed                 = null,
-      server                  = null,
-      discover                = null,
-      txindex                 = null,
-      rest                    = null,
-      blindedprefix           = null,
-      bech32_hrp              = null,
-      blech32_hrp             = null,
-      pubkeyprefix            = null,
-      scriptprefix            = null,
-    } = options
-    const spawn = Spawn(daemon, ...[
+  export function spawn ({
+    daemon                  = 'elementsd'      as string,
+    chain                   = 'regtest'        as string,
+    datadir                 = Temp.make(chain) as string|Promise<string>,
+    rpcuser                 = `fadroma`        as string,
+    rpcpassword             = `fadroma`        as string,
+    rpcport                 = '8941'           as string|number,
+    rpcallowip              = '127.0.0.1'      as string,
+    validatepegin           = null             as boolean,
+    defaultpeggedassetname  = null             as string,
+    initialfreecoins        = null             as string|number|bigint,
+    initialreissuancetokens = null             as string|number|bigint,
+    persistmempool          = null             as boolean,
+    dnsseed                 = null             as boolean,
+    server                  = null             as boolean,
+    discover                = null             as boolean,
+    txindex                 = null             as boolean,
+    rest                    = null             as boolean,
+    blindedprefix           = null             as number,
+    bech32_hrp              = null             as string,
+    blech32_hrp             = null             as string,
+    pubkeyprefix            = null             as number,
+    scriptprefix            = null             as number,
+  } = {}) {
+    return Spawn(daemon, ...[
       (server                  !== null) && (server ? '-server' : null),
       (chain                   !== null) && `-chain=${chain}`,
       (datadir                 !== null) && `-datadir=${datadir}`,
@@ -192,18 +84,9 @@ export namespace Btc {
       (scriptprefix            !== null) && `-scriptprefix=${scriptprefix}`,
       //'-debug=rpc', //'-debug=zmq',
     ].filter(Boolean));
-    const process = await spawn();
-    try {
-      const url = `http://${rpcuser}:${rpcpassword}@${rpcallowip}:${rpcport}`;
-      Object.assign(process, { rest: Rest(url), rpc: Rpc(url) });
-      return await Pipe(...args as Fn[])(process) as T;
-    } finally {
-      process.kill();
-    }
   }
-
-  /** Daemon's primary JSON-RPC API. */
-  export const Rpc = function btcRpc (url: string): {
+  /** Bitcoin node's JSON-RPC API. */
+  export const rpc = function btcRpc (url: string): {
     generatetoaddress: Fn,
     createwallet:      Fn,
     rescanblockchain:  Fn,
@@ -227,9 +110,8 @@ export namespace Btc {
       sendtoaddress:     callRpc('sendtoaddress'),
     }
   }
-
-  /** Daemon's optional REST API. */
-  export const Rest = function btcRest (url: string): {
+  /** Bitcoin node's optional REST API. */
+  export const rest = function btcRest (url: string): {
     chaininfo: Fn,
     getutxos:  Fn,
   } {
@@ -242,10 +124,7 @@ export namespace Btc {
       },
     }
   }
-
-  /** Daemon's ZeroMQ publishers. */
-  export const Zmq = () => { throw new Error('TODO') };
-
+  /** Fetch helper. */
   async function callUrl (url: string|URL, method = 'GET', body?: BodyInit) {
     const result = await fetch(url, { method, body: JSON.stringify(body) });
     const text = await result.text();

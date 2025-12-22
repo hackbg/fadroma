@@ -1,11 +1,7 @@
 extern crate wasm_bindgen;
-
 use wasm_bindgen::prelude::*;
-
 use js_sys::{Uint8Array, JsString, Error, Object, Array, Reflect, BigInt, Set};
-
 use std::collections::{HashMap, BTreeMap, BTreeSet};
-
 pub(crate) use tendermint_rpc::{
     Response,
     endpoint::{
@@ -13,7 +9,6 @@ pub(crate) use tendermint_rpc::{
         //block_results::Response as BlockResultsResponse,
     }
 };
-
 pub(crate) use namada_sdk::{
     account::{
         InitAccount,
@@ -125,7 +120,6 @@ pub(crate) use namada_sdk::{
     },
     state::Epoch
 };
-
 mod namada_decode;
 mod namada_to_js;
 mod namada_tx;
@@ -136,7 +130,6 @@ pub use namada_decode::*;
 pub use namada_tx::*;
 pub use namada_tx_content::*;
 pub use namada_tx_section::*;
-
 #[macro_export] macro_rules! to_object {
     ($($id:literal = $val:expr, )+) => {
         {
