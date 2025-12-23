@@ -1,6 +1,6 @@
-import type { Fn } from '../../index.ts';
-import { env, stdout, stderr, process, getCreateLogUpdate, inspect } from '../../deps.ts';
-import { joined, Ansi, stackTrace } from '../../format.ts';
+import type { Fn } from '../index.ts';
+import { env, stdout, stderr, process, getCreateLogUpdate, inspect } from '../deps.ts';
+import { joined, Ansi, stackTrace } from '../format.ts';
 
 const { red, yellow, dim, gray, blue } = Ansi;
 

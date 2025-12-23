@@ -1,14 +1,12 @@
 import { Fn, Meta, wasmLoader } from '../index.ts';
-import { exit, env, argv, stdout, stderr, fileURLToPath, resolvePath, fetchText,
-  } from '../deps.ts';
+import { exit, env, argv, stdout, stderr, fileURLToPath, resolvePath, fetchText, } from '../deps.ts';
+
 /** A SimplicityHL program. */
 export interface Simf {
-  /** Path to program. */
-  path: string
   /** Code of program. */
-  source (): Promise<string>,
+  source: string
   /** Compile program. */
-  compile: Fn<[object?], Promise<Simf>>,
+  compile: Fn<[object?], Promise<Omit<Simf, 'compile'> & Simf.Program>>,
 }
 /** Define a SimplicityHL program.
   *
@@ -20,46 +18,25 @@ export interface Simf {
   *   console.log(await program.spend());
   *
   * */
-export function Simf (path: string): Simf;
-
-/** Define a SimplicityHL program as module entrypoint.
-  * 
-  * When scripts of this form are executed, they provide a CLI. 
-  *
-  * Example:
-  *
-  *  #!/usr/bin/env -S deno --allow-read=.
-  *  import { Simf } from '@hackbg/fadroma';
-  *  export default Simf(import.meta, './main.simf');
-  *
-  **/
-export function Simf (meta: Meta, path: string): Simf;
-/** SimplicityHL program constructor. */
-export function Simf (...args: unknown[]): Simf {
-  if (typeof args[0] === 'string') args.unshift(null);
-  let [meta, path] = args as [Meta, ...string[]];
-  path = resolvePath(meta?.url ? fileURLToPath(meta?.url) : '', '..', path);
-  const source = () => fetchText(path);
-  const program: Simf = {
-    path,
+export function Simf (source: string): Simf {
+  const program = {
     source,
     async compile (options?: object) {
-      const [wasm, src] = await Promise.all([Simf.Wasm(), source()]);
-      const compiled = wasm.compile(src, options);
-      return Object.assign(compiled, compiled.toJSON(), program);
+      const wasm = await Simf.Wasm();
+      const compiled = wasm.compile(program.source, options);
+      return Object.assign(compiled, compiled.toJSON());
     }
   };
-  if ((meta as { main: unknown })?.main) Simf.Cli(program);
-  return program as Simf;
+  return program;
 }
 /** SimplicityHL utilities. */
 export namespace Simf {
   /** Simplicity WASM loader. */
   export const Wasm = wasmLoader<Wasm>(
-    env['FADROMA_SIMF_WASM']
-      || fileURLToPath(import.meta.resolve('./simf/pkg/fadroma_simf_bg.wasm')),
-    env['FADROMA_SIMF_WRAP']
-      || fileURLToPath(import.meta.resolve('./simf/pkg/fadroma_simf.js')),
+    env['FADROMA_SIMF_WASM'] || fileURLToPath(
+      import.meta.resolve('./simf/pkg/fadroma_simf_bg.wasm')),
+    env['FADROMA_SIMF_WRAP'] || fileURLToPath(
+      import.meta.resolve('./simf/pkg/fadroma_simf.js')),
   );
   /** Simplicity WASM module. */
   export type Wasm = {

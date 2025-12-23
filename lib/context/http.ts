@@ -6,19 +6,11 @@ import { Ports } from './port.ts';
 
 /** HTTP context. */
 export interface Http extends Ports {
-  serve (at: number, handler: Fn<[Request]>): Http.Server,
-  fetch (url: string|URL): Promise<ReturnType<typeof fetch>>,
+  serve (at: number, handler: Fn<[Request]>):
+    Http.Server,
+  fetch (url: string|URL):
+    Promise<ReturnType<typeof fetch>>,
 };
-
-export namespace Http {
-  export type Server = { url?: URL } & Router;
-  /** URL router. */
-  export type Router = { url?: string, method?: string, body?: string };
-  /** URL route. */
-  export type Route = <T extends Request>(_: unknown, ...handlers: Fn<[T]>[]) => Fn<[T]>;
-  /** URL route handler. */
-  export type Handler = Step<Router>;
-}
 
 /** Define HTTP server. */
 export function Http (at: number|string|URL, ...routes: Http.Handler[]) {
@@ -36,37 +28,58 @@ export function Http (at: number|string|URL, ...routes: Http.Handler[]) {
     }, { at, routes });
 }
 
-/** Define URL route. */
-Http.Route = function httpRoute (path: string, ...routes) {
-  return Name(path, async function routeRequest (context: Request) {
-    if (matchRoute(path)(context.url)) return Pipe(...routes)(context)
-  }, { routes });
+export namespace Http {
+  export type Server = { url?: URL } & Router;
+  /** URL router. */
+  export type Router = { url?: string, method?: string, body?: string };
+  /** URL route. */
+  export type Route = <T extends Request>(_: unknown, ...handlers: Fn<[T]>[]) => Fn<[T]>;
+  /** URL route handler. */
+  export type Handler = Step<Router>;
+  /** Define URL route. */
+  export const Route = function httpRoute (path: string, ...routes) {
+    return Name(path, async function routeRequest (context: Request) {
+      if (matchRoute(path)(context.url)) return Pipe(...routes)(context)
+    }, { routes });
+  };
+
+  /** Match URL from request against route patterns. */
+  export const matchRoute = (expected) => (actual) => false; // TODO
+
+  /** Only handle if HTTP method matches. */
+  export const method = (method, ...routes: Http.Route[]) => Name(method,
+    async function onMethod (context: Http.Router) {
+      if (context.method === method) return Pipe(...routes)(context);
+    }, { method, routes });
+
+  /** Only handle if HTTP method is GET. */
+  export const get = (path, ...routes) => Http.Route(path, method('get', ...routes));
+
+  /** Only handle if HTTP method is POST. */
+  export const post = (path, ...routes) => Http.Route(path, method('post', ...routes));
+
+  /** Set request parameter. */
+  export const param = (name: string, fn) =>
+    async (req: Request & { params: Record<string, unknown> }) =>
+      req.params[name] = await fn(req);
+
+  /** If condition doesn't match, return with specified code. */
+  export const guard = (code: number, ...handlers: Http.Handler[]) =>
+    async (req: Request & { params: Record<string, unknown> }) => {
+      if (!await (Pipe(...handlers)(req))) return code };
 }
 
-/** Match URL from request against route patterns. */
-export const matchRoute = (expected) => (actual) => false; // TODO
-
-/** Only handle if HTTP method matches. */
-export const method = (method, ...routes: Http.Route[]) => Name(method,
-  async function onMethod (context: Http.Router) {
-    if (context.method === method) return Pipe(...routes)(context);
-  }, { method, routes });
-
-/** Only handle if HTTP method is GET. */
-export const get = (path, ...routes) => Http.Route(path, method('get', ...routes));
-
-/** Only handle if HTTP method is POST. */
-export const post = (path, ...routes) => Http.Route(path, method('post', ...routes));
-
-/** Set request parameter. */
-export const param = (name: string, fn) =>
-  async (req: Request & { params: Record<string, unknown> }) =>
-    req.params[name] = await fn(req);
-
-/** If condition doesn't match, return with specified code. */
-export const guard = (code: number, ...handlers: Http.Handler[]) =>
-  async (req: Request & { params: Record<string, unknown> }) => {
-    if (!await (Pipe(...handlers)(req))) return code };
+/** Fetch helper. */
+export async function callUrl (url: string|URL, method = 'GET', body?: BodyInit) {
+  const result = await fetch(url, { method, body: JSON.stringify(body) });
+  const text = await result.text();
+  const code = result.status;
+  if (code !== 200) {
+    throw Object.assign(new Error(`${url}: ${code} (${text})`), { code, text })
+  } else {
+    return text;
+  }
+}
 
 // TODO: construct API client from method set
 // like `Endpoint` in old `@hackbg/port`

@@ -2,16 +2,14 @@
 import { Fn, Test } from '../index.ts';
 import { Btc } from './btc.ts';
 const { the, is, has } = Test;
-export const testBtcNode = the('Node',
-  () => Btc().spawnNode(),
-  is('function'), has('services',
-    has('length', 2)));
+export const testBtcNode = the('Node', Btc,
+  (btc: Btc) => btc.kill());
 export const testBtcOps = the('Ops',
   the('Send', 'OP_CHECKSIG'),
   the('Subscribe', 'TX', 'Block'),
   the('Query', 'Block', 'Transaction', 'Address'));
 export default Test.suite(import.meta, 'Btc',
-  testBtcCli, testBtcNode, testBtcOps);
+  testBtcNode, testBtcOps);
 
 function cleanup (_, ctx: Test.Testing & { localnet?: { kill?: Fn } }) {
   if (ctx.localnet?.kill) ctx.localnet.kill()

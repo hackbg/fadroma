@@ -36,6 +36,17 @@ export namespace Fn {
   export type Returns<T> = (...args: unknown[]) => T;
   /** Annotations added by [Name]. */
   export type Reflects<F extends Fn[] = Fn[]> = { stack?: string[], steps?: F };
+  /** Run functions sequentially in the same context,
+    * ignoring return values. */
+  export function Do <T> (...steps: Async<Takes<[T]>>[]) {
+    return Name(null, async function doSequentially (context: T): Promise<T> {
+      for (let i = 0; i < steps.length; i++) {
+        const step = await steps[i];
+        if (typeof step === 'function') await step(context);
+      }
+      return context;
+    }, { steps });
+  }
 }
 
 /** The identity function. */

@@ -1,5 +1,5 @@
-import type { Timed } from '../../index.ts';
-import { stdin, stdout } from '../../deps.ts';
+import type { Timed } from '../index.ts';
+import { stdin, stdout } from '../deps.ts';
 /** Launch a terminal user interface. */
 export function Tui <T extends Tui> (state: T = {} as T): T {
   state.exited ??= false;

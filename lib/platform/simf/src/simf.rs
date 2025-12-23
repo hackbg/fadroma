@@ -72,7 +72,7 @@ fn script_to_taproot (script: Script) -> Maybe<TaprootSpendInfo> {
 impl Program {
     /// Internal constructor.
     fn new (source: &str, args: Arguments, debug: bool, prune: bool) -> Maybe<Self> {
-        let compiled = CompiledProgram::new(source.clone(), args.clone(), debug);
+        let compiled = CompiledProgram::new(source, args.clone(), debug);
         let compiled = expected!("compile failed": compiled)?;
         let commit = compiled.commit();
         let script = Script::from(commit.cmr().to_byte_array().to_vec());
@@ -199,8 +199,8 @@ fn parse_bool (x: JsValue) -> bool {
 }
 
 fn parse_addr (x: JsValue) -> Maybe<Address> {
-    let address = required!("not string": x.as_string())?;
-    let address = expected!("parse address": Address::from_str(&address))?;
+    let address = required!("addr: not string": x.as_string())?;
+    let address = expected!("addr: not parsed": Address::from_str(&address))?;
     Ok(address)
 }
 
@@ -209,9 +209,9 @@ fn parse_tx_id (bytes: JsValue) -> Maybe<Txid> {
 }
 
 fn parse_tx_bytes (bytes: JsValue) -> Maybe<Transaction> {
-    let bytes = required!("not string": bytes.as_string())?;
-    let bytes = expected!("decode hex": hex::decode(bytes.trim()))?;
-    let tx    = expected!("deserialize tx": deserialize_tx(&bytes))?;
+    let bytes = required!("tx bytes: not string": bytes.as_string())?;
+    let bytes = expected!("tx bytes: not base16": hex::decode(bytes.trim()))?;
+    let tx    = expected!("tx bytes: not parsed": deserialize_tx(&bytes))?;
     Ok(tx)
 }
 

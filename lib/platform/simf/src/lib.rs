@@ -69,7 +69,7 @@ pub(crate) type Maybe<T> = Result<T, JsError>;
 macro_rules! get(
     ($obj:expr, $key:expr) => {
         Reflect::get(&$obj, &JsString::from($key).into())
-            .map_err(|e|JsError::new(&format!("failed to get property {}", $key)))? };
+            .map_err(|_e|JsError::new(&format!("failed to get property {}", $key)))? };
     ($obj:expr, $key:expr, $fn:expr) => {
         ($fn)(Reflect::get(&$obj, &JsString::from($key).into())
             .map_err(|_e|JsError::new(&format!("failed to get property {}", $key)))?) };);
@@ -77,7 +77,7 @@ macro_rules! get(
 macro_rules! set(($obj:expr, $key:expr, $value:expr) => {{
     let value = $value;
     Reflect::set(&$obj, &JsString::from($key).into(), &value.clone().into())
-        .map_err(|e|JsError::new(&format!("failed to set property: {}", $key)))?;
+        .map_err(|_e|JsError::new(&format!("failed to set property: {}", $key)))?;
     value
 }});
 /// Construct an object
