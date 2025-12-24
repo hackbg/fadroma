@@ -111,6 +111,7 @@ impl Program {
     }
 
     #[wasm_bindgen] pub fn spend (&self, options: Object) -> Maybe<Object> {
+        console_error_panic_hook::set_once();
         if !options.is_object() {
             return Err(JsError::new("missing options object"))
         }        
@@ -204,8 +205,10 @@ fn parse_addr (x: JsValue) -> Maybe<Address> {
     Ok(address)
 }
 
-fn parse_tx_id (bytes: JsValue) -> Maybe<Txid> {
-    unimplemented!()
+fn parse_tx_id (x: JsValue) -> Maybe<Txid> {
+    let txid = required!("txid: not string": x.as_string())?;
+    let txid = expected!("txid: not parsed": Txid::from_str(&txid))?;
+    Ok(txid)
 }
 
 fn parse_tx_bytes (bytes: JsValue) -> Maybe<Transaction> {

@@ -101,6 +101,7 @@ export namespace Btc {
   }
 
   export interface Rest {
+    tx:        Fn,
     chaininfo: Fn,
     getutxos:  Fn,
   }
@@ -108,11 +109,20 @@ export namespace Btc {
   /** Bitcoin node's optional REST API. */
   export const Rest = function btcRest (url: string): Rest {
     return {
-      async chaininfo () {
-        return JSON.parse(await callUrl(`${url}/rest/chaininfo.json`))
+      async chaininfo (format = "json") {
+        let data = await callUrl(`${url}/rest/chaininfo.${format}`);
+        if (format === 'json') data = JSON.parse(data);
+        return data;
       },
-      async getutxos (...args: string[]) {
-        return JSON.parse(await callUrl(`${url}/rest/getutxos/${args.join('/')}.json`))
+      async tx (hash, format = "json") {
+        let data = await callUrl(`${url}/rest/tx/${hash}.${format}`);
+        if (format === 'json') data = JSON.parse(data);
+        return data;
+      },
+      async getutxos (format = 'json', ...args: string[]) {
+        let data = await callUrl(`${url}/rest/getutxos/${args.join('/')}.${format}`);
+        if (format === 'json') data = JSON.parse(data);
+        return data;
       },
     }
   }

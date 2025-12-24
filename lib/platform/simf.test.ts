@@ -88,28 +88,31 @@ export default Test.suite(import.meta, 'Simf',
   ));
 
 function Withdraw (source, cb?) {
-  return Name('Withdraw', async ({ rpc, rest }, { log }) => {
+  return Name('Withdraw', async ({ rpc, rest, txId }, { log }) => {
+    const destination = await rpc.getnewaddress();
+    const tx = await rest.tx(txId);
     const program = await Simf(source).compile();
     log(program);
     const spend = program.spend({
-      witness:     '',
-      destination: '',
-      txId:        '',
-      txBytes:     '',
+      witness: '',
+      destination,
+      txId,
+      txBytes: tx.hex,
     });
     log(spend);
   })
 }
 
 function Deploy (p2tr, cb) {
-  return Name(`Deploy ${p2tr}`, async (ctx: { rpc, rest }) => {
+  return Name(`Deploy ${p2tr}`, async (ctx: { rpc, rest }, { log }) => {
     const address = await ctx.rpc.getnewaddress();
     equal((await ctx.rpc.validateaddress(address)).isvalid, true);
-    const txid = await ctx.rpc.sendtoaddress(p2tr, 1000);
+    const txId = await ctx.rpc.sendtoaddress(p2tr, 1000);
+    log({ address, txId });
     await ctx.rpc.generatetoaddress(1, address);
-    const { chainHeight, utxos } = await ctx.rest.getutxos(`${txid}-0/${txid}-1`);
+    const { chainHeight, utxos } = await ctx.rest.getutxos('json', `${txId}-0/${txId}-1`);
     await cb({ chainHeight, utxos });
-    return ctx;
+    return Object.assign(ctx, { address, txId, chainHeight, utxos });
   })
 }
 
