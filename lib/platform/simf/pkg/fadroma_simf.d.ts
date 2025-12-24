@@ -13,7 +13,13 @@ export class Program {
   toString(): string;
   free(): void;
   [Symbol.dispose](): void;
+  /**
+   * Generate a spend transaction.
+   */
   spend(options: object): object;
+  /**
+   * Use this in JS to get the properties of the compiled program.
+   */
   toJSON(): object;
   /**
    * Programs have many properties, so we default to

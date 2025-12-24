@@ -10,8 +10,14 @@ wasm-sh:
 # Compile dev builds of all WASM modules.
 wasm:
   time just wasm-img
+  time just wasm-simf
+  time just wasm-namada
+# Compile dev builds of SimplicityHL module.
+wasm-simf:
   time docker run -v .:/app:rw --workdir=/app -it hackbg/fadroma:dev sh -c \
     "cd lib/platform/simf && just wasm"
+# Compile dev builds of Namada module.
+wasm-namada:
   time docker run -v .:/app:rw --workdir=/app -it hackbg/fadroma:dev sh -c \
     "cd lib/platform/namada && just wasm"
 # Report line counts.

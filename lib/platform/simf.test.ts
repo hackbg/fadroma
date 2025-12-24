@@ -5,7 +5,7 @@ import { Simf } from './simf.ts';
 import { Btc } from './btc.ts';
 const { the, is, has } = Test;
 
-export const testSimfFixtures = {
+export const fixtures = {
 
   wasmPath: resolvePath(import.meta.dirname, "simf/pkg/fadroma_simf_bg.wasm"),
 
@@ -49,7 +49,9 @@ export const testSimfFixtures = {
     pubkeyprefix:            36,
     scriptprefix:            13,
     blindedprefix:           23,
-  } as Btc.Options
+  } as Btc.Options,
+
+  reissuance: 'a6be6b365498cd451be75ba0f68c258ee01e08f3cb30d5f8469f6628db58dc61',
 
 };
 
@@ -58,25 +60,18 @@ export default Test.suite(import.meta, 'Simf',
   the('WASM', Simf.Wasm,
     has('default', is('function')),
     has('compile', is('function'),
-      testSimfWasmCompile(testSimfFixtures.example0.src, testSimfFixtures.example0.cmr),
-      testSimfWasmCompile(testSimfFixtures.example1.src, testSimfFixtures.example1.cmr)),
+      testSimfWasmCompile(fixtures.example0.src, fixtures.example0.cmr),
+      testSimfWasmCompile(fixtures.example1.src, fixtures.example1.cmr)),
     has('cmr_to_p2tr', is('function'),
-      testSimfWasmCmrToP2TR(testSimfFixtures.example0.cmr, testSimfFixtures.example0.p2tr),
-      testSimfWasmCmrToP2TR(testSimfFixtures.example1.cmr, testSimfFixtures.example1.p2tr))),
+      testSimfWasmCmrToP2TR(fixtures.example0.cmr, fixtures.example0.p2tr),
+      testSimfWasmCmrToP2TR(fixtures.example1.cmr, fixtures.example1.p2tr))),
 
-  the('Deploy', () => Btc(testSimfFixtures.daemonOptions),
+  the('Deploy', () => Btc(fixtures.daemonOptions),
     Log(false),
     Wait(1000),
-    Create('test-simf', info => {
-      equal(info.balance, { bitcoin: 0 })
-    }),
-    Rescan(info => {
-      equal(info.balance, {
-        bitcoin: 1000000,
-        ['a6be6b365498cd451be75ba0f68c258ee01e08f3cb30d5f8469f6628db58dc61']: 1
-      })
-    }),
-    Deploy(testSimfFixtures.example0.p2tr, ({ chainHeight, utxos })=>{
+    Create('test-simf', hasBalance({ bitcoin: 0 })),
+    Rescan(hasBalance({ bitcoin: 1000000, [fixtures.reissuance]: 1 })),
+    Deploy(fixtures.example1.p2tr, ({ chainHeight, utxos })=>{
       equal(utxos.length, 2);
       equal(utxos[0].height, chainHeight);
       equal(utxos[1].height, chainHeight);
@@ -84,33 +79,50 @@ export default Test.suite(import.meta, 'Simf',
       equal(utxos.filter(x=>x.value===1000).length, 1);
       equal(utxos.filter(x=>x.value===998999.99999976).length, 1);
     }),
-    Withdraw(testSimfFixtures.example0.src)
+    Withdraw(fixtures.example1.src)
   ));
 
+function Deploy (p2tr, cb) {
+  return Name(`Deploy ${p2tr}`, async (ctx: { rpc, rest }, { log }) => {
+    const address = await ctx.rpc.getnewaddress();
+    //equal((await ctx.rpc.validateaddress(address)).isvalid, true);
+    const txId = await ctx.rpc.sendtoaddress(p2tr, 1000);
+    await ctx.rpc.generatetoaddress(1, address);
+    const tx = await ctx.rest.tx(txId);
+    const block = await ctx.rest.block(tx.blockhash);
+    return Object.assign(ctx, { address, block, tx });
+  })
+}
+
 function Withdraw (source, cb?) {
-  return Name('Withdraw', async ({ rpc, rest }, { log }) => {
+  return Name('Withdraw', async ({ rpc, rest, address, tx, block }, { log }) => {
+    const destination = address;//await rpc.getnewaddress();
+    console.log({destination});
     const program = await Simf(source).compile();
-    log(program);
-    const spend = program.spend({
-      witness:     '',
-      destination: '',
-      txId:        '',
-      txBytes:     '',
-    });
+    const { txid: txId, hex: txBytes } = tx;
+    const spend = program.spend({ witness: '', destination, txId, txBytes, });
     log(spend);
   })
 }
 
-function Deploy (p2tr, cb) {
-  return Name(`Deploy ${p2tr}`, async (ctx: { rpc, rest }) => {
-    const address = await ctx.rpc.getnewaddress();
-    equal((await ctx.rpc.validateaddress(address)).isvalid, true);
-    const txid = await ctx.rpc.sendtoaddress(p2tr, 1000);
-    await ctx.rpc.generatetoaddress(1, address);
-    const { chainHeight, utxos } = await ctx.rest.getutxos(`${txid}-0/${txid}-1`);
-    await cb({ chainHeight, utxos });
-    return ctx;
+function Create (name, cb) {
+  return Name(`Create ${name}`, async (ctx: { rpc, rest }) => {
+    await ctx.rpc.createwallet(name);
+    await cb(await ctx.rpc.getwalletinfo());
+    return ctx
   })
+};
+
+function Rescan (cb) {
+  return Name(`Rescan`, async (ctx: { rpc, rest }) => {
+    await ctx.rpc.rescanblockchain();
+    await cb(await ctx.rpc.getwalletinfo());
+    return ctx
+  })
+};
+
+function hasBalance (balance) {
+  return info => equal(info.balance, balance)
 }
 
 function Log (on) {
@@ -126,22 +138,6 @@ function Log (on) {
 function Wait (time: number) {
   return Name(`Wait ${time}ms`, async (ctx: unknown) => {
     await new Promise(resolve=>setTimeout(resolve, time));
-    return ctx
-  })
-};
-
-function Create (name, cb) {
-  return Name(`Create ${name}`, async (ctx: { rpc, rest }) => {
-    await ctx.rpc.createwallet(name);
-    await cb(await ctx.rpc.getwalletinfo());
-    return ctx
-  })
-};
-
-function Rescan (cb) {
-  return Name(`Rescan`, async (ctx: { rpc, rest }) => {
-    await ctx.rpc.rescanblockchain();
-    await cb(await ctx.rpc.getwalletinfo());
     return ctx
   })
 };

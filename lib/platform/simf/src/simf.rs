@@ -83,20 +83,17 @@ impl Program {
 }
 
 #[wasm_bindgen] impl Program {
-
     /// Programs have many properties, so we default to
     /// just stringifying them to the original source.
     #[wasm_bindgen(js_name = toString)]
     pub fn to_string (&self) -> String {
         self.source.to_string()
     }
-
-
+    /// Use this in JS to get the properties of the compiled program.
     #[wasm_bindgen(js_name = toJSON)]
     pub fn to_json (&self) -> Object {
         self.try_to_json().unwrap_or_else(|e|JsValue::from(e).into())
     }
-
     fn try_to_json (&self) -> Maybe<Object> {
         Ok(obj! {
             "source" = self.source.to_string(),
@@ -109,27 +106,16 @@ impl Program {
             "p2tr"   = self.p2tr.to_string(),
         })
     }
-
+    /// Generate a spend transaction.
     #[wasm_bindgen] pub fn spend (&self, options: Object) -> Maybe<Object> {
-        if !options.is_object() {
-            return Err(JsError::new("missing options object"))
-        }        
-        let witness: WitnessValues = get!(options, "witness", parse_wits)?;
-        let destination: Address = get!(options, "destination", parse_addr)?;
-        let tx_id: Txid = get!(options, "txId", parse_tx_id)?;
-        let tx_bytes: Transaction = get!(options, "txBytes", parse_tx_bytes)?;
-        let mut previous: Option<OutPoint> = Default::default();
-        let mut utxo:     Option<TxOut>    = Default::default();
-        for (vout, output) in tx_bytes.output.iter().enumerate() {
-            if output.script_pubkey == destination.script_pubkey() {
-                previous = Some(OutPoint::new(tx_id, vout as u32));
-                utxo     = Some(output.clone());
-                break;
-            }
-        }
-        let previous = required!(previous)?;
-        let utxo     = required!(utxo)?;
-        let value    = required!("value not explicit": utxo.value.explicit())?;
+        console_error_panic_hook::set_once();
+        if !options.is_object() { return Err(JsError::new("options: not object")) }
+        let tx_id:       Txid          = get!(options, "txId",        parse_tx_id)?;
+        let tx_bytes:    Transaction   = get!(options, "txBytes",     parse_tx_bytes)?;
+        let witness:     WitnessValues = get!(options, "witness",     parse_wits)?;
+        let destination: Address       = get!(options, "destination", parse_addr)?;
+        let (previous, utxo) = Self::find_utxo(tx_id, &tx_bytes, &destination)?;
+        let value = required!("value not explicit": utxo.value.explicit())?;
         let Transaction { version, lock_time, input, output } =
             self.spend_impl(destination, previous, witness, value, 2000)?;
         Ok(obj! {
@@ -142,7 +128,19 @@ impl Program {
             },
         })
     }
-
+    fn find_utxo (tx_id: Txid, tx_bytes: &Transaction, destination: &Address) -> Maybe<(OutPoint, TxOut)> {
+        let mut previous: Option<OutPoint> = Default::default();
+        let mut utxo:     Option<TxOut>    = Default::default();
+        for (vout, output) in tx_bytes.output.iter().enumerate() {
+            web_sys::console::log_1(&format!("{vout:?} {output:?} {destination:?} {:?}", &destination.script_pubkey()).into());
+            if output.script_pubkey == destination.script_pubkey() {
+                previous = Some(OutPoint::new(tx_id, vout as u32));
+                utxo     = Some(output.clone());
+                break;
+            }
+        }
+        Ok((required!(previous)?, required!(utxo)?))
+    }
     fn spend_impl (
         &self,
         dest: Address,
@@ -151,15 +149,31 @@ impl Program {
         val: u64,
         fee: u64,
     ) -> Maybe<Transaction> {
-        let control_bytes = self.control_bytes()?;
-        let script_bytes  = self.script.clone().into_bytes();
-        let satisfied     = self.compiled.satisfy_with_env(wits, Some(&dummy_env::dummy()))
-            .map_err(|e|JsError::new(&format!("does not satisfy: {e}")))?;
-        let redeem        = satisfied.redeem();
-        let (bounds, (program_bytes, witness_bytes)) = (redeem.bounds(), redeem.encode_to_vec());
+        let mut partial_tx = Self::script_to_transaction(prev, dest, val, fee)?;
+        partial_tx.inputs_mut()[0].final_script_witness = Some(
+            Self::final_script_witness(
+                self.control_bytes()?,
+                self.script.clone().into_bytes(),
+                self.compiled.satisfy_with_env(
+                    wits,
+                    Some(&dummy_env::dummy())).map_err(
+                        |e|JsError::new(&format!("does not satisfy: {e}"))
+                    )?,
+                )?);
+        partial_tx.extract_tx()
+            .map_err(|e|JsError::new(&format!("could not extract final tx: {e}")))
+    }
+    fn final_script_witness (
+        control_bytes: Vec<u8>,
+        script_bytes:  Vec<u8>,
+        satisfied:     SatisfiedProgram,
+    ) -> Maybe<Vec<Vec<u8>>> {
+        let redeem = satisfied.redeem();
+        let bounds = redeem.bounds();
         if !bounds.cost.is_consensus_valid() {
             return Err(JsError::new(&format!("bounds exceeded: {}", bounds.cost)));
         }
+        let (program_bytes, witness_bytes) = redeem.encode_to_vec();
         let mut final_script_witness = vec![
            witness_bytes, program_bytes, script_bytes, control_bytes
         ];
@@ -174,12 +188,41 @@ impl Program {
         if !bounds.cost.is_budget_valid(&final_script_witness) {
             return Err(JsError::new(&format!("budget exceeded: {}", bounds.cost)));
         }
-        let mut partial_tx = script_to_transaction(prev, dest, val, fee)?;
-        partial_tx.inputs_mut()[0].final_script_witness = Some(final_script_witness);
-        partial_tx.extract_tx()
-            .map_err(|e|JsError::new(&format!("could not extract final tx: {e}")))
+        Ok(final_script_witness)
     }
-
+    fn script_to_transaction (
+        previous_output: OutPoint,
+        destination:     Address,
+        value:           u64,
+        fee:             u64,
+    ) -> Maybe<PartiallySignedTransaction> {
+        let asset = hex::decode(ASSET)
+            .map_err(|e|JsError::new(&format!("failed to decode asset: {e}")))?;
+        let asset = AssetId::from_slice(&asset)
+            .map_err(|e|JsError::new(&format!("failed to decode asset: {e}")))?;
+        let in_0 = TxIn {
+            previous_output,
+            is_pegin:       false,
+            script_sig:     Script::new(),
+            sequence:       Sequence::MAX,
+            asset_issuance: AssetIssuance::null(),
+            witness:        TxInWitness::empty(),
+        };
+        let out_0 = TxOut {
+            value:         TxValue::Explicit(value - fee),
+            script_pubkey: destination.script_pubkey(),
+            asset:         Asset::Explicit(asset.clone()),
+            nonce:         Nonce::Null,
+            witness:       TxOutWitness::default(),
+        };
+        let out_1 = TxOut::new_fee(fee, asset);
+        Ok(PartiallySignedTransaction::from_tx(Transaction {
+            version:   2,
+            lock_time: LockTime::ZERO.into(),
+            input:     vec![in_0],
+            output:    vec![out_0, out_1], 
+        }))
+    }
     fn control_bytes (&self) -> Maybe<Vec<u8>> {
         let tap = script_to_taproot(self.script.clone())?;
         let ver = LeafVersion::from_u8(0xbe)
@@ -191,7 +234,6 @@ impl Program {
         assert_eq!(bytes[0] & 0xfe, 0xbe);
         Ok(bytes)
     }
-
 }
 
 fn parse_bool (x: JsValue) -> bool {
@@ -204,8 +246,10 @@ fn parse_addr (x: JsValue) -> Maybe<Address> {
     Ok(address)
 }
 
-fn parse_tx_id (bytes: JsValue) -> Maybe<Txid> {
-    unimplemented!()
+fn parse_tx_id (x: JsValue) -> Maybe<Txid> {
+    let txid = required!("txid: not string": x.as_string())?;
+    let txid = expected!("txid: not parsed": Txid::from_str(&txid))?;
+    Ok(txid)
 }
 
 fn parse_tx_bytes (bytes: JsValue) -> Maybe<Transaction> {
@@ -243,40 +287,6 @@ fn parse_wits (wits: JsValue) -> Maybe<WitnessValues> {
         }
     }
     Ok(WitnessValues::default())
-}
-
-fn script_to_transaction (
-    previous_output: OutPoint,
-    destination:     Address,
-    value:           u64,
-    fee:             u64,
-) -> Maybe<PartiallySignedTransaction> {
-    let asset = hex::decode(ASSET)
-        .map_err(|e|JsError::new(&format!("failed to decode asset: {e}")))?;
-    let asset = AssetId::from_slice(&asset)
-        .map_err(|e|JsError::new(&format!("failed to decode asset: {e}")))?;
-    let in_0 = TxIn {
-        previous_output,
-        is_pegin:       false,
-        script_sig:     Script::new(),
-        sequence:       Sequence::MAX,
-        asset_issuance: AssetIssuance::null(),
-        witness:        TxInWitness::empty(),
-    };
-    let out_0 = TxOut {
-        value:         TxValue::Explicit(value - fee),
-        script_pubkey: destination.script_pubkey(),
-        asset:         Asset::Explicit(asset.clone()),
-        nonce:         Nonce::Null,
-        witness:       TxOutWitness::default(),
-    };
-    let out_1 = TxOut::new_fee(fee, asset);
-    Ok(PartiallySignedTransaction::from_tx(Transaction {
-        version:   2,
-        lock_time: LockTime::ZERO.into(),
-        input:     vec![in_0],
-        output:    vec![out_0, out_1], 
-    }))
 }
 
 fn tx_ins_to_js_value (x: &[TxIn]) -> Maybe<JsValue> {
