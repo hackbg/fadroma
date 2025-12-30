@@ -14,6 +14,7 @@ pub(crate) use wasm_bindgen::prelude::*;
     Reflect,
     Uint8Array,
 };
+#[allow(unused)] pub(crate) use bitcoin_hashes::Hash;
 #[allow(unused)] pub(crate) use simplicityhl::{
     dummy_env,
     Arguments,
@@ -30,8 +31,10 @@ pub(crate) use wasm_bindgen::prelude::*;
         Ihr,
         human_encoding::Forest,
         jet::Elements,
+        jet::elements::{ElementsEnv, ElementsUtxo},
     },
     elements::{
+        self,
         Address,
         AddressParams,
         AssetId,
@@ -52,9 +55,11 @@ pub(crate) use wasm_bindgen::prelude::*;
             Value as TxValue
         },
         encode::deserialize as deserialize_tx,
+        hash_types::BlockHash,
         pset::PartiallySignedTransaction,
         secp256k1_zkp as secp256k1,
         taproot::{
+            ControlBlock,
             LeafVersion,
             TaprootBuilder,
             TaprootSpendInfo
@@ -107,8 +112,24 @@ macro_rules! required (
 /// Map failures  to friendly [JsError]s.
 macro_rules! expected {
     ($msg:literal: $expr:expr) => {
-        $expr.map_err(|e|JsError::new(&format!("failed to {}: {e}", $msg)))
+        $expr.map_err(|_e|JsError::new(&format!("failed: {}", $msg)))
     };
 }
-// Above macros are available in subsequent modules
+/// Because duh
+macro_rules! log {
+    ($msg:literal $(, $expr:expr)*) => {
+        ::web_sys::console::log_1(&format!($msg $(, $expr)*).into());
+    }
+}
+/// Construct throwable error
+macro_rules! err {
+    ($msg:literal $(, $expr:expr)*) => {
+        Err(JsError::new(&format!($msg $(, $expr)*)))
+    }
+}
+
+// Above macros are available in subsequent modules:
+
 mod simf; pub use self::simf::*;
+mod simf_impl; pub use self::simf_impl::*;
+mod simf_parse; pub use self::simf_parse::*;

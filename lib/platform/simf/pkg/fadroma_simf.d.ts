@@ -15,6 +15,8 @@ export class Program {
   [Symbol.dispose](): void;
   /**
    * Generate a spend transaction.
+   *
+   * Requires input transaction to program's P2TR address.
    */
   spend(options: object): object;
   /**
