@@ -1,12 +1,11 @@
-import { Fn, Meta, wasmLoader } from '../index.ts';
-import { exit, env, argv, stdout, stderr, fileURLToPath, resolvePath, fetchText, } from '../deps.ts';
-
+import { Fn, wasmLoader } from '../index.ts';
+import { exit, env, argv, stdout, stderr, fileURLToPath } from '../deps.ts';
 /** A SimplicityHL program. */
 export interface Simf {
   /** Code of program. */
   source: string
   /** Compile program. */
-  compile: Fn<[object?], Promise<Omit<Simf, 'compile'> & Simf.Program>>,
+  compile (_?: object): Promise<Simf.Program>;
 }
 /** Define a SimplicityHL program.
   *
@@ -23,8 +22,11 @@ export function Simf (source: string): Simf {
     source,
     async compile (options?: object) {
       const wasm = await Simf.Wasm();
-      const compiled = wasm.compile(program.source, options);
-      return Object.assign(compiled, compiled.toJSON());
+      const compiled = wasm.compile(program.source, options) as Simf.Program;
+      return Object.assign(
+        compiled,
+        compiled.toJSON()
+      );
     }
   };
   return program;
@@ -45,7 +47,7 @@ export namespace Simf {
     toJSON:      Fn.Returns<object>,
   };
   /** Simplicity program (WASM object). */
-  export type Program = {
+  export type Program = Simf & {
     toString: Fn.Returns<string>
     toJSON:   Fn.Returns<object>,
     spend:    Fn<[object], Spend>,
@@ -60,7 +62,8 @@ export namespace Simf {
   /** Simplicity CLI. */
   export const Cli = async function simfCli (program: Simf) {
     const [_, __, command, ..._args] = argv;
-    stderr.write(program.toJSON());
+    const compiled = await program.compile();
+    stderr.write(JSON.stringify(compiled.toJSON(), null, 2));
     switch (command.trim()) {
       default:
         stderr.write('Commands:\n  build\n  deposit\n  withdraw');
