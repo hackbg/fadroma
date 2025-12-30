@@ -97,7 +97,6 @@ pub fn find_utxo (
     let mut previous: Option<OutPoint> = Default::default();
     let mut utxo:     Option<TxOut>    = Default::default();
     for (vout, output) in tx_bytes.output.iter().enumerate() {
-        log!("{:#?}\n{vout:#?}\n{output:#?}\n{p2tr:#?}", &p2tr.script_pubkey());
         if output.script_pubkey == p2tr.script_pubkey() {
             previous = Some(OutPoint::new(tx_id, vout as u32));
             utxo     = Some(output.clone());
