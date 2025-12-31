@@ -1,8 +1,10 @@
 import { setImmediate, argv, fileURLToPath } from '../deps.ts';
 import Async from './async.ts';
 
+export default Fn;
+
 /** Gradually elaboratable function type. */
-export type Fn<Inputs extends unknown[] = unknown[], Output = unknown> =
+type Fn<Inputs extends unknown[] = unknown[], Output = unknown> =
   Fn.Takes<Inputs> & Fn.Returns<Output>;
 
 /** Partial application of a function.
@@ -25,7 +27,7 @@ export type Fn<Inputs extends unknown[] = unknown[], Output = unknown> =
   *       check)
   */
 
-export function Fn <F extends ((..._:unknown[])=>unknown)> (
+function Fn <F extends ((..._:unknown[])=>unknown)> (
   fn: F, ...args: Partial<Parameters<F>>
 ) {
   return Fn.Name(`${fn.name}(${curriedArgs(args)})`, fn.bind(null, ...args), {
@@ -35,7 +37,7 @@ export function Fn <F extends ((..._:unknown[])=>unknown)> (
 const curriedArgs = (args: unknown[]) => args.map(String)
   .map((x: string) => x==='undefined'?'_':x).join(', ');
 
-export namespace Fn {
+namespace Fn {
   /** Function arguments. */
   export type Takes<T extends unknown[]> = (...args: T) => unknown;
   /** Function return type. */

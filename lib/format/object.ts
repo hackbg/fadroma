@@ -1,4 +1,4 @@
-import { Fn } from './function.ts';
+import Fn from './function.ts';
 
 /** Slice off the 1st arg of every function */
 export type ToApi<I> = {

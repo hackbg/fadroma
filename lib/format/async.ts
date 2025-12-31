@@ -1,4 +1,4 @@
-import type { Fn } from './function.ts';
+import type Fn from './function.ts';
 
 export default Async;
 

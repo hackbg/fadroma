@@ -1,4 +1,4 @@
-import { Name } from './function.ts';
+import Fn from './function.ts';
 /** Null, undefined, or false. */
 export type Nil = null | undefined | false;
 /** Soft optional. */
