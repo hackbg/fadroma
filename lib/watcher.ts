@@ -1,14 +1,13 @@
-import type { Meta } from './index.ts';
-import { Fn, Main, msec } from './format.ts';
+import { Fn, msec } from './format.ts';
 import { bold, blue } from './format/ansi.ts';
 import { cwd, resolvePath, realpathSync, stdout, watchFs } from './deps.ts';
 export * from './watcher/denoCheck.ts';
 export * from './watcher/runTest.ts';
 /** Entrypoint that reruns on file change. */
 export const entrypoint = function watchEntrypoint (
-  meta: Meta, mode: Fn<[string, string[]]>, ...options: unknown[]
+  meta: Fn.Main.Meta, mode: Fn<[string, string[]]>, ...options: unknown[]
 ) {
-  return Main(meta, Fn(watch, mode, options||[]))
+  return Fn.Main(meta, Fn(watch, mode, options||[]))
 };
 const toRealPath = (x: string) => {
   try { return realpathSync(x) } catch (e) { if (e.code!=='ENOENT') throw e }

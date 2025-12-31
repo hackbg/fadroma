@@ -1,10 +1,11 @@
-import type { Async, Prototype, Meta } from './index.ts';
+import type { Async, Prototype } from './index.ts';
 import { Log, traceConsole } from './context.ts';
 import { ok, equal, throws, rejects, stdout, argv,
   setImmediate, inspect } from './deps.ts';
-import { Fn, Ansi, Error, Main, Seq, Step as toStep,
+import { Fn, Ansi, Error,
   spaced, lines, msec, toString, merged,
-  todo, withInfiniteStack, alignTrace } from './format.ts';
+  withInfiniteStack, alignTrace } from './format.ts';
+const toStep = Fn.Step;
 /** Test entrypoint. When test module is run (not imported),
   * tests in the `suite` run, and a report is printed.
   *
@@ -28,9 +29,9 @@ import { Fn, Ansi, Error, Main, Seq, Step as toStep,
   *         })));
   *
   **/
-export function suite (meta: Meta, name: string, ...steps: (Step|string)[]) {
+export function suite (meta: Fn.Main.Meta, name: string, ...steps: (Step|string)[]) {
   const suite = the(name, ...steps);
-  const enter = Main.is(meta, argv[1]);
+  const enter = Fn.Main.is(meta, argv[1]);
   if (enter) setImmediate(async function runTestSuite () {
     const args = argv.slice(2);
     traceConsole();
@@ -49,7 +50,7 @@ export function suite (meta: Meta, name: string, ...steps: (Step|string)[]) {
 export type Testing = Stack & Log & Result & Options & Categories;
 /** Create empty test context. */
 export const Testing = <T extends Testing> (...contexts: Partial<T>[]) =>
-  Seq(Log, Options, Categories, Stack)(merged(...contexts)) as Promise<T>;
+  Fn.Seq(Log, Options, Categories, Stack)(merged(...contexts)) as Promise<T>;
 /** Test options. */
 export type Options = { args?: string[], only?: string[], except?: string[] };
 /** Parse test filters. */
@@ -79,8 +80,8 @@ function Categories (context: Partial<Testing> = {}) {
 /** Keeps track of nested steps. */
 export type Stack = {
   stack: Frame[];
-  begin (index: number, step: Name): number;
-  end (index: number, step: Name, t0: number, t1: number,
+  begin (index: number, step: Fn.Name): number;
+  end (index: number, step: Fn.Name, t0: number, t1: number,
        state: State, returned: unknown, threw: unknown): void;
 };
 /** Define test stack. */
@@ -148,7 +149,7 @@ function Report ({ context, details = [] }) {
   return details;
 }
 /** Test stack frame. */
-export type Frame = Name & { t0: number, index: number };
+export type Frame = Fn.Name & { t0: number, index: number };
 /** Test step. */
 export type Step <C extends Testing = Testing, A = unknown, B = A> =
   Fn.Reflects & ((_: A, __?: C) => Async<B>) & { skip?: boolean };
@@ -382,4 +383,5 @@ export function includes <T extends Testing, X> (item: X) {
     }, { item })
 }
 // Reexport some default assertions:
-export { ok, equal, throws, rejects, todo };
+export { ok, equal, throws, rejects };
+export const todo = Fn.todo;

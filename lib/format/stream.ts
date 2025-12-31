@@ -1,5 +1,4 @@
-import type { Step } from '../index.ts';
-import { Fn, identity } from './function.ts';
+import { Fn } from './function.ts';
 import { Bytes } from './byte.ts';
 
 /** Connection to `Read & Write` pair. */
@@ -10,9 +9,9 @@ export function toRW <T> (state): RW<T> {
     name = null,
     close,
     readable,
-    onRead = identity,
+    onRead = Fn.Id,
     writable,
-    onWrite = identity,
+    onWrite = Fn.Id,
   } = state;
   return Object.assign(state, {
     read:  toRead({ name, readable },  onRead)  as Read<T>,

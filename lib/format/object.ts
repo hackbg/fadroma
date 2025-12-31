@@ -1,4 +1,4 @@
-import type { Fn } from './function.ts';
+import { Fn } from './function.ts';
 
 /** Slice off the 1st arg of every function */
 export type ToApi<I> = {
@@ -72,7 +72,7 @@ export const Pick = <T, K extends keyof T>(
 }, { keys, steps });
 
 /** Shallow clone except certain keys. */
-export const Omit = todo();
+export const Omit = Fn.todo();
 
 /** Specify a binary condition. */
 export const when = (condition: boolean, ...fns: Step<unknown>[]) =>
@@ -97,3 +97,12 @@ export const setProp = <T extends object>(key: keyof T, ...fns: Fn[]) =>
 //type Method<T> = (_: T, ...__: unknown[]) => unknown[]
 
 export type Prototype = { [Symbol.hasInstance] (_: unknown): boolean };
+
+export function merged <T> (t: T): T;
+export function merged <T, U> (t: T, u: U): T & U;
+export function merged <T, U, V> (t: T, u: U, v: V): T & U & V;
+export function merged <T, U, V, W> (t: T, u: U, v: V, w: W): T & U & V & W;
+export function merged <T> (..._: Partial<T>[]): T;
+export function merged <T> (...fragments: Partial<T>[]): T {
+  return Object.assign(...fragments.filter(Boolean) as [object], {}) as T;
+}

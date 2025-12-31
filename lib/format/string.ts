@@ -1,7 +1,7 @@
 import type { Maybe, Bytes } from '../index.ts';
 import { Case, stdout } from '../deps.ts';
 import { NO_COLOR } from './ansi.ts';
-import { Fn, identity } from './function.ts';
+import { Fn } from './function.ts';
 /** String, or something with a `toString` method. */
 export type Str = string|{ toString(): string };
 /** Concatenate strings. */
@@ -101,7 +101,7 @@ export function wordWrap (str: string, {
   width   = stdout.columns,
   indent  = '  ',
   newline = '\n' + indent,
-  escape  = identity,
+  escape  = Fn.Id,
   cut     = false,
   trim    = false
 } = {}) {

@@ -1,8 +1,10 @@
 import { setImmediate, argv, fileURLToPath } from '../deps.ts';
 import Async from './async.ts';
+
 /** Gradually elaboratable function type. */
 export type Fn<Inputs extends unknown[] = unknown[], Output = unknown> =
   Fn.Takes<Inputs> & Fn.Returns<Output>;
+
 /** Partial application of a function.
   * Use this to prepare a function with arguments for testing.
   *
@@ -22,6 +24,7 @@ export type Fn<Inputs extends unknown[] = unknown[], Output = unknown> =
   *       curry(fn, arg1, arg2),
   *       check)
   */
+
 export function Fn <F extends ((..._:unknown[])=>unknown)> (
   fn: F, ...args: Partial<Parameters<F>>
 ) {
@@ -29,6 +32,8 @@ export function Fn <F extends ((..._:unknown[])=>unknown)> (
     fn, args, stack: new Error().stack?.split('\n').slice(3)
   });
 }
+const curriedArgs = (args: unknown[]) => args.map(String)
+  .map((x: string) => x==='undefined'?'_':x).join(', ');
 
 export namespace Fn {
   /** Function arguments. */
@@ -89,7 +94,7 @@ export namespace Fn {
     * TODO: Use conditional typing to support passing non-function
     *       as first argument, resulting in immediate evaluation.
     **/
-  export function Pipe (): typeof identity;
+  export function Pipe (): typeof Id;
   export function Pipe <Z> (z: Z): Z;
   export function Pipe <Y, Z> (y: Y, z: Z):
     Z extends (_: infer B) => infer C ?
@@ -105,7 +110,7 @@ export namespace Fn {
     W extends (_: infer A) => B ? Fn<[A], E> : E : never : never : never;
   export function Pipe (...steps: Fn[]): Fn;
   export function Pipe (...steps: unknown[]) {
-    if (steps.length === 0) return Fn.Name('Pipe0', identity);
+    if (steps.length === 0) return Fn.Name('Pipe0', Id);
     if (typeof steps[0] === 'function') {
       return Fn.Name(pipeName(steps as Fn[]), function pipeline (value: unknown) {
         for (const step of steps) {
@@ -124,124 +129,112 @@ export namespace Fn {
   }
   const pipeName = (steps: Fn[]): string =>
     `Pipe${steps.length}(${steps.map(x=>x?.name||'unnamed').join('|')})`
-}
 
-/** The identity function. */
-export const identity = <T>(x: T): T => x;
+  /** The identity function. */
+  export const Id = <T>(x: T): T => x;
 
-/** Return the identity function. */
-export const nop = (..._: unknown[]) => identity;
+  /** The function that returns the identity function. */
+  export const Nop = (..._: unknown[]) => Id;
 
-/** Stub test step. When reached, terminates without passing or failing,
-  * and adds a task to the test report.
-  *
-  * Example:
-  *
-  *     import { testSuite, expect, todo } from '@hackbg/fadroma';
-  *     export default testSuite(import.meta,
-  *       expect('Auto todo'),
-  *       expect('Manual todo', todo()),
-  *       expect('Manual todo with more info', todo('the more info')));
-  *
-  **/
-export const todo = (...info: string[]) => Fn.Name(info.join(' '),
-  function trackTodo (_context: unknown) {
-    throw Object.assign(new Error(info.join(' ')), { todo: true })
-  }, { info, todo: true, skip: true });
+  /** Stub test step. When reached, terminates without passing or failing,
+    * and adds a task to the test report.
+    *
+    * Example:
+    *
+    *     import { testSuite, expect, todo } from '@hackbg/fadroma';
+    *     export default testSuite(import.meta,
+    *       expect('Auto todo'),
+    *       expect('Manual todo', todo()),
+    *       expect('Manual todo with more info', todo('the more info')));
+    *
+    **/
+  export const todo = (...info: string[]) => Fn.Name(info.join(' '),
+    function trackTodo (_context: unknown) {
+      throw Object.assign(new Error(info.join(' ')), { todo: true })
+    }, { info, todo: true, skip: true });
+  /** Part of a [Pipe]. */
+  export type Step<T = unknown, U = T> =
+    Fn.Reflects & Fn.Takes<[T]> & Fn.Returns<Async<U>>;
+  /** Add originating test step to stack trace.
+    *
+    * Since there is a degree of indirection involved when composing functions
+    * (the code is defined from one place but executed from another),
+    * without this helper the real stack would be lost. */
+  export function Step (
+    step: { name?: string, stack?: string[] }, error: Error
+  ) {
+    if (typeof error !== 'object') error = new Error(error);
+    error.stack ||= ''
+    if (step.stack) error.stack += '\n  From:\n' + step.stack.join('\n')
+    return error
+  }
+  /** A function that composes multiple steps into one step. */
+  export type Steps<T = unknown, U = T> =
+    (...steps: Step<T>[])  => Step<T, U>;
+  /** A function that composes multiple steps and adds an annotation. */
+  export type StepsWith<X = unknown, T = unknown, U = T> =
+    (_: X, ...steps: Step<T>[]) => Step<T, U>;
 
-/** Used to recognize entrypoint. */
-export type Meta = Partial<ImportMeta>;
+  /** Run functions sequentially in the same context,
+    * ignoring return values. */
+  export function Seq (...steps: Async<Fn>[]) {
+    return Fn.Name(null, async function runSequentially (context: unknown) {
+      for (let i = 0; i < steps.length; i++) {
+        const step = await steps[i];
+        if (typeof step === 'function') await step(context);
+      }
+      return context;
+    }, { steps });
+  }
 
-/** A program's entrypoint. */
-export type Main = Fn;
+  /** A program's entrypoint. */
+  export type Main = Fn;
 
-/** If the current module is the program entrypoint,
-  * runs the given main function as a separate task.
-  *
-  * If the task throws, the error is logged and the process exits.
-  * The exit code can be specified by the `exitCode` field of the
-  * thrown exception. If not specified, it defaults to 1.
-  *
-  * Example:
-  *
-  *   import { Main } from '@hackbg/fadroma';
-  *   export default Main(import.meta.main || import.meta.url, main)
-  *   async function main (...args: string[]) {
-  *     console.log('Program arguments:', ...args)
-  *   }
-  *
-  * */
-export function Main <M extends Fn> (meta: Meta, main: M): M;
-export function Main <M extends Fn, N> (meta: Meta, main: Main, alt: N): N;
-export function Main (
-  meta: Partial<ImportMeta> = {},
-  main: (args: string[])=>unknown,
-  alt?: unknown
-) {
-  const [_, argv1, ...args] = argv
-  if (Main.is(meta || {}, argv1)) setImmediate(async ()=>{
-    try {
-      await Promise.resolve(main(args));
-      //exit(0);
-    } catch (e) {
-      const error = e as Error & { exitCode?: number };
-      console.error('Main threw:', error);
-      //exit(error.exitCode ?? 1);
-    }
-  })
-  if (alt) return alt
-  return main
-}
+  /** If the current module is the program entrypoint,
+    * runs the given main function as a separate task.
+    *
+    * If the task throws, the error is logged and the process exits.
+    * The exit code can be specified by the `exitCode` field of the
+    * thrown exception. If not specified, it defaults to 1.
+    *
+    * Example:
+    *
+    *   import { Fn } from '@hackbg/fadroma';
+    *   export default Fn.Main(import.meta.main || import.meta.url, main)
+    *   async function main (...args: string[]) {
+    *     console.log('Program arguments:', ...args)
+    *   }
+    *
+    * */
+  export function Main <M extends Fn> (meta: Main.Meta, main: M): M;
+  export function Main <M extends Fn, N> (meta: Main.Meta, main: Main, alt: N): N;
+  export function Main (
+    meta: Main.Meta = {}, main: Fn<string[], unknown>, alt?: unknown
+  ) {
+    const [_, argv1, ...args] = argv
+    if (Main.is(meta || {}, argv1)) setImmediate(async ()=>{
+      try {
+        await Promise.resolve(main(args));
+        //exit(0);
+      } catch (e) {
+        const error = e as Error & { exitCode?: number };
+        console.error('Main threw:', error);
+        //exit(error.exitCode ?? 1);
+      }
+    })
+    if (alt) return alt
+    return main
+  }
 
-Main.is = function isMain (meta: boolean|Partial<ImportMeta>, argv1: string) {
-  return (!(meta === false)) && (false
-    || (meta === true)
-    || (!!meta?.main)
-    || (meta?.url && fileURLToPath(meta?.url) == argv1));
-}
-/** Part of a [Pipe]. */
-export type Step<T = unknown, U = T> =
-  Fn.Reflects & Fn.Takes<[T]> & Fn.Returns<Async<U>>;
-/** Add originating test step to stack trace.
-  *
-  * Since there is a degree of indirection involved when composing functions
-  * (the code is defined from one place but executed from another),
-  * without this helper the real stack would be lost. */
-export function Step (
-  step: { name?: string, stack?: string[] }, error: Error
-) {
-  if (typeof error !== 'object') error = new Error(error);
-  error.stack ||= ''
-  if (step.stack) error.stack += '\n  From:\n' + step.stack.join('\n')
-  return error
-}
-/** A function that composes multiple steps into one step. */
-export type Steps<T = unknown, U = T> =
-  (...steps: Step<T>[])  => Step<T, U>;
-/** A function that composes multiple steps and adds an annotation. */
-export type StepsWith<X = unknown, T = unknown, U = T> =
-  (_: X, ...steps: Step<T>[]) => Step<T, U>;
-
-export function merged <T> (t: T): T;
-export function merged <T, U> (t: T, u: U): T & U;
-export function merged <T, U, V> (t: T, u: U, v: V): T & U & V;
-export function merged <T, U, V, W> (t: T, u: U, v: V, w: W): T & U & V & W;
-export function merged <T> (..._: Partial<T>[]): T;
-export function merged <T> (...fragments: Partial<T>[]): T {
-  return Object.assign(...fragments.filter(Boolean) as [object], {}) as T;
-}
-
-const curriedArgs = (args: unknown[]) => args.map(String)
-  .map((x: string) => x==='undefined'?'_':x).join(', ');
-
-/** Run functions sequentially in the same context,
-  * ignoring return values. */
-export function Seq (...steps: Async<Fn>[]) {
-  return Fn.Name(null, async function runSequentially (context: unknown) {
-    for (let i = 0; i < steps.length; i++) {
-      const step = await steps[i];
-      if (typeof step === 'function') await step(context);
-    }
-    return context;
-  }, { steps });
+  export namespace Main {
+    /** Used to recognize entrypoint. */
+    export type Meta = Partial<ImportMeta>;
+    /** Return true if the entrypoint matches. */
+    export const is = function isMain (meta: boolean|Meta, argv1: string) {
+      return (!(meta === false)) && (false
+        || (meta === true)
+        || (!!meta?.main)
+        || (meta?.url && fileURLToPath(meta?.url) == argv1));
+    };
+  }
 }
