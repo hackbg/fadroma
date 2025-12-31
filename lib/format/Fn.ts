@@ -1,11 +1,12 @@
 import { setImmediate, argv, fileURLToPath } from '../deps.ts';
-import Async from './async.ts';
+import Async from './Async.ts';
 
 export default Fn;
 
 /** Gradually elaboratable function type. */
 type Fn<Inputs extends unknown[] = unknown[], Output = unknown> =
-  Fn.Takes<Inputs> & Fn.Returns<Output>;
+  & Fn.Takes<Inputs>
+  & Fn.Returns<Output>;
 
 /** Partial application of a function.
   * Use this to prepare a function with arguments for testing.

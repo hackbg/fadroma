@@ -1,5 +1,5 @@
 import { Bytes } from './byte.ts';
-import Fn from './function.ts';
+import Fn from './Fn.ts';
 import { webcrypto, base16, base64, bech32, bech32m } from '../deps.ts';
 
 export type Num = number|string|bigint;

@@ -1,4 +1,4 @@
-import type Fn from './function.ts';
+import type Fn from './Fn.ts';
 
 export default Async;
 
@@ -6,6 +6,7 @@ export default Async;
 type Async<T = unknown> =
   | T
   | Promise<T>;
+
 /** Handle T or Promise<T> as Promise<T>
   *
   * Works by checking if the return value

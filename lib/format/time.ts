@@ -1,4 +1,4 @@
-import Fn from './function.ts';
+import Fn from './Fn.ts';
 
 export function timestamp (d = new Date()) {
   return d.toISOString()

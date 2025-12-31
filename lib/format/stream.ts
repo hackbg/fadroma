@@ -1,4 +1,4 @@
-import Fn from './function.ts';
+import Fn from './Fn.ts';
 import { Bytes } from './byte.ts';
 
 /** Connection to `Read & Write` pair. */

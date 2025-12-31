@@ -12,5 +12,5 @@ export * from './format/wasm.ts';
 export * as Ansi  from './format/ansi.ts';
 export * as Borsh from './format/borsh.ts';
 
-export { default as Async } from './format/async.ts';
-export { default as Fn    } from './format/function.ts';
+export { default as Async } from './format/Async.ts';
+export { default as Fn    } from './format/Fn.ts';
