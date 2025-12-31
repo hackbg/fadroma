@@ -66,6 +66,63 @@ export namespace Fn {
       ? Object.getOwnPropertyDescriptors(props)
       : {}) as T & U & Name;
   }
+  /** Composition of functions. */
+  export type Pipe<Output = unknown, Inputs extends [] = []> = 
+    Fn.Reflects & Fn<Inputs, Async<Output>>;
+  /** Compose functions, passing the return value
+    * of each step as first argument to next step.
+    *
+    * When there's an async step in the pipeline,
+    * the pipeline transparently becomes asynchronous.
+    *
+    * Example:
+    *   const param = "hello"
+    *   const op = Fn.Pipe(f1, f2, f3);
+    *
+    *   equal(await op(p), f3(await f2(f1(p))));
+    *
+    *   function f1 (p) { ... }
+    *   async function f2 (p) { ... }
+    *   function f3 (p) { ... }
+    *
+    * TODO: Use conditional typing to support passing non-function
+    *       as first argument, resulting in immediate evaluation.
+    **/
+  export function Pipe (): typeof identity;
+  export function Pipe <Z> (z: Z): Z;
+  export function Pipe <Y, Z> (y: Y, z: Z):
+    Z extends (_: infer B) => infer C ?
+    Y extends (_: infer A) => B ? Fn<[A], C> : C : never;
+  export function Pipe <X, Y, Z> (x: X, y: Y, z: Z):
+    Z extends (_: infer C) => infer D ?
+    Y extends (_: infer B) => C ?
+    X extends (_: infer A) => B ? Fn<[A], D> : D : never : never;
+  export function Pipe <W, X, Y, Z> (w: W, x: X, y: Y, z: Z):
+    Z extends (_: infer D) => infer E ?
+    Y extends (_: infer C) => D ?
+    X extends (_: infer B) => C ?
+    W extends (_: infer A) => B ? Fn<[A], E> : E : never : never : never;
+  export function Pipe (...steps: Fn[]): Fn;
+  export function Pipe (...steps: unknown[]) {
+    if (steps.length === 0) return Fn.Name('Pipe0', identity);
+    if (typeof steps[0] === 'function') {
+      return Fn.Name(pipeName(steps as Fn[]), function pipeline (value: unknown) {
+        for (const step of steps) {
+          if (!step) continue;
+          if (typeof step === 'function') value = Async(value, step as Fn);
+        }
+        return value
+      }, { steps });
+    }
+    let value = steps.shift();
+    for (const step of steps) {
+      if (!step) continue;
+      if (typeof step === 'function') value = Async(value, step as Fn);
+    }
+    return value
+  }
+  const pipeName = (steps: Fn[]): string =>
+    `Pipe${steps.length}(${steps.map(x=>x?.name||'unnamed').join('|')})`
 }
 
 /** The identity function. */
@@ -188,64 +245,6 @@ export function merged <T> (...fragments: Partial<T>[]): T {
 const curriedArgs = (args: unknown[]) => args.map(String)
   .map((x: string) => x==='undefined'?'_':x).join(', ');
 
-/** A sequence of functions. */
-export type Pipe<Output = unknown, Inputs extends [] = []> = 
-  Fn.Reflects & Fn<Inputs, Async<Output>>;
-/** Combine functions, passing return value of each step
-  * as first argument to next step.
-  *
-  * When there's an async step in the pipeline,
-  * the pipeline transparently becomes asynchronous.
-  *
-  * Example:
-  *   const param = "hello"
-  *   const op = Pipe(f1, f2, f3);
-  *
-  *   equal(await op(p), f3(await f2(f1(p))));
-  *
-  *   function f1 (p) { ... }
-  *   async function f2 (p) { ... }
-  *   function f3 (p) { ... }
-  *
-  * TODO: Use conditional typing to support passing non-function
-  *       as first argument, resulting in immediate evaluation.
-  **/
-export function Pipe (): typeof identity;
-export function Pipe <Z> (z: Z): Z;
-export function Pipe <Y, Z> (y: Y, z: Z):
-  Z extends (_: infer B) => infer C ?
-  Y extends (_: infer A) => B ? Fn<[A], C> : C : never;
-export function Pipe <X, Y, Z> (x: X, y: Y, z: Z):
-  Z extends (_: infer C) => infer D ?
-  Y extends (_: infer B) => C ?
-  X extends (_: infer A) => B ? Fn<[A], D> : D : never : never;
-export function Pipe <W, X, Y, Z> (w: W, x: X, y: Y, z: Z):
-  Z extends (_: infer D) => infer E ?
-  Y extends (_: infer C) => D ?
-  X extends (_: infer B) => C ?
-  W extends (_: infer A) => B ? Fn<[A], E> : E : never : never : never;
-export function Pipe (...steps: Fn[]): Fn;
-export function Pipe (...steps: unknown[]) {
-  if (steps.length === 0) return Fn.Name('Pipe0', identity);
-  if (typeof steps[0] === 'function') {
-    return Fn.Name(pipeName(steps as Fn[]), function pipeline (value: unknown) {
-      for (const step of steps) {
-        if (!step) continue;
-        if (typeof step === 'function') value = Async(value, step as Fn);
-      }
-      return value
-    }, { steps });
-  }
-  let value = steps.shift();
-  for (const step of steps) {
-    if (!step) continue;
-    if (typeof step === 'function') value = Async(value, step as Fn);
-  }
-  return value
-}
-const pipeName = (steps: Fn[]): string =>
-  `Pipe${steps.length}(${steps.map(x=>x?.name||'unnamed').join('|')})`
-
 /** Run functions sequentially in the same context,
   * ignoring return values. */
 export function Seq (...steps: Async<Fn>[]) {
@@ -276,7 +275,7 @@ const isFn = isType('function')
 export const Pick = <T, K extends keyof T>(
   keys: Array<K>, ...steps: Fn<[T[K], T]>[]
 ) => Object.assign(async function pickKeys (data: T) {
-  const pipeline = Pipe(...steps);
+  const pipeline = Fn.Pipe(...steps);
   const result: Partial<Pick<T, K>> = {};
   for (const key of keys) result[key] = await pipeline(data[key], data) as T[K];
   return result as Pick<T, K>;
@@ -287,7 +286,7 @@ export const Omit = todo();
 
 /** Specify a binary condition. */
 export const when = (condition: boolean, ...fns: Step<unknown>[]) =>
-  either(condition, Pipe(...fns));
+  either(condition, Fn.Pipe(...fns));
 
 /** Specify a ternary condition. */
 export const either = <C> (
@@ -332,7 +331,7 @@ export const withCatcher =
 
 export const setProp = <T extends object>(key: keyof T, ...fns: Fn[]) =>
   Fn.Name(`set ${String(key)}`, async function setProperty (context) {
-    return Object.assign(context, { [key]: await Pipe(...fns)(context) });
+    return Object.assign(context, { [key]: await Fn.Pipe(...fns)(context) });
   }, { key, fns });
 
 //type Method<T> = (_: T, ...__: unknown[]) => unknown[]

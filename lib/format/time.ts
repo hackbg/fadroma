@@ -1,5 +1,5 @@
 import type { Step } from '../index.ts';
-import { Fn, Pipe } from './function.ts';
+import { Fn } from './function.ts';
 
 export function timestamp (d = new Date()) {
   return d.toISOString()
@@ -23,5 +23,5 @@ export type Timed = {
 
 export const interval = (msec: number, ...steps: Step[]) =>
   Fn.Name(null, async function interval (..._: unknown[]) {
-    return setInterval(() => { Pipe(...steps)(performance.now()); }, msec);
+    return setInterval(() => { Fn.Pipe(...steps)(performance.now()); }, msec);
   }, { msec });

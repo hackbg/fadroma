@@ -1,14 +1,16 @@
 import type { Step, Async, Ports } from '../index.ts';
 import type { ChildProcess } from '../deps.ts';
 import { execImpl, spawnImpl, inspect, cwd } from '../deps.ts';
-import { Fn, Error, Pipe, toString } from '../format.ts';
+import { Fn, Error, toString } from '../format.ts';
 import { Dir } from './fs.ts';
 
 /** Command invocation. */
 export type Run = { argv: string[], env?: Record<string, string> };
 /** Compose command invocation from options. */
 export function Run (path: string, ...opts: (Step<Run>|string)[]) {
-  return Pipe(...opts.filter(Boolean).map(toOpt))({ argv: [path], env: {} }) as Run;
+  return Fn.Pipe(
+    ...opts.filter(Boolean).map(toOpt)
+  )({ argv: [path], env: {} }) as Run;
 }
 
 /** Command invocation that returns a result. */

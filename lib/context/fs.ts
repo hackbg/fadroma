@@ -1,5 +1,5 @@
 import type { Async, Bytes, Step } from '../index.ts';
-import { Fn, Pipe, Base16, chunked } from '../format.ts';
+import { Fn, Base16, chunked } from '../format.ts';
 import { joinPath, tmpdir, zipSync, mkdir, rm, mkdtemp, writeFile,
   resolvePath, cwd } from '../deps.ts';
 import { Log } from './log.ts';
@@ -49,7 +49,7 @@ export const Dir: {
   async function makeDirectory (dir: string|D = '', ...args: unknown[]): Promise<D> {
     dir = LocalFS(dir, path);
     await dir.mkdir(path);
-    const result = await Pipe(...entries)(dir, ...args) as D;
+    const result = await Fn.Pipe(...entries)(dir, ...args) as D;
     return result;
   }
 }
@@ -66,7 +66,7 @@ export function Temp <D extends Dir> (
     const path = joinPath(tmpdir(), 'fadroma', `${prefix}-${Base16.random(8)}`);
     dir = LocalFS(dir)
     dir = await LocalFS(dir).mkdir(path) as D;
-    const result = await Pipe(...ops as Dir.Entry<D>[])(dir, context) as D;
+    const result = await Fn.Pipe(...ops as Dir.Entry<D>[])(dir, context) as D;
     if (ops.length > 0) await dir.rimraf();
     return result;
   }
@@ -83,7 +83,7 @@ export function Txt <T = string|number|object|null> (
   async function writeTxtFile <D extends Dir> (dir: string|D) {
     dir = LocalFS(dir);
     const full = joinPath(dir.path, path);
-    const data = await Pipe(...steps as Fn[])(value||'') || '';
+    const data = await Fn.Pipe(...steps as Fn[])(value||'') || '';
     await dir.writeFile(full, dir.tree[full] = data as string, 'utf8');
     return dir;
   }
@@ -102,7 +102,7 @@ export function Bin (
   async function writeBinFile (dir: Dir) {
     dir = LocalFS(dir);
     const full = joinPath(dir.path, path);
-    const data = await Pipe(...steps as Fn[])(value||'') || '';
+    const data = await Fn.Pipe(...steps as Fn[])(value||'') || '';
     await dir.writeFile(full, dir.tree[full] = data as Bytes);
     return dir;
   }

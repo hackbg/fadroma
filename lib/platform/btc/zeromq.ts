@@ -1,6 +1,6 @@
 import type { Async, AsyncIter, Log } from '../../index.ts';
 import { Tcp } from '../../context.ts';
-import { Fn, UTF8, Bytes, Pipe, Bit, readBytes, readUntilDone, write, merged } from '../../format.ts';
+import { Fn, UTF8, Bytes, Bit, readBytes, readUntilDone, write, merged } from '../../format.ts';
 /** A ZeroMQ connection. */
 export type Conn = (AsyncIter<Frame> & ConnOpts) | { socket?: unknown };
 /** Options for creating a ZeroMQ connection. */
@@ -75,8 +75,8 @@ export const Sub = merged(async function zmqSub (to: number|string|URL, handler:
 export type Hello = { sig: Bytes, sec: Sec, ver: Ver, pub: boolean };
 export const Hello = merged(zmqHello, {
   size:  64,
-  read:  Fn.Name('Hello', Pipe(readBytes({ max: 64 }), zmqHello)),
-  write: Fn.Name('Hello', Fn(Pipe(zmqHello, write))),
+  read:  Fn.Name('Hello', Fn.Pipe(readBytes({ max: 64 }), zmqHello)),
+  write: Fn.Name('Hello', Fn(Fn.Pipe(zmqHello, write))),
 });
 function zmqHello (input?: Bytes): Hello & Bytes;
 function zmqHello (input?: Partial<Hello>): Hello & Bytes;
@@ -117,7 +117,7 @@ export type Frame = Flags & { size: number, command?: Cmd, offset?: number, payl
 export type Flags = { more: Bit, long: Bit, cmd: Bit, };
 export const Flags = { cmd: Bit('CMD', 2), long: Bit('LONG', 1), more: Bit('MORE', 0), };
 export const Frame = merged(zmqFrame, {
-  read:  Pipe(readUntilDone, zmqFrame),
+  read:  Fn.Pipe(readUntilDone, zmqFrame),
   write: (frame: Frame) => w => w.write(zmqFrame(frame)),
   empty: new Uint8Array([1, 0]),
   payload: (frame: Frame & Bytes, offset = 1): Uint8Array => {
@@ -128,7 +128,7 @@ export const Frame = merged(zmqFrame, {
   },
   ready: merged(Fn(zmqFrame, { command: 'READY' }), {
     id:    'READY',
-    read:  Fn.Name('ZMQ>ready', Pipe(readUntilDone, zmqFrame, zmqExpectCmd('READY'))),
+    read:  Fn.Name('ZMQ>ready', Fn.Pipe(readUntilDone, zmqFrame, zmqExpectCmd('READY'))),
     write: Fn.Name('ZMQ<ready', writable => writable.write(Frame.ready())),
   })
 });

@@ -1,6 +1,6 @@
-import type { Fn, Step } from '../index.ts';
+import type { Step } from '../index.ts';
 import { HttpServer } from '../deps.ts';
-import { Pipe, Name } from '../format.ts';
+import { Fn } from '../format.ts';
 import { tcpAddr } from './tcp.ts';
 import { Ports } from './port.ts';
 
@@ -39,7 +39,7 @@ export namespace Http {
   /** Define URL route. */
   export const Route = function httpRoute (path: string, ...routes) {
     return Fn.Name(path, async function routeRequest (context: Request) {
-      if (matchRoute(path)(context.url)) return Pipe(...routes)(context)
+      if (matchRoute(path)(context.url)) return Fn.Pipe(...routes)(context)
     }, { routes });
   };
 
@@ -49,7 +49,7 @@ export namespace Http {
   /** Only handle if HTTP method matches. */
   export const method = (method, ...routes: Http.Route[]) => Fn.Name(method,
     async function onMethod (context: Http.Router) {
-      if (context.method === method) return Pipe(...routes)(context);
+      if (context.method === method) return Fn.Pipe(...routes)(context);
     }, { method, routes });
 
   /** Only handle if HTTP method is GET. */
@@ -66,7 +66,7 @@ export namespace Http {
   /** If condition doesn't match, return with specified code. */
   export const guard = (code: number, ...handlers: Http.Handler[]) =>
     async (req: Request & { params: Record<string, unknown> }) => {
-      if (!await (Pipe(...handlers)(req))) return code };
+      if (!await (Fn.Pipe(...handlers)(req))) return code };
 }
 
 /** Fetch helper. */

@@ -1,5 +1,5 @@
 import { Bytes } from './byte.ts';
-import { Pipe } from './function.ts';
+import { Fn } from './function.ts';
 import { webcrypto, base16, base64, bech32, bech32m } from '../deps.ts';
 
 export type Num = number|string|bigint;
@@ -23,11 +23,11 @@ export type Base<B extends number> = { __base: B,
   decode: (_: string)      => Bytes };
 export const Base64 = { __base: 64,
   random: (n = 64) => base64.encode(randomBytes(n)),
-  encode: Pipe(Bytes, base64.encode),
+  encode: Fn.Pipe(Bytes, base64.encode),
   decode: base64.decode } as Base<64>;
 export const Base16 = { __base: 16,
   random: (n = 64)  => base16.encode(randomBytes(n)),
-  encode: Pipe(Bytes, base16.encode),
+  encode: Fn.Pipe(Bytes, base16.encode),
   decode: base16.decode } as Base<16>;
 export const toHex = (d: string|number|bigint, pad = 2) => {
   let hex = Number(d).toString(16)

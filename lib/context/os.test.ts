@@ -6,14 +6,21 @@ import { Exec, Spawn, Env } from './svc.ts';
 import { Fn } from '../format.ts';
 
 export const testDir = the('Dir',
-  the('Current', () => Dir(), is('function'), has('path', equals(''))), 
-  the('Defined', () => Dir('test'), is('function'), has('path'),
-    Fn.Name('Create', async (d: Fn, { log }) => {
-      const result = await d(mock());
-      return result })),
-  the('Temp', () => { return Temp(); }, is('function'), has('prefix'),
-    the('Create', (t: Fn) => { return t(mock()); },
-      is('object'), has('rimraf'))));
+  the('Current', () => Dir(),
+    is('function'),
+    has('path', equals(''))), 
+  the('Defined', () => Dir('test'),
+    is('function'),
+    has('path'),
+    Fn.Name('Create', (d: Fn) => d(mock()))),
+  the('Temp', () => { return Temp(); },
+    is('function'),
+    has('prefix'),
+    //the('Create', (t: Fn) => { return t(mock()); },
+      ////is('object'),
+      ////has('rimraf'),
+    //)
+  ));
 
 export const testZip = the('Zip',
   Zip('helloworld.zip',

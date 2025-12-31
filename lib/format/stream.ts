@@ -1,5 +1,5 @@
 import type { Step } from '../index.ts';
-import { Pipe, identity } from './function.ts';
+import { Fn, identity } from './function.ts';
 import { Bytes } from './byte.ts';
 
 /** Connection to `Read & Write` pair. */
@@ -27,7 +27,7 @@ export type Reader<T = Bytes> = { read: Read<T> };
 export type Read<T = Bytes> = () => Promise<{ done: boolean, value: T }>;
 /** Convert the owner of a `readable` to a `Read` function. */
 export function toRead <T> ({ name = null, readable }, ...steps: Step<T>[]): Read<T> {
-  const pipeline = Pipe(...steps);
+  const pipeline = Fn.Pipe(...steps);
   const reader = readable.getReader();
   return Fn.Name(name ? `${name}>` : 'read', async function read () {
     return pipeline(await reader.read()) as { done: boolean, value: T };
@@ -40,7 +40,7 @@ export type Writer<T = Bytes> = { write: Write<T> };
 export type Write<T = Bytes> = (_: T) => Promise<void>;
 /** Convert the owner of a `writable` to a `Write` function. */
 export function toWrite <T> ({ name = null, writable }, ...steps: Step<T>[]): Write<T> {
-  const pipeline = Pipe(...steps);
+  const pipeline = Fn.Pipe(...steps);
   const writer = writable.getWriter();
   return Fn.Name(name ? `${name}<` : 'write', function write (
     ...args: Parameters<typeof writer["write"]>
