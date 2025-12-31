@@ -1,6 +1,11 @@
-import { default as Anchor, web3 } from '@coral-xyz/anchor';
 import {
-  ok, equal, expect, forbid, Fn, Name,
+  default as Anchor,
+  web3,
+} from '@coral-xyz/anchor';
+
+import {
+  env,
+  ok, equal, expect, forbid, Fn,
   Case, resolve, homedir,
   Anchor, Program, workspace,
   ACCOUNT_SIZE, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID,
@@ -14,7 +19,12 @@ import {
   createApproveInstruction,
   getMinimumBalanceForRentExemptAccount,
 } from './deps.ts';
-import type { Name, MaybeAsync } from './deps.ts';
+
+import type {
+  Name,
+  MaybeAsync
+} from './deps.ts';
+
 export const BN = Anchor.BN;
 export const KP = web3.Keypair;
 export const PK = web3.PublicKey;
@@ -23,7 +33,6 @@ export type BN = InstanceType<typeof Anchor.BN>;
 export type KP = InstanceType<typeof web3.Keypair>;
 export type PK = InstanceType<typeof web3.PublicKey>;
 export type TX = InstanceType<typeof web3.Transaction>;
-import { env } from './deps.ts';
 env.ANCHOR_PROVIDER_URL ??= 'http://localhost:8899';
 env.ANCHOR_WALLET ??= resolve(homedir(), '.config/solana/id.json'); // FIXME use XDG
 export { Anchor, Program, workspace }

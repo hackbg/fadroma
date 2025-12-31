@@ -1,8 +1,8 @@
-import type { Fn, Async, Prototype, Meta } from './index.ts';
+import type { Async, Prototype, Meta } from './index.ts';
 import { Log, traceConsole } from './context.ts';
 import { ok, equal, throws, rejects, stdout, argv,
   setImmediate, inspect } from './deps.ts';
-import { Ansi, Error, Main, Name, Seq, Step as toStep,
+import { Fn, Ansi, Error, Main, Seq, Step as toStep,
   spaced, lines, msec, toString, merged,
   todo, withInfiniteStack, alignTrace } from './format.ts';
 /** Test entrypoint. When test module is run (not imported),
@@ -117,7 +117,7 @@ function Category (
   const props = { state, icon, label, color, results: [],
     get count () { return props.results.length } };
   const info = () => `[Category: ${icon} ${color(state)} (${props.results.length})]`;
-  return toString(info)(Name(state, function categorize (result: Partial<Result>): Result {
+  return toString(info)(Fn.Name(state, function categorize (result: Partial<Result>): Result {
     result = { ...result, state, stack: [...stack||[]] };
     props.results.push(result);
     return result as Result;
@@ -208,17 +208,17 @@ export function the <T extends Testing> (
 ): Step<T, void> {
   if (steps.length === 0) return todo(name);
   const substeps: Step<T>[] = steps.map(Step);
-  return Name(name, testStep, { steps });
+  return Fn.Name(name, testStep, { steps });
   async function testStep (last: unknown, context: T): Promise<void> {
     let state: State = null, threw: Error, returned = last;
     if (substeps.length === 0)
       context.todo({ index: 1, name, t0: performance.now() });
     if (substeps.length === 1)
-      await runStep(Name(substeps[0].name||name, substeps[0]));
+      await runStep(Fn.Name(substeps[0].name||name, substeps[0]));
     for (let index = 1; index <= substeps.length; index++) { 
       const step = substeps[index - 1];
       const stepName = substepName(name, step as { name?: string });
-      await Name(stepName, runStep)(step, index);
+      await Fn.Name(stepName, runStep)(step, index);
     }
     async function runStep (step: Step<T>, index = 1) {
       const t0 = context.begin(index, step);
@@ -261,7 +261,7 @@ export function is <T extends Testing> (type: string|object, ...args: unknown[])
   // TODO: refactor: early dispatch
   const name = `MUST be ${type}`;
   // call the returned function to assert
-  return toString(`[${name}]`)(Name(name, function mustBe (value: unknown) {
+  return toString(`[${name}]`)(Fn.Name(name, function mustBe (value: unknown) {
     // type check
     ok(typeof value === type, `not ${type}: ${inspect(value, { depth: 4 })}`);
     // value check
@@ -301,7 +301,7 @@ export function is <T extends Testing> (type: string|object, ...args: unknown[])
 /** Confirm that return value of previous test step
   * is deeply, strictly equal to expected value. */
 export function equals <T extends Testing, V> (value: V, info?: string|Error): Step<T, unknown> {
-  return Name(`MUST equal ${inspect(value)}`, function mustEqual (last: unknown) {
+  return Fn.Name(`MUST equal ${inspect(value)}`, function mustEqual (last: unknown) {
     equal(value, last, info);
     return last;
   }, { value, info });
@@ -343,7 +343,7 @@ export function has <T extends Testing, X> (...args: unknown[]):
       const checks = args.slice(1);
       const name   = `MUST have "${String(key)}"`
       const info   = `[${name}]`;
-      return toString(info)(Name(name, async function testHasProperty (object: X, context: T) {
+      return toString(info)(Fn.Name(name, async function testHasProperty (object: X, context: T) {
         ok(key in (object as object), `${String(key)} missing in ${inspect(object)}`);
         for (const check of checks) {
           if (typeof check !== 'function') {
@@ -358,7 +358,7 @@ export function has <T extends Testing, X> (...args: unknown[]):
     case (args[0] && typeof args[0] === 'object'): {
       // partial equal
       const name = `MUST match "${inspect(args[0])}"`;
-      return toString(`[${name}]`)(Name(name, function testHasProperties (object: object) {
+      return toString(`[${name}]`)(Fn.Name(name, function testHasProperties (object: object) {
         for (const [k, expected] of Object.entries(args[0])) {
           const actual = object[k]
           equal(actual, expected, `${k} = ${inspect(actual)} != ${inspect(expected)}`);
@@ -371,7 +371,7 @@ export function has <T extends Testing, X> (...args: unknown[]):
 }
 /** Confirm that string or array includes an expected value. */
 export function includes <T extends Testing, X> (item: X) {
-  return Name(`MUST include ${inspect(item)}`,
+  return Fn.Name(`MUST include ${inspect(item)}`,
     function mustInclude (object: { includes (_: X): boolean }, _: T) {
       ok(object && ((typeof object === 'string') ||
         ((typeof object === 'object') && (typeof object['includes'] === 'function'))),

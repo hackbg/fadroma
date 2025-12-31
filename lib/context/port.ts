@@ -1,5 +1,5 @@
 import type { Step, Fn } from '../index.ts';
-import { Error, Name, Pipe } from '../format.ts';
+import { Error, Pipe } from '../format.ts';
 import { Socket } from '../deps.ts';
 
 /** Keep track of port assignments. */
@@ -14,7 +14,7 @@ export function Ports (context = {}, ...fns: Fn[]) {
 
 /** Run a service and wait for it to provide a port. */
 export function Port <T> (port: number, ...steps: Step<T>[]) {
-  return Name(`Port(${port})`, async function bindPort (context = { ports: {} }) {
+  return Fn.Name(`Port(${port})`, async function bindPort (context = { ports: {} }) {
     context.ports[port] = await Pipe(...steps)(context);
     return context;
   }, { port, steps })
@@ -27,7 +27,7 @@ export function portWait <T> ({
   retries  = 30,
   interval = 300
 }) {
-  return Name(`TCP(Wait for ${host}:${port})`, async function waitForPort (_?: T) {
+  return Fn.Name(`TCP(Wait for ${host}:${port})`, async function waitForPort (_?: T) {
     while (retries-- > 0) {
       try {
         const socket = new Socket();

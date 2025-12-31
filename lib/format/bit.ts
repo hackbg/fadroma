@@ -10,7 +10,7 @@ export type Bit = ((_?: number|[number]|Uint8Array) => boolean) & {
 };
 /** Specify a flag. */
 export const Bit = (name: string, bit: number): Bit =>
-  Name(`bit ${bit}: ${name}`, function testFlag (
+  Fn.Name(`bit ${bit}: ${name}`, function testFlag (
     value: number|[number]|Uint8Array = null
   ): boolean {
     if (value === null) return value as null;

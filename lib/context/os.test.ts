@@ -3,12 +3,12 @@ import { suite, the, has, is, equals }  from "../tester.ts";
 import { execImpl, spawnImpl } from '../deps.ts';
 import { Dir, Temp, Zip, Txt, Bin } from './fs.ts';
 import { Exec, Spawn, Env } from './svc.ts';
-import { Name, Fn } from '../format.ts';
+import { Fn } from '../format.ts';
 
 export const testDir = the('Dir',
   the('Current', () => Dir(), is('function'), has('path', equals(''))), 
   the('Defined', () => Dir('test'), is('function'), has('path'),
-    Name('Create', async (d: Fn, { log }) => {
+    Fn.Name('Create', async (d: Fn, { log }) => {
       const result = await d(mock());
       return result })),
   the('Temp', () => { return Temp(); }, is('function'), has('prefix'),

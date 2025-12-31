@@ -24,7 +24,7 @@ export type Fn<Inputs extends unknown[] = unknown[], Output = unknown> =
 export function Fn <F extends ((..._:unknown[])=>unknown)> (
   fn: F, ...args: Partial<Parameters<F>>
 ) {
-  return Name(`${fn.name}(${curriedArgs(args)})`, fn.bind(null, ...args), {
+  return Fn.Name(`${fn.name}(${curriedArgs(args)})`, fn.bind(null, ...args), {
     fn, args, stack: new Error().stack?.split('\n').slice(3)
   });
 }
@@ -47,6 +47,25 @@ export namespace Fn {
       return context;
     }, { steps });
   }
+  /** Something that may have a `name`, such as a [Function]. */
+  export type Name = { name: string };
+  /** Set the name of something. Optionally, assign metadata.
+    *
+    * * By default, the `name` property of functions is read-only,
+    *   so this is accomplished using [Object.defineProperty].
+    *
+    * * Metadata added by this function is coped by descriptor,
+    *   which means getters and setters will work as defined. */ 
+  export function Name <T, U> (name: string, named: T, props?: U): T & U & Name {
+    // Rename function via property
+    if (typeof name === 'string') named = Object.defineProperty(named, 'name', {
+      configurable: true, value: name
+    });
+    // Copy properties via descriptors
+    return Object.defineProperties(named, props
+      ? Object.getOwnPropertyDescriptors(props)
+      : {}) as T & U & Name;
+  }
 }
 
 /** The identity function. */
@@ -54,27 +73,6 @@ export const identity = <T>(x: T): T => x;
 
 /** Return the identity function. */
 export const nop = (..._: unknown[]) => identity;
-
-/** Something that may have a `name`. */
-export type Name = { name: string };
-
-/** Set the name of something. Optionally, assign metadata.
-  *
-  * * By default, the `name` property of functions is read-only,
-  *   so this is accomplished using [Object.defineProperty].
-  *
-  * * Metadata added by this function is coped by descriptor,
-  *   which means getters and setters will work as defined. */ 
-export function Name <T, U> (name: string, named: T, props?: U): T & U & Name {
-  // Rename function via property
-  if (typeof name === 'string') named = Object.defineProperty(named, 'name', {
-    configurable: true, value: name
-  });
-  // Copy properties via descriptors
-  return Object.defineProperties(named, props
-    ? Object.getOwnPropertyDescriptors(props)
-    : {}) as T & U & Name;
-}
 
 /** Stub test step. When reached, terminates without passing or failing,
   * and adds a task to the test report.
@@ -88,7 +86,7 @@ export function Name <T, U> (name: string, named: T, props?: U): T & U & Name {
   *       expect('Manual todo with more info', todo('the more info')));
   *
   **/
-export const todo = (...info: string[]) => Name(info.join(' '),
+export const todo = (...info: string[]) => Fn.Name(info.join(' '),
   function trackTodo (_context: unknown) {
     throw Object.assign(new Error(info.join(' ')), { todo: true })
   }, { info, todo: true, skip: true });
@@ -228,9 +226,9 @@ export function Pipe <W, X, Y, Z> (w: W, x: X, y: Y, z: Z):
   W extends (_: infer A) => B ? Fn<[A], E> : E : never : never : never;
 export function Pipe (...steps: Fn[]): Fn;
 export function Pipe (...steps: unknown[]) {
-  if (steps.length === 0) return Name('Pipe0', identity);
+  if (steps.length === 0) return Fn.Name('Pipe0', identity);
   if (typeof steps[0] === 'function') {
-    return Name(pipeName(steps as Fn[]), function pipeline (value: unknown) {
+    return Fn.Name(pipeName(steps as Fn[]), function pipeline (value: unknown) {
       for (const step of steps) {
         if (!step) continue;
         if (typeof step === 'function') value = Async(value, step as Fn);
@@ -251,7 +249,7 @@ const pipeName = (steps: Fn[]): string =>
 /** Run functions sequentially in the same context,
   * ignoring return values. */
 export function Seq (...steps: Async<Fn>[]) {
-  return Name(null, async function runSequentially (context: unknown) {
+  return Fn.Name(null, async function runSequentially (context: unknown) {
     for (let i = 0; i < steps.length; i++) {
       const step = await steps[i];
       if (typeof step === 'function') await step(context);
@@ -333,7 +331,7 @@ export const withCatcher =
     Promise.resolve(f(...args)).catch(catcher) as Async<W>;
 
 export const setProp = <T extends object>(key: keyof T, ...fns: Fn[]) =>
-  Name(`set ${String(key)}`, async function setProperty (context) {
+  Fn.Name(`set ${String(key)}`, async function setProperty (context) {
     return Object.assign(context, { [key]: await Pipe(...fns)(context) });
   }, { key, fns });
 

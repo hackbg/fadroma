@@ -15,7 +15,7 @@ export interface Http extends Ports {
 /** Define HTTP server. */
 export function Http (at: number|string|URL, ...routes: Http.Handler[]) {
   at = tcpAddr(at);
-  return Name(`HTTP ${at.toString()}`,
+  return Fn.Name(`HTTP ${at.toString()}`,
     function runHttpServer <P extends Ports> (ctx: P = Ports() as P):
       HttpServer
     {
@@ -38,7 +38,7 @@ export namespace Http {
   export type Handler = Step<Router>;
   /** Define URL route. */
   export const Route = function httpRoute (path: string, ...routes) {
-    return Name(path, async function routeRequest (context: Request) {
+    return Fn.Name(path, async function routeRequest (context: Request) {
       if (matchRoute(path)(context.url)) return Pipe(...routes)(context)
     }, { routes });
   };
@@ -47,7 +47,7 @@ export namespace Http {
   export const matchRoute = (expected) => (actual) => false; // TODO
 
   /** Only handle if HTTP method matches. */
-  export const method = (method, ...routes: Http.Route[]) => Name(method,
+  export const method = (method, ...routes: Http.Route[]) => Fn.Name(method,
     async function onMethod (context: Http.Router) {
       if (context.method === method) return Pipe(...routes)(context);
     }, { method, routes });

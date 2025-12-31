@@ -31,7 +31,7 @@ function testWasm (examples = [
   );
 }
 function testCompile ({ src, cmr }: Example) {
-  return Name(`testCompile ${src.length}b`, (compile: Fn, _context) => {
+  return Fn.Name(`testCompile ${src.length}b`, (compile: Fn, _context) => {
     const result = compile(src, {}) as { toJSON (): { cmr: string }, spend (): object };
     if (cmr) equal(result.toJSON().cmr, cmr);
     equal(typeof result.spend, 'function');
@@ -69,21 +69,21 @@ function testDeploy (examples = [
     Spend(exampleEmpty().src)));
 }
 function Create (name: string, cb?: Fn) {
-  return Name(`Create ${name}`, async (ctx: { rpc, rest }) => {
+  return Fn.Name(`Create ${name}`, async (ctx: { rpc, rest }) => {
     await ctx.rpc.createwallet(name);
     cb && await cb(await ctx.rpc.getwalletinfo());
     return ctx
   })
 };
 function Rescan (cb?: Fn) {
-  return Name(`Rescan`, async (ctx: { rpc, rest }) => {
+  return Fn.Name(`Rescan`, async (ctx: { rpc, rest }) => {
     await ctx.rpc.rescanblockchain();
     await cb(await ctx.rpc.getwalletinfo());
     return ctx
   })
 };
 function Deploy (p2tr: string, _cb?: Fn) {
-  return Name(p2tr, async (ctx: Btc) => {
+  return Fn.Name(p2tr, async (ctx: Btc) => {
     const user  = await ctx.rpc.getnewaddress("fadroma", "bech32");
     const txId  = await ctx.rpc.sendtoaddress(p2tr, 1000);
     await ctx.rpc.generatetoaddress(1, user);
@@ -93,7 +93,7 @@ function Deploy (p2tr: string, _cb?: Fn) {
   })
 }
 function Spend (source: string, _cb?: Fn) {
-  return Name('Spend', async ({ rpc, rest, user, tx, block }, { log }) => {
+  return Fn.Name('Spend', async ({ rpc, rest, user, tx, block }, { log }) => {
     const destination = user;//await rpc.getnewaddress();
     const program = await Simf(source).compile();
     const { txid: txId, hex: txBytes } = tx;
@@ -182,7 +182,7 @@ function daemonOptions (): Btc.Options {
   } as const;
 }
 function Log (on) {
-  return Name(`Log: ${on}`, (ctx) => {
+  return Fn.Name(`Log: ${on}`, (ctx) => {
     if (on) {
       ctx.stdout.pipe(stderr);
       ctx.stderr.pipe(stderr);
@@ -191,7 +191,7 @@ function Log (on) {
   })
 };
 function Wait (time: number) {
-  return Name(`Wait ${time}ms`, async (ctx: unknown) => {
+  return Fn.Name(`Wait ${time}ms`, async (ctx: unknown) => {
     await new Promise(resolve=>setTimeout(resolve, time));
     return ctx
   })

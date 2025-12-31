@@ -1,5 +1,5 @@
 import type { Step } from '../index.ts';
-import { Name, Pipe, identity } from './function.ts';
+import { Pipe, identity } from './function.ts';
 import { Bytes } from './byte.ts';
 
 /** Connection to `Read & Write` pair. */
@@ -29,7 +29,7 @@ export type Read<T = Bytes> = () => Promise<{ done: boolean, value: T }>;
 export function toRead <T> ({ name = null, readable }, ...steps: Step<T>[]): Read<T> {
   const pipeline = Pipe(...steps);
   const reader = readable.getReader();
-  return Name(name ? `${name}>` : 'read', async function read () {
+  return Fn.Name(name ? `${name}>` : 'read', async function read () {
     return pipeline(await reader.read()) as { done: boolean, value: T };
   }, { name, readable, reader, pipeline });
 };
@@ -42,7 +42,7 @@ export type Write<T = Bytes> = (_: T) => Promise<void>;
 export function toWrite <T> ({ name = null, writable }, ...steps: Step<T>[]): Write<T> {
   const pipeline = Pipe(...steps);
   const writer = writable.getWriter();
-  return Name(name ? `${name}<` : 'write', function write (
+  return Fn.Name(name ? `${name}<` : 'write', function write (
     ...args: Parameters<typeof writer["write"]>
   ) {
     return writer.write(pipeline(...args));
@@ -65,7 +65,7 @@ export const write = <T>(...data: T[]) =>
 
 /** Read between `min` and `max` bytes. */
 export const readBytes = ({ min = 0, max = 256 } = {}) =>
-  Name(`read between ${min} and ${max} bytes`,
+  Fn.Name(`read between ${min} and ${max} bytes`,
     async function readSomeBytes (reader: Reader<Bytes>) {
       let total = 0;
       const chunks = []
