@@ -26,7 +26,7 @@ export function Simf (source: string): Simf {
       return Object.assign(
         compiled,
         compiled.toJSON()
-      );
+      ) as unknown as Simf.Program;
     }
   };
   return program;
@@ -47,17 +47,21 @@ export namespace Simf {
     toJSON:      Fn.Returns<object>,
   };
   /** Simplicity program (WASM object). */
-  export type Program = Simf & {
-    toString: Fn.Returns<string>
-    toJSON:   Fn.Returns<object>,
-    spend:    Fn<[object], Spend>,
+  export interface Program extends Simf {
+    toString (): object
+    toJSON (): object
+    spend (_: object): Spend
   };
   /** Simplicity spend transaction. */
   export type Spend = {
-    input:     unknown[]
-    output:    unknown[]
-    version:   unknown
-    lock_time: { block: number }|{ seconds: number }
+    hex:         string,
+    bytes:       Uint8Array,
+    decoded:     {
+      input:     unknown[]
+      output:    unknown[]
+      version:   unknown
+      lock_time: { block: number }|{ seconds: number }
+    }
   };
   /** Simplicity CLI. */
   export const Cli = async function simfCli (program: Simf) {

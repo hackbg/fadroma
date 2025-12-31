@@ -1,6 +1,5 @@
 use crate::*;
 
-
 /// Helper for accepting either [Uint8Array] or base16 string.
 pub fn bytes_to_vec (cmr: JsValue) -> Maybe<Vec<u8>> {
     if Uint8Array::instanceof(&cmr) { 
@@ -13,14 +12,13 @@ pub fn bytes_to_vec (cmr: JsValue) -> Maybe<Vec<u8>> {
 }
 
 /// Generate P2TR (pay-to-taproot) address from [TaprootSpendInfo].
-pub fn taproot_to_p2tr (tap: &TaprootSpendInfo) -> Address {
-    Address::p2tr(
-        secp256k1::SECP256K1,
-        tap.internal_key(),
-        tap.merkle_root(),
-        None,
-        &AddressParams::LIQUID_TESTNET
-    )
+pub fn taproot_to_p2tr (
+    tap: &TaprootSpendInfo,
+    // TODO: kind: Option<AddressParams>
+) -> Address {
+    let key = tap.internal_key();
+    let root = tap.merkle_root();
+    Address::p2tr(secp256k1::SECP256K1, key, root, None, &AddressParams::LIQUID_TESTNET)
 }
 
 /// Generate [TaprootSpendInfo] for a given script.
@@ -77,8 +75,7 @@ pub fn make_env (asset: Asset) -> Maybe<Env> {
         0xc0, 0xeb, 0x04, 0xb6, 0x8e, 0x9a, 0x26, 0xd1,
         0x16, 0x04, 0x6c, 0x76, 0xe8, 0xff, 0x47, 0x33,
         0x2f, 0xb7, 0x1d, 0xda, 0x90, 0xff, 0x4b, 0xef,
-        0x53, 0x70, 0xf2, 0x52, 0x26, 0xd3, 0xbc, 0x09, 0xfc,
-    ]))?;
+        0x53, 0x70, 0xf2, 0x52, 0x26, 0xd3, 0xbc, 0x09, 0xfc]))?;
     let hash = BlockHash::all_zeros();
     Ok(ElementsEnv::new(tx, vec![utxo; 1], 0, cmr, ctrl, None, hash))
 }
@@ -145,16 +142,6 @@ pub fn tx_script (
         input:     vec![in_0],
         output:    vec![out_0, out_1], 
     })
-}
-
-pub fn tx_ins_to_js_value (x: &[TxIn]) -> Maybe<JsValue> {
-    let results = Array::new();
-    Ok(results.into())
-}
-
-pub fn tx_outs_to_js_value (x: &[TxOut]) -> Maybe<JsValue> {
-    let results = Array::new();
-    Ok(results.into())
 }
 
 //fn parse_env (env: JsValue) -> Maybe<Env> {

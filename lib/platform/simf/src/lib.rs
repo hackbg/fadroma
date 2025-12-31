@@ -56,7 +56,10 @@ pub(crate) use wasm_bindgen::prelude::*;
         },
         encode::deserialize as deserialize_tx,
         hash_types::BlockHash,
-        pset::PartiallySignedTransaction,
+        pset::{
+            PartiallySignedTransaction,
+            serialize::Serialize,
+        },
         secp256k1_zkp as secp256k1,
         taproot::{
             ControlBlock,
@@ -88,7 +91,7 @@ macro_rules! set(($obj:expr, $key:expr, $value:expr) => {{
 /// Construct an object
 macro_rules! obj(($($id:literal = $val:expr),+ $(,)?) => {{
     let object = Object::new();
-    $(set!(object, $id, $val);)+
+    $(set!(object, $id, JsValue::from($val));)+
     object
 }});
 /// Iterate over object entries (unused?)
