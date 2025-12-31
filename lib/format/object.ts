@@ -51,3 +51,49 @@ const _objectReducer = (f) => (a, [k, v]) =>
 
 /** Apply an object reducer to an object's entries. */
 const _reduceObject = f => x => Object.entries(x).reduce(f, {});
+
+/** Check the `typeof` a JS value. */
+const isType = (type: string) =>
+  Object.assign(function isType (value: any) {
+    return type === typeof value as string
+  }, { type });
+
+/** Check if the `typeof` a JS value is a function. */
+const isFn = isType('function')
+
+/** Shallow clone only certain keys. */
+export const Pick = <T, K extends keyof T>(
+  keys: Array<K>, ...steps: Fn<[T[K], T]>[]
+) => Object.assign(async function pickKeys (data: T) {
+  const pipeline = Fn.Pipe(...steps);
+  const result: Partial<Pick<T, K>> = {};
+  for (const key of keys) result[key] = await pipeline(data[key], data) as T[K];
+  return result as Pick<T, K>;
+}, { keys, steps });
+
+/** Shallow clone except certain keys. */
+export const Omit = todo();
+
+/** Specify a binary condition. */
+export const when = (condition: boolean, ...fns: Step<unknown>[]) =>
+  either(condition, Fn.Pipe(...fns));
+
+/** Specify a ternary condition. */
+export const either = <C> (
+  condition:  boolean|((_: C)=>Async<boolean>),
+  whenTrue:   Fn.Takes<[C]>,
+  whenFalse?: Fn.Takes<[C]>
+) => Object.assign(async function branch (state: C) {
+  if (typeof condition === 'function') condition = await condition(state);
+  if (condition) return whenTrue(state);
+  if (whenFalse) return whenFalse(state);
+}, { condition, whenTrue, whenFalse });
+
+export const setProp = <T extends object>(key: keyof T, ...fns: Fn[]) =>
+  Fn.Name(`set ${String(key)}`, async function setProperty (context) {
+    return Object.assign(context, { [key]: await Fn.Pipe(...fns)(context) });
+  }, { key, fns });
+
+//type Method<T> = (_: T, ...__: unknown[]) => unknown[]
+
+export type Prototype = { [Symbol.hasInstance] (_: unknown): boolean };

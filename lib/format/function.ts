@@ -1,4 +1,5 @@
 import { setImmediate, argv, fileURLToPath } from '../deps.ts';
+import Async from './async.ts';
 /** Gradually elaboratable function type. */
 export type Fn<Inputs extends unknown[] = unknown[], Output = unknown> =
   Fn.Takes<Inputs> & Fn.Returns<Output>;
@@ -198,18 +199,6 @@ Main.is = function isMain (meta: boolean|Partial<ImportMeta>, argv1: string) {
     || (!!meta?.main)
     || (meta?.url && fileURLToPath(meta?.url) == argv1));
 }
-
-/** Handle T or Promise<T> as Promise<T> */
-export type Async<T = unknown> = T|Promise<T>;
-/** Handle T or Promise<T> as Promise<T>
-  *
-  * Works by checking if the return value
-  * of the previous step is `then`able. */
-export const Async = <X, F extends (_: unknown)=>unknown> (
-  x: X | { then?: (f: F)=>Promise<unknown> }, f: F
-) => isThenable(x)
-  ? (x as unknown as { then: (_:F)=>Promise<unknown> }).then(f)
-  : f(x);
 /** Part of a [Pipe]. */
 export type Step<T = unknown, U = T> =
   Fn.Reflects & Fn.Takes<[T]> & Fn.Returns<Async<U>>;
@@ -256,84 +245,3 @@ export function Seq (...steps: Async<Fn>[]) {
     return context;
   }, { steps });
 }
-
-const isThenable = (x: unknown) => !!x
-  && (typeof x === 'object')
-  && ('then' in x)
-  && (typeof x.then === 'function');
-
-/** Check the `typeof` a JS value. */
-const isType = (type: string) =>
-  Object.assign(function isType (value: any) {
-    return type === typeof value as string
-  }, { type });
-
-/** Check if the `typeof` a JS value is a function. */
-const isFn = isType('function')
-
-/** Shallow clone only certain keys. */
-export const Pick = <T, K extends keyof T>(
-  keys: Array<K>, ...steps: Fn<[T[K], T]>[]
-) => Object.assign(async function pickKeys (data: T) {
-  const pipeline = Fn.Pipe(...steps);
-  const result: Partial<Pick<T, K>> = {};
-  for (const key of keys) result[key] = await pipeline(data[key], data) as T[K];
-  return result as Pick<T, K>;
-}, { keys, steps });
-
-/** Shallow clone except certain keys. */
-export const Omit = todo();
-
-/** Specify a binary condition. */
-export const when = (condition: boolean, ...fns: Step<unknown>[]) =>
-  either(condition, Fn.Pipe(...fns));
-
-/** Specify a ternary condition. */
-export const either = <C> (
-  condition:  boolean|((_: C)=>Async<boolean>),
-  whenTrue:   Fn.Takes<[C]>,
-  whenFalse?: Fn.Takes<[C]>
-) => Object.assign(async function branch (state: C) {
-  if (typeof condition === 'function') condition = await condition(state);
-  if (condition) return whenTrue(state);
-  if (whenFalse) return whenFalse(state);
-}, { condition, whenTrue, whenFalse });
-
-/** Create promise, Leaking `resolve` and `reject` methods
-  * from the executor, which allows the promise
-  * to be resolved from elsewhere. */
-export const defer = (callback?: Function) => {
-  let resolve: Function, reject: Function;
-  const promise = new Promise((arg0, arg1)=>{
-    resolve = arg0;
-    reject  = arg1;
-    if (callback) callback(resolve, reject);
-  });
-  return Object.assign(promise, { resolve, reject });
-}
-
-/** Object with Symbol.asyncIterator method. */
-export type AsyncIter<T> = {
-  [Symbol.asyncIterator](): AsyncIterableIterator<T>
-};
-
-/** Add `Symbol.asyncIterator` to an object. */
-export const AsyncIter = getIter => state => {
-  const iter = getIter(state);
-  return Object.assign(state, { [Symbol.asyncIterator]() { return iter } });
-};
-
-export const withCatcher =
-  <T extends unknown[], U>(catcher: Fn<T, U>) =>
-  <V extends unknown[], W>(f: Fn<V, W>) =>
-  (...args: T): Async<W> =>
-    Promise.resolve(f(...args)).catch(catcher) as Async<W>;
-
-export const setProp = <T extends object>(key: keyof T, ...fns: Fn[]) =>
-  Fn.Name(`set ${String(key)}`, async function setProperty (context) {
-    return Object.assign(context, { [key]: await Fn.Pipe(...fns)(context) });
-  }, { key, fns });
-
-//type Method<T> = (_: T, ...__: unknown[]) => unknown[]
-
-export type Prototype = { [Symbol.hasInstance] (_: unknown): boolean };
