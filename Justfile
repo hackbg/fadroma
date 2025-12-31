@@ -45,7 +45,13 @@ doc-lint:
   deno doc --html --private --lint --name=@hackbg/fadroma index.ts
 # Run test suite and report coverage.
 test:
-  time deno test --coverage --allow-net --allow-read=./namada/pkg/fadroma_namada_bg.wasm
+  time deno test --no-check --coverage \
+    --allow-env=FADROMA_SIMF_WASM,FADROMA_SIMF_WRAP,TERM_PROGRAM,COLUMNS,TMPDIR,TMP,TEMP \
+    --allow-net \
+    --allow-import=deno.land:443,cdn.skypack.dev:443 \
+    --allow-read=. \
+    --allow-write=/tmp/fadroma \
+      lib/index.test.ts
   deno coverage
   deno coverage --html
 # Report test coverage.
