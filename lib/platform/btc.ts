@@ -89,13 +89,15 @@ export namespace Btc {
   export type Options = Parameters<typeof Btc>[0];
 
   export interface Rpc {
-    generatetoaddress: Fn,
-    createwallet:      Fn,
-    rescanblockchain:  Fn,
-    getwalletinfo:     Fn,
-    getnewaddress:     Fn,
-    validateaddress:   Fn,
-    sendtoaddress:     Fn,
+    createwallet:              Fn,
+    generatetoaddress:         Fn,
+    getnewaddress:             Fn,
+    getwalletinfo:             Fn,
+    rescanblockchain:          Fn,
+    sendtoaddress:             Fn,
+    sendrawtransaction:        Fn,
+    signrawtransactionwithkey: Fn,
+    validateaddress:           Fn,
   }
 
   /** Bitcoin node's JSON-RPC API. */
@@ -106,13 +108,15 @@ export namespace Btc {
       return JSON.parse(text).result
     };
     return {
-      generatetoaddress: callRpc('generatetoaddress'),
-      createwallet:      callRpc('createwallet'),
-      rescanblockchain:  callRpc('rescanblockchain'),
-      getwalletinfo:     callRpc('getwalletinfo'),
-      getnewaddress:     callRpc('getnewaddress'),
-      validateaddress:   callRpc('validateaddress'),
-      sendtoaddress:     callRpc('sendtoaddress'),
+      createwallet:              callRpc('createwallet'),
+      generatetoaddress:         callRpc('generatetoaddress'),
+      getnewaddress:             callRpc('getnewaddress'),
+      getwalletinfo:             callRpc('getwalletinfo'),
+      rescanblockchain:          callRpc('rescanblockchain'),
+      sendtoaddress:             callRpc('sendtoaddress'),
+      sendrawtransaction:        callRpc('sendrawtransaction'),
+      signrawtransactionwithkey: callRpc('signrawtransactionwithkey'),
+      validateaddress:           callRpc('validateaddress'),
     }
   }
 
