@@ -1,22 +1,22 @@
 #!/usr/bin/env -S deno run --allow-read --allow-env --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443 --allow-net=127.0.0.1:8941,liquidtestnet.com:443,blockstream.info:443
-import { Fn, Test, Name } from '../index.ts';
-import { equal, throws, stderr } from '../deps.ts';
+import { Fn, Test } from '../index.ts';
+import { ok, equal, throws, stderr } from '../deps.ts';
 import { Simf } from './simf.ts';
 import { Btc } from './btc.ts';
 const { the, is, has } = Test;
-/** Asset ID for regular old Bitcoin. */
-const BITCOIN = 'b2e15d0d7a0c94e4e2ce0fe6e8691b9e451377f6e46e8045a86f7c4b5d4f0f23';
+///** Asset ID for regular old Bitcoin. */
+//const BITCOIN = 'b2e15d0d7a0c94e4e2ce0fe6e8691b9e451377f6e46e8045a86f7c4b5d4f0f23';
+///** Asset IDs of (t)L-BTC. */
+//const LIQUID  = { mainnet: '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d'
+//               , testnet: '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49' };
 /** Asset ID for initial reissuance token. */
 const REISSUE = 'a6be6b365498cd451be75ba0f68c258ee01e08f3cb30d5f8469f6628db58dc61';
-/** Asset IDs of (t)L-BTC. */
-const LIQUID  = { mainnet: '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d'
-                , testnet: '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49' };
 /** 1 BTC = 100000000 Satoshis. */
 const DECIMAL = 100000000n;
 /** Values for `initialfreecoins` and `initialreissuancetokens`. */
 const INITIAL = { COINS: 1000000n * DECIMAL, REISSUE: 1n * DECIMAL };
 /** Predefined example program. */
-type Example = { cmr?: string, p2tr?: string, src: string };
+type Example = { cost?: number, cmr?: string, p2tr?: string, src: string };
 /** Test the Simplicity support. */
 export default Test.suite(import.meta, 'Simf', testWasm(), testDeploy())
 /** Test the top-level functions of the WASM module. */
@@ -52,72 +52,92 @@ function testDeploy (examples = [
   exampleProgram(),
 ]) {
   let bitcoin = Number(INITIAL.COINS / DECIMAL);
+
   return the('Deploy', () => Btc(daemonOptions()),
-    Log(false), // Pipe daemon output to stderr
-    Wait(1000),
+    Verbose(false), // Pipe daemon output to stderr
+    Wait(2000),     // Wait for RPC to open (FIXME: use port)
+    // Create and sanity check test wallet
     Create('test-simf', hasBalance({ "bitcoin": 0 })),
     Rescan(hasBalance({ bitcoin, [REISSUE]: 1 })),
-    ...examples.map(example=>Deploy(example.p2tr, ({ chainHeight, utxos })=>{
-      equal(utxos.length, 2);
-      equal(utxos[0].height, chainHeight);
-      equal(utxos[1].height, chainHeight);
-      // utxos come in either order:
-      type UTXO = { value: number };
-      equal(utxos.filter((x: UTXO)=>x.value===1000).length, 1);
-      equal(utxos.filter((x: UTXO)=>x.value===998999.99999976).length, 1);
-    }),
-    Spend(exampleEmpty().src)));
-}
-function Create (name: string, cb?: Fn) {
-  return Fn.Name(`Create ${name}`, async (ctx: { rpc, rest }) => {
-    await ctx.rpc.createwallet(name);
-    cb && await cb(await ctx.rpc.getwalletinfo());
-    return ctx
-  })
-};
-function Rescan (cb?: Fn) {
-  return Fn.Name(`Rescan`, async (ctx: { rpc, rest }) => {
-    await ctx.rpc.rescanblockchain();
-    await cb(await ctx.rpc.getwalletinfo());
-    return ctx
-  })
-};
-function Deploy (p2tr: string, _cb?: Fn) {
-  return Fn.Name(p2tr, async (ctx: Btc) => {
-    const user  = await ctx.rpc.getnewaddress("fadroma", "bech32");
-    const txId  = await ctx.rpc.sendtoaddress(p2tr, 1000);
-    await ctx.rpc.generatetoaddress(1, user);
-    const tx    = await ctx.rest.tx(txId) as { blockhash: string };
-    const block = await ctx.rest.block(tx.blockhash);
-    return Object.assign(ctx, { user, block, tx });
-  })
-}
-function Spend (source: string, _cb?: Fn) {
-  return Fn.Name('Spend', async ({ rpc, rest, user, tx, block }, { log }) => {
-    const destination = user;//await rpc.getnewaddress();
-    const program = await Simf(source).compile();
-    const { txid: txId, hex: txBytes } = tx;
-    const spend = program.spend({ witness: '', destination, txId, txBytes, });
-    equal(spend.bytes.length,  240);
-    equal(spend.hex.length,    480);
-    equal(spend.decoded.version, 2);
-    equal(spend.decoded.input.length,    1);
-    equal(spend.decoded.input[0].previous_output.txid, txId);
-    equal(spend.decoded.output.length,   2);
-    equal(spend.decoded.output[0].value, '99999999000');
-    equal(spend.decoded.output[1].value, '1000');
-    const sent = await rpc.sendrawtransaction(spend.hex);
-    //const signed = await rpc.signrawtransactionwithkey(spend.hex);
-  })
+    // Test compiling, deploying, and evaluating each example.
+    ...examples.map(example=>DeployAndRun(example)));
+
+  function DeployAndRun ({ p2tr, cost, src }: Example, cb?: Fn) {
+    return Fn.Name(`${p2tr}: Fund`, async ({ rpc, rest }: Btc) => {
+      const user  = await rpc.getnewaddress("fadroma", "bech32");
+      const txId  = await rpc.sendtoaddress(p2tr, 1000);
+      await rpc.generatetoaddress(1, user);
+      const tx    = await rest.tx(txId);
+      const block = await rest.block(tx.blockhash);
+      await rpc.rescanblockchain();
+      const { balance } = await rpc.getwalletinfo()
+      ok(balance.bitcoin === (bitcoin -= (1000 + cost))); // FIXME: precision
+      console.log(...tx.vout);
+      equal(tx.vout.length, 3);
+      // Program balance:
+      equal(tx.vout.filter(
+        (x: Btc.Vout)=>(x.value===1000) && (x.scriptPubKey.address == p2tr)).length, 1);
+      // Transaction fee:
+      equal(tx.vout.filter(
+        (x: Btc.Vout)=>x.value===cost).length, 1);
+      // Remaining balance:
+      equal(tx.vout.filter(
+        (x: Btc.Vout)=>x.value===bitcoin).length, 1);
+      const destination = user;//await rpc.getnewaddress();
+      const program = await Simf(src).compile();
+      const param = { witness: '', destination, txId: tx.txid, txBytes: tx.hex, };
+      console.log({program, param});
+      const spend = program.spend(param);
+      equal(spend.bytes.length,  240);
+      equal(spend.hex.length,    480);
+      equal(spend.decoded.version, 2);
+      equal(spend.decoded.input.length,    1);
+      equal(spend.decoded.input[0].previous_output.txid, txId);
+      equal(spend.decoded.output.length,   2);
+      equal(spend.decoded.output[0].value, '99999999000');
+      equal(spend.decoded.output[1].value, '1000');
+      const sent = await rpc.sendrawtransaction(spend.hex);
+      //const signed = await rpc.signrawtransactionwithkey(spend.hex);
+      return ctx;
+    })
+  }
+  function Create (name: string, cb?: Fn) {
+    return Fn.Name(`Create ${name}`, async (ctx: { rpc, rest }) => {
+      await ctx.rpc.createwallet(name);
+      cb && await cb(await ctx.rpc.getwalletinfo());
+      return ctx
+    })
+  };
+  function Rescan (cb?: Fn) {
+    return Fn.Name(`Rescan`, async (ctx: { rpc, rest }) => {
+      await ctx.rpc.rescanblockchain();
+      await cb(await ctx.rpc.getwalletinfo());
+      return ctx
+    })
+  };
+  function Verbose (on) {
+    return Fn.Name(`Verbose: ${on}`, (ctx) => {
+      ctx.verbose = on;
+      if (on) {
+        ctx.stdout.pipe(stderr);
+        ctx.stderr.pipe(stderr);
+      }
+      return ctx
+    })
+  };
+  function Wait (time: number) {
+    return Fn.Name(`Wait ${time}ms`, async (ctx: unknown) => {
+      await new Promise(resolve=>setTimeout(resolve, time));
+      return ctx
+    })
+  };
 }
 function hasBalance (balance) {
   return info => equal(info.balance, balance)
 }
-function examples () {
-  return [exampleEmpty(), exampleProgram()]
-}
 function exampleEmpty () {
   return {
+    cost: 2.4e-7,
     cmr: 'c40a10263f7436b4160acbef1c36fba4be4d95df181a968afeab5eac247adff7',
     p2tr: 'tex1p9jcvyzkdwdqtf49kta4xpc5g35xkfcexwfsl8v70w2gwttelncyshxjk56',
     src: 'fn main () {}',
@@ -125,6 +145,7 @@ function exampleEmpty () {
 }
 function exampleProgram () {
   return {
+    cost: 2.7e-7,
     cmr: 'e65e19e139a13583a0a7efb24be13c20d578f06f51b2a7fe7c7b9097072dbabe',
     p2tr: 'tex1p305439usq06f4maelan8txnxshktvayu9z5gnwu6zrrxm9vmlufqcshcuv',
     src: `fn main() {
@@ -181,18 +202,3 @@ function daemonOptions (): Btc.Options {
     vbparams:                    "taproot:1:1",
   } as const;
 }
-function Log (on) {
-  return Fn.Name(`Log: ${on}`, (ctx) => {
-    if (on) {
-      ctx.stdout.pipe(stderr);
-      ctx.stderr.pipe(stderr);
-    }
-    return ctx
-  })
-};
-function Wait (time: number) {
-  return Fn.Name(`Wait ${time}ms`, async (ctx: unknown) => {
-    await new Promise(resolve=>setTimeout(resolve, time));
-    return ctx
-  })
-};

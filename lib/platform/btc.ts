@@ -92,7 +92,7 @@ export namespace Btc {
     createwallet:              Fn,
     generatetoaddress:         Fn,
     getnewaddress:             Fn,
-    getwalletinfo:             Fn,
+    getwalletinfo:             Fn.Returns<{ balance: Record<string, number> }>,
     rescanblockchain:          Fn,
     sendtoaddress:             Fn,
     sendrawtransaction:        Fn,
@@ -123,8 +123,10 @@ export namespace Btc {
   export interface Rest {
     chaininfo: Fn,
     block:     Fn,
-    tx:        Fn,
+    tx:        Fn.Returns<{ blockhash: string, vout: Vout[] }>,
   }
+
+  export type Vout = { value: number, scriptPubKey: { type: string, address: string } };
 
   /** Bitcoin node's optional REST API. */
   export const Rest = function btcRest (url: string): Rest {

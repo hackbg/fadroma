@@ -94,6 +94,5 @@ impl Program {
             "bytes"   = Output::u8a(&bytes),
             "hex"     = hex::encode(&bytes),
         })
-        
     }
 }
