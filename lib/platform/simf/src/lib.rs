@@ -69,10 +69,26 @@ pub(crate) use wasm_bindgen::prelude::*;
         },
     }
 };
-/// Lame-ass workaround for WASM error "suffix"
-macro_rules! attempt { ($expr:expr) => { $expr.map_err(|e|JsError::new(&e))? }; }
 /// Standard result type
 pub(crate) type Maybe<T> = Result<T, JsError>;
+/// Saves 40-ish characters.
+#[allow(unused)] macro_rules! log(($msg:literal $(, $expr:expr)*) => {
+    ::web_sys::console::log_1(&format!($msg $(, $expr)*).into())});
+/// Construct throwable error
+macro_rules! err(($msg:literal $(, $expr:expr)*) => {
+    Err(JsError::new(&format!($msg $(, $expr)*))) });
+/// Return [JsError] if expression evaluates to false:
+macro_rules! asserted(($expr:expr) => {
+    if !$expr { return err!("assertion failed: {}", stringify!($expr)) } });
+/// Map `Err` to friendly [JsError].
+macro_rules! expected(($msg:literal: $expr:expr) => {
+    $expr.map_err(|_e|JsError::new(&format!("failed: {}", $msg))) });
+/// Map `None` to friendly [JsError].
+macro_rules! required(
+    ($expr:expr) => {
+        $expr.ok_or(JsError::new(&format!("{}: not found", stringify!($expr)))) };
+    ($msg:literal: $expr:expr) => {
+        $expr.ok_or(JsError::new(&format!("{}: {}", stringify!($expr), $msg))) });
 /// Get property of JS object
 macro_rules! get(
     ($obj:expr, $key:expr) => {
@@ -86,53 +102,13 @@ macro_rules! set(($obj:expr, $key:expr, $value:expr) => {{
     let value = $value;
     Reflect::set(&$obj, &JsString::from($key).into(), &value.clone().into())
         .map_err(|_e|JsError::new(&format!("failed to set property: {}", $key)))?;
-    value
-}});
+    value }});
 /// Construct an object
 macro_rules! obj(($($id:literal = $val:expr),+ $(,)?) => {{
     let object = Object::new();
     $(set!(object, $id, JsValue::from($val));)+
-    object
-}});
-/// Iterate over object entries (unused?)
-macro_rules! each {
-    ($obj:expr => |$key:ident,$val:ident|$cb:expr) => {{
-        Object::entries(&$obj.into()).for_each(&mut |entry, _, _| {
-            let entry = Array::from(&entry);
-            let $key = entry.get(0);
-            let $val = entry.get(1);
-            $cb
-        });
-    }}
-}
-/// Map missing values to friendly [JsError]s.
-macro_rules! required (
-    ($expr:expr)=>{
-        $expr.ok_or(JsError::new(&format!("{}: not found", stringify!($expr))))};
-    ($msg:literal: $expr:expr)=>{
-        $expr.ok_or(JsError::new(&format!("{}: {}", stringify!($expr), $msg)))};
-);
-/// Map failures  to friendly [JsError]s.
-macro_rules! expected {
-    ($msg:literal: $expr:expr) => {
-        $expr.map_err(|_e|JsError::new(&format!("failed: {}", $msg)))
-    };
-}
-/// Because duh
-macro_rules! log {
-    ($msg:literal $(, $expr:expr)*) => {
-        ::web_sys::console::log_1(&format!($msg $(, $expr)*).into());
-    }
-}
-/// Construct throwable error
-macro_rules! err {
-    ($msg:literal $(, $expr:expr)*) => {
-        Err(JsError::new(&format!($msg $(, $expr)*)))
-    }
-}
-
+    object }});
 // Above macros are available in subsequent modules:
-
 mod simf; pub use self::simf::*;
 mod simf_impl; pub use self::simf_impl::*;
 mod simf_parse; pub use self::simf_parse::*;

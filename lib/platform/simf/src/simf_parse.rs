@@ -3,8 +3,24 @@ use crate::*;
 pub struct Input;
 
 impl Input {
+    // FIXME
+    pub fn fee (_: JsValue) -> Maybe<u64> {
+        Ok(1000)
+    }
+
     pub fn flag (x: JsValue) -> bool {
         x.is_truthy()
+    }
+
+    /// Accepts either [Uint8Array] or hex string.
+    pub fn bytes (input: JsValue) -> Maybe<Vec<u8>> {
+        if Uint8Array::instanceof(&input) { 
+            Ok(Uint8Array::unchecked_from_js(input).to_vec())
+        } else if JsString::is_type_of(&input) {
+            expected!("decode input": hex::decode(&required!(input.as_string())?))
+        } else {
+            return err!("need Uint8Array or hex string")
+        }
     }
 
     pub fn asset_id (x: JsValue) -> Maybe<AssetId> {
@@ -21,18 +37,7 @@ impl Input {
         }
     }
 
-    // FIXME
-    pub fn fee (_: JsValue) -> Maybe<u64> {
-        Ok(1000)
-    }
-
-    //pub fn asset (x: JsValue) -> Maybe<Asset> {
-        //let asset = required!("asset: not string": x.as_string())?;
-        //let asset = expected!("asset: not parsed": Asset::from_str(&asset))?;
-        //asset
-    //}
-
-    pub fn addr (x: JsValue) -> Maybe<Address> {
+    pub fn address (x: JsValue) -> Maybe<Address> {
         let address = required!("addr: not string": x.as_string())?;
         let address = expected!("addr: not parsed": Address::from_str(&address))?;
         Ok(address)
@@ -66,7 +71,7 @@ impl Input {
         Ok(Arguments::default())
     }
 
-    pub fn wits (wits: JsValue) -> Maybe<WitnessValues> {
+    pub fn witness (wits: JsValue) -> Maybe<WitnessValues> {
         if wits.is_truthy() {
             if !wits.is_object() { return err!("wits: must be object") }
             let wits = expected!("wits: failed to stringify": JSON::stringify(&wits))?;

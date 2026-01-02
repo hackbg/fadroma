@@ -1,5 +1,4 @@
-import { Async, Fn, Pipe, Spawn, Temp, callUrl } from '../index.ts';
-import { ChildProcess } from '../deps.ts';
+import { Async, Fn, Spawn, Temp, callUrl } from '../index.ts';
 /** A Bitcoin or Elements daemon. */
 export interface Btc {
   kill: () => void
@@ -92,7 +91,9 @@ export namespace Btc {
     createwallet:              Fn,
     generatetoaddress:         Fn,
     getnewaddress:             Fn,
-    getwalletinfo:             Fn.Returns<{ balance: Record<string, number> }>,
+    getwalletinfo:             Fn.Returns<Promise<{
+      balance: Record<string, number>
+    }>>,
     rescanblockchain:          Fn,
     sendtoaddress:             Fn,
     sendrawtransaction:        Fn,
@@ -123,10 +124,21 @@ export namespace Btc {
   export interface Rest {
     chaininfo: Fn,
     block:     Fn,
-    tx:        Fn.Returns<{ blockhash: string, vout: Vout[] }>,
+    tx:        Fn.Returns<Promise<{
+      hex:       string,
+      txid:      string,
+      blockhash: string,
+      vout:      Vout[]
+    }>>,
   }
 
-  export type Vout = { value: number, scriptPubKey: { type: string, address: string } };
+  export interface Vout {
+    value: number,
+    scriptPubKey: {
+      type:    string,
+      address: string
+    }
+  };
 
   /** Bitcoin node's optional REST API. */
   export const Rest = function btcRest (url: string): Rest {

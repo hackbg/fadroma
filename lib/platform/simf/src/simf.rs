@@ -1,17 +1,14 @@
 use crate::*;
-
 /// [ElementsEnv] for satisfying some Simplicity programs.
 pub type Env = simplicityhl::simplicity::jet::elements::ElementsEnv<Arc<Transaction>>;
-
-/// Create a SimplicityHL P2TR address from the [Cmr]
-/// (Commitment Merkle root) of a compiled Simplicity program.
+/// Create SimplicityHL P2TR address from a [Cmr]
+/// (Commitment Merkle root), such as that of a
+/// compiled Simplicity program.
 #[wasm_bindgen]
 pub fn cmr_to_p2tr (cmr: JsValue) -> Maybe<JsString> {
     console_error_panic_hook::set_once();
-    let tap = script_to_taproot(Script::from(bytes_to_vec(cmr)?))?;
-    Ok(format!("{}", taproot_to_p2tr(&tap)).into())
+    Ok(format!("{}", script_to_p2tr(Script::from(Input::bytes(cmr)?))?).into())
 }
-
 /// Compile a SimplicityHL program.
 #[wasm_bindgen] pub fn compile (source: JsString, options: Object) -> Maybe<Program> {
     console_error_panic_hook::set_once();
@@ -26,7 +23,6 @@ pub fn cmr_to_p2tr (cmr: JsValue) -> Maybe<JsString> {
     }
     Program::new(&source, args, debug, prune)
 }
-
 /// A valid compiled SimplicityHL program.
 #[wasm_bindgen(inspectable)] pub struct Program {
     pub(crate) args:     Arguments,
@@ -38,7 +34,6 @@ pub fn cmr_to_p2tr (cmr: JsValue) -> Maybe<JsString> {
     pub(crate) script:   Script,
     pub(crate) source:   Arc<str>,
 }
-
 impl Program {
     /// Internal constructor.
     fn new (source: &str, args: Arguments, debug: bool, prune: bool) -> Maybe<Self> {
@@ -51,48 +46,51 @@ impl Program {
         Ok(Self { source, p2tr, debug, prune, args, compiled, commit, script, })
     }
 }
-
 #[wasm_bindgen] impl Program {
-    /// Programs have many properties, so we default to
-    /// just stringifying them to the original source.
-    #[wasm_bindgen(js_name = toString)]
-    pub fn to_string (&self) -> String {
-        self.source.to_string()
-    }
-    /// Use this in JS to get the properties of the compiled program.
-    #[wasm_bindgen(js_name = toJSON)]
-    pub fn to_json (&self) -> Object {
-        Output::program(&self).unwrap_or_else(|e|JsValue::from(e).into())
-    }
     /// Generate a spend transaction.
     ///
     /// Requires input transaction to program's P2TR address.
     #[wasm_bindgen] pub fn spend (&self, options: Object) -> Maybe<Object> {
-        console_error_panic_hook::set_once();
-        // Parse options
-        if !options.is_object() { return err!("options: not object") }
-        let tx_id:       Txid          = get!(options, "txId",        Input::tx_id)?;
-        let tx_bytes:    Transaction   = get!(options, "txBytes",     Input::tx_bytes)?;
-        let witness:     WitnessValues = get!(options, "witness",     Input::wits)?;
-        let destination: Address       = get!(options, "destination", Input::addr)?;
-        let asset:       AssetId       = get!(options, "asset",       Input::asset_id)?;
-        let fee:         u64           = get!(options, "fee",         Input::fee)?;
-        let env:         Env           = make_env(Asset::Explicit(asset))?;
-        // Find matching output in input transaction
-        let (previous, utxo) = find_utxo(tx_id, &tx_bytes, &self.p2tr)?;
-        let value     = required!("value not explicit": utxo.value.explicit())?;
-        let control   = script_control_block(&self.script)?;
-        let script    = self.script.clone().into_bytes();
-        let satisfied = expected!("satisfy": self.compiled.satisfy_with_env(witness, Some(&env)))?;
-        let wits      = final_script_witness(control, script, satisfied)?;
-        // Return output transaction data to broadcast
-        let tx = tx_script(asset, previous, destination, value, fee)?;
-        let tx = tx_finalize(tx, wits)?;
+        asserted!(options.is_object());
+        let tx    = self.spend_tx(&options)?;
         let bytes = tx.serialize();
         Ok(obj! {
             "decoded" = Output::tx(&tx)?,
             "bytes"   = Output::u8a(&bytes),
             "hex"     = hex::encode(&bytes),
         })
+    }
+    fn spend_tx (&self, options: &JsValue) -> Maybe<Transaction> {
+        let tx = get!(options, "tx", Input::tx_bytes)?;
+        let (previous, utxo) = find_utxo(&tx, &self.p2tr)?;
+        let receiver = get!(options, "destination", Input::address)?;
+        let value    = required!("value not explicit": utxo.value.explicit())?;
+        let fee      = get!(options, "fee", Input::fee)?;
+        let asset_id = get!(options, "asset", Input::asset_id)?;
+        let script   = tx_script(asset_id, previous, receiver, value, fee)?;
+        let witness  = self.final_script_witness(&options)?;
+        tx_finalize(script, witness)
+    }
+    fn final_script_witness (&self, options: &JsValue) -> Maybe<Vec<Vec<u8>>> {
+        let control = script_control_block(&self.script)?;
+        let script  = self.script.clone().into_bytes();
+        let program = self.satisfied(options)?;
+        final_script_witness(control, script, program)
+    }
+    fn satisfied (&self, options: &JsValue) -> Maybe<SatisfiedProgram> {
+        let witness  = get!(options, "witness", Input::witness)?;
+        let asset_id = get!(options, "asset", Input::asset_id)?;
+        let env      = make_env(Asset::Explicit(asset_id))?;
+        expected!("satisfy": self.compiled.satisfy_with_env(witness, Some(&env)))
+    }
+    /// Use this in JS to get the properties of the compiled program.
+    #[wasm_bindgen(js_name = toJSON)]
+    pub fn to_json (&self) -> Object {
+        Output::program(&self).unwrap_or_else(|e|JsValue::from(e).into())
+    }
+    /// Programs stringify to their P2TR addresses.
+    #[wasm_bindgen(js_name = toString)]
+    pub fn to_string (&self) -> String {
+        format!("{}", &self.p2tr)
     }
 }

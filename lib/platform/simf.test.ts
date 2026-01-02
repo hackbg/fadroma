@@ -18,61 +18,57 @@ const INITIAL = { COINS: 1000000n * DECIMAL, REISSUE: 1n * DECIMAL };
 /** Predefined example program. */
 type Example = { cost?: number, cmr?: string, p2tr?: string, src: string };
 /** Test the Simplicity support. */
-export default Test.suite(import.meta, 'Simf', testWasm(), testDeploy())
+export default Test.suite(import.meta, 'Simf', testWasm(), testDeploy());
 /** Test the top-level functions of the WASM module. */
-function testWasm (examples = [
-  exampleEmpty(),
-  exampleProgram(),
-]) {
+function testWasm (examples = Examples()) {
   return the('WASM', Simf.Wasm,
     has('default',     is('function')),
-    has('cmr_to_p2tr', is('function'), ...examples.map(testAddress)),
-    has('compile',     is('function'), ...examples.map(testCompile)),
+    has('cmr_to_p2tr', is('function'), ...examples.map(Address)),
+    has('compile',     is('function'), ...examples.map(Compile)),
   );
-}
-function testCompile ({ src, cmr }: Example) {
-  return Fn.Name(`testCompile ${src.length}b`, (compile: Fn, _context) => {
-    const result = compile(src, {}) as { toJSON (): { cmr: string }, spend (): object };
-    if (cmr) equal(result.toJSON().cmr, cmr);
-    equal(typeof result.spend, 'function');
-    return compile;
-  });
-}
-function testAddress ({ cmr, p2tr: expectedP2TR }: Example) {
-  return (cmrToP2TR: Fn) => {
-    throws(()=>cmrToP2TR());
-    const p2tr = cmrToP2TR(cmr);
-    if (expectedP2TR) equal(p2tr, expectedP2TR);
-    return cmrToP2TR
+
+  function Address ({ cmr, p2tr: expectedP2TR }: Example) {
+    return (cmrToP2TR: Fn) => {
+      throws(()=>cmrToP2TR());
+      const p2tr = cmrToP2TR(cmr);
+      if (expectedP2TR) equal(p2tr, expectedP2TR);
+      return cmrToP2TR
+    }
+  }
+  function Compile ({ src, cmr }: Example) {
+    return Fn.Name(`Compile (${src.length}b)`, (compile: Fn) => {
+      const result = compile(src, {}) as { toJSON (): { cmr: string }, spend (): object };
+      if (cmr) equal(result.toJSON().cmr, cmr);
+      equal(typeof result.spend, 'function');
+      return compile;
+    });
   }
 }
 /** Test deploying a simplicity program. */
-function testDeploy (examples = [
-  exampleEmpty(),
-  exampleProgram(),
-]) {
-  let bitcoin = Number(INITIAL.COINS / DECIMAL);
-
+function testDeploy (examples = Examples()) {
+  let bitcoin = Number(INITIAL.COINS / DECIMAL); // FIXME: move to step context
   return the('Deploy', () => Btc(daemonOptions()),
-    Verbose(false), // Pipe daemon output to stderr
-    Wait(2000),     // Wait for RPC to open (FIXME: use port)
-    // Create and sanity check test wallet
-    Create('test-simf', hasBalance({ "bitcoin": 0 })),
-    Rescan(hasBalance({ bitcoin, [REISSUE]: 1 })),
-    // Test compiling, deploying, and evaluating each example.
+    Verbose(true), // Pipe daemon output to stderr
+    Wait(2000), // Wait for RPC to open (FIXME: use port)
+    Create('test-simf', HasBalance({ "bitcoin": 0 })),
+    Rescan(HasBalance({ bitcoin, [REISSUE]: 1 })),
     ...examples.map(example=>DeployAndRun(example)));
 
-  function DeployAndRun ({ p2tr, cost, src }: Example, cb?: Fn) {
+  function HasBalance <T> (balance: T) {
+    return (info: { balance: T }) => equal(info.balance, balance)
+  }
+
+  function DeployAndRun ({ p2tr, cost, src }: Example) {
     return Fn.Name(`${p2tr}: Fund`, async ({ rpc, rest }: Btc) => {
       const user  = await rpc.getnewaddress("fadroma", "bech32");
       const txId  = await rpc.sendtoaddress(p2tr, 1000);
       await rpc.generatetoaddress(1, user);
       const tx    = await rest.tx(txId);
-      const block = await rest.block(tx.blockhash);
+      //const block = await rest.block(tx.blockhash);
       await rpc.rescanblockchain();
       const { balance } = await rpc.getwalletinfo()
       ok(balance.bitcoin === (bitcoin -= (1000 + cost))); // FIXME: precision
-      console.log(...tx.vout);
+      console.log(tx);
       equal(tx.vout.length, 3);
       // Program balance:
       equal(tx.vout.filter(
@@ -85,9 +81,9 @@ function testDeploy (examples = [
         (x: Btc.Vout)=>x.value===bitcoin).length, 1);
       const destination = user;//await rpc.getnewaddress();
       const program = await Simf(src).compile();
-      const param = { witness: '', destination, txId: tx.txid, txBytes: tx.hex, };
-      console.log({program, param});
+      const param = { witness: '', destination, tx: tx.hex, };
       const spend = program.spend(param);
+      console.log({program, param, spend});
       equal(spend.bytes.length,  240);
       equal(spend.hex.length,    480);
       equal(spend.decoded.version, 2);
@@ -96,6 +92,9 @@ function testDeploy (examples = [
       equal(spend.decoded.output.length,   2);
       equal(spend.decoded.output[0].value, '99999999000');
       equal(spend.decoded.output[1].value, '1000');
+      // FIXME:
+      spend.decoded.output[0].value = BigInt(spend.decoded.output[0].value) / DECIMAL
+      spend.decoded.output[1].value = BigInt(spend.decoded.output[1].value) / DECIMAL
       const sent = await rpc.sendrawtransaction(spend.hex);
       //const signed = await rpc.signrawtransactionwithkey(spend.hex);
       return ctx;
@@ -132,42 +131,45 @@ function testDeploy (examples = [
     })
   };
 }
-function hasBalance (balance) {
-  return info => equal(info.balance, balance)
-}
-function exampleEmpty () {
-  return {
-    cost: 2.4e-7,
-    cmr: 'c40a10263f7436b4160acbef1c36fba4be4d95df181a968afeab5eac247adff7',
-    p2tr: 'tex1p9jcvyzkdwdqtf49kta4xpc5g35xkfcexwfsl8v70w2gwttelncyshxjk56',
-    src: 'fn main () {}',
+function Examples () {
+  return [
+    UnitProgram(),
+    SimpleProgram(),
+  ]
+  function UnitProgram () {
+    return {
+      cost: 2.4e-7,
+      cmr: 'c40a10263f7436b4160acbef1c36fba4be4d95df181a968afeab5eac247adff7',
+      p2tr: 'tex1p9jcvyzkdwdqtf49kta4xpc5g35xkfcexwfsl8v70w2gwttelncyshxjk56',
+      src: 'fn main () {}',
+    }
   }
-}
-function exampleProgram () {
-  return {
-    cost: 2.7e-7,
-    cmr: 'e65e19e139a13583a0a7efb24be13c20d578f06f51b2a7fe7c7b9097072dbabe',
-    p2tr: 'tex1p305439usq06f4maelan8txnxshktvayu9z5gnwu6zrrxm9vmlufqcshcuv',
-    src: `fn main() {
-      let ab: u16 = <(u8, u8)>::into((0x10, 0x01));
-      let c: u16 = 0x1001;
-      assert!(jet::eq_16(ab, c));
-      let ab: u8 = <(u4, u4)>::into((0b1011, 0b1101));
-      let c: u8 = 0b10111101;
-      assert!(jet::eq_8(ab, c));
-    }`,
+  function SimpleProgram () {
+    return {
+      cost: 2.7e-7,
+      cmr: 'e65e19e139a13583a0a7efb24be13c20d578f06f51b2a7fe7c7b9097072dbabe',
+      p2tr: 'tex1p305439usq06f4maelan8txnxshktvayu9z5gnwu6zrrxm9vmlufqcshcuv',
+      src: `fn main() {
+        let ab: u16 = <(u8, u8)>::into((0x10, 0x01));
+        let c: u16 = 0x1001;
+        assert!(jet::eq_16(ab, c));
+        let ab: u8 = <(u4, u4)>::into((0b1011, 0b1101));
+        let c: u8 = 0b10111101;
+        assert!(jet::eq_8(ab, c));
+      }`,
+    }
   }
-}
-function exampleP2PK (
-  pubkey = '0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798'
-) {
-  return {
-    src: `fn main() {
-      let pk: Pubkey = 0x${pubkey};
-      let msg: u256 = jet::sig_all_hash();
-      let sig: Signature = witness::signature;
-      jet::bip_0340_verify(pk, msg, sig)
-    }`
+  function P2PKProgram (
+    pubkey = '0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798'
+  ) {
+    return {
+      src: `fn main() {
+        let pk: Pubkey = 0x${pubkey};
+        let msg: u256 = jet::sig_all_hash();
+        let sig: Signature = witness::signature;
+        jet::bip_0340_verify(pk, msg, sig)
+      }`
+    }
   }
 }
 function daemonOptions (): Btc.Options {

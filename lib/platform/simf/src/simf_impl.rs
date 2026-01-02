@@ -1,14 +1,7 @@
 use crate::*;
 
-/// Helper for accepting either [Uint8Array] or base16 string.
-pub fn bytes_to_vec (cmr: JsValue) -> Maybe<Vec<u8>> {
-    if Uint8Array::instanceof(&cmr) { 
-        Ok(Uint8Array::unchecked_from_js(cmr).to_vec())
-    } else if JsString::is_type_of(&cmr) {
-        expected!("decode cmr": hex::decode(&required!(cmr.as_string())?))
-    } else {
-        return err!("need Uint8Array or hex string")
-    }
+pub fn script_to_p2tr (script: Script) -> Maybe<Address> {
+    Ok(taproot_to_p2tr(&script_to_taproot(script)?))
 }
 
 /// Generate P2TR (pay-to-taproot) address from [TaprootSpendInfo].
@@ -75,27 +68,21 @@ pub fn make_env (asset: Asset) -> Maybe<Env> {
         0xc0, 0xeb, 0x04, 0xb6, 0x8e, 0x9a, 0x26, 0xd1,
         0x16, 0x04, 0x6c, 0x76, 0xe8, 0xff, 0x47, 0x33,
         0x2f, 0xb7, 0x1d, 0xda, 0x90, 0xff, 0x4b, 0xef,
-        0x53, 0x70, 0xf2, 0x52, 0x26, 0xd3, 0xbc, 0x09, 0xfc]))?;
+        0x53, 0x70, 0xf2, 0x52, 0x26, 0xd3, 0xbc, 0x09, 0xfc
+    ]))?;
     let hash = BlockHash::all_zeros();
     Ok(ElementsEnv::new(tx, vec![utxo; 1], 0, cmr, ctrl, None, hash))
 }
 
-pub fn tx_finalize (tx: Transaction, wits: Vec<Vec<u8>>) -> Maybe<Transaction> {
-    let mut tx = PartiallySignedTransaction::from_tx(tx);
-    tx.inputs_mut()[0].final_script_witness = Some(wits);
-    expected!("extract final tx": tx.extract_tx())
-}
-
 pub fn find_utxo (
-    tx_id:    Txid,
-    tx_bytes: &Transaction,
-    p2tr:     &Address
+    tx: &Transaction,
+    p2tr: &Address
 ) -> Maybe<(OutPoint, TxOut)> {
     let mut previous: Option<OutPoint> = Default::default();
     let mut utxo:     Option<TxOut>    = Default::default();
-    for (vout, output) in tx_bytes.output.iter().enumerate() {
+    for (vout, output) in tx.output.iter().enumerate() {
         if output.script_pubkey == p2tr.script_pubkey() {
-            previous = Some(OutPoint::new(tx_id, vout as u32));
+            previous = Some(OutPoint::new(tx.txid(), vout as u32));
             utxo     = Some(output.clone());
             break;
         }
@@ -142,6 +129,12 @@ pub fn tx_script (
         input:     vec![in_0],
         output:    vec![out_0, out_1], 
     })
+}
+
+pub fn tx_finalize (tx: Transaction, wits: Vec<Vec<u8>>) -> Maybe<Transaction> {
+    let mut tx = PartiallySignedTransaction::from_tx(tx);
+    tx.inputs_mut()[0].final_script_witness = Some(wits);
+    expected!("extract final tx": tx.extract_tx())
 }
 
 //fn parse_env (env: JsValue) -> Maybe<Env> {

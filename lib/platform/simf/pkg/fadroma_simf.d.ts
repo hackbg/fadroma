@@ -24,15 +24,15 @@ export class Program {
    */
   toJSON(): object;
   /**
-   * Programs have many properties, so we default to
-   * just stringifying them to the original source.
+   * Programs stringify to their P2TR addresses.
    */
   toString(): string;
 }
 
 /**
- * Create a SimplicityHL P2TR address from the [Cmr]
- * (Commitment Merkle root) of a compiled Simplicity program.
+ * Create SimplicityHL P2TR address from a [Cmr]
+ * (Commitment Merkle root), such as that of a
+ * compiled Simplicity program.
  */
 export function cmr_to_p2tr(cmr: any): string;
 
