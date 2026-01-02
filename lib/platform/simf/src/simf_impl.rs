@@ -1,10 +1,11 @@
 use crate::*;
 
+/// Generate P2TR (pay-to-taproot) [Address] from a [Script]'s [Cmr].
 pub fn script_to_p2tr (script: Script) -> Maybe<Address> {
     Ok(taproot_to_p2tr(&script_to_taproot(script)?))
 }
 
-/// Generate P2TR (pay-to-taproot) address from [TaprootSpendInfo].
+/// Generate P2TR (pay-to-taproot) [Address] from [TaprootSpendInfo].
 pub fn taproot_to_p2tr (
     tap: &TaprootSpendInfo,
     // TODO: kind: Option<AddressParams>
@@ -14,7 +15,7 @@ pub fn taproot_to_p2tr (
     Address::p2tr(secp256k1::SECP256K1, key, root, None, &AddressParams::LIQUID_TESTNET)
 }
 
-/// Generate [TaprootSpendInfo] for a given script.
+/// Generate [TaprootSpendInfo] for a given [Script].
 pub fn script_to_taproot (script: Script) -> Maybe<TaprootSpendInfo> {
     let tap = TaprootBuilder::new();
     let ver = expected!("use constant leaf version": LeafVersion::from_u8(0xbe))?;
@@ -28,10 +29,57 @@ pub fn script_to_taproot (script: Script) -> Maybe<TaprootSpendInfo> {
     Ok(tap)
 }
 
+pub fn transaction (input: Vec<TxIn>, output: Vec<TxOut>) -> Transaction {
+    Transaction { version: 2, lock_time: LockTime::ZERO.into(), input, output }
+}
+
+pub fn tx_script_ins (previous_output: OutPoint) -> Vec<TxIn> {
+    vec![TxIn {
+        previous_output,
+        is_pegin:       false,
+        script_sig:     Script::new(),
+        sequence:       Sequence::MAX,
+        asset_issuance: AssetIssuance::null(),
+        witness:        TxInWitness::empty(),
+    }]
+}
+
+pub fn tx_script_outs (
+    asset_id: AssetId,
+    program:  &Address,
+    balance:  u64,
+    spender:  Address,
+    value:    u64,
+    cost:     u64,
+) -> Maybe<Vec<TxOut>> {
+    asserted!(value + cost <= balance);
+    let fee = TxOut::new_fee(cost, asset_id);
+    let spent = tx_script_out(asset_id, spender, value);
+    Ok(if value + cost == balance {
+        log!("Will spend {value} + {cost} = {balance}");
+        vec![fee, spent]
+    } else {
+        let remain = balance - (value + cost);
+        log!("Will spend {value} + {cost} = {balance} - {remain}");
+        let remain = tx_script_out(asset_id, program.clone(), remain);
+        vec![fee, spent, remain]
+    })
+}
+
+pub fn tx_script_out (
+    asset_id: AssetId, to: Address, value: u64
+) -> TxOut {
+    TxOut {
+        script_pubkey: to.script_pubkey(),
+        value:   TxValue::Explicit(value),
+        asset:   Asset::Explicit(asset_id),
+        nonce:   Nonce::Null,
+        witness: TxOutWitness::default(),
+    }
+}
+
 pub fn final_script_witness (
-    control_bytes: Vec<u8>,
-    script_bytes:  Vec<u8>,
-    satisfied:     SatisfiedProgram,
+    control_bytes: Vec<u8>, script_bytes: Vec<u8>, satisfied: SatisfiedProgram,
 ) -> Maybe<Vec<Vec<u8>>> {
     let redeem = satisfied.redeem();
     let bounds = redeem.bounds();
@@ -74,10 +122,7 @@ pub fn make_env (asset: Asset) -> Maybe<Env> {
     Ok(ElementsEnv::new(tx, vec![utxo; 1], 0, cmr, ctrl, None, hash))
 }
 
-pub fn find_utxo (
-    tx: &Transaction,
-    p2tr: &Address
-) -> Maybe<(OutPoint, TxOut)> {
+pub fn find_utxo (tx: &Transaction, p2tr: &Address) -> Maybe<(OutPoint, TxOut)> {
     let mut previous: Option<OutPoint> = Default::default();
     let mut utxo:     Option<TxOut>    = Default::default();
     for (vout, output) in tx.output.iter().enumerate() {
@@ -98,37 +143,6 @@ pub fn script_control_block (script: &Script) -> Maybe<Vec<u8>> {
     // (control[0] & TAPROOT_LEAF_MASK) == TAPROOT_LEAF_TAPSIMPLICITY)
     assert_eq!(bytes[0] & 0xfe, 0xbe);
     Ok(bytes)
-}
-
-pub fn tx_script (
-    asset:           AssetId,
-    previous_output: OutPoint,
-    destination:     Address,
-    value:           u64,
-    fee:             u64,
-) -> Maybe<Transaction> {
-    let in_0 = TxIn {
-        previous_output,
-        is_pegin:       false,
-        script_sig:     Script::new(),
-        sequence:       Sequence::MAX,
-        asset_issuance: AssetIssuance::null(),
-        witness:        TxInWitness::empty(),
-    };
-    let out_0 = TxOut {
-        value:         TxValue::Explicit(value - fee),
-        script_pubkey: destination.script_pubkey(),
-        asset:         Asset::Explicit(asset.clone()),
-        nonce:         Nonce::Null,
-        witness:       TxOutWitness::default(),
-    };
-    let out_1 = TxOut::new_fee(fee, asset);
-    Ok(Transaction {
-        version:   2,
-        lock_time: LockTime::ZERO.into(),
-        input:     vec![in_0],
-        output:    vec![out_0, out_1], 
-    })
 }
 
 pub fn tx_finalize (tx: Transaction, wits: Vec<Vec<u8>>) -> Maybe<Transaction> {

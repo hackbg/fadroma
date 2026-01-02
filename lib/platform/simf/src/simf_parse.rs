@@ -3,9 +3,18 @@ use crate::*;
 pub struct Input;
 
 impl Input {
-    // FIXME
-    pub fn fee (_: JsValue) -> Maybe<u64> {
-        Ok(1000)
+    pub fn sats (input: JsValue) -> Maybe<u64> {
+        if BigInt::is_type_of(&input) {
+            expected!("bigint->u64": u64::try_from(input))
+        } else if Number::is_type_of(&input) {
+            warn!("number->u64: use bigint to avoid precision issues");
+            expected!("number->u64": f64::try_from(input).map(|x|x as u64))
+        } else if JsString::is_type_of(&input) {
+            warn!("string->u64: use bigint to avoid typing issues");
+            expected!("string->u64": u64::try_from(input))
+        } else {
+            return err!("received {:?}: need integer", input.js_typeof())
+        }
     }
 
     pub fn flag (x: JsValue) -> bool {

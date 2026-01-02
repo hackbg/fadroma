@@ -52,36 +52,40 @@ impl Program {
     /// Requires input transaction to program's P2TR address.
     #[wasm_bindgen] pub fn spend (&self, options: Object) -> Maybe<Object> {
         asserted!(options.is_object());
-        let tx    = self.spend_tx(&options)?;
-        let bytes = tx.serialize();
+        let asset_id = get!(options, "asset",   Input::asset_id)?;
+        let deployed = get!(options, "tx",      Input::tx_bytes)?;
+        let witness  = get!(options, "witness", Input::witness)?;
+        let (inputs, balance) = self.input(&deployed)?;
+        let outputs  = self.output(&options, asset_id, balance)?;
+        let tx       = self.finalize(asset_id, inputs, outputs, witness)?;
+        let bytes    = tx.serialize();
         Ok(obj! {
             "decoded" = Output::tx(&tx)?,
             "bytes"   = Output::u8a(&bytes),
             "hex"     = hex::encode(&bytes),
         })
     }
-    fn spend_tx (&self, options: &JsValue) -> Maybe<Transaction> {
-        let tx = get!(options, "tx", Input::tx_bytes)?;
-        let (previous, utxo) = find_utxo(&tx, &self.p2tr)?;
-        let receiver = get!(options, "destination", Input::address)?;
-        let value    = required!("value not explicit": utxo.value.explicit())?;
-        let fee      = get!(options, "fee", Input::fee)?;
-        let asset_id = get!(options, "asset", Input::asset_id)?;
-        let script   = tx_script(asset_id, previous, receiver, value, fee)?;
-        let witness  = self.final_script_witness(&options)?;
-        tx_finalize(script, witness)
+    fn input (&self, deployed: &Transaction) -> Maybe<(Vec<TxIn>, u64)> {
+        let (previous, utxo) = find_utxo(deployed, &self.p2tr)?;
+        Ok((tx_script_ins(previous), required!("utxo cloaked": utxo.value.explicit())?))
     }
-    fn final_script_witness (&self, options: &JsValue) -> Maybe<Vec<Vec<u8>>> {
+    fn output (&self, options: &JsValue, asset_id: AssetId, balance: u64) -> Maybe<Vec<TxOut>> {
+        let to    = get!(options, "to",    Input::address)?;
+        let value = get!(options, "value", Input::sats)?;
+        let fee   = get!(options, "fee",   Input::sats)?;
+        tx_script_outs(asset_id, &self.p2tr, balance, to, value, fee)
+    }
+    fn satisfy (&self, asset_id: AssetId, witness: WitnessValues) -> Maybe<SatisfiedProgram> {
+        let asset = Asset::Explicit(asset_id);
+        expected!("satisfy": self.compiled.satisfy_with_env(witness, Some(&make_env(asset)?)))
+    }
+    fn finalize (
+        &self, asset_id: AssetId, inputs: Vec<TxIn>, outputs: Vec<TxOut>, witness: WitnessValues
+    ) -> Maybe<Transaction> {
         let control = script_control_block(&self.script)?;
         let script  = self.script.clone().into_bytes();
-        let program = self.satisfied(options)?;
-        final_script_witness(control, script, program)
-    }
-    fn satisfied (&self, options: &JsValue) -> Maybe<SatisfiedProgram> {
-        let witness  = get!(options, "witness", Input::witness)?;
-        let asset_id = get!(options, "asset", Input::asset_id)?;
-        let env      = make_env(Asset::Explicit(asset_id))?;
-        expected!("satisfy": self.compiled.satisfy_with_env(witness, Some(&env)))
+        let program = self.satisfy(asset_id, witness)?;
+        tx_finalize(transaction(inputs, outputs), final_script_witness(control, script, program)?)
     }
     /// Use this in JS to get the properties of the compiled program.
     #[wasm_bindgen(js_name = toJSON)]

@@ -4,12 +4,15 @@ pub(crate) use std::{
     sync::Arc
 };
 pub(crate) use wasm_bindgen::prelude::*;
+pub(crate) use web_sys::console::{log_1, warn_1};
 #[allow(unused)] pub(crate) use js_sys::{
     Array,
+    BigInt,
     Boolean,
     Error,
     JSON,
     JsString,
+    Number,
     Object,
     Reflect,
     Uint8Array,
@@ -71,9 +74,12 @@ pub(crate) use wasm_bindgen::prelude::*;
 };
 /// Standard result type
 pub(crate) type Maybe<T> = Result<T, JsError>;
-/// Saves 40-ish characters.
+/// Log to JS console.
 #[allow(unused)] macro_rules! log(($msg:literal $(, $expr:expr)*) => {
-    ::web_sys::console::log_1(&format!($msg $(, $expr)*).into())});
+    log_1(&format!($msg $(, $expr)*).into())});
+/// Log a warning to the JS console.
+#[allow(unused)] macro_rules! warn(($msg:literal $(, $expr:expr)*) => {
+    warn_1(&format!($msg $(, $expr)*).into())});
 /// Construct throwable error
 macro_rules! err(($msg:literal $(, $expr:expr)*) => {
     Err(JsError::new(&format!($msg $(, $expr)*))) });
