@@ -8,6 +8,7 @@ export interface Btc {
 }
 /** Launch Bitcoin node. */
 export async function Btc <T> ({
+  acceptnonstdtxn             = null             as boolean,
   anyonecanspendaremine       = null             as boolean,
   bech32_hrp                  = null             as string,
   blech32_hrp                 = null             as string,
@@ -42,6 +43,7 @@ export async function Btc <T> ({
 } = {}): Promise<Async<T>> {
   const bool = x => x ? '1' : '0';
   const options = [
+    (acceptnonstdtxn             !== null) && `-acceptnonstdtxn=${bool(acceptnonstdtxn)}`,
     (anyonecanspendaremine       !== null) && `-anyonecanspendaremine=${bool(anyonecanspendaremine)}`,
     (bech32_hrp                  !== null) && `-bech32_hrp=${bech32_hrp}`,
     (blech32_hrp                 !== null) && `-blech32_hrp=${blech32_hrp}`,
