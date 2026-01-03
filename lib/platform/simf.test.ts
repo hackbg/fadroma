@@ -52,7 +52,8 @@ function testDeploy (examples = Examples()) {
     Wait(1000), // Wait for RPC to open (FIXME: use port)
     Create('test-simf', HasBalance({ "bitcoin": 0 })),
     Rescan(HasBalance({ bitcoin, [REISSUE]: 1 })),
-    ...examples.map(example=>DeployAndRun(example)));
+    ...examples.map(example=>DeployAndRun(example)),
+    ({ btc }) => btc.kill());
 
   function HasBalance <T> (balance: T) {
     return (info: { balance: T }) => equal(info.balance, balance)
@@ -60,18 +61,19 @@ function testDeploy (examples = Examples()) {
 
   function DeployAndRun ({ p2tr, cost, src }: Example) {
     return Fn.Name(`${p2tr}: Fund`, async ({ rpc, rest }: Btc) => {
+      const load = 1;
       const user = await rpc.getnewaddress("fadroma", "bech32");
-      const txId = await rpc.sendtoaddress(p2tr, 1000);
+      const txId = await rpc.sendtoaddress(p2tr, String(load));
       await rpc.generatetoaddress(1, user);
       const tx = await rest.tx(txId);
       //const block = await rest.block(tx.blockhash);
       await rpc.rescanblockchain();
       const { balance } = await rpc.getwalletinfo()
-      ok(balance.bitcoin === (bitcoin -= (1000 + cost))); // FIXME: precision
+      ok(balance.bitcoin === (bitcoin -= (load + cost))); // FIXME: precision
       equal(tx.vout.length, 3);
       // Program balance:
       equal(tx.vout.filter(
-        (x: Btc.Vout)=>(x.value===1000) && (x.scriptPubKey.address == p2tr)).length, 1);
+        (x: Btc.Vout)=>(x.value===load) && (x.scriptPubKey.address == p2tr)).length, 1);
       // Transaction fee:
       equal(tx.vout.filter(
         (x: Btc.Vout)=>x.value===cost).length, 1);
@@ -80,7 +82,7 @@ function testDeploy (examples = Examples()) {
         (x: Btc.Vout)=>x.value===bitcoin).length, 1);
       const to = user;//await rpc.getnewaddress();
       const program = await Simf(src).compile();
-      const param = { witness: '', to, tx: tx.hex, value: 10000n, fee: 1000n };
+      const param = { witness: '', to, tx: tx.hex, value: 1e-3, fee: 1e-5 };
       const spend = program.spend(param);
       console.log({tx, program, param, spend});
       console.log(tx.outputs);

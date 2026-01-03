@@ -4,7 +4,7 @@ pub(crate) use std::{
     sync::Arc
 };
 pub(crate) use wasm_bindgen::prelude::*;
-pub(crate) use web_sys::console::{log_1, warn_1};
+pub(crate) use web_sys::console::{log_1, debug_1, warn_1};
 #[allow(unused)] pub(crate) use js_sys::{
     Array,
     BigInt,
@@ -77,6 +77,9 @@ pub(crate) type Maybe<T> = Result<T, JsError>;
 /// Log to JS console.
 #[allow(unused)] macro_rules! log(($msg:literal $(, $expr:expr)*) => {
     log_1(&format!($msg $(, $expr)*).into())});
+/// Log to JS console verbosely.
+#[allow(unused)] macro_rules! debug(($msg:literal $(, $expr:expr)*) => {
+    debug_1(&format!($msg $(, $expr)*).into())});
 /// Log a warning to the JS console.
 #[allow(unused)] macro_rules! warn(($msg:literal $(, $expr:expr)*) => {
     warn_1(&format!($msg $(, $expr)*).into())});

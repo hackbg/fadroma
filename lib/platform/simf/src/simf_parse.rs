@@ -7,8 +7,8 @@ impl Input {
         if BigInt::is_type_of(&input) {
             expected!("bigint->u64": u64::try_from(input))
         } else if Number::is_type_of(&input) {
-            warn!("number->u64: use bigint to avoid precision issues");
-            expected!("number->u64": f64::try_from(input).map(|x|x as u64))
+            warn!("number->u64: *10^8, use bigint to avoid precision issues");
+            expected!("number->u64": f64::try_from(input).map(|x|(x * 100000000.0) as u64))
         } else if JsString::is_type_of(&input) {
             warn!("string->u64: use bigint to avoid typing issues");
             expected!("string->u64": u64::try_from(input))
@@ -150,10 +150,6 @@ impl Output {
 
     pub fn tx_in_to_obj (tx_in: &TxIn) -> Maybe<Object> {
         Ok(obj! {
-            "previous_output" = obj! {
-                "txid" = format!("{}", tx_in.previous_output.txid),
-                "vout" = tx_in.previous_output.vout,
-            },
             "is_pegin"        = format!("{}", tx_in.is_pegin),
             "script_sig"      = format!("{}", tx_in.script_sig),
             "sequence"        = format!("{}", tx_in.sequence),
@@ -168,6 +164,10 @@ impl Output {
                 "inflation_keys_rangeproof" = Self::opt_to_str(&tx_in.witness.inflation_keys_rangeproof),
                 "script_witness"            = Self::vex_to_hex(&tx_in.witness.script_witness),
                 "pegin_witness"             = Self::vex_to_hex(&tx_in.witness.pegin_witness),
+            },
+            "previous_output" = obj! {
+                "txid" = format!("{}", tx_in.previous_output.txid),
+                "vout" = tx_in.previous_output.vout,
             },
         })
     }

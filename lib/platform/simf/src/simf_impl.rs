@@ -126,6 +126,7 @@ pub fn find_utxo (tx: &Transaction, p2tr: &Address) -> Maybe<(OutPoint, TxOut)> 
     let mut previous: Option<OutPoint> = Default::default();
     let mut utxo:     Option<TxOut>    = Default::default();
     for (vout, output) in tx.output.iter().enumerate() {
+        debug!("vout={vout} output={output:?} value={:?}", &output.value);
         if output.script_pubkey == p2tr.script_pubkey() {
             previous = Some(OutPoint::new(tx.txid(), vout as u32));
             utxo     = Some(output.clone());

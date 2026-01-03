@@ -59,6 +59,7 @@ impl Program {
         let outputs  = self.output(&options, asset_id, balance)?;
         let tx       = self.finalize(asset_id, inputs, outputs, witness)?;
         let bytes    = tx.serialize();
+        log!("{tx:?}");
         Ok(obj! {
             "decoded" = Output::tx(&tx)?,
             "bytes"   = Output::u8a(&bytes),
