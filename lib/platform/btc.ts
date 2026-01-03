@@ -94,6 +94,8 @@ export namespace Btc {
 
   export interface Rpc {
     createwallet:              Fn,
+    decoderawtransaction:      Fn,
+    decodescript:              Fn,
     generatetoaddress:         Fn,
     getnewaddress:             Fn,
     getwalletinfo:             Fn.Returns<Promise<{
@@ -115,6 +117,8 @@ export namespace Btc {
     };
     return {
       createwallet:              callRpc('createwallet'),
+      decoderawtransaction:      callRpc('decoderawtransaction'),
+      decodescript:              callRpc('decodescript'),
       generatetoaddress:         callRpc('generatetoaddress'),
       getnewaddress:             callRpc('getnewaddress'),
       getwalletinfo:             callRpc('getwalletinfo'),
