@@ -9,7 +9,6 @@
     "npm:@scure/bip32@^2.0.1": "2.0.1",
     "npm:@scure/bip39@^2.0.1": "2.0.1",
     "npm:@types/deno@^2.5.0": "2.5.0",
-    "npm:bitcoinjs-lib@7": "7.0.0",
     "npm:browser-level@3": "3.0.0",
     "npm:case@^1.6.3": "1.6.3",
     "npm:fflate@~0.8.2": "0.8.2",
@@ -173,14 +172,11 @@
     "@noble/curves@2.0.1": {
       "integrity": "sha512-vs1Az2OOTBiP4q0pwjW5aF0xp9n4MxVrmkFBxc6EKZc6ddYx5gaZiAsZoq0uRRXWbi3AT/sBqn05eRPtn1JCPw==",
       "dependencies": [
-        "@noble/hashes@2.0.1"
+        "@noble/hashes"
       ]
     },
     "@noble/ed25519@3.0.0": {
       "integrity": "sha512-QyteqMNm0GLqfa5SoYbSC3+Pvykwpn95Zgth4MFVSMKBB75ELl9tX1LAVsN4c3HXOrakHsF2gL4zWDAYCcsnzg=="
-    },
-    "@noble/hashes@1.8.0": {
-      "integrity": "sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A=="
     },
     "@noble/hashes@2.0.1": {
       "integrity": "sha512-XlOlEbQcE9fmuXxrVTXCTlG2nlRXa9Rj3rr5Ue/+tX+nmkgbX720YHh0VR3hBF9xDvwnb8D2shVGOwNx+ulArw=="
@@ -321,14 +317,14 @@
       "integrity": "sha512-4Md1NI5BzoVP+bhyJaY3K6yMesEFzNS1sE/cP+9nuvE7p/b0kx9XbpDHHFl8dHtufcbdHRUUQdRqLIPHN/s7yA==",
       "dependencies": [
         "@noble/curves",
-        "@noble/hashes@2.0.1",
+        "@noble/hashes",
         "@scure/base"
       ]
     },
     "@scure/bip39@2.0.1": {
       "integrity": "sha512-PsxdFj/d2AcJcZDX1FXN3dDgitDDTmwf78rKZq1a6c1P1Nan1X/Sxc7667zU3U+AN60g7SxxP0YCVw2H/hBycg==",
       "dependencies": [
-        "@noble/hashes@2.0.1",
+        "@noble/hashes",
         "@scure/base"
       ]
     },
@@ -432,33 +428,8 @@
     "balanced-match@1.0.2": {
       "integrity": "sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw=="
     },
-    "base-x@5.0.1": {
-      "integrity": "sha512-M7uio8Zt++eg3jPj+rHMfCC+IuygQHHCOU+IYsVtik6FWjuYpVt/+MRKcgsAMHh8mMFAwnB+Bs+mTrFiXjMzKg=="
-    },
     "base64-js@1.5.1": {
       "integrity": "sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA=="
-    },
-    "bech32@2.0.0": {
-      "integrity": "sha512-LcknSilhIGatDAsY1ak2I8VtGaHNhgMSYVxFrGLXv+xLHytaKZKcaUJJUE7qmBr7h33o5YQwP55pMI0xmkpJwg=="
-    },
-    "bip174@3.0.0": {
-      "integrity": "sha512-N3vz3rqikLEu0d6yQL8GTrSkpYb35NQKWMR7Hlza0lOj6ZOlvQ3Xr7N9Y+JPebaCVoEUHdBeBSuLxcHr71r+Lw==",
-      "dependencies": [
-        "uint8array-tools@0.0.9",
-        "varuint-bitcoin@2.0.0"
-      ]
-    },
-    "bitcoinjs-lib@7.0.0": {
-      "integrity": "sha512-2W6dGXFd1KG3Bs90Bzb5+ViCeSKNIYkCUWZ4cvUzUgwnneiNNZ6Sk8twGNcjlesmxC0JyLc/958QycfpvXLg7A==",
-      "dependencies": [
-        "@noble/hashes@1.8.0",
-        "bech32",
-        "bip174",
-        "bs58check",
-        "uint8array-tools@0.0.9",
-        "valibot",
-        "varuint-bitcoin@2.0.0"
-      ]
     },
     "bn.js@4.12.2": {
       "integrity": "sha512-n4DSx829VRTRByMRGdjQ9iqsN0Bh4OolPsFnaZBLcbi8iXcB+kJ9s7EnRt4wILZNV3kPLHkRVfOc/HvhC3ovDw=="
@@ -541,19 +512,6 @@
       "integrity": "sha512-Z942RysHXmJrhqk88FmKBVq/v5tqmSkDz7p54G/MGyjMnCFFnC79XWNbg+Vta8W6Wb2qtSZTSxIGkJrRpCFEiA==",
       "dependencies": [
         "pako"
-      ]
-    },
-    "bs58@6.0.0": {
-      "integrity": "sha512-PD0wEnEYg6ijszw/u8s+iI3H17cTymlrwkKhDhPZq+Sokl3AU4htyBFTjAeNAlCCmg0f53g6ih3jATyCKftTfw==",
-      "dependencies": [
-        "base-x"
-      ]
-    },
-    "bs58check@4.0.0": {
-      "integrity": "sha512-FsGDOnFg9aVI9erdriULkd/JjEWONV/lQE5aYziB5PoBsXRind56lh8doIZIc9X4HoxT5x4bLjMWN1/NB8Zp5g==",
-      "dependencies": [
-        "@noble/hashes@1.8.0",
-        "bs58"
       ]
     },
     "buffer-xor@1.0.3": {
@@ -943,7 +901,7 @@
         "run-parallel",
         "typeforce",
         "varstruct",
-        "varuint-bitcoin@1.1.2"
+        "varuint-bitcoin"
       ],
       "optionalDependencies": [
         "debug"
@@ -1619,12 +1577,6 @@
     "uc.micro@2.1.0": {
       "integrity": "sha512-ARDJmphmdvUk6Glw7y9DQ2bFkKBHwQHLi2lsaH6PPmz/Ka9sFOBsBluozhDltWmnv9u/cF6Rt87znRTPV+yp/A=="
     },
-    "uint8array-tools@0.0.8": {
-      "integrity": "sha512-xS6+s8e0Xbx++5/0L+yyexukU7pz//Yg6IHg3BKhXotg1JcYtgxVcUctQ0HxLByiJzpAkNFawz1Nz5Xadzo82g=="
-    },
-    "uint8array-tools@0.0.9": {
-      "integrity": "sha512-9vqDWmoSXOoi+K14zNaf6LBV51Q8MayF0/IiQs3GlygIKUYtog603e6virExkjjFosfJUBI4LhbQK1iq8IG11A=="
-    },
     "url@0.11.4": {
       "integrity": "sha512-oCwdVC7mTuWiPyjLUz/COz5TLk6wgp0RCsN+wHZ2Ekneac9w8uuV0njcbbie2ME+Vs+d6duwmYuR3HgQXs1fOg==",
       "dependencies": [
@@ -1645,9 +1597,6 @@
         "which-typed-array"
       ]
     },
-    "valibot@0.38.0": {
-      "integrity": "sha512-RCJa0fetnzp+h+KN9BdgYOgtsMAG9bfoJ9JSjIhFHobKWVWyzM3jjaeNTdpFK9tQtf3q1sguXeERJ/LcmdFE7w=="
-    },
     "varstruct@6.1.3": {
       "integrity": "sha512-4l1Q7uxrVUBZXsMcb2cakrZL6gd4G+Ykn/m9cGnT4EY8iRBPkxOxKVDwOnL9AsIPKmREBx5BDqjfNMKKP6Zy2w==",
       "dependencies": [
@@ -1659,12 +1608,6 @@
       "integrity": "sha512-4EVb+w4rx+YfVM32HQX42AbbT7/1f5zwAYhIujKXKk8NQK+JfRVl3pqT3hjNn/L+RstigmGGKVwHA/P0wgITZw==",
       "dependencies": [
         "safe-buffer@5.2.1"
-      ]
-    },
-    "varuint-bitcoin@2.0.0": {
-      "integrity": "sha512-6QZbU/rHO2ZQYpWFDALCDSRsXbAs1VOEmXAxtbtjLtKuMJ/FQ8YbhfxlaiKv5nklci0M6lZtlZyxo9Q+qNnyog==",
-      "dependencies": [
-        "uint8array-tools@0.0.8"
       ]
     },
     "vite-plugin-node-polyfills@0.24.0_vite@7.2.2__tsx@4.20.6__picomatch@4.0.3_tsx@4.20.6": {
@@ -1767,7 +1710,6 @@
         "npm:@scure/bip32@^2.0.1",
         "npm:@scure/bip39@^2.0.1",
         "npm:@types/deno@^2.5.0",
-        "npm:bitcoinjs-lib@7",
         "npm:browser-level@3",
         "npm:case@^1.6.3",
         "npm:fflate@~0.8.2",

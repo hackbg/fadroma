@@ -24,6 +24,7 @@
     "@scure/bip39": "^2.0.1",
     "@types/deno": "^2.5.0",
     "bitcoinjs-lib": "^7.0.0",
+    "bitcore-lib": "^11.4.5",
     "browser-level": "^3.0.0",
     "case": "^1.6.3",
     "fflate": "^0.8.2",
@@ -58,6 +59,9 @@
     "bitcoinjs-lib": {
       "optional": true
     },
+    "bitcore-lib": {
+      "optional": true
+    },
     "browser-level": {
       "optional": true
     },
@@ -85,7 +89,6 @@
     "@scure/bip32": "^2.0.1",
     "@scure/bip39": "^2.0.1",
     "@types/deno": "^2.5.0",
-    "bitcoinjs-lib": "^7.0.0",
     "browser-level": "^3.0.0",
     "case": "^1.6.3",
     "fflate": "^0.8.2",
