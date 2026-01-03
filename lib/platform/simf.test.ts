@@ -180,6 +180,7 @@ function daemonOptions (
 ): Btc.Options {
   return {
     chain,
+    acceptnonstdtxn:             true,
     anyonecanspendaremine:       true,
     bech32_hrp:                  'tex',
     blech32_hrp:                 'tlq',

@@ -35,6 +35,7 @@ pub(crate) use web_sys::console::{log_1, debug_1, warn_1};
         human_encoding::Forest,
         jet::Elements,
         jet::elements::{ElementsEnv, ElementsUtxo},
+        leaf_version,
     },
     elements::{
         self,

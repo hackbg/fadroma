@@ -29,10 +29,6 @@ pub fn script_to_taproot (script: Script) -> Maybe<TaprootSpendInfo> {
     Ok(tap)
 }
 
-pub fn transaction (input: Vec<TxIn>, output: Vec<TxOut>) -> Transaction {
-    Transaction { version: 2, lock_time: LockTime::ZERO.into(), input, output }
-}
-
 pub fn tx_script_ins (previous_output: OutPoint) -> Vec<TxIn> {
     vec![TxIn {
         previous_output,
@@ -96,24 +92,6 @@ pub fn final_script_witness (
     Ok(final_script_witness)
 }
 
-pub fn make_env (asset: Asset) -> Maybe<Env> {
-    let version   = 2;
-    let lock_time = LockTime::ZERO;
-    let tx = Arc::new(Transaction { version, lock_time, input: vec![], output: vec![] });
-    let script_pubkey = Script::default();
-    let value = TxValue::default();
-    let utxo = ElementsUtxo { script_pubkey, asset, value, };
-    let cmr = Cmr::from_byte_array([0; 32]);
-    let ctrl = expected!("env: control block fail": ControlBlock::from_slice(&[
-        0xc0, 0xeb, 0x04, 0xb6, 0x8e, 0x9a, 0x26, 0xd1,
-        0x16, 0x04, 0x6c, 0x76, 0xe8, 0xff, 0x47, 0x33,
-        0x2f, 0xb7, 0x1d, 0xda, 0x90, 0xff, 0x4b, 0xef,
-        0x53, 0x70, 0xf2, 0x52, 0x26, 0xd3, 0xbc, 0x09, 0xfc
-    ]))?;
-    let hash = BlockHash::all_zeros();
-    Ok(ElementsEnv::new(tx, vec![utxo; 1], 0, cmr, ctrl, None, hash))
-}
-
 pub fn find_utxo (tx: &Transaction, p2tr: &Address) -> Maybe<(OutPoint, TxOut)> {
     let mut previous: Option<OutPoint> = Default::default();
     let mut utxo:     Option<TxOut>    = Default::default();
@@ -143,39 +121,6 @@ pub fn tx_finalize (tx: Transaction, wits: Vec<Vec<u8>>) -> Maybe<Transaction> {
     tx.inputs_mut()[0].final_script_witness = Some(wits);
     expected!("extract final tx": tx.extract_tx())
 }
-
-//fn parse_env (env: JsValue) -> Maybe<Env> {
-    //if env.is_truthy() {
-        //let env = required!("env: not string": env.as_string())?;
-        //return parse_env_named(&env)
-    //}
-    //Ok(dummy_env::dummy())
-//}
-
-//fn parse_env_named (asset: Asset) -> Maybe<Env> {
-    //let version   = 2;
-    //let lock_time = LockTime::ZERO;
-    //let tx = Arc::new(Transaction { version, lock_time, input: vec![], output: vec![] });
-    //let script_pubkey = Script::default();
-    //let value = TxValue::default();
-    //let utxo = ElementsUtxo { script_pubkey, asset, value, };
-    //let cmr = Cmr::from_byte_array([0; 32]);
-    //let ctrl = expected!("env: control block fail": ControlBlock::from_slice(&[
-        //0xc0, 0xeb, 0x04, 0xb6, 0x8e, 0x9a, 0x26, 0xd1,
-        //0x16, 0x04, 0x6c, 0x76, 0xe8, 0xff, 0x47, 0x33,
-        //0x2f, 0xb7, 0x1d, 0xda, 0x90, 0xff, 0x4b, 0xef,
-        //0x53, 0x70, 0xf2, 0x52, 0x26, 0xd3, 0xbc, 0x09, 0xfc,
-    //]))?;
-    //let hash = BlockHash::all_zeros();
-    //Ok(match env {
-        //"dummy" =>
-            //dummy_env::dummy(),
-        //"elementsregtest" | "liquidtestnet" =>
-            //ElementsEnv::new(tx, vec![utxo; 1], 0, cmr, ctrl, None, hash),
-        //_ =>
-            //return err!("supported envs: dummy, liquidtestnet, elementsregtest"),
-    //})
-//}
 
 //#[wasm_bindgen]
 //pub fn compile (source: JsString, options: Object) -> Maybe<Object> {
