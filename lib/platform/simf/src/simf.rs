@@ -52,23 +52,27 @@ impl Program {
     /// Requires input transaction to program's P2TR address.
     #[wasm_bindgen] pub fn spend (&self, options: Object) -> Maybe<Object> {
         asserted!(options.is_object());
-        let asset_id = get!(options, "asset",   Input::asset_id)?;
-        let deployed = get!(options, "tx",      Input::tx_bytes)?;
-        let witness  = get!(options, "witness", Input::witness)?;
-        let (inputs, balance) = self.input(&deployed)?;
-        let outputs  = self.output(&options, asset_id, balance)?;
-        let tx       = self.finalize(asset_id, inputs, outputs, witness)?;
-        let bytes    = tx.serialize();
-        log!("{tx:?}");
+        let deployed = get!(options, "tx", Input::tx)?;
+        let witness = get!(options, "witness", Input::witness)?;
+        let (inputs, asset_id, balance) = self.input(&deployed)?;
+        let outputs = self.output(&options, asset_id, balance)?;
+        let spend = self.finalize(asset_id, inputs, outputs, witness)?;
+        let bytes = spend.serialize();
+        //let json = expected!("convert to json": JSON::parse(&serde_json::to_string(&tx)?))?;
         Ok(obj! {
-            "decoded" = Output::tx(&tx)?,
-            "bytes"   = Output::u8a(&bytes),
-            "hex"     = hex::encode(&bytes),
+            "bytes"  = Output::u8a(&bytes),
+            "hex"    = hex::encode(&bytes),
+            "txs_info" = obj! {
+                "input" = format!("{deployed:?}"),
+                "spend" = format!("{spend:?}"),
+            },
         })
     }
-    fn input (&self, deployed: &Transaction) -> Maybe<(Vec<TxIn>, u64)> {
+    fn input (&self, deployed: &Transaction) -> Maybe<(Vec<TxIn>, AssetId, u64)> {
         let (previous, utxo) = find_utxo(deployed, &self.p2tr)?;
-        Ok((tx_script_ins(previous), required!("utxo cloaked": utxo.value.explicit())?))
+        let asset_id = required!("utxo: asset cloaked": utxo.asset.explicit())?;
+        let balance  = required!("utxo: value cloaked": utxo.value.explicit())?;
+        Ok((tx_script_ins(previous), asset_id, balance))
     }
     fn output (&self, options: &JsValue, asset_id: AssetId, balance: u64) -> Maybe<Vec<TxOut>> {
         let to    = get!(options, "to",    Input::address)?;

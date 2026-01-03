@@ -102,6 +102,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e499f9fc0407f50fe98af744ab44fa67d409f76b6772e1689ec8485eb0c0f66"
 dependencies = [
  "base58ck",
+ "base64",
  "bech32",
  "bitcoin-internals",
  "bitcoin-io",
@@ -110,6 +111,7 @@ dependencies = [
  "hex-conservative",
  "hex_lit",
  "secp256k1",
+ "serde",
 ]
 
 [[package]]
@@ -117,6 +119,9 @@ name = "bitcoin-internals"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30bdbe14aa07b06e6cfeffc529a1f099e5fbe249524f8125358604df99a4bed2"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "bitcoin-io"
@@ -137,6 +142,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5285c8bcaa25876d07f37e3d30c303f2609179716e11d688f51e8f1fe70063e2"
 dependencies = [
  "bitcoin-internals",
+ "serde",
 ]
 
 [[package]]
@@ -147,6 +153,7 @@ checksum = "26ec84b80c482df901772e931a9a681e26a1b9ee2302edeff23cb30328745c8b"
 dependencies = [
  "bitcoin-io",
  "hex-conservative",
+ "serde",
 ]
 
 [[package]]
@@ -273,6 +280,8 @@ dependencies = [
  "bech32",
  "bitcoin",
  "secp256k1-zkp",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -283,6 +292,7 @@ dependencies = [
  "bitcoin_hashes",
  "cc",
  "console_error_panic_hook",
+ "elements",
  "hex",
  "js-sys",
  "serde_json",
@@ -565,6 +575,7 @@ dependencies = [
  "bitcoin_hashes",
  "rand",
  "secp256k1-sys",
+ "serde",
 ]
 
 [[package]]
@@ -586,6 +597,7 @@ dependencies = [
  "rand",
  "secp256k1",
  "secp256k1-zkp-sys",
+ "serde",
 ]
 
 [[package]]

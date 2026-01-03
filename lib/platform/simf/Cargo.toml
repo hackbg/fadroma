@@ -22,6 +22,10 @@ web-sys = { version = "0.3.70", features = ["console"] }
 anyhow = "1"
 bitcoin_hashes = "0.14.1"
 
+[dependencies.elements]
+version = "*"
+features = [ "serde", "base64" ]
+
 [profile.release]
 debug = true
 lto = false

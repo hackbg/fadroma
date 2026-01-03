@@ -82,7 +82,7 @@ function testDeploy (examples = Examples()) {
         (x: Btc.Vout)=>x.value===bitcoin).length, 1);
       const to = user;//await rpc.getnewaddress();
       const program = await Simf(src).compile();
-      const param = { witness: '', to, tx: tx.hex, value: 1e-3, fee: 1e-5 };
+      const param = { witness: '', to, tx: tx.hex, value: 1-1e-4, fee: 1e-4 };
       const spend = program.spend(param);
       console.log({tx, program, param, spend});
       console.log(tx.outputs);
@@ -174,8 +174,12 @@ function Examples () {
     }
   }
 }
-function daemonOptions (): Btc.Options {
+function daemonOptions (
+  chain = 'elementsregtest'
+  //chain = 'liquidtestnet'
+): Btc.Options {
   return {
+    chain,
     anyonecanspendaremine:       true,
     bech32_hrp:                  'tex',
     blech32_hrp:                 'tlq',
@@ -183,7 +187,7 @@ function daemonOptions (): Btc.Options {
     blindedaddresses:            true,
     con_blocksubsidy:            0,
     con_connect_genesis_outputs: true,
-    chain:                       'elementsregtest',
+    con_elementsmode:            true,
     defaultpeggedassetname:      'bitcoin',
     discover:                    false,
     dnsseed:                     false,

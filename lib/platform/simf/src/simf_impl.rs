@@ -66,9 +66,7 @@ pub fn tx_script_outs (
     })
 }
 
-pub fn tx_script_out (
-    asset_id: AssetId, to: Address, value: u64
-) -> TxOut {
+pub fn tx_script_out (asset_id: AssetId, to: Address, value: u64) -> TxOut {
     TxOut {
         script_pubkey: to.script_pubkey(),
         value:   TxValue::Explicit(value),
@@ -79,17 +77,13 @@ pub fn tx_script_out (
 }
 
 pub fn final_script_witness (
-    control_bytes: Vec<u8>, script_bytes: Vec<u8>, satisfied: SatisfiedProgram,
+    control: Vec<u8>, script: Vec<u8>, satisfied: SatisfiedProgram,
 ) -> Maybe<Vec<Vec<u8>>> {
     let redeem = satisfied.redeem();
     let bounds = redeem.bounds();
-    if !bounds.cost.is_consensus_valid() {
-        return err!("bounds exceeded: {}", bounds.cost);
-    }
-    let (program_bytes, witness_bytes) = redeem.encode_to_vec();
-    let mut final_script_witness = vec![
-       witness_bytes, program_bytes, script_bytes, control_bytes
-    ];
+    asserted!(bounds.cost.is_consensus_valid());
+    let (program, witness) = redeem.encode_to_vec();
+    let mut final_script_witness = vec![witness, program, script, control];
     // Add padding to the script witness if budget is exceeded
     if let Some(padding_bytes) = bounds.cost.get_padding(&final_script_witness) {
         // Annex has to be removed from the stack
@@ -98,9 +92,7 @@ pub fn final_script_witness (
     } else {
         //println!("No padding needed");
     }
-    if !bounds.cost.is_budget_valid(&final_script_witness) {
-        return err!("budget exceeded: {}", bounds.cost);
-    }
+    asserted!(bounds.cost.is_budget_valid(&final_script_witness));
     Ok(final_script_witness)
 }
 
