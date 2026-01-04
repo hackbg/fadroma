@@ -23,6 +23,7 @@ export async function Btc <T> ({
   defaultpeggedassetname      = null             as string,
   discover                    = null             as boolean,
   dnsseed                     = null             as boolean,
+  evbparams                   = null             as string,
   feeasset                    = null             as string,
   initialfreecoins            = null             as string|number|bigint,
   initialreissuancetokens     = null             as string|number|bigint,
@@ -57,6 +58,7 @@ export async function Btc <T> ({
     (defaultpeggedassetname      !== null) && `-defaultpeggedassetname=${defaultpeggedassetname}`,
     (discover                    !== null) && `-discover=${bool(discover)}`,
     (dnsseed                     !== null) && `-dnsseed=${bool(dnsseed)}`,
+    (evbparams                   !== null) && `-evbparams=${evbparams}`,
     (feeasset                    !== null) && `-feeasset=${feeasset}`,
     (initialfreecoins            !== null) && `-initialfreecoins=${initialfreecoins}`,
     (initialreissuancetokens     !== null) && `-initialreissuancetokens=${initialreissuancetokens}`,
@@ -77,6 +79,7 @@ export async function Btc <T> ({
     //'-debug=rpc', //'-debug=zmq',
   ];
   const spawn = Spawn(daemon, ...options.filter(Boolean));
+  console.log([spawn.daemon, ...spawn.options].join(' '));
   const process = await spawn();
   const url = `http://${rpcuser}:${rpcpassword}@${rpcallowip}:${rpcport}`;
   return Object.assign(process, {
