@@ -26,8 +26,16 @@
     pkgs.cloc
     pkgs.bitcoind
     pkgs.binaryen
-    pkgs.elements
     pkgs.python3
+    (over pkgs.elements {
+      patches = [];
+      doCheck = false;
+      withWallet = true;
+      withGui = false;
+      version = "23.3.1";
+      src = gh "ElementsProject" "elements" "elements-23.3.1"
+        "sha256-hqHKH9B6EITwZ4F+YdPJI4n3Z3EeXdPYbzRoNODlThY=";
+    })
 
     # FIXME: provides correct clang without container?
     # pkgs.rustPlatform.bindgenHook
