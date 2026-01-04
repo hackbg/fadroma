@@ -52,38 +52,37 @@ function testDeploy (examples = Examples()) {
     Wait(1000), // Wait for RPC to open (FIXME: use port)
     Create('test-simf', HasBalance({ "bitcoin": 0 })),
     Rescan(HasBalance({ bitcoin, [REISSUE]: 1 })),
-    ...examples.map(example=>DeployAndRun(example)),
+    ...examples.map((example, index)=>DeployAndRun(example, index)),
     ({ btc }) => btc.kill());
 
   function HasBalance <T> (balance: T) {
     return (info: { balance: T }) => equal(info.balance, balance)
   }
 
-  function DeployAndRun ({ p2tr, cost, src }: Example) {
-    return Fn.Name(`${p2tr}: Fund`, async ({ rpc, rest }: Btc) => {
+  function DeployAndRun ({ p2tr, cost, src }: Example, index: number) {
+    return Fn.Name(`${p2tr}`, async (ctx: Btc) => {
+      const { rpc, rest } = ctx;
       const load = 1;
-      const user = await rpc.getnewaddress("fadroma", "bech32");
+      const user = await rpc.getnewaddress(`fadroma-${index}`, "bech32");
       const txId = await rpc.sendtoaddress(p2tr, String(load));
       await rpc.generatetoaddress(1, user);
       const tx = await rest.tx(txId);
       //const block = await rest.block(tx.blockhash);
       await rpc.rescanblockchain();
-      const { balance } = await rpc.getwalletinfo()
-      ok(balance.bitcoin === (bitcoin -= (load + cost))); // FIXME: precision
+      const { balance: balanceBefore } = await rpc.getwalletinfo()
+      equal(balanceBefore.bitcoin, bitcoin -= (load + cost));
       equal(tx.vout.length, 3);
-      // Program balance:
-      equal(tx.vout.filter(
-        (x: Btc.Vout)=>(x.value===load) && (x.scriptPubKey.address == p2tr)).length, 1);
-      // Transaction fee:
-      equal(tx.vout.filter(
-        (x: Btc.Vout)=>x.value===cost).length, 1);
-      // Remaining balance:
-      equal(tx.vout.filter(
-        (x: Btc.Vout)=>x.value===bitcoin).length, 1);
-      const to = user;//await rpc.getnewaddress();
+      const hasOne = (f: Fn) => equal(tx.vout.filter(f).length, 1);
+      // Deployed program balance:
+      hasOne((x: Btc.Vout)=>(x.value===load) && (x.scriptPubKey.address == p2tr));
+      hasOne((x: Btc.Vout)=>x.value===cost); // Transaction fee.
+      hasOne((x: Btc.Vout)=>x.value===bitcoin); // Remaining deployer balance.
+      const to      = user;//await rpc.getnewaddress();
       const program = await Simf(src).compile();
-      const param = { witness: '', to, tx: tx.hex, value: 1-1e-4, fee: 1e-4 };
-      const spend = program.spend(param);
+      const value   = 1-1e-4;
+      const fee     = 1e-4;
+      const param   = { witness: '', to, tx: tx.hex, value, fee };
+      const spend   = program.spend(param);
       console.log({tx, program, param, spend});
       console.log(tx.outputs);
       //equal(spend.bytes.length,  240);
@@ -97,8 +96,19 @@ function testDeploy (examples = Examples()) {
       // FIXME: in hex
       //spend.decoded.output[0].value = BigInt(spend.decoded.output[0].value) / DECIMAL
       //spend.decoded.output[1].value = BigInt(spend.decoded.output[1].value) / DECIMAL
+      const decoded = await rpc.decoderawtransaction(spend.hex);
+      //const script = await rpc.decodescript("00141d8cc1dab406d93cbe57375841bbefb74673235a");
+      console.log({decoded});
       const sent = await rpc.sendrawtransaction(spend.hex);
+      console.log({sent});
+      await rpc.generatetoaddress(1, user);
+      await rpc.rescanblockchain();
+      const sentTx = await rest.tx(sent);
+      console.log({sentTx});
       //const signed = await rpc.signrawtransactionwithkey(spend.hex);
+      const { balance: balanceAfter } = await rpc.getwalletinfo();
+      equal(balanceAfter.bitcoin, bitcoin += value);
+      console.log({ user, balanceBefore, balanceAfter });
       return ctx;
     })
   }
@@ -192,6 +202,7 @@ function daemonOptions (
     defaultpeggedassetname:      'bitcoin',
     discover:                    false,
     dnsseed:                     false,
+    evbparams:                   'simplicity:-1:::',
     //feeasset:                    'b2e15d0d7a0c94e4e2ce0fe6e8691b9e451377f6e46e8045a86f7c4b5d4f0f23',
     initialfreecoins:            INITIAL.COINS,
     initialreissuancetokens:     INITIAL.REISSUE,
