@@ -48,85 +48,74 @@ function testWasm (examples = Examples()) {
 function testDeploy (examples = Examples()) {
   let bitcoin = Number(INITIAL.COINS / DECIMAL); // FIXME: move to step context
   return the('Deploy', () => Btc(daemonOptions()),
-    Verbose(true), // Pipe daemon output to stderr
-    Wait(1000), // Wait for RPC to open (FIXME: use port)
-    Create('test-simf', HasBalance({ "bitcoin": 0 })),
-    Rescan(HasBalance({ bitcoin, [REISSUE]: 1 })),
-    ...examples.map((example, index)=>DeployAndRun(example, index)),
+    setVerbose(false), // Pipe daemon output to stderr
+    wait(1000), // Wait for RPC to open (FIXME: use port)
+    createTestWallet('test-simf', assertHasBalance({ "bitcoin": 0 })),
+    assertRescanned(assertHasBalance({ bitcoin, [REISSUE]: 1 })),
+    ...examples.map((example, index)=>testDeployAndRun(example, index)),
     ({ btc }) => btc.kill());
 
-  function HasBalance <T> (balance: T) {
+  function assertHasBalance <T> (balance: T) {
     return (info: { balance: T }) => equal(info.balance, balance)
   }
-
-  function DeployAndRun ({ p2tr, cost, src }: Example, index: number) {
+  function testDeployAndRun ({ p2tr, cost, src }: Example, index: number) {
     return Fn.Name(`${p2tr}`, async (ctx: Btc) => {
       const { rpc, rest } = ctx;
-      const load = 1;
-      const user = await rpc.getnewaddress(`fadroma-${index}`, "bech32");
-      const txId = await rpc.sendtoaddress(p2tr, String(load));
-      await rpc.generatetoaddress(1, user);
-      const tx = await rest.tx(txId);
-      //const block = await rest.block(tx.blockhash);
-      await rpc.rescanblockchain();
-      const { balance: balanceBefore } = await rpc.getwalletinfo()
-      equal(balanceBefore.bitcoin, bitcoin -= (load + cost));
-      equal(tx.vout.length, 3);
-      const hasOne = (f: Fn) => equal(tx.vout.filter(f).length, 1);
-      // Deployed program balance:
-      hasOne((x: Btc.Vout)=>(x.value===load) && (x.scriptPubKey.address == p2tr));
-      hasOne((x: Btc.Vout)=>x.value===cost); // Transaction fee.
-      hasOne((x: Btc.Vout)=>x.value===bitcoin); // Remaining deployer balance.
-      const to      = user;//await rpc.getnewaddress();
-      const program = await Simf(src).compile();
-      const value   = 1-1e-4;
-      const fee     = 1e-4;
-      const param   = { witness: '', to, tx: tx.hex, value, fee };
-      const spend   = program.spend(param);
-      console.log({tx, program, param, spend});
-      console.log(tx.outputs);
-      //equal(spend.bytes.length,  240);
-      //equal(spend.hex.length,    480);
-      //equal(spend.decoded.version, 2);
-      //equal(spend.decoded.input.length,    1);
-      //equal(spend.decoded.input[0].previous_output.txid, txId);
-      //equal(spend.decoded.output.length,   2);
-      //equal(spend.decoded.output[0].value, '99999999000');
-      //equal(spend.decoded.output[1].value, '1000');
-      // FIXME: in hex
-      //spend.decoded.output[0].value = BigInt(spend.decoded.output[0].value) / DECIMAL
-      //spend.decoded.output[1].value = BigInt(spend.decoded.output[1].value) / DECIMAL
-      const decoded = await rpc.decoderawtransaction(spend.hex);
-      //const script = await rpc.decodescript("00141d8cc1dab406d93cbe57375841bbefb74673235a");
-      console.log({decoded});
-      const sent = await rpc.sendrawtransaction(spend.hex);
-      console.log({sent});
-      await rpc.generatetoaddress(1, user);
-      await rpc.rescanblockchain();
-      const sentTx = await rest.tx(sent);
-      console.log({sentTx});
-      //const signed = await rpc.signrawtransactionwithkey(spend.hex);
-      const { balance: balanceAfter } = await rpc.getwalletinfo();
-      equal(balanceAfter.bitcoin, bitcoin += value);
-      console.log({ user, balanceBefore, balanceAfter });
+      const user = await createDeployer(rpc, index);
+      const txFund = await fundProgram(p2tr, 1);
+      const txSpend = await spendProgram(src, txFund.hex);
       return ctx;
+      async function fundProgram (p2tr, amount) {
+        const txId = await rpc.sendtoaddress(p2tr, String(amount));
+        const tx = await rest.tx(txId);
+        await assertBalance(rpc, bitcoin -= (1 + cost));
+        assertPostDeployVouts(tx, 1);
+        return tx;
+      }
+      async function spendProgram (src, tx, value = 1-1e-4, fee = 1e-4, witness = '') {
+        const program = await Simf(src).compile();
+        const spend = program.spend({ tx, value, fee, witness, to: user });
+        const sent = await rpc.sendrawtransaction(spend.hex);
+        await rpc.generatetoaddress(1, user);
+        await rpc.rescanblockchain();
+        const sentTx = await rest.tx(sent);
+        await assertBalance(rpc, bitcoin += value);
+        return sentTx;
+      }
+      function assertPostDeployVouts (tx, amount) {
+        equal(tx.vout.length, 3);
+        const hasOne = (f: Fn) => equal(tx.vout.filter(f).length, 1);
+        hasOne((x: Btc.Vout)=>(x.value===amount) && (x.scriptPubKey.address == p2tr));
+        hasOne((x: Btc.Vout)=>x.value===cost); // Transaction fee.
+        hasOne((x: Btc.Vout)=>x.value===bitcoin); // Remaining deployer balance.
+      }
     })
+    async function createDeployer (rpc, index, initial = 1) {
+      const user = await rpc.getnewaddress(`fadroma-${index}`, "bech32");
+      await rpc.generatetoaddress(initial, user);
+      return user
+    }
+    async function assertBalance (rpc, balance) {
+      await rpc.rescanblockchain();
+      const { balance: balanceAfter } = await rpc.getwalletinfo();
+      equal(balanceAfter.bitcoin, balance);
+    }
   }
-  function Create (name: string, cb?: Fn) {
-    return Fn.Name(`Create ${name}`, async (ctx: { rpc, rest }) => {
+  function createTestWallet (name: string, cb?: Fn) {
+    return Fn.Name(`Create test wallet ${name}`, async (ctx: { rpc, rest }) => {
       await ctx.rpc.createwallet(name);
       cb && await cb(await ctx.rpc.getwalletinfo());
       return ctx
     })
   };
-  function Rescan (cb?: Fn) {
+  function assertRescanned (cb?: Fn) {
     return Fn.Name(`Rescan`, async (ctx: { rpc, rest }) => {
       await ctx.rpc.rescanblockchain();
       await cb(await ctx.rpc.getwalletinfo());
       return ctx
     })
   };
-  function Verbose (on) {
+  function setVerbose (on) {
     return Fn.Name(`Verbose: ${on}`, (ctx) => {
       ctx.verbose = on;
       if (on) {
@@ -136,7 +125,7 @@ function testDeploy (examples = Examples()) {
       return ctx
     })
   };
-  function Wait (time: number) {
+  function wait (time: number) {
     return Fn.Name(`Wait ${time}ms`, async (ctx: unknown) => {
       await new Promise(resolve=>setTimeout(resolve, time));
       return ctx
