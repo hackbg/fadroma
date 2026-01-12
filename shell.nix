@@ -24,6 +24,7 @@
   deps = [
     pkgs.lld
     pkgs.cloc
+    pkgs.deno
     pkgs.bitcoind
     pkgs.binaryen
     pkgs.python3
