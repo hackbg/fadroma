@@ -19,4 +19,5 @@ export default defineConfig({
   build:     { outDir: '../.misc/gh-pages' },
   resolve:   { alias },
   plugins:   [ nodePolyfills({ include }), ],
+  server:    { allowedHosts: ["vite.dev.hack.bg"] }
 });
