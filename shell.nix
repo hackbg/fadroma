@@ -25,6 +25,7 @@
     pkgs.lld
     pkgs.cloc
     pkgs.deno
+    pkgs.nodejs_24
     pkgs.bitcoind
     pkgs.binaryen
     pkgs.python3
