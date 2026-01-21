@@ -1,9 +1,9 @@
-import { setImmediate, argv, fileURLToPath } from '../deps.ts';
+import { setImmediate, argv, exit, fileURLToPath } from '../deps.ts';
 import Async from './Async.ts';
 
 export default Fn;
 
-/** Gradually elaboratable function type. */
+/** Gradual function type. */
 type Fn<Inputs extends unknown[] = unknown[], Output = unknown> =
   & Fn.Takes<Inputs>
   & Fn.Returns<Output>;
@@ -191,7 +191,7 @@ namespace Fn {
   }
 
   /** A program's entrypoint. */
-  export type Main = Fn;
+  export type Main = Takes<[{ args: string[], exit: Fn }]>;
 
   /** If the current module is the program entrypoint,
     * runs the given main function as a separate task.
@@ -209,15 +209,14 @@ namespace Fn {
     *   }
     *
     * */
-  export function Main <M extends Fn> (meta: Main.Meta, main: M): M;
-  export function Main <M extends Fn, N> (meta: Main.Meta, main: Main, alt: N): N;
-  export function Main (
-    meta: Main.Meta = {}, main: Fn<string[], unknown>, alt?: unknown
+  export function Main <M extends Main> (
+    meta: Main.Meta = {},
+    main: Fn<string[], unknown>
   ) {
     const [_, argv1, ...args] = argv
     if (Main.is(meta || {}, argv1)) setImmediate(async ()=>{
       try {
-        await Promise.resolve(main(args));
+        await Promise.resolve(main({ args, exit }));
         //exit(0);
       } catch (e) {
         const error = e as Error & { exitCode?: number };
@@ -225,8 +224,6 @@ namespace Fn {
         //exit(error.exitCode ?? 1);
       }
     })
-    if (alt) return alt
-    return main
   }
 
   export namespace Main {
