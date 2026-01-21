@@ -19,9 +19,9 @@ export function Http (at: number|string|URL, ...routes: Http.Handler[]) {
     function runHttpServer <P extends Ports> (ctx: P = Ports() as P):
       HttpServer
     {
-      const { port, hostname = '127.0.0.1' } = at;
+      const { port, hostname = 'localhost' } = at;
       const server = new HttpServer();
-      server.listen(`${hostname}:${port}`);
+      server.listen(port, hostname);
       ctx.ports[port] = { url: at, server };
       server.on('close', () => delete ctx.ports[port]);
       return server;
