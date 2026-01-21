@@ -1,3 +1,7 @@
-export * from './platform/btc.ts';
-export * from './platform/simf.ts';
-//export * from './platform/namada.ts';
+// Bitcoin, Elements
+export { default as Btc }
+  from './platform/btc.ts';
+// SimplicityHL
+export { default as Simf }
+  from './platform/simf.ts';
+// TODO: Reenable other platforms.

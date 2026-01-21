@@ -1,7 +1,8 @@
 import { Fn, wasmLoader } from '../index.ts';
 import { exit, env, argv, stdout, stderr, fileURLToPath } from '../deps.ts';
+export default Simf;
 /** A SimplicityHL program. */
-export interface Simf {
+interface Simf {
   /** Code of program. */
   source: string
   /** Compile program. */
@@ -17,7 +18,7 @@ export interface Simf {
   *   console.log(await program.spend());
   *
   * */
-export function Simf (source: string): Simf {
+function Simf (source: string): Simf {
   const program = {
     source,
     async compile (options?: object) {
@@ -32,13 +33,11 @@ export function Simf (source: string): Simf {
   return program;
 }
 /** SimplicityHL utilities. */
-export namespace Simf {
+namespace Simf {
   /** Simplicity WASM loader. */
   export const Wasm = wasmLoader<Wasm>(
-    env['FADROMA_SIMF_WASM'] || fileURLToPath(
-      import.meta.resolve('./simf/pkg/fadroma_simf_bg.wasm')),
-    env['FADROMA_SIMF_WRAP'] || fileURLToPath(
-      import.meta.resolve('./simf/pkg/fadroma_simf.js')),
+    env['FADROMA_SIMF_WASM'] || import.meta.resolve('./simf/pkg/fadroma_simf_bg.wasm'),
+    env['FADROMA_SIMF_WRAP'] || import.meta.resolve('./simf/pkg/fadroma_simf.js'),
   );
   /** Simplicity WASM module. */
   export type Wasm = {

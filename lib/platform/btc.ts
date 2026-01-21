@@ -1,13 +1,17 @@
 import { Async, Fn, Spawn, Temp, callUrl } from '../index.ts';
+export default Btc;
 /** A Bitcoin or Elements daemon. */
-export interface Btc {
+interface Btc {
   kill: () => void
   url:  string,
   rpc:  Btc.Rpc
   rest: Btc.Rest
 }
 /** Launch Bitcoin node. */
-export async function Btc <T> ({
+async function Btc <T> ({
+  debug = console.debug,
+  log   = console.log,
+
   acceptnonstdtxn             = null             as boolean,
   anyonecanspendaremine       = null             as boolean,
   bech32_hrp                  = null             as string,
@@ -79,7 +83,7 @@ export async function Btc <T> ({
     //'-debug=rpc', //'-debug=zmq',
   ];
   const spawn = Spawn(daemon, ...options.filter(Boolean));
-  console.log([spawn.daemon, ...spawn.options].join(' '));
+  debug('Spawning:', [spawn.daemon, ...spawn.options].join(' '));
   const process = await spawn();
   const url = `http://${rpcuser}:${rpcpassword}@${rpcallowip}:${rpcport}`;
   return Object.assign(process, {
@@ -90,7 +94,7 @@ export async function Btc <T> ({
 }
 
 /** Bitcoin internals. */
-export namespace Btc {
+namespace Btc {
 
   /** Bitcoin daemon options. */
   export type Options = Parameters<typeof Btc>[0];
