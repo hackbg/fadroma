@@ -25,7 +25,7 @@ export type Reader<T = Bytes> = { read: Read<T> };
 /** Read from stream. */
 export type Read<T = Bytes> = () => Promise<{ done: boolean, value: T }>;
 /** Convert the owner of a `readable` to a `Read` function. */
-export function toRead <T> ({ name = null, readable }, ...steps: Step<T>[]): Read<T> {
+export function toRead <T> ({ name = null, readable }, ...steps: Fn.Step<T>[]): Read<T> {
   const pipeline = Fn.Pipe(...steps);
   const reader = readable.getReader();
   return Fn.Name(name ? `${name}>` : 'read', async function read () {
@@ -38,7 +38,7 @@ export type Writer<T = Bytes> = { write: Write<T> };
 /** Write to stream. */
 export type Write<T = Bytes> = (_: T) => Promise<void>;
 /** Convert the owner of a `writable` to a `Write` function. */
-export function toWrite <T> ({ name = null, writable }, ...steps: Step<T>[]): Write<T> {
+export function toWrite <T> ({ name = null, writable }, ...steps: Fn.Step<T>[]): Write<T> {
   const pipeline = Fn.Pipe(...steps);
   const writer = writable.getWriter();
   return Fn.Name(name ? `${name}<` : 'write', function write (

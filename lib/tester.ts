@@ -5,7 +5,23 @@ import { ok, equal, throws, rejects, stdout, argv,
 import { Fn, Ansi, Error,
   spaced, lines, msec, toString, merged,
   withInfiniteStack, alignTrace } from './format.ts';
-const toStep = Fn.Step;
+
+/** Test stack and context. Passed to eacgh step as second argument. */
+export type Testing = Stack & Log & Result & Options & Categories;
+/** Create empty test context. */
+export const Testing = <T extends Testing> (...contexts: Partial<T>[]) =>
+  Fn.Seq(Log, Options, Categories, Stack)(merged(...contexts)) as Promise<T>;
+
+interface Test extends Testing {}
+namespace Test {}
+function Test (name: string, ...steps: (Step|string)[]);
+function Test (meta: Fn.Main.Meta, name: string, ...steps: (Step|string)[]);
+function Test (...args: unknown[]) {
+  if (typeof args[0] === 'object') return suite(...args);
+  return the(...args);
+}
+export default Test;
+
 /** Test entrypoint. When test module is run (not imported),
   * tests in the `suite` run, and a report is printed.
   *
@@ -45,128 +61,6 @@ export function suite (meta: Fn.Main.Meta, name: string, ...steps: (Step|string)
     }
   });
   return suite as Step;
-};
-/** Test stack and context. Passed to eacgh step as second argument. */
-export type Testing = Stack & Log & Result & Options & Categories;
-/** Create empty test context. */
-export const Testing = <T extends Testing> (...contexts: Partial<T>[]) =>
-  Fn.Seq(Log, Options, Categories, Stack)(merged(...contexts)) as Promise<T>;
-/** Test options. */
-export type Options = { args?: string[], only?: string[], except?: string[] };
-/** Parse test filters. */
-function Options (context: Partial<Options> = {}) {
-  context.args ??= [];
-  context.only ??= context.args.filter(x=>(!x.startsWith('--'))&&(x[2]!=='!'));
-  context.except ??= context.args?.filter(x=>x.startsWith('--!'));
-  return context;
-}
-/** Test category name. */
-export type State = 'pass'|'fail'|'todo'|'idea'|'warn'|'skip'|'note';
-/** Test category names. */
-const categories: State[] = ['pass', 'fail', 'todo', 'idea', 'warn', 'skip', 'note'];
-/** Test results by category.. */
-export type Categories = Record<State, Category>;
-/** Define result categories. */
-function Categories (context: Partial<Testing> = {}) {
-  context.pass = Category(context.stack, 'pass', `🟢`, Ansi.green,  'passed'  );
-  context.fail = Category(context.stack, 'fail', `🔴`, Ansi.red,    'failed'  );
-  context.todo = Category(context.stack, 'todo', `🟠`, Ansi.orange, 'tasks'   );
-  context.warn = Category(context.stack, 'warn', `🟡`, Ansi.yellow, 'warnings');
-  context.skip = Category(context.stack, 'skip', `🟣`, Ansi.purple, 'skipped' );
-  context.idea = Category(context.stack, 'idea', `🔵`, Ansi.blue,   'ideas'   );
-  context.note = Category(context.stack, 'note', `⚫️`, Ansi.dim,    'notes'   );
-  return context;
-}
-/** Keeps track of nested steps. */
-export type Stack = {
-  stack: Frame[];
-  begin (index: number, step: Fn.Name): number;
-  end (index: number, step: Fn.Name, t0: number, t1: number,
-       state: State, returned: unknown, threw: unknown): void;
-};
-/** Define test stack. */
-function Stack (context: Partial<Log & Categories & Stack> = {}) {
-  context.stack ??= [];
-  context.begin ??= (index, step) => {
-    const t0 = performance.now();
-    context.stack.push({ index, name: step.name, t0 });
-    context.info(msec(t0).padStart(8), '⏳');
-    return t0;
-  };
-  context.end ??= (index, step, t0, t1, state, returned, threw) => {
-    const tD = t1 - t0;
-    const label = testLabel(context.stack);
-    const { icon, color } = context[state];
-    context.log(color(msec(t1).padStart(8)),
-      Ansi.gray(6+2*Math.max(0, Math.log10(tD)), '+'+msec(tD).padStart(8)),
-      icon, color(label));
-    const result = { index, name: step.name, t0, t1, tD, returned, threw };
-    context[state](result);
-    context.stack.pop();
-  };
-  return context;
-}
-/** Collects test results. */
-export type Category = Fn<[Step], Result> & {
-  icon: string, label: string, color: Fn<[string], string>, results: Result[]
-};
-/** Define result category. */
-function Category (
-  stack: Frame[], state: State, icon: string, color: Fn<[string], string>,
-  label: string = state
-): Category {
-  const props = { state, icon, label, color, results: [],
-    get count () { return props.results.length } };
-  const info = () => `[Category: ${icon} ${color(state)} (${props.results.length})]`;
-  return toString(info)(Fn.Name(state, function categorize (result: Partial<Result>): Result {
-    result = { ...result, state, stack: [...stack||[]] };
-    props.results.push(result);
-    return result as Result;
-  }, props)) as Category;
-}
-/** Collect summary of test results. */
-function Report ({ context, details = [] }) {
-  let line = '';
-  const thrown = new Set();
-  for (const {threw, stack: origin} of context.fail.results) {
-    const label = [testIndex(origin), testNames(origin)].join(' ');
-    const { message, stack = '' } = threw || {};
-    if (!thrown.has(threw)) {
-      details.push(['\n 🔴', Ansi.red(label), message].join(' '));
-      thrown.add(threw);
-      details.push(stack.replace(message).split('\n')
-        .map((x: string)=>x.trim())
-        .filter((x: string)=>!(x.includes('(ext:')||x.includes(' (node:')))
-        .map(alignTrace).join('\n '));
-    }
-  }
-  for (const name of categories) {
-    const category = context[name];
-    const { icon, color, label } = category;
-    line = line + spaced(` ${icon}`, color(`${context[name].count} ${label}`), '');
-  }
-  details.push(line);
-  return details;
-}
-/** Test stack frame. */
-export type Frame = Fn.Name & { t0: number, index: number };
-/** Test step. */
-export type Step <C extends Testing = Testing, A = unknown, B = A> =
-  Fn.Reflects & ((_: A, __?: C) => Async<B>) & { skip?: boolean };
-/** Ensure test step is function. */
-function Step <T extends Testing>(step: Step<T>|string) {
-  if (typeof step === 'string') return todo(step);
-  if (typeof step === 'function') return step;
-  if (step) throw new Error(`invalid step: ${step}`);
-}
-/** Result of test step. */
-export type Result = {
-  tD:        number,
-  state:     State,
-  stack:     Frame[],
-  substeps?: Result[],
-  returned?: unknown,
-  threw?:  { todo?: boolean },
 };
 /** Test case. Consists of name and zero or more test steps.
   *
@@ -227,7 +121,7 @@ export function the <T extends Testing> (
         returned = await step(returned, context);
         state ||= 'pass';
       } catch (error) {
-        threw ||= toStep(step, error);
+        threw ||= Fn.Step(step, error);
         if (!threw.todo) state = 'fail';
         if (state === 'fail') throw threw;
       } finally {
@@ -385,3 +279,120 @@ export function includes <T extends Testing, X> (item: X) {
 // Reexport some default assertions:
 export { ok, equal, throws, rejects };
 export const todo = Fn.todo;
+/** Test options. */
+export type Options = { args?: string[], only?: string[], except?: string[] };
+/** Parse test filters. */
+function Options (context: Partial<Options> = {}) {
+  context.args ??= [];
+  context.only ??= context.args.filter(x=>(!x.startsWith('--'))&&(x[2]!=='!'));
+  context.except ??= context.args?.filter(x=>x.startsWith('--!'));
+  return context;
+}
+/** Test category name. */
+export type State = 'pass'|'fail'|'todo'|'idea'|'warn'|'skip'|'note';
+/** Test category names. */
+const categories: State[] = ['pass', 'fail', 'todo', 'idea', 'warn', 'skip', 'note'];
+/** Test results by category.. */
+export type Categories = Record<State, Category>;
+/** Define result categories. */
+function Categories (context: Partial<Testing> = {}) {
+  context.pass = Category(context.stack, 'pass', `🟢`, Ansi.green,  'passed'  );
+  context.fail = Category(context.stack, 'fail', `🔴`, Ansi.red,    'failed'  );
+  context.todo = Category(context.stack, 'todo', `🟠`, Ansi.orange, 'tasks'   );
+  context.warn = Category(context.stack, 'warn', `🟡`, Ansi.yellow, 'warnings');
+  context.skip = Category(context.stack, 'skip', `🟣`, Ansi.purple, 'skipped' );
+  context.idea = Category(context.stack, 'idea', `🔵`, Ansi.blue,   'ideas'   );
+  context.note = Category(context.stack, 'note', `⚫️`, Ansi.dim,    'notes'   );
+  return context;
+}
+/** Keeps track of nested steps. */
+export type Stack = {
+  stack: Frame[];
+  begin (index: number, step: Fn.Name): number;
+  end (index: number, step: Fn.Name, t0: number, t1: number,
+       state: State, returned: unknown, threw: unknown): void;
+};
+/** Define test stack. */
+function Stack (context: Partial<Log & Categories & Stack> = {}) {
+  context.stack ??= [];
+  context.begin ??= (index, step) => {
+    const t0 = performance.now();
+    context.stack.push({ index, name: step.name, t0 });
+    context.info(msec(t0).padStart(8), '⏳');
+    return t0;
+  };
+  context.end ??= (index, step, t0, t1, state, returned, threw) => {
+    const tD = t1 - t0;
+    const label = testLabel(context.stack);
+    const { icon, color } = context[state];
+    context.log(color(msec(t1).padStart(8)),
+      Ansi.gray(6+2*Math.max(0, Math.log10(tD)), '+'+msec(tD).padStart(8)),
+      icon, color(label));
+    const result = { index, name: step.name, t0, t1, tD, returned, threw };
+    context[state](result);
+    context.stack.pop();
+  };
+  return context;
+}
+/** Collects test results. */
+export type Category = Fn<[Step], Result> & {
+  icon: string, label: string, color: Fn<[string], string>, results: Result[]
+};
+/** Define result category. */
+function Category (
+  stack: Frame[], state: State, icon: string, color: Fn<[string], string>,
+  label: string = state
+): Category {
+  const props = { state, icon, label, color, results: [],
+    get count () { return props.results.length } };
+  const info = () => `[Category: ${icon} ${color(state)} (${props.results.length})]`;
+  return toString(info)(Fn.Name(state, function categorize (result: Partial<Result>): Result {
+    result = { ...result, state, stack: [...stack||[]] };
+    props.results.push(result);
+    return result as Result;
+  }, props)) as Category;
+}
+/** Collect summary of test results. */
+function Report ({ context, details = [] }) {
+  let line = '';
+  const thrown = new Set();
+  for (const {threw, stack: origin} of context.fail.results) {
+    const label = [testIndex(origin), testNames(origin)].join(' ');
+    const { message, stack = '' } = threw || {};
+    if (!thrown.has(threw)) {
+      details.push(['\n 🔴', Ansi.red(label), message].join(' '));
+      thrown.add(threw);
+      details.push(stack.replace(message).split('\n')
+        .map((x: string)=>x.trim())
+        .filter((x: string)=>!(x.includes('(ext:')||x.includes(' (node:')))
+        .map(alignTrace).join('\n '));
+    }
+  }
+  for (const name of categories) {
+    const category = context[name];
+    const { icon, color, label } = category;
+    line = line + spaced(` ${icon}`, color(`${context[name].count} ${label}`), '');
+  }
+  details.push(line);
+  return details;
+}
+/** Test stack frame. */
+export type Frame = Fn.Name & { t0: number, index: number };
+/** Test step. */
+export type Step <C extends Testing = Testing, A = unknown, B = A> =
+  Fn.Reflects & ((_: A, __?: C) => Async<B>) & { skip?: boolean };
+/** Ensure test step is function. */
+function Step <T extends Testing>(step: Step<T>|string) {
+  if (typeof step === 'string') return todo(step);
+  if (typeof step === 'function') return step;
+  if (step) throw new Error(`invalid step: ${step}`);
+}
+/** Result of test step. */
+export type Result = {
+  tD:        number,
+  state:     State,
+  stack:     Frame[],
+  substeps?: Result[],
+  returned?: unknown,
+  threw?:  { todo?: boolean },
+};

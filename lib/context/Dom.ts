@@ -24,7 +24,7 @@ export function domParse (el: string) {
   const classes = [];
   const attrs = {};
   while (el.length > 0) {
-    let match;
+    let match: RegExpMatchArray;
     match = el.match(RE_ID);
     if (match) {
       if (id !== null) throw new Error(`DOM: duplicate id: ${match[0]}`);
@@ -49,4 +49,3 @@ export function domParse (el: string) {
   }
   return { tag, id, classes, attrs }
 }
-

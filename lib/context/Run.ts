@@ -1,18 +1,22 @@
-import type { Step, Async, Ports } from '../index.ts';
+import type { Async, Ports } from '../index.ts';
 import type { ChildProcess } from '../deps.ts';
 import { execImpl, spawnImpl, inspect, cwd } from '../deps.ts';
 import { Fn, Error, toString } from '../format.ts';
-import { Dir } from './fs.ts';
-
+import { Dir } from './Fs.ts';
 /** Command invocation. */
-export type Run = { argv: string[], env?: Record<string, string> };
+export interface Run {
+  argv: string[],
+  env?: Record<string, string>
+};
 /** Compose command invocation from options. */
-export function Run (path: string, ...opts: (Step<Run>|string)[]) {
-  return Fn.Pipe(
-    ...opts.filter(Boolean).map(toOpt)
-  )({ argv: [path], env: {} }) as Run;
+export function Run (path: string, ...opts: (Run.Step|string)[]) {
+  const context = { argv: [path], env: {} };
+  return Fn.Pipe(...opts.filter(Boolean).map(toOpt))(context) as Run;
 }
-
+/** Command invocation internals. */
+export namespace Run {
+  export type Step = Fn.Step<Run>;
+}
 /** Command invocation that returns a result. */
 export type Exec = Fn<[Partial<Dir & { exec?: typeof execImpl }>],
   Async<Run & {
@@ -25,7 +29,7 @@ export type Exec = Fn<[Partial<Dir & { exec?: typeof execImpl }>],
   }>>;
 /** Run a command and wait for result. */
 export function Exec (
-  command: string, ...options: (Step<Run>|string)[]
+  command: string, ...options: (Run.Step|string)[]
 ): Exec {
   return Fn.Name(`Exec(${command})`, async function exec (context?: {
     dir?: string, exec?: typeof execImpl,
@@ -39,12 +43,11 @@ export function Exec (
     return { argv, env, ...await context.exec(cmd, args, opts) };
   }, { command, options });
 }
-
 /** Command invocation that spawns a background process. */
 export type Spawn = Fn<[Partial<Dir & { spawn?: typeof spawnImpl }>],
   Async<Run & ChildProcess>>;
 /** Run a background service. */
-export function Spawn (daemon: string, ...options: (Step<Run>|string)[]): Spawn {
+export function Spawn (daemon: string, ...options: (Run.Step|string)[]): Spawn {
   return Fn.Name(`Spawn(${daemon})`, async function spawn (context?: {
     dir?: string, spawn?: typeof spawnImpl
   }): Promise<Run & ChildProcess> {
@@ -77,7 +80,7 @@ export function Arg (...parts: string[]) {
   }, { parts });
 }
 
-const toOpt = (opt: string|Step<Run>): Step<Run> =>
+const toOpt = (opt: string|Run.Step): Run.Step =>
   (typeof opt === 'function') ? opt :
   (typeof opt === 'string')   ? pushArg(opt) :
   (typeof opt === 'object')   ? context=>Object.assign(context, opt) :

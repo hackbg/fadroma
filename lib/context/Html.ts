@@ -1,8 +1,8 @@
-import { domAttrs, domParse } from './dom.ts';
-import { Svg } from './svg.ts';
-
+import Svg from './Svg.ts';
+import { domAttrs, domParse } from './Dom.ts';
+export default Html;
 /** Render a DOM tree into a DocumentFragment. */
-export function Html (...args: unknown[]): DocumentFragment {
+function Html (...args: unknown[]): DocumentFragment {
   // Canonical input form is one or more nested tuples at top:
   // `DOM('div', 'content', [...]) -> `DOM(['div', 'content', [...]])`
   if (args[0] && !args[0][Symbol.iterator]) return Html(args);
@@ -11,25 +11,20 @@ export function Html (...args: unknown[]): DocumentFragment {
   for (const arg of args) Html.add(frag, arg);
   return frag;
 }
-
-export namespace Html {
-
+namespace Html {
   export function Div (spec: string) {
     return Html([`div${spec}`]).firstChild as HTMLDivElement
   }
-
   export function append (el: Node, ...els: Node[]) {
     for (const e of els) el.appendChild(e);
     return el;
   }
-
   export function prepend (el: Node, ...els: Node[]) {
     const frag = Html()
     for (const e of els) frag.appendChild(e);
     el.insertBefore(frag, el.firstChild);
     return el;
   }
-
   export function add (frag: DocumentFragment, arg: unknown) {
     // Falsy args are skipped.
     if (!arg) return;
@@ -79,5 +74,4 @@ export namespace Html {
     }
     frag.appendChild(el);
   }
-
 };

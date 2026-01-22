@@ -8,7 +8,7 @@ export function wasmLoader <T> (
   wrapUrl = new URL(wrapUrl);
   ready ??= new Promise(async (resolve, reject)=>{
     try {
-      const wrap = await import(wrapUrl);
+      const wrap = await import(wrapUrl.toString());
       const wasm = await readFile(wasmUrl);
       await wrap.default(wasm);
       resolve(wrap);

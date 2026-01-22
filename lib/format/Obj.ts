@@ -1,3 +1,4 @@
+import Async from './Async.ts';
 import Fn from './Fn.ts';
 
 /** Slice off the 1st arg of every function */
@@ -21,7 +22,7 @@ export const pickMethods = <T, K extends keyof T>(
   keys: Array<K>, ...steps: Fn<[K]>[]
 ) => Object.assign(function pickKeys (data: T): Pick<T, K> {
   const result: Partial<Pick<T, K>> = {};
-  for (const key of keys) result[key] = (data[key] as Function).bind(data);
+  for (const key of keys) result[key] = (data[key] as Fn).bind(data);
   return result as Pick<T, K>;
 }, { keys, steps });
 
@@ -75,7 +76,7 @@ export const Pick = <T, K extends keyof T>(
 export const Omit = Fn.todo();
 
 /** Specify a binary condition. */
-export const when = (condition: boolean, ...fns: Step<unknown>[]) =>
+export const when = (condition: boolean, ...fns: Fn.Step<unknown>[]) =>
   either(condition, Fn.Pipe(...fns));
 
 /** Specify a ternary condition. */

@@ -1,11 +1,12 @@
-import type { Step } from '../index.ts';
 import { HttpServer } from '../deps.ts';
 import { Fn } from '../format.ts';
-import { tcpAddr } from './tcp.ts';
-import { Ports } from './port.ts';
+import { tcpAddr } from './Tcp.ts';
+import { Ports } from './Port.ts';
+
+export default Http;
 
 /** HTTP context. */
-export interface Http extends Ports {
+interface Http extends Ports {
   serve (at: number, handler: Fn<[Request]>):
     Http.Server,
   fetch (url: string|URL):
@@ -13,7 +14,7 @@ export interface Http extends Ports {
 };
 
 /** Define HTTP server. */
-export function Http (at: number|string|URL, ...routes: Http.Handler[]) {
+function Http (at: number|string|URL, ...routes: Http.Handler[]) {
   at = tcpAddr(at);
   return Fn.Name(`HTTP ${at.toString()}`,
     function runHttpServer <P extends Ports> (ctx: P = Ports() as P):
@@ -21,50 +22,50 @@ export function Http (at: number|string|URL, ...routes: Http.Handler[]) {
     {
       const { port, hostname = 'localhost' } = at;
       const server = new HttpServer();
-      server.listen(port, hostname);
+      server.listen(Number(port), hostname as string);
       ctx.ports[port] = { url: at, server };
       server.on('close', () => delete ctx.ports[port]);
       return server;
     }, { at, routes });
 }
 
-export namespace Http {
-  export type Server = { url?: URL } & Router;
+namespace Http {
+  export type  Server  = { url?: URL } & Router;
   /** URL router. */
-  export type Router = { url?: string, method?: string, body?: string };
-  /** URL route. */
-  export type Route = <T extends Request>(_: unknown, ...handlers: Fn<[T]>[]) => Fn<[T]>;
+  export type  Router  = { url?: string, method?: string, body?: string };
   /** URL route handler. */
-  export type Handler = Step<Router>;
+  export type  Handler = Fn.Step<Router>;
+
+  /** URL route. */
+  export type  Route   = <T extends Request>(_: unknown, ...handlers: Fn<[T]>[]) => Fn<[T]>;
   /** Define URL route. */
-  export const Route = function httpRoute (path: string, ...routes) {
+  export const Route = function httpRoute (path: string, ...routes: Route[]) {
     return Fn.Name(path, async function routeRequest (context: Request) {
+      console.log('received request', path);
       if (matchRoute(path)(context.url)) return Fn.Pipe(...routes)(context)
     }, { routes });
   };
-
   /** Match URL from request against route patterns. */
   export const matchRoute = (expected) => (actual) => false; // TODO
 
+  /** Known HTTP methods. */
+  export type  Method = 'GET'|'PUT'|'PATCH'|'POST'|'DELETE'|'HEAD'|'OPTIONS';
   /** Only handle if HTTP method matches. */
-  export const method = (method, ...routes: Http.Route[]) => Fn.Name(method,
-    async function onMethod (context: Http.Router) {
+  export const Method = (method: Method, ...routes: Route[]) => Fn.Name(method,
+    async function onMethod (context: Router) {
       if (context.method === method) return Fn.Pipe(...routes)(context);
     }, { method, routes });
 
   /** Only handle if HTTP method is GET. */
-  export const get = (path, ...routes) => Http.Route(path, method('get', ...routes));
-
+  export const Get    = (path: string, ...routes: Route[]) => Route(path, Method('GET', ...routes));
   /** Only handle if HTTP method is POST. */
-  export const post = (path, ...routes) => Http.Route(path, method('post', ...routes));
-
+  export const Post   = (path: string, ...routes: Route[]) => Route(path, Method('POST', ...routes));
   /** Set request parameter. */
-  export const param = (name: string, fn) =>
+  export const Param = (name: string, fn) =>
     async (req: Request & { params: Record<string, unknown> }) =>
       req.params[name] = await fn(req);
-
   /** If condition doesn't match, return with specified code. */
-  export const guard = (code: number, ...handlers: Http.Handler[]) =>
+  export const Guard = (code: number, ...handlers: Http.Handler[]) =>
     async (req: Request & { params: Record<string, unknown> }) => {
       if (!await (Fn.Pipe(...handlers)(req))) return code };
 }

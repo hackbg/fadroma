@@ -1,8 +1,8 @@
-import type { Async, Bytes, Step } from '../index.ts';
+import type { Async, Bytes } from '../index.ts';
+import { Log } from './Log.ts';
 import { Fn, Base16, chunked } from '../format.ts';
-import { joinPath, tmpdir, zipSync, mkdir, rm, mkdtemp, writeFile,
-  resolvePath, cwd } from '../deps.ts';
-import { Log } from './log.ts';
+import { joinPath, tmpdir, zipSync, mkdir, rm, mkdtemp, writeFile, resolvePath, cwd } from '../deps.ts';
+import type { Zippable } from '../deps.ts';
 /** A directory, with optional implementations of methods for writing to it. */
 export type Dir = {
   path:       string,
@@ -77,7 +77,7 @@ Temp.make = async function tempMake (prefix: string = '') {
 }
 /** Specify a text file. */
 export function Txt <T = string|number|object|null> (
-  path: string, value?: T|T[], ...steps: Array<T|Step<T>>
+  path: string, value?: T|T[], ...steps: Array<T|Fn.Step<T>>
 ): Dir.Entry {
   return Fn.Name(`Txt(${path})`, writeTxtFile, { path, value, steps });
   async function writeTxtFile <D extends Dir> (dir: string|D) {
@@ -91,11 +91,11 @@ export function Txt <T = string|number|object|null> (
 /** Define text file format. */
 export const textFormat =
   <T = string|number|object|null> (format: Fn.Returns<string>) =>
-    (path: string, value?: T|T[]|Step<T>, ...steps: Array<T|Step<T>>) =>
+    (path: string, value?: T|T[]|Fn.Step<T>, ...steps: Array<T|Fn.Step<T>>) =>
       Txt(path, value, ...steps, format as (_:T)=>Async<T>);
 /** Specify a binary data file. */
 export function Bin (
-  path: string, value?: number|Bytes, ...steps: Step<Bytes>[]
+  path: string, value?: number|Bytes, ...steps: Fn.Step<Bytes>[]
 ): Dir.Entry {
   value = (typeof value === 'number') ? new Uint8Array(value) : value
   return Fn.Name(`Bin(${path})`, writeBinFile, { path, value, steps });
@@ -113,7 +113,7 @@ export function Zip <D extends Dir> (name: string, ...entries: Dir.Entry<D>[]) {
   async function writeZipFile (dir?: D, ...args: unknown[]) {
     const context = ZippedFS(dir);
     for (const entry of entries) await entry(context, ...args);
-    const data = zipSync(context.tree as any);
+    const data = zipSync(context.tree as Zippable);
     if (dir) await dir.writeFile(joinPath(dir.path, name), data);
     Log().log('Wrote', name)
     return Object.assign(data, { name, tree: context.tree });
@@ -161,7 +161,7 @@ function LocalFS <D extends Dir> (dir: string|D, path: string = ''): D {
 export const Markdown = (name: string, ...args: (string|unknown)[]): Dir.Entry =>
   Txt(name, chunked('\n\n')(...args));
 /** An application project. */
-export type Project = Name & Rust & ECMAScript & {
+export type Project = Fn.Name & Rust & ECMAScript & {
   gitignore?: string[]|boolean,
   dotenv?: string|boolean,
   direnv?: string|boolean,
@@ -263,6 +263,4 @@ export const eslintConfig = Js('eslint.config.js');
 /** Semantic version. */
 export type Semver = string;
 /** Versioned component. */
-export type Versioned<V = Semver> = {
-  /* The version. */ version: V
-};
+export type Versioned<V = Semver> = { /* The version. */ version: V };
