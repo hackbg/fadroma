@@ -44,7 +44,7 @@ cloc:
     .
 # Typecheck.
 check:
-  ${CHECK} lib/index.test.ts
+  ${CHECK} lib/*.ts
 # Generate Deno docs.
 doc:
   ${DOC} --html --private --name=@hackbg/fadroma index.ts
