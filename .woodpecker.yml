@@ -3,6 +3,16 @@ steps:
 - name: branch
   image: alpine/git:latest
   commands: [ "printf $(git rev-parse --abbrev-ref HEAD) | tee BRANCH" ]
+- name: build wasm builder
+  image: oci.hack.bg/build:main
+  commands: [ "hackbg-build-podman ." ]
+  environment:
+    NAME: oci.hack.bg/fadroma-wasm-builder
+    USER: { from_secret: OCI_REGISTRY_USER }
+    PASS: { from_secret: OCI_REGISTRY_PASS }
+- name: build simf wasm blob (dev mode)
+  image: oci.hack.bg/fadroma-wasm-builder:v3-alpha
+  commands: [ "wasm-opt --version", "cd lib/platform && just simf-dev" ]
 - name: typecheck
   image: oci.hack.bg/build-deno:main
   commands: [ "id -u", "ls -alh", "just check" ]
