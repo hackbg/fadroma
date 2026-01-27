@@ -15,6 +15,7 @@ export { createServer as createTcpServer
 
 export { createServer as createHttpServer
        , Server as HttpServer } from 'node:http';
+export type { ClientRequest, ServerResponse } from 'node:http';
 
 export const webcrypto =
   globalThis.crypto ?? (await import('node:crypto')).webcrypto;
