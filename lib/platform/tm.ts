@@ -15,7 +15,7 @@
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-import type { Uint128, Hash as BaseHash } from '../format.ts';
+import type { Log, Uint128, Hash as BaseHash } from '../index.ts';
 import { Error } from '../format.ts';
 export type Hash = BaseHash<'sha256'>;
 /** An address on a chain. */
@@ -33,7 +33,7 @@ export type ChainOptions   = { bech32Prefix?:   string
                              , coinType?:       string
                              , hdAccountIndex?: string };
 /** Represents the backend of a managed chain (such as a devnet). */
-export type ChainBackend = Logger<ChainId, Console> & {
+export type ChainBackend = Log & {
   connect   ():                 Promise<Chain>
   connect   (name: string):     Promise<Agent>
   connect   (identity: Signer): Promise<Agent>
@@ -68,7 +68,7 @@ export interface Batch {
   submit (agent: Agent): Promise<unknown>
 }
 /** Dependencies of chain API methods. */
-export type Context = Logger<ChainId, Console> & {
+export type Context = Log & {
   /** The connection URL. */
   url?: URL|string
   /** Whether the connection is active. */
@@ -99,10 +99,14 @@ export type Api = {
 /** A cryptographic identity. */
 export type Signer = { publicKey?: Hash, sign (_: unknown): unknown };
 /** Binds a `Signer` to a `Chain`, enabling broadcasting of transactions. */
-export type Agent = Signer & AgentApi & Logger<Hash, Console> &
-  { chain: () => ChainRef, batch: () => Batch, address: Address, };
-export type AgentApi =
-  { fetchBalance (): Promise<Record<string, Uint128>> };
+export type Agent = Signer & AgentApi & Log & {
+  chain: () => ChainRef,
+  batch: () => Batch,
+  address: Address,
+};
+export type AgentApi = {
+  fetchBalance (): Promise<Record<string, Uint128>>
+};
 
 /** A pair of equivalent things. */
 export type Pair<T>        = [T, T];
