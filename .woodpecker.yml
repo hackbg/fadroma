@@ -1,0 +1,9 @@
+when: { event: push }
+steps:
+- name: branch
+  image: alpine/git:latest
+  commands: [ "printf $(git rev-parse --abbrev-ref HEAD) | tee BRANCH" ]
+- name: typecheck
+  image: oci.hack.bg/build-deno:main
+  commands: [ "id -u", "ls -alh", "just check" ]
+  backend_options: { docker: { user: 0 } }
