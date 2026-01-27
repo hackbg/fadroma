@@ -65,54 +65,58 @@ function Http (...routes: unknown[]) {
   return Fn.Name(name, httpRouter, { routes })
   async function httpRouter (context) {
     const { req, res, debug = console.debug, error = console.error } = context;
-    debug('REQ', req.method.padEnd(6))
     for (const route of routes) {
       if (route && typeof route === 'function') {
-        debug('   ', req.method.padEnd(6), req.url, route.name)
-        try {
-          const result = await route(context);
-          if (result !== undefined) {
-            debug(200, req.method.padEnd(6), req.url, route.name)
-            res.writeHead(200).end(JSON.stringify(result));
-          }
-        } catch (e) {
-          const code = e.http || 500;
-          error(code, req.method.padEnd(6), req.url, route.name, e.stack)
-          res.writeHead(code).end(JSON.stringify({ error: e.message }));
-        }
+        const result = await route(context);
+        if (result !== undefined) return result;
       }
     }
   }
 }
 namespace Http {
+  export const respond = (res, code, data) => {
+    res.writeHead(code).end(JSON.stringify(data));
+    return res;
+  }
   export type Server   = HttpServer;
   export type Request  = ClientRequest;
   export type Response = ServerResponse;
-  export type Method   = 'GET'|'PUT'|'PATCH'|'POST'|'DELETE'|'HEAD'|'OPTIONS';
-  export const Method  = (m: Method, ...f: Http[]): Http =>
-    Fn.Name(m, (r: Request) => (r.method === m) && Fn.Pipe(...f)(r), { ...f, method: m });
   export type Context  = { path?: string, method?: Method, body?: string };
-  export const Prefix  = (p: string, ...f: Http[]): Http =>
-    Fn.Name(p, (r: Request) => (r.path   === p) && Fn.Pipe(...f)(r), { ...f, path: p });
-  export const Guard   = (c: number, ...f: Http[]): Http =>
-    Fn.Name(c, (r: Request) => Promise.resolve(Fn.Pipe(...f)(r)).then(x=>{ if (!x) return c }));
-  export const Get     = (p: string, ...f: Http[]): Http =>
-    Prefix(p, Method('GET',  ...f));
-  export const Post    = (p: string, ...f: Http[]): Http =>
-    Prefix(p, Method('POST', ...f));
-  export const Listen  = (l: string|number|URL, ...routes: Http[]) => {
+  export type Method   = 'GET'|'PUT'|'PATCH'|'POST'|'DELETE'|'HEAD'|'OPTIONS';
+  export const Method  = (m: Method, ...f: Http[]): Http => Fn.Name(`Method ${m}`,
+    function methodHandler (r: Context) {
+      if (r.req.method === m) return Fn.Pipe(...f)(r)
+    }, { ...f, method: m });
+  export const Get    = (prefix?: string, ..._: Http[]) => method('GET',    prefix, ..._);
+  export const Put    = (prefix?: string, ..._: Http[]) => method('PUT',    prefix, ..._);
+  export const Patch  = (prefix?: string, ..._: Http[]) => method('PATCH',  prefix, ..._);
+  export const Post   = (prefix?: string, ..._: Http[]) => method('POST',   prefix, ..._);
+  export const Delete = (prefix?: string, ..._: Http[]) => method('DELETE', prefix, ..._);
+  function method (m: string, ...args: unknown[]) {
+    if (typeof args[0] === 'string') return Prefix(args[0], method(m, ...args.slice(1)));
+    return Method(m, ...args);
+  }
+  export const Prefix = (p: string, ...f: Http[]): Http => Fn.Name(`Prefix ${p}`,
+    function prefixHandler (r: Context) {
+      if (r.req.url === p) return Fn.Pipe(...f)(r)
+    }, { ...f, path: p });
+  export const Guard  = (code: number, ...f: Http[]): Http => Fn.Name(`Guard ${c}`,
+    async function guardHandler (r: Context) {
+      const x = await Fn.Pipe(...f)(r);
+      if (!x) throw Object.assign(new Error(c), { http: code })
+    }, { ...f, code });
+  export function Listen (l: string|number|URL, ...routes: Http[]) {
     if (typeof l === 'number') l = `localhost:${l}`;
     if (typeof l === 'string') l = new URL(l);
     const { port, hostname = 'localhost' } = l as URL;
     const handler = Http(...routes);
     return Fn.Name(`Listen (${hostname}:${port})`, httpListen, { hostname, port, ...routes });
-    function httpListen <P extends Ports & Log>({
-      ports = {}, log = console.log, debug = console.debug
-    }: P = Ports(Log()) as P): Server {
+    function httpListen <P extends Ports & Log> (context: P = Ports(Log()) as P): Server {
+      const { ports = {}, log = console.log, debug = console.debug } = context;
       const server = new HttpServer();
-      ports[port] = { url: l, server };
-      server.on('request', (req, res) => handler({ req, res }));
-      server.on('close', () => delete ports[port]);
+      const portState = ports[port] = { url: l, server };
+      server.on('request', onRequest);
+      server.on('close',   onClose);
       return new Promise((resolve, reject)=>{
         server.once('error', reject);
         server.listen(Number(port), hostname as string, () => {
@@ -121,10 +125,26 @@ namespace Http {
           resolve(server)
         });
       });
+      async function onClose () {
+        if (ports[port] === portState) {
+          delete ports[port];
+        }
+      }
+      async function onRequest (req, res) {
+        debug('REQ', req.method.padEnd(6), req.url)
+        let code   = 404;
+        let result = undefined;
+        try {
+          result = await handler({ ...context, req, res });
+          code = 200;
+        } catch (e) {
+          code = e.http || 500;
+          result = { error: e.message };
+        }
+        return respond(res, code, result);
+      }
     }
   }
-  export const respond = (response, code, data) => response.status(code).send(data);
-  //export const Param  = (name:   string, fn):                          Http => (req: Request & { params: Record<string, unknown> }) => Promise.resolve(fn(req)).then(val => { req.params[name] = val; });
 }
 /** Fetch helper. */
 export async function callUrl (url: string|URL, method = 'GET', body?: BodyInit) {
