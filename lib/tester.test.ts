@@ -1,3 +1,4 @@
+#!/usr/bin/env -S deno run --coverage --allow-env --allow-net --allow-run --allow-import --allow-read --allow-write=/tmp/fadroma
 import { Testing, suite, the, is, has } from "./tester.ts";
 
 export default suite(import.meta, 'Tester',
