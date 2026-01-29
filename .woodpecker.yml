@@ -5,5 +5,5 @@ steps:
 - { name: "build (simf)",    image: oci.hack.bg/build-rust:main, commands: [ "wasm-opt --version", "cd lib/platform && just simf-dev" ] }
 - { name: "test (formats)",  image: oci.hack.bg/build-deno:main, commands: [ "deno run --allow-env --allow-net --allow-run --allow-import --allow-read --allow-write=/tmp/fadroma ./lib/format.test.ts"  ] }
 - { name: "test (contexts)", image: oci.hack.bg/build-deno:main, commands: [ "deno run --allow-env --allow-net --allow-run --allow-import --allow-read --allow-write=/tmp/fadroma ./lib/context.test.ts" ] }
-- { name: "test (simf)",     image: oci.hack.bg/build-deno:main, commands: [ "deno run --allow-read --allow-env --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443 --allow-net=127.0.0.1:8941,liquidtestnet.com:443,blockstream.info:443 ./lib/platform/simf.test.ts" ] }
+- { name: "test (simf)",     image: oci.hack.bg/build-deno-elements:main, commands: [ "deno run --allow-read --allow-env --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443 --allow-net=127.0.0.1:8941,liquidtestnet.com:443,blockstream.info:443 ./lib/platform/simf.test.ts" ] }
 - { name: "typecheck",       image: oci.hack.bg/build-deno:main, commands: [ "id -u", "ls -alh", "just check" ], backend_options: { docker: { user: 0 } } }
