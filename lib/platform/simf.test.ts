@@ -48,14 +48,14 @@ function testWasm (examples = Examples()) {
 function testDeploy (examples = Examples()) {
   let bitcoin = Number(INITIAL.COINS / DECIMAL); // FIXME: move to step context
   return the('Deploy', () => Btc(daemonOptions()),
-    setVerbose(false), // Pipe daemon output to stderr
-    Port.Wait({ port: 8941 }), // Wait for RPC to open (FIXME: use port)
-    createTestWallet('test-simf', assertHasBalance({ "bitcoin": 0 })),
-    assertRescanned(assertHasBalance({ bitcoin, [REISSUE]: 1 })),
+    Verbose(true),             // Pipe daemon output to stderr
+    Port.Wait({ port: 8941 }), // Wait for RPC to open
+    TestWallet('test-simf', HasBalance({ "bitcoin": 0 })),
+    Rescan(HasBalance({ bitcoin, [REISSUE]: 1 })),
     ...examples.map((example, index)=>testDeployAndRun(example, index)),
     ({ btc }) => btc.kill());
 
-  function assertHasBalance <T> (balance: T) {
+  function HasBalance <T> (balance: T) {
     return (info: { balance: T }) => equal(info.balance, balance)
   }
   function testDeployAndRun ({ p2tr, cost, src }: Example, index: number) {
@@ -101,21 +101,21 @@ function testDeploy (examples = Examples()) {
       equal(balanceAfter.bitcoin, balance);
     }
   }
-  function createTestWallet (name: string, cb?: Fn) {
+  function TestWallet (name: string, cb?: Fn) {
     return Fn.Name(`Create test wallet ${name}`, async (ctx: { rpc, rest }) => {
       await ctx.rpc.createwallet(name);
       cb && await cb(await ctx.rpc.getwalletinfo());
       return ctx
     })
   };
-  function assertRescanned (cb?: Fn) {
+  function Rescan (cb?: Fn) {
     return Fn.Name(`Rescan`, async (ctx: { rpc, rest }) => {
       await ctx.rpc.rescanblockchain();
       await cb(await ctx.rpc.getwalletinfo());
       return ctx
     })
   };
-  function setVerbose (on) {
+  function Verbose (on) {
     return Fn.Name(`Verbose: ${on}`, (ctx) => {
       ctx.verbose = on;
       if (on) {
