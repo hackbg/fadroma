@@ -17,7 +17,7 @@ export namespace Port {
     port,
     host     = '127.0.0.1',
     retries  = 30,
-    interval = 300
+    interval = 1000
   }) {
     return Fn.Name(`TCP(Wait for ${host}:${port})`, async function waitForPort (context?: T) {
       while (retries-- > 0) {
@@ -26,8 +26,16 @@ export namespace Port {
           await new Promise((resolve, reject)=>{
             socket.on('connect', ok);
             socket.on('error', fail);
-            function ok () { resolve(null); socket.off('error', fail); }
-            function fail (e: unknown) { reject(e); socket.off('conenct', ok); }
+            function ok () {
+              socket.off('error', fail);
+              resolve(null);
+            }
+            async function fail (e: unknown) {
+              socket.off('connect', ok);
+              console.debug(`Waiting for ${host}:${port} (${retries} retries left...)`)
+              await new Promise(resolve=>setTimeout(resolve, interval));
+              reject(e);
+            }
             socket.connect(port, host);
           });
           socket.destroy();
