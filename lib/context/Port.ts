@@ -19,7 +19,7 @@ export namespace Port {
     retries  = 30,
     interval = 300
   }) {
-    return Fn.Name(`TCP(Wait for ${host}:${port})`, async function waitForPort (_?: T) {
+    return Fn.Name(`TCP(Wait for ${host}:${port})`, async function waitForPort (context?: T) {
       while (retries-- > 0) {
         try {
           const socket = new Socket();
@@ -31,7 +31,7 @@ export namespace Port {
             socket.connect(port, host);
           });
           socket.destroy();
-          return
+          return context
         } catch (e) {
           //console.error(e.message);
           await new Promise(resolve=>setTimeout(resolve, interval));

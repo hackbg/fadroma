@@ -2,7 +2,7 @@
 import Btc from './btc.ts';
 import Simf from './simf.ts';
 import Examples from './simf.examples.ts';
-import { Fn, Test } from '../index.ts';
+import { Fn, Test, Port } from '../index.ts';
 import { equal, throws, stderr } from '../deps.ts';
 const { the, is, has } = Test;
 ///** Asset ID for regular old Bitcoin. */
@@ -49,7 +49,7 @@ function testDeploy (examples = Examples()) {
   let bitcoin = Number(INITIAL.COINS / DECIMAL); // FIXME: move to step context
   return the('Deploy', () => Btc(daemonOptions()),
     setVerbose(false), // Pipe daemon output to stderr
-    wait(1000), // Wait for RPC to open (FIXME: use port)
+    Port.Wait({ port: 8941 }), // Wait for RPC to open (FIXME: use port)
     createTestWallet('test-simf', assertHasBalance({ "bitcoin": 0 })),
     assertRescanned(assertHasBalance({ bitcoin, [REISSUE]: 1 })),
     ...examples.map((example, index)=>testDeployAndRun(example, index)),
