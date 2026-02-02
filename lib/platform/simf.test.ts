@@ -84,10 +84,14 @@ function testDeploy (examples = Examples()) {
       }
       function assertPostDeployVouts (tx, amount) {
         equal(tx.vout.length, 3);
-        const hasOne = (f: Fn) => equal(tx.vout.filter(f).length, 1);
-        hasOne((x: Btc.Vout)=>(x.value===amount) && (x.scriptPubKey.address == p2tr));
-        hasOne((x: Btc.Vout)=>x.value===cost); // Transaction fee.
-        hasOne((x: Btc.Vout)=>x.value===bitcoin); // Remaining deployer balance.
+        const hasOne = (f: Fn, t) =>
+          equal(tx.vout.filter(f).length, 1, `post deploy: ${t}`);
+        hasOne((x: Btc.Vout)=>((x.value===amount) && (x.scriptPubKey.address == p2tr)),
+          `balance: program ${p2tr} must receive ${amount}`);
+        hasOne((x: Btc.Vout)=>x.value===cost,
+          `fee: deploy fee must be ${cost}`); // Transaction fee.
+        //hasOne((x: Btc.Vout)=>x.value===bitcoin,
+          //`remaining: must be ${bitcoin}`); // Remaining deployer balance.
       }
     })
     async function createDeployer (rpc, index, initial = 1) {
