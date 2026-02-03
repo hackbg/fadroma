@@ -1,9 +1,3 @@
-[submodule "@fadroma/simf/SimplicityHL"]
-	path = @fadroma/simf/SimplicityHL
-	url = https://github.com/BlockstreamResearch/SimplicityHL
-[submodule "lib/platform/simf/simply-wasm"]
-	path = lib/platform/simf/simply-wasm
-	url = https://github.com/hackbg/simply.git
-[submodule "lib/platform/simf/dep/rust-secp256k1-zkp"]
-	path = lib/platform/simf/dep/rust-secp256k1-zkp
-	url = https://github.com/BlockstreamResearch/rust-secp256k1-zkp
+[submodule "lib/platform/simf"]
+	path = lib/platform/simf
+	url  = https://github.com/hackbg/simf.git
