@@ -1,8 +1,6 @@
 *.wasm
 .direnv
 .docs
-.misc
-.misc/toolbox
 coverage
 dist
 node_modules
