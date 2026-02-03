@@ -1,47 +1,31 @@
 set export
-
-JUST  := "time just"
-BUILD := "time podman build"
-RUN   := "time podman run --rm -v .:/app:rw --workdir=/app -it hackbg/fadroma:dev"
-CHECK := "time deno check --allow-import"
-DOC   := "time deno doc"
-TEST  := "time deno test"
-COV   := "deno coverage"
-
+BUILDER := "docker" # podman, buildah...
+JUST    := "time just"
+RUN     := "time podman run --rm -v .:/app:rw --workdir=/app -it hackbg/fadroma:dev"
+CHECK   := "time deno check --allow-import"
+DOC     := "time deno doc"
+TEST    := "time deno test"
+COV     := "deno coverage"
+IMAGE   := "hackbg/fadroma:dev"
 # Display available recipes.
 list:
   @just --list
-# Compile build image in which WASMs are compiled.
-wasm-img:
-  ${BUILD} -t hackbg/fadroma:dev .
-# Open WASM build shell to iterate on WASM modules.
-wasm-sh:
-  ${RUN}
+# Build the environment in which SimplicityHL WASM modules can be compiled.
+wasm-img builder="$BUILDER":
+  time {{builder}} build -t "{{IMAGE}}" .
+# Open WASM build shell to iterate on WASM modules from current checkout.
+wasm-sh builder="$BUILDER":
+  {{builder}} run -v .:/app:rw --workdir=/app -it "{{IMAGE}}"
 # Compile dev builds of all WASM modules.
-wasm:
-  ${JUST} wasm-img
-  ${JUST} wasm-simf
-  ${JUST} wasm-namada
+wasm-all builder="$BUILDER":
+  time just wasm-img {{builder}}
+  time just wasm {{builder}} simf
+  time just wasm {{builder}} namada
 # Compile dev builds of SimplicityHL module.
-wasm-simf:
-  ${JUST} wasm-img
-  ${RUN} sh -c "cd lib/platform/simf && just wasm"
-# Compile dev builds of Namada module.
-wasm-namada:
-  ${JUST} wasm-img
-  ${RUN} sh -c "cd lib/platform/namada && just wasm"
-# Report line counts.
-cloc:
-  cloc \
-    --not-match-d=node_modules \
-    --not-match-d=target \
-    --not-match-d=dist \
-    --not-match-d=deps \
-    --not-match-d=.misc \
-    --not-match-d=.docs \
-    --not-match-d=.deno \
-    --not-match-d=coverage \
-    .
+wasm builder="$BUILDER" platform="simf":
+  time just wasm-img {{builder}}
+  time {{builder}} run -v .:/app:rw --workdir=/app -it "{{IMAGE}}" \
+    sh -c "cd lib/platform/$platform && just wasm"
 # Typecheck.
 check:
   ${CHECK} lib/*.ts
@@ -65,3 +49,15 @@ test:
 # Report test coverage.
 cov:
   ${COV} --detailed
+# Report line counts.
+cloc:
+  cloc \
+    --not-match-d=node_modules \
+    --not-match-d=target \
+    --not-match-d=dist \
+    --not-match-d=deps \
+    --not-match-d=.misc \
+    --not-match-d=.docs \
+    --not-match-d=.deno \
+    --not-match-d=coverage \
+    .
