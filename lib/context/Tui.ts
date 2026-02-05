@@ -1,5 +1,5 @@
+import { stdin, stdout } from 'node:process';
 import type { Timed } from '../index.ts';
-import { stdin, stdout } from '../deps.ts';
 export default Tui;
 /** Launch a terminal user interface. */
 function Tui <T extends Tui> (state: T = {} as T): T {

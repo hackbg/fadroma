@@ -1,5 +1,5 @@
+import { Socket } from 'node:net';
 import { Fn, Error } from '../format.ts';
-import { Socket } from '../deps.ts';
 /** Keep track of port assignments. */
 export interface Ports<T = unknown> { ports: Record<number, T> };
 /** Add ports to context. */

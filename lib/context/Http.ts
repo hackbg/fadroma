@@ -1,6 +1,5 @@
-import type { ClientRequest, ServerResponse } from '../deps.ts';
-import { HttpServer } from '../deps.ts';
-import { tcpAddr } from './Tcp.ts';
+import type { ClientRequest, ServerResponse } from 'node:http';
+import { Server as HttpServer } from 'node:http';
 import { Ports } from './Port.ts';
 import { Log } from './Log.ts';
 import { Fn } from '../format.ts';
@@ -58,13 +57,13 @@ export interface Http extends Fn.Takes<[Http.Context]> {}
   *         ...modelSpecificRoutes); }
   *
   *   */
-function Http (name?: string, ...routes: Http.Handler[]): Http;
+function Http (name?: string, ...routes: Http[]): Http;
+function Http (...routes: Http[]): Http;
 function Http (...routes: unknown[]) {
   let name = 'Http';
-  if (typeof routes[0] === 'string') name = routes.shift();
+  if (typeof routes[0] === 'string') name = routes.shift() as string;
   return Fn.Name(name, httpRouter, { routes })
-  async function httpRouter (context) {
-    const { req, res, debug = console.debug, error = console.error } = context;
+  async function httpRouter (context: Http.Context) {
     for (const route of routes) {
       if (route && typeof route === 'function') {
         const result = await route(context);
@@ -81,7 +80,7 @@ namespace Http {
   export type Server   = HttpServer;
   export type Request  = ClientRequest;
   export type Response = ServerResponse;
-  export type Context  = { path?: string, method?: Method, body?: string };
+  export type Context  = Log & { req: Request, res: Response };
   export type Method   = 'GET'|'PUT'|'PATCH'|'POST'|'DELETE'|'HEAD'|'OPTIONS';
   export const Method  = (m: Method, ...f: Http[]): Http => Fn.Name(`Method ${m}`,
     function methodHandler (r: Context) {
@@ -92,18 +91,18 @@ namespace Http {
   export const Patch  = (prefix?: string, ..._: Http[]) => method('PATCH',  prefix, ..._);
   export const Post   = (prefix?: string, ..._: Http[]) => method('POST',   prefix, ..._);
   export const Delete = (prefix?: string, ..._: Http[]) => method('DELETE', prefix, ..._);
-  function method (m: string, ...args: unknown[]) {
+  function method (m: Method, ...args: unknown[]) {
     if (typeof args[0] === 'string') return Prefix(args[0], method(m, ...args.slice(1)));
-    return Method(m, ...args);
+    return Method(m, ...args as Http[]);
   }
   export const Prefix = (p: string, ...f: Http[]): Http => Fn.Name(`Prefix ${p}`,
     function prefixHandler (r: Context) {
       if (r.req.url === p) return Fn.Pipe(...f)(r)
     }, { ...f, path: p });
-  export const Guard  = (code: number, ...f: Http[]): Http => Fn.Name(`Guard ${c}`,
+  export const Guard  = (code: number, ...f: Http[]): Http => Fn.Name(`Guard ${code}`,
     async function guardHandler (r: Context) {
       const x = await Fn.Pipe(...f)(r);
-      if (!x) throw Object.assign(new Error(c), { http: code })
+      if (!x) throw Object.assign(new Error(`HTTP ${code}`), { http: code })
     }, { ...f, code });
   export function Listen (l: string|number|URL, ...routes: Http[]) {
     if (typeof l === 'number') l = `localhost:${l}`;
@@ -112,25 +111,28 @@ namespace Http {
     const handler = Http(...routes);
     return Fn.Name(`Listen (${hostname}:${port})`, httpListen, { hostname, port, ...routes });
     function httpListen <P extends Ports & Log> (context: P = Ports(Log()) as P): Server {
-      const { ports = {}, log = console.log, debug = console.debug } = context;
+      const { ports = {}, debug = console.debug } = context;
       const server = new HttpServer();
       const portState = ports[port] = { url: l, server };
       server.on('request', onRequest);
       server.on('close',   onClose);
       return new Promise((resolve, reject)=>{
         server.once('error', reject);
-        server.listen(Number(port), hostname as string, () => {
+        debug('Starting listener on', port);
+        server.listen(Number(port), hostname as string, onListen);
+        function onListen () {
           server.off('error', reject);
           debug('Listening on', hostname, port);
           resolve(server)
-        });
+        }
       });
       async function onClose () {
+        debug('Stopping listener');
         if (ports[port] === portState) {
           delete ports[port];
         }
       }
-      async function onRequest (req, res) {
+      async function onRequest (req: Request, res: Response) {
         debug('REQ', req.method.padEnd(6), req.url)
         let code   = 404;
         let result = undefined;

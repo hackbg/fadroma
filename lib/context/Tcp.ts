@@ -1,9 +1,9 @@
 import type { Fn } from '../index.ts';
-import type { Socket } from '../deps.ts';
-import { createTcpServer, createConnection } from '../deps.ts';
+import type { Socket } from 'node:net';
+import { createServer, createConnection } from 'node:net';
 export function Listen (at: number|string|URL, handler: Fn<[Socket]>) {
   const { port, hostname } = tcpAddr(at);
-  const server = createTcpServer(handler);
+  const server = createServer(handler);
   server.on('connecton', handler);
   return new Promise((resolve, reject) => {
     server.once('error', reject);
