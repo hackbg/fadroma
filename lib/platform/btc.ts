@@ -1,4 +1,4 @@
-import { Async, Fn, Spawn, Temp, callUrl } from '../index.ts';
+import { Async, Fn, Port, Spawn, Temp, callUrl } from '../index.ts';
 export default Btc;
 /** A Bitcoin or Elements daemon. */
 interface Btc {
@@ -86,6 +86,7 @@ async function Btc <T> ({
   debug('Spawning:', [spawn.daemon, ...spawn.options].join(' '));
   const process = await spawn();
   const url = `http://${rpcuser}:${rpcpassword}@${rpcallowip}:${rpcport}`;
+  await Port.Wait({ port: rpcport })();
   return Object.assign(process, {
     url,
     rest: Btc.Rest(url),
