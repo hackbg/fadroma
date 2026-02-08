@@ -1,5 +1,6 @@
 import type { ClientRequest, ServerResponse } from 'node:http';
 import { Server as HttpServer } from 'node:http';
+import { Buffer } from 'node:buffer';
 import { Ports } from './Port.ts';
 import { Log } from './Log.ts';
 import { Fn } from '../format.ts';
@@ -73,10 +74,6 @@ function Http (...routes: unknown[]) {
   }
 }
 namespace Http {
-  export const respond = (res, code, data) => {
-    res.writeHead(code).end(JSON.stringify(data));
-    return res;
-  }
   export type Server   = HttpServer;
   export type Request  = ClientRequest;
   export type Response = ServerResponse;
@@ -110,7 +107,7 @@ namespace Http {
     const { port, hostname = 'localhost' } = l as URL;
     const handler = Http(...routes);
     return Fn.Name(`Listen (${hostname}:${port})`, httpListen, { hostname, port, ...routes });
-    function httpListen <P extends Ports & Log> (context: P = Ports(Log()) as P): Server {
+    function httpListen <P extends Ports & Log> (context: P = Ports(Log()) as P): Promise<Server> {
       const { ports = {}, debug = console.debug } = context;
       const server = new HttpServer();
       const portState = ports[port] = { url: l, server };
@@ -146,6 +143,22 @@ namespace Http {
         return respond(res, code, result);
       }
     }
+  }
+  export function respond (res: Response, code: number, data: unknown) {
+    res.writeHead(code).end(JSON.stringify(data));
+    return res;
+  }
+  export function readBody (req: Http.Request): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const data = [];
+      try {
+        req.on('error', reject);
+        req.on('data', chunk => data.push(chunk));
+        req.on('end', () => resolve(decoder.decode(Buffer.concat(data))));
+      } catch(e) {
+        reject(e);
+      }
+    })
   }
 }
 /** Fetch helper. */
