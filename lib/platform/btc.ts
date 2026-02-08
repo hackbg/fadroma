@@ -1,11 +1,13 @@
+import process from 'node:process';
 import { Async, Fn, Port, Spawn, Temp, callUrl } from '../index.ts';
 export default Btc;
 /** A Bitcoin or Elements daemon. */
-interface Btc {
-  kill: () => void
-  url:  string,
-  rpc:  Btc.Rpc
-  rest: Btc.Rest
+interface Btc extends Spawn {
+  kill:     () => void
+  url:      string,
+  rpc:      Btc.Rpc
+  rest:     Btc.Rest
+  verbose?: boolean
 }
 /** Launch Bitcoin node. */
 async function Btc <T> ({
@@ -84,10 +86,10 @@ async function Btc <T> ({
   ];
   const spawn = Spawn(daemon, ...options.filter(Boolean));
   debug('Spawning:', [spawn.daemon, ...spawn.options].join(' '));
-  const process = await spawn();
+  const btc = await spawn();
   const url = `http://${rpcuser}:${rpcpassword}@${rpcallowip}:${rpcport}`;
   await Port.Wait({ port: rpcport })();
-  return Object.assign(process, {
+  return Object.assign(btc, {
     url,
     rest: Btc.Rest(url),
     rpc:  Btc.Rpc(url)
@@ -177,5 +179,37 @@ namespace Btc {
       },
     }
   }
+
+  /** Define test wallet. */
+  export function CreateWallet (name: string, cb?: Fn) {
+    return Fn.Name(`Create test wallet ${name}`, async (context: Btc) => {
+      await context.rpc.createwallet(name);
+      cb && await cb(await context.rpc.getwalletinfo());
+      return context
+    })
+  };
+
+  /** Define rescan. */
+  export function Rescan (cb?: Fn) {
+    return Fn.Name(`Rescan`, async (context: Btc) => {
+      await context.rpc.rescanblockchain();
+      await cb(await context.rpc.getwalletinfo());
+      return context
+    })
+  };
+
+  /** Define daemon verbosity. */
+  export function Verbose (
+    enabled?: boolean, stdout = process.stderr, stderr = process.stderr
+  ) {
+    return Fn.Name(`Verbose: ${enabled}`, (context: Btc) => {
+      context.verbose = enabled;
+      if (enabled) {
+        context.stdout.pipe(stdout);
+        context.stderr.pipe(stderr);
+      }
+      return context
+    })
+  };
 
 }

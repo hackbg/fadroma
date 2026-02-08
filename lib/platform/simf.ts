@@ -1,5 +1,6 @@
+import type Btc from './btc.ts';
 import { Fn, wasmLoader } from '../index.ts';
-import { exit, env, argv, stdout, stderr, fileURLToPath } from '../deps.ts';
+import { exit, env, argv, stdout, stderr } from '../deps.ts';
 export default Simf;
 /** A SimplicityHL program. */
 interface Simf {
@@ -22,12 +23,20 @@ function Simf (source: string): Simf {
   const program = {
     source,
     async compile (options?: object) {
-      const wasm = await Simf.Wasm();
-      const compiled = wasm.compile(program.source, options) as Simf.Program;
-      return Object.assign(
-        compiled,
-        compiled.toJSON()
-      ) as unknown as Simf.Program;
+      const wasm      = await Simf.Wasm();
+      const compiled  = wasm.compile(program.source, options) as Simf.Program;
+      const inspected = compiled.toJSON();
+      const methods   = {
+        async fund ({ rpc, rest, tx, amount, fee, witness, from }: Btc = {}) {
+          const fund = compiled.tx_fund({ tx, amount, fee, witness, from });
+          return await rest.tx(await rpc.sendrawtransaction(fund.hex));
+        },
+        async spend ({ rpc, rest, tx, amount, fee, witness, to }: Btc = {}) {
+          const spend = compiled.tx_spend({ tx, amount, fee, witness, to });
+          return await rest.tx(await rpc.sendrawtransaction(spend.hex));
+        },
+      };
+      return Object.assign(compiled, inspected, methods) as unknown as Simf.Program;
     }
   };
   return program;

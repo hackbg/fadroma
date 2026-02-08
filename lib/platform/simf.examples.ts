@@ -1,4 +1,20 @@
-export default function SimfExamples () {
+export default Example;
+/** 1 BTC = 100000000 Satoshis. */
+export const DECIMAL = 100000000n;
+/** Values for `initialfreecoins` and `initialreissuancetokens`. */
+export const INITIAL = { COINS: 1000000n * DECIMAL, REISSUE: 1n * DECIMAL };
+/** Asset ID for initial reissuance token. */
+export const REISSUE = 'a6be6b365498cd451be75ba0f68c258ee01e08f3cb30d5f8469f6628db58dc61';
+///** Asset ID for regular old Bitcoin. */
+//const BITCOIN = 'b2e15d0d7a0c94e4e2ce0fe6e8691b9e451377f6e46e8045a86f7c4b5d4f0f23';
+///** Asset IDs of (t)L-BTC. */
+//const LIQUID  = { mainnet: '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d'
+//               , testnet: '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49' };
+
+/** Predefined example program. */
+type Example = { cost?: number, cmr?: string, p2tr?: string, src: string };
+/** Get predefined example programs. */
+function Example () {
   return [
     UnitProgram(),
     SimpleProgram(),
