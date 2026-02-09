@@ -7,7 +7,7 @@ interface Simf {
   /** Code of program. */
   source: string
   /** Compile program. */
-  compile (_?: object): Promise<Simf.Program>;
+  compile (_?: object): Promise<Simf.Program>
 }
 /** Define a SimplicityHL program.
   *
@@ -27,11 +27,11 @@ function Simf (source: string): Simf {
       const compiled  = wasm.compile(program.source, options) as Simf.Program;
       const inspected = compiled.toJSON();
       const methods   = {
-        async fund ({ rpc, rest, tx, amount, fee, witness, from }: Btc = {}) {
+        async fund ({ rpc, rest, tx, amount, fee, witness, from }: Btc & Simf.Fund) {
           const fund = compiled.tx_fund({ tx, amount, fee, witness, from });
           return await rest.tx(await rpc.sendrawtransaction(fund.hex));
         },
-        async spend ({ rpc, rest, tx, amount, fee, witness, to }: Btc = {}) {
+        async spend ({ rpc, rest, tx, amount, fee, witness, to }: Btc & Simf.Spend) {
           const spend = compiled.tx_spend({ tx, amount, fee, witness, to });
           return await rest.tx(await rpc.sendrawtransaction(spend.hex));
         },
@@ -43,25 +43,23 @@ function Simf (source: string): Simf {
 }
 /** SimplicityHL utilities. */
 namespace Simf {
-  /** Simplicity WASM loader. */
+  export type Tx    = unknown;
+  export type TxCtx = { tx: Tx, amount, fee, witness? };
+  export type Fund  = TxCtx & { from: string }
+  export type Spend = TxCtx & { to:   string };
+  /** Load SimplicityHL WASM module. */
   export const Wasm = wasmLoader<Wasm>(
     env['FADROMA_SIMF_WASM'] || import.meta.resolve('./simf/pkg/fadroma_simf_bg.wasm'),
     env['FADROMA_SIMF_WRAP'] || import.meta.resolve('./simf/pkg/fadroma_simf.js'),
   );
-  /** Simplicity WASM module. */
+  /** SimplicityHL WASM module API. */
   export type Wasm = {
     cmr_to_p2tr: Fn.Returns<string>,
     compile:     Fn<[string, object?], Program>,
     toJSON:      Fn.Returns<object>,
   };
-  /** Simplicity program (WASM object). */
-  export interface Program extends Simf {
-    toString (): object
-    toJSON (): object
-    spend (_: object): Spend
-  };
-  /** Simplicity spend transaction. */
-  export type Spend = {
+  /** Transaction returned by SimplicityHL WASM module. */
+  export type WasmTx = {
     hex:         string,
     bytes:       Uint8Array,
     decoded:     {
@@ -70,6 +68,17 @@ namespace Simf {
       version:   unknown
       lock_time: { block: number }|{ seconds: number }
     }
+  };
+  /** Compiled SimplicityHL program (WASM object). */
+  export interface Program extends Simf {
+    toString (): object
+    toJSON   (): object
+    /** Transfer funds to program. */
+    fund     (_: Btc & Fund):  Promise<string>
+    tx_fund  (_: Fund):        WasmTx
+    /** Transfer funds from program. */
+    spend    (_: Btc & Spend): Promise<string>
+    tx_spend (_: Spend):       WasmTx
   };
   /** Simplicity CLI. */
   export const Cli = async function simfCli (program: Simf) {
