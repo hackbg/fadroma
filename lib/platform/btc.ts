@@ -107,10 +107,9 @@ namespace Btc {
     decoderawtransaction:      Fn,
     decodescript:              Fn,
     generatetoaddress:         Fn,
-    getnewaddress:             Fn,
-    getwalletinfo:             Fn.Returns<Promise<{
-      balance: Record<string, number>
-    }>>,
+    getnewaddress:             Fn.Returns<Promise<string>>,
+    getreceivedbyaddress:      Fn,
+    getwalletinfo:             Fn.Returns<Promise<{ balance: Record<string, number> }>>,
     rescanblockchain:          Fn,
     sendtoaddress:             Fn,
     sendrawtransaction:        Fn,
@@ -131,6 +130,7 @@ namespace Btc {
       decodescript:              callRpc('decodescript'),
       generatetoaddress:         callRpc('generatetoaddress'),
       getnewaddress:             callRpc('getnewaddress'),
+      getreceivedbyaddress:      callRpc('getreceivedbyaddress'),
       getwalletinfo:             callRpc('getwalletinfo'),
       rescanblockchain:          callRpc('rescanblockchain'),
       sendtoaddress:             callRpc('sendtoaddress'),
