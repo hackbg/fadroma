@@ -52,7 +52,7 @@ function testDeploy (Examples = Example()) {
     // Test funding and spending each example:
     ...Examples.map((example, index)=>testDeployAndRun(example, index)),
     // Shutdown the localnet.
-    ({ btc }) => btc.kill());
+    btc => btc.kill(9));
 
   /** Define test case for a given example. */
   function testDeployAndRun ({ name, p2tr, cost, src }: Example, index: number) {
@@ -67,7 +67,7 @@ function testDeploy (Examples = Example()) {
       // Spend from program
       const txSpend = await spendProgram(src, txFund.hex);
 
-      console.log({ p2tr, user, txFund, txSpend });
+      //console.log({ p2tr, user, txFund, txSpend });
       return context;
 
       async function fundProgram (p2tr: string, amount: number) {
