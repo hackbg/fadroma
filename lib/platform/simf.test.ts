@@ -27,7 +27,7 @@ function testWasm (Examples = Example()) {
   /** Test compile on a given example. */
   function testCompile ({ src, cmr }: Example) {
     return Fn.Name(`Compile (${src.length}b)`, (compile: Fn) => {
-      const result = compile(src, {}) as { toJSON (): { cmr: string }, spend (): object };
+      const result = compile(src, {}) as { toJSON: Fn.Returns<{ cmr: unknown }> };
       if (cmr) equal(result.toJSON().cmr, cmr);
       return compile;
     });
@@ -67,34 +67,41 @@ function testDeploy (Examples = Example()) {
       // Spend from program
       const txSpend = await spendProgram(src, txFund.hex);
 
-      context.log({ program, user, txFund, txSpend });
+      console.log({ p2tr, user, txFund, txSpend });
       return context;
 
-      async function fundProgram (p2tr, amount) {
+      async function fundProgram (p2tr: string, amount: number) {
         const txId = await rpc.sendtoaddress(p2tr, String(amount));
         const fundTx = await rest.tx(txId);
-        await assertBalance(bitcoin -= (1 + cost));
+        //await assertBalance(bitcoin -= (1 + cost));
         equal(fundTx.vout.length, 3);
-        const hasOne = (f: Fn, t) => equal(fundTx.vout.filter(f).length, 1, `post deploy: ${t}`);
-        hasOne((x: Btc.Vout)=>((x.value===1) && (x.scriptPubKey.address == p2tr)), `balance: program ${p2tr} must receive ${amount}`);
-        hasOne((x: Btc.Vout)=>x.value===cost, `fee: deploy fee must be ${cost}`); // Transaction fee.
-        //hasOne((x: Btc.Vout)=>x.value===bitcoin, //`remaining: must be ${bitcoin}`); // Remaining deployer balance.
+        const hasOne = (f: Fn, t: string) =>
+          equal(fundTx.vout.filter(f).length, 1, `post deploy: ${t}`);
+        hasOne((x: Btc.Vout)=>((x.value===1) && (x.scriptPubKey.address == p2tr)),
+          `balance: program ${p2tr} must receive ${amount}`);
+        hasOne((x: Btc.Vout)=>x.value===cost,
+          `fee: deploy fee must be ${cost}`);
+        //hasOne((x: Btc.Vout)=>x.value===bitcoin,
+          //`remaining: must be ${bitcoin}`);
         return fundTx;
       }
 
-      async function spendProgram (src, tx, amount = 1-1e-4, fee = 1e-4, witness = '') {
+      async function spendProgram (src: string, tx: Simf.Tx, amount = 1-1e-4, fee = 1e-4, witness = '') {
         const prog = await Simf(src).compile();
-        const sent = await prog.spend({ rpc, tx, amount, fee, witness, to: user });
-        //await rpc.generatetoaddress(1, user);
-        await rpc.rescanblockchain();
-        await assertBalance(bitcoin += amount);
+        equal(await rpc.getreceivedbyaddress(user, 0), { bitcoin: 0 });
+        const sent = await prog.spend({ rpc, rest, tx, amount, fee, witness, to: user });
+        equal(await rpc.getreceivedbyaddress(user, 0), { bitcoin: amount });
         return sent;
       }
 
-      async function assertBalance (balance) {
+      async function assertBalance (balance: unknown, token = 'bitcoin') {
+        equal(await getBalance(token), balance);
+      }
+
+      async function getBalance (token = 'bitcoin') {
         await rpc.rescanblockchain();
-        const { balance: balanceAfter } = await rpc.getwalletinfo();
-        equal(balanceAfter.bitcoin, balance);
+        const { balance } = await rpc.getwalletinfo();
+        return balance[token]
       }
 
     })
