@@ -55,8 +55,8 @@ function testDeploy (Examples = Example()) {
     ({ btc }) => btc.kill());
 
   /** Define test case for a given example. */
-  function testDeployAndRun ({ p2tr, cost, src }: Example, index: number) {
-    return Fn.Name(`${p2tr}`, async (context: Btc) => {
+  function testDeployAndRun ({ name, p2tr, cost, src }: Example, index: number) {
+    return Fn.Name(`${name} (${p2tr})`, async (context: Btc) => {
       const { rpc, rest } = context;
       // Create deployer
       const user = await rpc.getnewaddress(`fadroma-${index}`, "bech32");
