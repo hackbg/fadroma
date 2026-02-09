@@ -3,7 +3,7 @@ import Btc from './btc.ts';
 import Simf from './simf.ts';
 import Example, { REISSUE, DECIMAL, INITIAL } from './simf.examples.ts';
 import { Fn, Test } from '../index.ts';
-import { equal, throws } from '../deps.ts';
+import { equal, throws, rejects } from '../deps.ts';
 const { the, is, has } = Test;
 /** Test the Simplicity support. */
 export default Test.suite(import.meta, 'Simf', testWasm(), testDeploy());
@@ -52,58 +52,52 @@ function testDeploy (Examples = Example()) {
     // Test funding and spending each example:
     ...Examples.map((example, index)=>testDeployAndRun(example, index)),
     // Shutdown the localnet.
-    btc => btc.kill(9));
+    (btc: Btc) => btc.kill(9));
 
   /** Define test case for a given example. */
-  function testDeployAndRun ({ name, p2tr, cost, src }: Example, index: number) {
+  function testDeployAndRun ({ name, p2tr, cost, src, fail }: Example, index: number) {
     return Fn.Name(`${name} (${p2tr})`, async (context: Btc) => {
       const { rpc, rest } = context;
-      // Create deployer
-      const user = await rpc.getnewaddress(`fadroma-${index}`, "bech32");
-      // Fund deployer
-      await rpc.generatetoaddress(1, user);
       // Fund program from deployer
-      const txFund  = await fundProgram(p2tr, 1);
+      const { hex } = await fundProgram(p2tr, 1);
       // Spend from program
-      const txSpend = await spendProgram(src, txFund.hex);
+      await spendProgram(src, hex);
 
-      //console.log({ p2tr, user, txFund, txSpend });
       return context;
 
+      // Perform a fund transaction, which "deploys" the program.
       async function fundProgram (p2tr: string, amount: number) {
-        const txId = await rpc.sendtoaddress(p2tr, String(amount));
-        const fundTx = await rest.tx(txId);
+        const id = await rpc.sendtoaddress(p2tr, String(amount));
+        const tx = await rest.tx(id);
         //await assertBalance(bitcoin -= (1 + cost));
-        equal(fundTx.vout.length, 3);
-        const hasOne = (f: Fn, t: string) =>
-          equal(fundTx.vout.filter(f).length, 1, `post deploy: ${t}`);
-        hasOne((x: Btc.Vout)=>((x.value===1) && (x.scriptPubKey.address == p2tr)),
-          `balance: program ${p2tr} must receive ${amount}`);
-        hasOne((x: Btc.Vout)=>x.value===cost,
-          `fee: deploy fee must be ${cost}`);
-        //hasOne((x: Btc.Vout)=>x.value===bitcoin,
+        equal(tx.vout.length, 3);
+        const hasVout   = (f: Fn, t: string) => equal(tx.vout.filter(f).length, 1, `post deploy: ${t}`);
+        const isBalance = (x: Btc.Vout)=>((x.value===1) && (x.scriptPubKey.address == p2tr));
+        const isFee     = (x: Btc.Vout)=>x.value===cost;
+        hasVout(isBalance, `balance: program ${p2tr} must receive ${amount}`);
+        hasVout(isFee,     `fee: deploy fee must be ${cost}`);
+        //hasVout((x: Btc.Vout)=>x.value===bitcoin,
           //`remaining: must be ${bitcoin}`);
-        return fundTx;
+        return tx;
       }
 
-      async function spendProgram (src: string, tx: Simf.Tx, amount = 1-1e-4, fee = 1e-4, witness = '') {
+      // Perform a spend transaction, which evaluates the program.
+      async function spendProgram (
+        src: string, tx: Simf.Tx, amount = 1-1e-4, fee = 1e-4, witness = ''
+      ) {
+        const user = await rpc.getnewaddress(`fadroma-${index}`, "bech32");
         const prog = await Simf(src).compile();
         equal(await rpc.getreceivedbyaddress(user, 0), { bitcoin: 0 });
-        const sent = await prog.spend({ rpc, rest, tx, amount, fee, witness, to: user });
-        equal(await rpc.getreceivedbyaddress(user, 0), { bitcoin: amount });
-        return sent;
+        if (fail) {
+          rejects(()=>prog.spend({ rpc, rest, tx, amount, fee, witness, to: user }));
+          equal(await rpc.getreceivedbyaddress(user, 0), { bitcoin: 0 });
+          return null;
+        } else {
+          const sent = await prog.spend({ rpc, rest, tx, amount, fee, witness, to: user });
+          equal(await rpc.getreceivedbyaddress(user, 0), { bitcoin: amount });
+          return sent;
+        }
       }
-
-      async function assertBalance (balance: unknown, token = 'bitcoin') {
-        equal(await getBalance(token), balance);
-      }
-
-      async function getBalance (token = 'bitcoin') {
-        await rpc.rescanblockchain();
-        const { balance } = await rpc.getwalletinfo();
-        return balance[token]
-      }
-
     })
   }
 

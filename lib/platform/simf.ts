@@ -18,7 +18,7 @@ interface Simf {
   *   const program = Simf('./main.simf');
   *   console.log(await program.spend());
   *
-  * */
+  **/
 function Simf (source: string): Simf {
   const program = {
     source,
@@ -26,17 +26,20 @@ function Simf (source: string): Simf {
       const wasm      = await Simf.Wasm();
       const compiled  = wasm.compile(program.source, options) as Simf.Program;
       const inspected = compiled.toJSON();
-      const methods   = {
-        async fund ({ rpc, rest, tx, amount, fee, witness, from }: Btc & Simf.Fund) {
-          const fund = compiled.tx_fund({ tx, amount, fee, witness, from });
-          return await rest.tx(await rpc.sendrawtransaction(fund.hex));
-        },
-        async spend ({ rpc, rest, tx, amount, fee, witness, to }: Btc & Simf.Spend) {
-          const spend = compiled.tx_spend({ tx, amount, fee, witness, to });
-          return await rest.tx(await rpc.sendrawtransaction(spend.hex));
-        },
-      };
+      const methods   = { fund, spend };
       return Object.assign(compiled, inspected, methods) as unknown as Simf.Program;
+      async function fund ({
+        rpc, rest, tx, amount, fee, witness, from
+      }: Omit<Btc, 'kill'|'url'> & Simf.Fund) {
+        const fund = compiled.tx_fund({ tx, amount, fee, witness, from });
+        return await rest.tx(await rpc.sendrawtransaction(fund.hex));
+      }
+      async function spend ({
+        rpc, rest, tx, amount, fee, witness, to
+      }: Omit<Btc, 'kill'|'url'> & Simf.Spend) {
+        const spend = compiled.tx_spend({ tx, amount, fee, witness, to });
+        return await rest.tx(await rpc.sendrawtransaction(spend.hex));
+      }
     }
   };
   return program;
