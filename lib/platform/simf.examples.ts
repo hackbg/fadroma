@@ -1,10 +1,26 @@
 export default Example;
 
 /** Predefined example program. */
-type Example = { name?: string, cost?: number, cmr?: string, p2tr?: string, src: string };
+type Example = {
+  /** Source code of SimplicityHL program. */
+  src: string,
+  /** Whether this example is expected to fail. */
+  fail?: boolean,
+  /** Human-readable name of the example. */
+  name?: string,
+  /** Expected deploy fee. */
+  cost?: number,
+  /** Expected commitment Merkle root of compiled program. */
+  cmr?: string,
+  /** Expected pay-to-taproot address derived from CMR. */
+  p2tr?: string,
+};
 
 /** Get predefined example programs. */
-function Example () {
+function Example ({
+  /** Public key used by the pay-to-public-key example program. */
+  pubkey = '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798'
+} = {}) {
 
   // Enabled examples:
   return [
@@ -13,6 +29,7 @@ function Example () {
     AssertFailProgram(),
     SimpleProgram1(),
     SimpleProgram2(),
+    P2PKProgram(),
   ]
 
   function UnitProgram () {
@@ -62,7 +79,7 @@ function Example () {
 
   function SimpleProgram2 () {
     return {
-      name: "simple program",
+      name: "simple jets 2",
       cost: 2.7e-7,
       cmr: 'e65e19e139a13583a0a7efb24be13c20d578f06f51b2a7fe7c7b9097072dbabe',
       p2tr: 'tex1p305439usq06f4maelan8txnxshktvayu9z5gnwu6zrrxm9vmlufqcshcuv',
@@ -77,17 +94,42 @@ function Example () {
     }
   }
 
-  function P2PKProgram (
-    pubkey = '0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798'
-  ) {
+  function P2PKProgram () {
     return {
       name: "pay to pubkey",
+      cost: 2.7e-7,
+      //cmr: '990a6ec319fcfc0ee1c23feaeb3414ae0004b10512ec5e844e467839f240f048',
+      //p2tr: 'tex1pe3fh3h6grs8lrjq6cmn7lw80x2rf3xty5unx9r26r2wzln32t20qhhll3a',
       src: `fn main() {
-        let pk: Pubkey = 0x${pubkey};
-        let msg: u256 = jet::sig_all_hash();
+        let pk:  Pubkey    = 0x${pubkey};
+        let msg: u256      = jet::sig_all_hash();
         let sig: Signature = witness::signature;
-        jet::bip_0340_verify(pk, msg, sig)
+        jet::bip_0340_verify((pk, msg), sig)
       }`
+    }
+  }
+
+  function P2PKHProgram () {
+    return {
+      name: "pay to pubkey hash",
+      cost: 2.7e-7,
+      cmr: 'e65e19e139a13583a0a7efb24be13c20d578f06f51b2a7fe7c7b9097072dbabe',
+      p2tr: 'tex1p305439usq06f4maelan8txnxshktvayu9z5gnwu6zrrxm9vmlufqcshcuv',
+      src: `
+        fn main() {
+          let pk: Pubkey = witness::PK;
+          let expected_pk_hash: u256 = 0x132f39a98c31baaddba6525f5d43f2954472097fa15265f45130bfdb70e51def; // sha2(1 * G)
+          let pk_hash: u256 = sha2(pk);
+          assert!(jet::eq_256(pk_hash, expected_pk_hash));
+          let msg: u256 = jet::sig_all_hash();
+          jet::bip_0340_verify((pk, msg), witness::SIG)
+        }
+        fn sha2(string: u256) -> u256 {
+          let hasher: Ctx8 = jet::sha_256_ctx_8_init();
+          let hasher: Ctx8 = jet::sha_256_ctx_8_add_32(hasher, string);
+          jet::sha_256_ctx_8_finalize(hasher)
+        }
+      `
     }
   }
 
