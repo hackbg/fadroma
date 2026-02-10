@@ -1,0 +1,154 @@
+#!/usr/bin/env -S deno run --coverage --allow-env --allow-net --allow-run --allow-import --allow-read --allow-write=/tmp/fadroma
+//globalThis.DocumentFragment ??= class {} as unknown as typeof DocumentFragment;
+import The from "../library/Test.ts";
+import { Log } from "../library/Log.ts";
+const { is: Is, has: Has } = The;
+export default The(import.meta, 'Library',
+  'ANSI', 'Bit', 'Borsh', 'Byte', 'Error', 'Function', 'Hash', 'Number', 'Stream', 'String', 'Time',
+  The('Log', () => Log(), Is('object'),
+    Has('log',   'function'),
+    Has('info',  'function'),
+    Has('warn',  'function'),
+    Has('error', 'function')),
+  The('OS'),
+  The('DOM', 'HTML', 'SVG'),
+  The('Networking',
+    The('Ports'),
+    The('TCP', The('Connect'), The('Listen')),
+    The('HTTP', The('Fetch'), The('Serve')),
+    The('WS')));
+//#!/usr/bin/env -S deno run --coverage --allow-env --allow-net --allow-run
+//import { the, suite, is, has } from "../tester.ts";
+//import { Tui } from "./Tui.ts";
+//globalThis.DocumentFragment ??= class {} as unknown as typeof DocumentFragment;
+//export default suite(import.meta, 'TUI',
+  //the('Input', () => {
+    //console.log(1, Tui.In);
+    //console.log(2, Tui.In());
+    ////return Tui.In()
+  //}),
+  ////the('Output',   () => { return Tui.Out() }),
+  ////the('Combined', () => { return Tui()     }),
+//);
+//#!/usr/bin/env -S deno run --coverage --allow-env --allow-net --allow-run
+//import { the, suite } from "../tester.ts";
+//import Html from "./Html.ts";
+//import Svg from "./Svg.ts";
+//globalThis.DocumentFragment ??= class {} as unknown as typeof DocumentFragment;
+//export default suite(import.meta, 'DOM',
+  //the('Html', () => { return Html() },
+    //the('Create'),
+    //the('Select',
+      //the('Mutate'))),
+  //the('Svg', () => { return Svg() },
+    //the('Create'),
+    //the('Select',
+      //the('Mutate'))));
+
+//#!/usr/bin/env -S deno run -I --coverage --allow-env --allow-net --allow-run --allow-read=/tmp/fadroma --allow-write=/tmp/fadroma
+//import { suite, the, has, is, equals }  from "../tester.ts";
+//import { execImpl, spawnImpl } from '../deps.ts';
+//import { Dir, Temp, Zip, Txt, Bin } from './fs.ts';
+//import { Exec, Spawn, Env } from './svc.ts';
+//import { Fn } from '../format.ts';
+
+//export const testDir = the('Dir',
+  //the('Current', () => Dir(),
+    //Is('function'),
+    //Has('path', equals(''))),
+  //the('Defined', () => Dir('test'),
+    //Is('function'),
+    //Has('path'),
+    //Fn.Name('Create', (d: Fn) => d(mock()))),
+  //the('Temp', () => { return Temp(); },
+    //Is('function'),
+    //Has('prefix'),
+    ////the('Create', (t: Fn) => { return t(mock()); },
+      //////Is('object'),
+      //////Has('rimraf'),
+    ////)
+  //));
+
+//export const testZip = the('Zip',
+  //Zip('helloworld.zip',
+    //Dir('hello', Txt('hello.txt')),
+    //Dir('world', Bin('world.bin'))),
+  //Is('object', 'Uint8Array'),
+  //Has('name', 'string'),
+  //Has('tree', 'object'),
+  //the('Write',
+    //() => {
+      //const txt = Txt('hello.txt');
+      //const bin = Bin('world.bin');
+      //const zip = Zip('helloworld.zip', Dir('hello', txt), Dir('world', bin));
+      //return Dir(`/tmp/fadroma/${+new Date()}`, zip)
+    //},
+    //Is('function'),
+    //Has('path', 'string'),
+    //Has('entries', 'object', 'Array'),
+    //async d => await d(),
+    //Is('object'),
+    //d => console.log(d)));
+
+//export const testExec = the('Exec', () => Exec('true', 'foo', Env('ENV', "1")),
+  //Has('command', equals('true')),
+  //Has('options',
+    //Has('0', equals('foo')),
+    //Has('1', Has('name', 'ENV'), Has('value', '1'))),
+  //(exec: Fn) => exec({ exec: execImpl }));
+
+//export const testSpawn = the('Spawn', () => Spawn('true', 'foo', Env('ENV', "2")),
+  //Has('daemon', equals('true')),
+  //Has('options',
+    //Has('0', equals('foo')),
+    //Has('1', Has('name', 'ENV'), Has('value', '1'))),
+  //(spawn: Fn) => spawn({ pids: {}, spawn: spawnImpl }),
+  //Has('argv'), Has('env'), Has('pid'))
+
+//export default suite(import.meta, 'OS',
+
+  //the('FS',
+    //testDir,
+    //testZip),
+
+  //the('Service',
+    //testExec,
+    //testSpawn),
+
+  //the('Container',
+    //'Pull',
+    //'Run',
+    //'Kill',
+    //'Build'),
+
+  //the('Codegen',
+    //'.gitignore',
+    //'README',
+
+    //the('ES',
+      //'node/npm/pnpm',
+      //'tsc',
+      //'deno',
+      //'eslint'),
+
+    //the('Rust',
+      //the('cargo', 'workspace'),
+      //'bacon',
+      //'mold')));
+
+//function mock () {
+  //const mocked = []
+  //const mock = name => (...args) => mocked.push([name, ...args]);
+  //return {
+    //path: '/mock/',
+    //mocked,
+    //mkdir:     mock('mkdir'),
+    //mkdtemp:   mock('mkdtemp'),
+    //writeFile: mock('writeFile'),
+    //rimraf:    mock('rimraf'),
+  //}
+//}
+
+//function show () {
+  //return function show (data, context) { context.log(data); return data }
+//}
