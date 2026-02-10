@@ -15,7 +15,7 @@ const alias = [
 ];
 export default defineConfig({
   root:      'gui',
-  publicDir: '../var',
+  publicDir: '../www',
   build:     { outDir: '../.misc/gh-pages' },
   resolve:   { alias },
   plugins:   [ nodePolyfills({ include }), ],
