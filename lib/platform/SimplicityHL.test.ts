@@ -1,7 +1,6 @@
 #!/usr/bin/env -S deno run --allow-read --allow-env --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443 --allow-net=127.0.0.1:8941,liquidtestnet.com:443,blockstream.info:443
-import Btc from './btc.ts';
-import Simf from './simf.ts';
-import type { Async } from '../index.ts';
+import Btc from './Bitcoin.ts';
+import Simf from './SimplicityHL.ts';
 import { Test as The, Fn, Base16 } from '../index.ts';
 import { equal, rejects } from '../deps.ts';
 import { pubSchnorr, pubECDSA } from '@scure/btc-signer/utils.js';
@@ -74,7 +73,7 @@ function Example (
   /** Source code of program. */
   src:  string,
   /** Function that provides witness data. */
-  wits?: Fn<[object], Async<object>>
+  wits?: Fn<[object], Fn.Async<object>>
 ) {
   const fail = !pass
   const meta = { name, cost, cmr, p2tr, src, fail, wits };

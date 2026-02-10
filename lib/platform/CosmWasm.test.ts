@@ -1,4 +1,4 @@
-import * as CosmWasm from './cw.ts';
+import * as CosmWasm from './CosmWasm.ts';
 import { suite, the } from '../tester.ts';
 export default suite(import.meta, 'CosmWasm',
   the('Program', the('Upload'), the('Instantiate'), the('Method')),

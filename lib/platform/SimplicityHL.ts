@@ -1,4 +1,4 @@
-import type Btc from './btc.ts';
+import type Btc from './Bitcoin.ts';
 import Fn from '../format/Fn.ts';
 import WasmLoader from '../format/Wasm.ts';
 import { exit, env, argv, stdout, stderr } from 'node:process';
@@ -68,8 +68,8 @@ namespace Simf {
   };
   /** Load SimplicityHL WASM module. */
   export function Wasm (
-    wasm = env['FADROMA_SIMF_WASM'] || import.meta.resolve('./simf/pkg/fadroma_simf_bg.wasm'),
-    wrap = env['FADROMA_SIMF_WRAP'] || import.meta.resolve('./simf/pkg/fadroma_simf.js'),
+    wasm = env['FADROMA_SIMF_WASM'] || import.meta.resolve('./SimplicityHL/pkg/fadroma_simf_bg.wasm'),
+    wrap = env['FADROMA_SIMF_WRAP'] || import.meta.resolve('./SimplicityHL/pkg/fadroma_simf.js'),
   ) {
     return WasmLoader<Wasm>(wasm, wrap)()
   }

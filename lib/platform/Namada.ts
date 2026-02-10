@@ -18,7 +18,7 @@
 import { env } from '../deps.ts';
 import { Error, Uint128 } from '../format.ts';
 import init, { Decode } from './namada/pkg/fadroma_namada.js';
-import * as Tendermint from './tm.ts';
+import * as Tendermint from './Tendermint.ts';
 /** Describe a Namada chain. */
 export async function Namada (
   { ...options }: Parameters<typeof Tendermint.chain>[0] & { decoder?: string|URL|Uint8Array }

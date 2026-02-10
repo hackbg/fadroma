@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --allow-env --allow-read --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443 --allow-net=127.0.0.1
 import { Test as The, Base16 } from '../index.ts';
-import Btc from './btc.ts';
+import Btc from './Bitcoin.ts';
 import { p2pkh, p2wpkh } from '@scure/btc-signer';
 import { pubSchnorr, pubECDSA } from '@scure/btc-signer/utils.js';
 import { equal } from 'node:assert';

@@ -1,5 +1,6 @@
 import process from 'node:process';
-import { Fn, Port, Run, Temp, Num, callUrl } from '../index.ts';
+import Fn from '../format/Fn.ts';
+import { Port, Run, Temp, Num, callUrl } from '../index.ts';
 export default Btc;
 /** A Bitcoin or Elements daemon. */
 interface Btc extends Run.Daemon {
@@ -252,6 +253,7 @@ namespace Btc {
       ...options,
     })
   }
+
   export namespace ElementsRegtest {
     /** 1 BTC = 100000000 Satoshis. */
     export const DECIMAL = 100000000n;
@@ -265,4 +267,5 @@ namespace Btc {
     //const LIQUID  = { mainnet: '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d'
     //               , testnet: '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49' };
   }
+
 }

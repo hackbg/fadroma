@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-read --allow-env --allow-run --allow-write=/tmp/fadroma --allow-import=cdn.skypack.dev:443,deno.land:443 --allow-net=127.0.0.1:18443
 import { resolvePath } from '../deps.ts';
 import { Test        } from '../index.ts';
-import { Namada      } from './namada.ts';
+import { Namada      } from './Namada.ts';
 const { the, is, has } = Test;
 const wasm = resolvePath(import.meta.dirname, "namada/pkg/fadroma_namada_bg.wasm");
 export default Test.suite(import.meta, 'Namada',
