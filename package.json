@@ -22,6 +22,7 @@
     "@scure/base": "^2",
     "@scure/bip32": "^2.0.1",
     "@scure/bip39": "^2.0.1",
+    "@scure/btc-signer": "^2.0.1",
     "@types/deno": "^2.5.0",
     "bitcoinjs-lib": "^7.0.0",
     "bitcore-lib": "^11.4.5",
@@ -79,6 +80,9 @@
     },
     "protobuf-varint": {
       "optional": true
+    },
+    "@scure/btc-signer": {
+      "optional": true
     }
   },
   "devDependencies": {
@@ -86,8 +90,10 @@
     "@noble/ed25519": "^3.0.0",
     "@noble/hashes": "^2.0.1",
     "@noble/secp256k1": "^3.0.0",
+    "@scure/base": "^2",
     "@scure/bip32": "^2.0.1",
     "@scure/bip39": "^2.0.1",
+    "@scure/btc-signer": "^2.0.1",
     "@types/deno": "^2.5.0",
     "browser-level": "^3.0.0",
     "case": "^1.6.3",

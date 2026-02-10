@@ -8,6 +8,7 @@
     "npm:@scure/base@2": "2.0.0",
     "npm:@scure/bip32@^2.0.1": "2.0.1",
     "npm:@scure/bip39@^2.0.1": "2.0.1",
+    "npm:@scure/btc-signer@^2.0.1": "2.0.1",
     "npm:@types/deno@^2.5.0": "2.5.0",
     "npm:browser-level@3": "3.0.0",
     "npm:case@^1.6.3": "1.6.3",
@@ -326,6 +327,15 @@
       "dependencies": [
         "@noble/hashes",
         "@scure/base"
+      ]
+    },
+    "@scure/btc-signer@2.0.1": {
+      "integrity": "sha512-vk5a/16BbSFZkhh1JIJ0+4H9nceZVo5WzKvJGGWiPp3sQOExeW+L53z3dI6u0adTPoE8ZbL+XEb6hEGzVZSvvQ==",
+      "dependencies": [
+        "@noble/curves",
+        "@noble/hashes",
+        "@scure/base",
+        "micro-packed"
       ]
     },
     "@shikijs/engine-oniguruma@3.14.0": {
@@ -1059,6 +1069,12 @@
     "mdurl@2.0.0": {
       "integrity": "sha512-Lf+9+2r+Tdp5wXDXC4PcIBjTDtq4UKjCPMQhKIuzpJNW0b96kVqSwW0bT7FhRSfmAiFYgP+SCRvdrDozfh0U5w=="
     },
+    "micro-packed@0.8.0": {
+      "integrity": "sha512-AKb8znIvg9sooythbXzyFeChEY0SkW0C6iXECpy/ls0e5BtwXO45J9wD9SLzBztnS4XmF/5kwZknsq+jyynd/A==",
+      "dependencies": [
+        "@scure/base"
+      ]
+    },
     "miller-rabin@4.0.1": {
       "integrity": "sha512-115fLhvZVqWwHPbClyntxEVfVDfl9DLLTuJvq3g2O/Oxi8AiNouAHvDSzHS0viUJc+V5vm3eq91Xwqn9dp4jRA==",
       "dependencies": [
@@ -1709,6 +1725,7 @@
         "npm:@scure/base@2",
         "npm:@scure/bip32@^2.0.1",
         "npm:@scure/bip39@^2.0.1",
+        "npm:@scure/btc-signer@^2.0.1",
         "npm:@types/deno@^2.5.0",
         "npm:browser-level@3",
         "npm:case@^1.6.3",

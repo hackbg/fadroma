@@ -1,9 +1,8 @@
 import process from 'node:process';
-import { Async, Fn, Port, Spawn, Temp, callUrl } from '../index.ts';
+import { Async, Fn, Port, Run, Temp, callUrl } from '../index.ts';
 export default Btc;
 /** A Bitcoin or Elements daemon. */
-interface Btc extends Spawn {
-  kill:     () => void
+interface Btc extends Run.Daemon {
   url:      string,
   rpc:      Btc.Rpc
   rest:     Btc.Rest
@@ -12,7 +11,7 @@ interface Btc extends Spawn {
 /** Launch Bitcoin node. */
 async function Btc <T> ({
   debug = console.debug,
-  log   = console.log,
+  //log   = console.log,
 
   acceptnonstdtxn             = null             as boolean,
   anyonecanspendaremine       = null             as boolean,
@@ -48,7 +47,7 @@ async function Btc <T> ({
   validatepegin               = null             as boolean,
   vbparams                    = null             as string,
 } = {}): Promise<Async<T>> {
-  const bool = x => x ? '1' : '0';
+  const bool = (x: unknown) => x ? '1' : '0';
   const options = [
     (acceptnonstdtxn             !== null) && `-acceptnonstdtxn=${bool(acceptnonstdtxn)}`,
     (anyonecanspendaremine       !== null) && `-anyonecanspendaremine=${bool(anyonecanspendaremine)}`,
@@ -84,7 +83,7 @@ async function Btc <T> ({
     (vbparams                    !== null) && `-vbparams=${vbparams}`,
     //'-debug=rpc', //'-debug=zmq',
   ];
-  const spawn = Spawn(daemon, ...options.filter(Boolean));
+  const spawn = Run.Spawn(daemon, ...options.filter(Boolean));
   debug('Spawning:', [spawn.daemon, ...spawn.options].join(' '));
   const btc = await spawn();
   const url = `http://${rpcuser}:${rpcpassword}@${rpcallowip}:${rpcport}`;
