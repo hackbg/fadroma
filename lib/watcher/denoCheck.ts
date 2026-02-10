@@ -1,5 +1,5 @@
 import { wordWrap } from '../format.ts';
-import { orange, bold, gray, yellow } from '../format/ansi.ts';
+import { orange, bold, gray, yellow } from '../format/Ansi.ts';
 import { stdout, stripVTControlCharacters, execImpl } from '../deps.ts';
 /** Regular expression to extraxt TS???? errors from TSC output. */
 const RE_TS = /(TS\d+)(.+)\n[\s\S]+? at (file:\/\/\/.+\n)/gm;

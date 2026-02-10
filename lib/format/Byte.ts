@@ -1,5 +1,5 @@
 import type { Buffer } from '../deps.ts';
-import { UTF8 } from './string.ts';
+import { UTF8 } from './String.ts';
 
 /** Alias for various buffer types. */
 export type Bytes = Uint8Array|Buffer;

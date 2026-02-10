@@ -4,6 +4,8 @@ import Simf from './simf.ts';
 import Example, { REISSUE, DECIMAL, INITIAL } from './simf.examples.ts';
 import { Fn, Test as The } from '../index.ts';
 import { equal, throws, rejects } from '../deps.ts';
+import * as secp from '@noble/secp256k1';
+ 
 const { is: Is, has: Has } = The;
 
 /** Test the SimplicityHL support in Fadroma. */
@@ -101,6 +103,7 @@ function testDeploy (Examples?: Example[]) {
       async function spendProgram (
         src: string, tx: Simf.Tx, amount = 1-1e-4, fee = 1e-4
       ) {
+        const { secretKey, publicKey } = secp.schnorr.keygen();
         const user = await rpc.getnewaddress(`fadroma-${index}`, "bech32");
         const prog = await Simf(src).compile();
         const wits = await witness({ user });

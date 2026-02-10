@@ -1,5 +1,5 @@
 import Fn from './Fn.ts';
-import { Bytes } from './byte.ts';
+import { Bytes } from './Byte.ts';
 
 /** Connection to `Read & Write` pair. */
 export type RW<T = Bytes> = Reader<T> & Writer<T> & { close?: () => unknown };

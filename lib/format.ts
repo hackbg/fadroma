@@ -1,17 +1,17 @@
-export * from './format/bit.ts';
-export * from './format/byte.ts';
-export * from './format/error.ts';
-export * from './format/hash.ts';
-export * from './format/number.ts';
-export * from './format/stream.ts';
-export * from './format/string.ts';
-export * from './format/time.ts';
-export * from './format/wasm.ts';
+export * from './format/Bit.ts';
+export * from './format/Byte.ts';
+export * from './format/Err.ts';
+export * from './format/Hash.ts';
+export * from './format/Number.ts';
+export * from './format/Stream.ts';
+export * from './format/String.ts';
+export * from './format/Time.ts';
+export * from './format/Wasm.ts';
 
 export * from './format/Obj.ts';
 
-export * as Ansi  from './format/ansi.ts';
-export * as Borsh from './format/borsh.ts';
+export * as Ansi  from './format/Ansi.ts';
+export * as Borsh from './format/Borsh.ts';
 
 export { default as Async } from './format/Async.ts';
 export { default as Fn    } from './format/Fn.ts';

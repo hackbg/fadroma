@@ -1,6 +1,6 @@
 import type { Fn, Str } from '../index.ts';
-import { cwd } from '../deps.ts';
-import { bold, gray } from './ansi.ts';
+import { bold, gray } from './Ansi.ts';
+import { cwd } from 'node:process';
 
 export function formatError (e: Error, name?: Str) {
   const [head, ...tail] = (e?.stack||'').split('\n');

@@ -1,5 +1,5 @@
 import { Fn, msec } from './format.ts';
-import { bold, blue } from './format/ansi.ts';
+import { bold, blue } from './format/Ansi.ts';
 import { cwd, resolvePath, realpathSync, stdout, watchFs } from './deps.ts';
 export * from './watcher/denoCheck.ts';
 export * from './watcher/runTest.ts';
