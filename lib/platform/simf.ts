@@ -14,9 +14,13 @@ interface Simf {
   * Example:
   *
   *   #!/usr/bin/env -S deno --allow-read=.
-  *   import { Simf } from '@hackbg/fadroma';
-  *   const program = Simf('./main.simf');
-  *   console.log(await program.spend());
+  *   import { Btc, Simf } from '@hackbg/fadroma';
+  *   const { rpc, rest } = await Btc.LiquidTestnet();
+  *   const program = await Simf('...source...').compile();
+  *   const witness = { ...see tests for example witness data... };
+  *   const you     = 'tex1000000000000000000000000000000000000000';
+  *   console.log(await program.fund({ rpc, rest, tx, witness, from: you, amount: 1, fee: 1e-4 }));
+  *   console.log(await program.spend({ rpc, rest, tx, witness, to: you,  amount: 1, fee: 1e-4 }));
   *
   **/
 function Simf (source: string): Simf {
