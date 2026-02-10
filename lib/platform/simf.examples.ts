@@ -1,3 +1,5 @@
+import type { Async } from '../index.ts';
+
 export default Example;
 
 /** Predefined example program. */
@@ -15,7 +17,7 @@ type Example = {
   /** Expected pay-to-taproot address derived from CMR. */
   p2tr?: string,
   /** Generate witness data. */
-  witness?: () => object,
+  witness?: (_?: object) => Async<object>,
 };
 
 /** Get predefined example programs. */

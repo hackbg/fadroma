@@ -1,76 +1,52 @@
 #!/usr/bin/env -S deno run --coverage --allow-env --allow-net --allow-run --allow-import --allow-read --allow-write=/tmp/fadroma
-import { Testing, suite, the, is, has } from "./tester.ts";
+import The from "./tester.ts";
+const { is: Is, has: Has } = The;
+export default The(import.meta, 'Tester',
 
-export default suite(import.meta, 'Tester',
+  The('Context', () => { return The.Context() },
+    Is('object'),
+    Has('pass', Is('function')),
+    Has('fail', Is('function')),
+    Has('todo', Is('function'))),
 
-  the('Context', () => { return Testing() },
-    is('object'),
-    has('pass', is('function')),
-    has('fail', is('function')),
-    has('todo', is('function'))),
+  The('Suite',
+    The('Empty', Suite0, Is('function', 'Suite0')),
+    The('One step',
+      The('String', Suite1A, Is('function', 'Suite1A'), Has('steps', Has('length', Is('number', 1)))),
+      The('Expect', Suite1B, Is('function', 'Suite1B'), Has('steps', Has('length', Is('number', 1))))),
+    The('Two steps', Suite2, Is('function', 'Suite2'),  Has('steps', Has('length', Is('number', 2)))),
+    The('Nesting',   Suite3, Is('function', 'Suite3'),  Has('steps', Has('length', Is('number', 2))))),
 
-  the('Suite',
-    the('Empty', Suite0, is('function', 'Suite0')),
-    the('One step',
-      the('String', Suite1A, is('function', 'Suite1A'), has('steps', has('length', is('number', 1)))),
-      the('Expect', Suite1B, is('function', 'Suite1B'), has('steps', has('length', is('number', 1))))),
-    the('Two steps', Suite2, is('function', 'Suite2'),  has('steps', has('length', is('number', 2)))),
-    the('Nesting',   Suite3, is('function', 'Suite3'),  has('steps', has('length', is('number', 2))))),
+  The('Step',
+    The('Empty',     Step0, Is('function', 'Expect0')),
+    The('One step',  Step1, Is('function', 'Expect1'), Has('steps', Has('length', 1))),
+    The('Two steps', Step2, Is('function', 'Expect2'), Has('steps', Has('length', 2))),
+    The('Nested',    Step3, Is('function', 'Expect3'), Has('steps', Has('length', 2)))),
 
-  the('Step',
-    the('Empty',     Step0, is('function', 'Expect0')),
-    the('One step',  Step1, is('function', 'Expect1'), has('steps', has('length', 1))),
-    the('Two steps', Step2, is('function', 'Expect2'), has('steps', has('length', 2))),
-    the('Nested',    Step3, is('function', 'Expect3'), has('steps', has('length', 2)))),
+  The('Is',
+    The('Function', () => Is('function')(function(){})),
+    The('Function', () => Is('function', 'name')(function name (){}))),
 
-  the('Is',
-    the('Function', () => is('function')(function(){})),
-    the('Function', () => is('function', 'name')(function name (){}))),
+  The('Has',
+    The('Property', () => Has('prop')({ prop: true })),
+    The('Nesting',  () => (Has('prop', Has('sub')))({ prop: { sub: true } }))),
 
-  the('Has',
-    the('Property', () => has('prop')({ prop: true })),
-    the('Nesting',  () => (has('prop', has('sub')))({ prop: { sub: true } }))),
+  The('Forbid'),
 
-  the('Forbid'),
+  The('Matrix')
 
-  the('Matrix'));
+);
 
-function Suite0 () {
-  /** Example empty test suite: */
-  return suite(null, 'Suite0');
-};
-
-function Suite1A () {
-  /** Example test suite with one empty step. */
-  return suite(null, 'Suite1A', 'Step');
-};
-
-function Suite1B () {
-  /** Example test suite with one empty step. */
-  return suite(null, 'Suite1B', the('Step'));
-}
-
-function Suite2 () {
-  /** Example test suite with two empty steps: */
-  return suite(null, 'Suite2', the('Step1'), the('Step2'));
-}
-
-function Suite3 () {
-  return suite(null, 'Suite3', the('Step1'), the('Step2', the('Step3')));
-}
-
-function Step0 () {
-  return the('Expect0');
-}
-
-function Step1 () {
-  return the('Expect1', () => {})
-}
-
-function Step2 () {
-  return the('Expect2', () => {}, () => {})
-}
-
-function Step3 () {
-  return the('Expect3', () => {}, the('Expect4', () => {}))
-}
+/** Example empty test suite: */
+function Suite0  () { return The(null, 'Suite0'); };
+/** Example test suite with one empty step. */
+function Suite1A () { return The(null, 'Suite1A', 'Step'); };
+/** Example test suite with one empty step. */
+function Suite1B () { return The(null, 'Suite1B', The('Step')); }
+/** Example test suite with two empty steps: */
+function Suite2  () { return The(null, 'Suite2', The('Step1'), The('Step2')); }
+function Suite3  () { return The(null, 'Suite3', The('Step1'), The('Step2', The('Step3'))); }
+function Step0   () { return The('Expect0'); }
+function Step1   () { return The('Expect1', () => {}) }
+function Step2   () { return The('Expect2', () => {}, () => {}) }
+function Step3   () { return The('Expect3', () => {}, The('Expect4', () => {})) }

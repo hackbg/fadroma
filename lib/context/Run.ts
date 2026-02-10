@@ -45,7 +45,7 @@ export function Exec (
 }
 /** Command invocation that spawns a background process. */
 export type Spawn = Fn<[Partial<Dir & { spawn?: typeof spawnImpl }>],
-  Async<Run & ChildProcess>>;
+  Async<Run & ChildProcess>> & { kill (code: number): unknown; };
 /** Run a background service. */
 export function Spawn (daemon: string, ...options: (Run.Step|string)[]): Spawn {
   return Fn.Name(`Spawn(${daemon})`, async function spawn (context?: {

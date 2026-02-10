@@ -2,4 +2,4 @@
 import { Test } from "./index.ts";
 import Btc from "./platform/btc.test.ts";
 import Simf from "./platform/simf.test.ts";
-export default Test.suite(import.meta, 'Platform', Btc, Simf);
+export default Test(import.meta, 'Platform', Btc, Simf);

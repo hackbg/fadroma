@@ -2,26 +2,23 @@
 import Btc from './btc.ts';
 import Simf from './simf.ts';
 import Example, { REISSUE, DECIMAL, INITIAL } from './simf.examples.ts';
-import { Fn, Test } from '../index.ts';
+import { Fn, Test as The } from '../index.ts';
 import { equal, throws, rejects } from '../deps.ts';
-const { the, is, has } = Test;
+const { is: Is, has: Has } = The;
 
 /** Test the SimplicityHL support in Fadroma. */
-export default Test.suite(import.meta, 'Simf',
-  testWasm(),
-  testDeploy()
-);
+export default The(import.meta, 'Simf', testWasm(), testDeploy());
 
 /** Test the top-level functions of the WASM module. */
 function testWasm (Examples = Example()) {
 
-  return the('WASM',
+  return The('WASM',
     // Load the WASM:
     () => Simf.Wasm(),
     // Test cmr_to_p2tr on each example.
-    has('cmr_to_p2tr', is('function'), ...Examples.map(testAddress)),
+    Has('cmr_to_p2tr', Is('function'), ...Examples.map(testAddress)),
     // Test compile on each example.
-    has('compile',     is('function'), ...Examples.map(testCompile))
+    Has('compile',     Is('function'), ...Examples.map(testCompile))
   );
 
   /** Test cmr_to_p2tr on a given example. */
@@ -47,9 +44,9 @@ function testWasm (Examples = Example()) {
 }
 
 /** Test deploying SimplicityHL programs. */
-function testDeploy (Examples: Example[]) {
+function testDeploy (Examples?: Example[]) {
 
-  return the('Deploy',
+  return The('Deploy',
     // Start by spawning a localnet:
     () => Btc(daemonOptions()),
     // Pipe daemon output to stderr:
@@ -59,7 +56,7 @@ function testDeploy (Examples: Example[]) {
     // Which, after rescan, turns out to not be empty:
     Btc.Rescan(HasBalance({ bitcoin: Number(INITIAL.COINS / DECIMAL), [REISSUE]: 1 })),
     // And now we can test the included example programs:
-    the('Examples',
+    The('Examples',
       // If examples were not overridden, initialize default examples with test pubkey:
       Fn.Name('Create test pubkey', async (btc: Btc) => {
         const address    = await btc.rpc.getnewaddress(`fadroma-test`, "bech32");
@@ -69,7 +66,7 @@ function testDeploy (Examples: Example[]) {
       }),
       // Test funding and spending each example:
       Fn.Name('Fund and spend', async (btc: Btc, context: Test.Testing) => {
-        const testCase = the('Example', ...Examples.map(testFundAndSpend));
+        const testCase = The('Example', ...Examples.map(testFundAndSpend));
         await testCase(btc, context);
         return btc;
       })
@@ -80,7 +77,7 @@ function testDeploy (Examples: Example[]) {
 
   /** Define test case for a given example. */
   function testFundAndSpend (
-    { name, p2tr, cost, src, fail, witness = () => ({}) }: Example,
+    { name, p2tr, cost, src, fail, witness = (_) => ({}) }: Example,
     index: number
   ) {
     return Fn.Name(`${name} (${p2tr||'unspecified P2TR'})`, async (context: Btc) => {
@@ -123,7 +120,7 @@ function testDeploy (Examples: Example[]) {
 }
 
 function testSplitTx (
-  tx: unknown, p2tr: string, amount: number, cost: number, _remaining?: number
+  tx: { hex: unknown, vout: unknown[] }, p2tr: string, amount: number, cost: number, _remaining?: number
 ) {
   equal(tx.vout.length, 3);
   const hasVout   = (f: Fn, t: string) => equal(tx.vout.filter(f).length, 1, `post deploy: ${t}`);

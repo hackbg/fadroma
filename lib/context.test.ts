@@ -2,21 +2,21 @@
 //import { suite, is, has } from "../tester.ts";
 import { Log } from "./context/Log.ts";
 //globalThis.DocumentFragment ??= class {} as unknown as typeof DocumentFragment;
-import Test, { is, has } from "./tester.ts";
-export default Test(import.meta, 'Context',
-  Test('Log', () => Log(),
-    is('object'),
-    has('log',   'function'),
-    has('info',  'function'),
-    has('warn',  'function'),
-    has('error', 'function')),
-  Test('OS'),
-  Test('DOM', 'HTML', 'SVG'),
-  Test('Networking',
-    Test('Ports'),
-    Test('TCP', Test('Connect'), Test('Listen')),
-    Test('HTTP', Test('Fetch'), Test('Serve')),
-    Test('WS')));
+import The, { is, has } from "./tester.ts";
+const { is: Is, has: Has } = The;
+export default The(import.meta, 'Context',
+  The('Log', () => Log(), Is('object'),
+    Has('log',   'function'),
+    Has('info',  'function'),
+    Has('warn',  'function'),
+    Has('error', 'function')),
+  The('OS'),
+  The('DOM', 'HTML', 'SVG'),
+  The('Networking',
+    The('Ports'),
+    The('TCP', The('Connect'), The('Listen')),
+    The('HTTP', The('Fetch'), The('Serve')),
+    The('WS')));
 //#!/usr/bin/env -S deno run --coverage --allow-env --allow-net --allow-run
 //import { the, suite, is, has } from "../tester.ts";
 //import { Tui } from "./Tui.ts";
@@ -25,7 +25,7 @@ export default Test(import.meta, 'Context',
   //the('Input', () => {
     //console.log(1, Tui.In);
     //console.log(2, Tui.In());
-    ////return Tui.In() 
+    ////return Tui.In()
   //}),
   ////the('Output',   () => { return Tui.Out() }),
   ////the('Combined', () => { return Tui()     }),
@@ -54,18 +54,18 @@ export default Test(import.meta, 'Context',
 
 //export const testDir = the('Dir',
   //the('Current', () => Dir(),
-    //is('function'),
-    //has('path', equals(''))), 
+    //Is('function'),
+    //Has('path', equals(''))),
   //the('Defined', () => Dir('test'),
-    //is('function'),
-    //has('path'),
+    //Is('function'),
+    //Has('path'),
     //Fn.Name('Create', (d: Fn) => d(mock()))),
   //the('Temp', () => { return Temp(); },
-    //is('function'),
-    //has('prefix'),
+    //Is('function'),
+    //Has('prefix'),
     ////the('Create', (t: Fn) => { return t(mock()); },
-      //////is('object'),
-      //////has('rimraf'),
+      //////Is('object'),
+      //////Has('rimraf'),
     ////)
   //));
 
@@ -73,9 +73,9 @@ export default Test(import.meta, 'Context',
   //Zip('helloworld.zip',
     //Dir('hello', Txt('hello.txt')),
     //Dir('world', Bin('world.bin'))),
-  //is('object', 'Uint8Array'),
-  //has('name', 'string'),
-  //has('tree', 'object'),
+  //Is('object', 'Uint8Array'),
+  //Has('name', 'string'),
+  //Has('tree', 'object'),
   //the('Write',
     //() => {
       //const txt = Txt('hello.txt');
@@ -83,27 +83,27 @@ export default Test(import.meta, 'Context',
       //const zip = Zip('helloworld.zip', Dir('hello', txt), Dir('world', bin));
       //return Dir(`/tmp/fadroma/${+new Date()}`, zip)
     //},
-    //is('function'),
-    //has('path', 'string'),
-    //has('entries', 'object', 'Array'),
+    //Is('function'),
+    //Has('path', 'string'),
+    //Has('entries', 'object', 'Array'),
     //async d => await d(),
-    //is('object'),
+    //Is('object'),
     //d => console.log(d)));
 
 //export const testExec = the('Exec', () => Exec('true', 'foo', Env('ENV', "1")),
-  //has('command', equals('true')),
-  //has('options',
-    //has('0', equals('foo')),
-    //has('1', has('name', 'ENV'), has('value', '1'))),
+  //Has('command', equals('true')),
+  //Has('options',
+    //Has('0', equals('foo')),
+    //Has('1', Has('name', 'ENV'), Has('value', '1'))),
   //(exec: Fn) => exec({ exec: execImpl }));
 
 //export const testSpawn = the('Spawn', () => Spawn('true', 'foo', Env('ENV', "2")),
-  //has('daemon', equals('true')),
-  //has('options',
-    //has('0', equals('foo')),
-    //has('1', has('name', 'ENV'), has('value', '1'))),
+  //Has('daemon', equals('true')),
+  //Has('options',
+    //Has('0', equals('foo')),
+    //Has('1', Has('name', 'ENV'), Has('value', '1'))),
   //(spawn: Fn) => spawn({ pids: {}, spawn: spawnImpl }),
-  //has('argv'), has('env'), has('pid'))
+  //Has('argv'), Has('env'), Has('pid'))
 
 //export default suite(import.meta, 'OS',
 

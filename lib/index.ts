@@ -18,5 +18,5 @@
 export * from './context.ts';
 export * from './format.ts';
 export * from './platform.ts';
-export * as Test  from './tester.ts';
+export { default as Test } from './tester.ts';
 export * as Watch from './watcher.ts';
