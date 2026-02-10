@@ -80,7 +80,7 @@ function testDeploy (Examples: Example[]) {
 
   /** Define test case for a given example. */
   function testFundAndSpend (
-    { name, p2tr, cost, src, fail }: Example,
+    { name, p2tr, cost, src, fail, witness = () => ({}) }: Example,
     index: number
   ) {
     return Fn.Name(`${name} (${p2tr||'unspecified P2TR'})`, async (context: Btc) => {
@@ -102,17 +102,18 @@ function testDeploy (Examples: Example[]) {
 
       // Perform a spend transaction, which evaluates the program.
       async function spendProgram (
-        src: string, tx: Simf.Tx, amount = 1-1e-4, fee = 1e-4, witness = ''
+        src: string, tx: Simf.Tx, amount = 1-1e-4, fee = 1e-4
       ) {
         const user = await rpc.getnewaddress(`fadroma-${index}`, "bech32");
         const prog = await Simf(src).compile();
+        const wits = await witness({ user });
         equal(await rpc.getreceivedbyaddress(user, 0), { bitcoin: 0 });
         if (fail) {
-          rejects(()=>prog.spend({ rpc, rest, tx, amount, fee, witness, to: user }));
+          rejects(()=>prog.spend({ rpc, rest, tx, amount, fee, witness: wits, to: user }));
           equal(await rpc.getreceivedbyaddress(user, 0), { bitcoin: 0 });
           return null;
         } else {
-          const sent = await prog.spend({ rpc, rest, tx, amount, fee, witness, to: user });
+          const sent = await prog.spend({ rpc, rest, tx, amount, fee, witness: wits, to: user });
           equal(await rpc.getreceivedbyaddress(user, 0), { bitcoin: amount });
           return sent;
         }

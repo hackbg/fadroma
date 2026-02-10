@@ -14,6 +14,8 @@ type Example = {
   cmr?: string,
   /** Expected pay-to-taproot address derived from CMR. */
   p2tr?: string,
+  /** Generate witness data. */
+  witness?: () => object,
 };
 
 /** Get predefined example programs. */
@@ -103,9 +105,17 @@ function Example ({
       src: `fn main() {
         let pk:  Pubkey    = 0x${pubkey};
         let msg: u256      = jet::sig_all_hash();
-        let sig: Signature = witness::signature;
+        let sig: Signature = witness::SIGNED;
         jet::bip_0340_verify((pk, msg), sig)
-      }`
+      }`,
+      witness ({ user }) {
+        return {
+          "SIGNED": {
+            "type": "Signature",
+            "value": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          }
+        }
+      }
     }
   }
 
