@@ -1,5 +1,5 @@
 import process from 'node:process';
-import { Async, Fn, Port, Run, Temp, callUrl } from '../index.ts';
+import { Async, Fn, Port, Run, Temp, Num, callUrl } from '../index.ts';
 export default Btc;
 /** A Bitcoin or Elements daemon. */
 interface Btc extends Run.Daemon {
@@ -110,7 +110,8 @@ namespace Btc {
     getnewaddress:             Fn.Returns<Promise<string>>,
     getreceivedbyaddress:      Fn,
     getwalletinfo:             Fn.Returns<Promise<{ balance: Record<string, number> }>>,
-    rescanblockchain:          Fn,
+    importaddress:             Fn.Takes<[string, string?, boolean?, boolean?]>,
+    rescanblockchain:          Fn.Takes<[Num?, Num?]>,
     sendtoaddress:             Fn,
     sendrawtransaction:        Fn,
     signrawtransactionwithkey: Fn,
@@ -133,6 +134,7 @@ namespace Btc {
       getnewaddress:             callRpc('getnewaddress'),
       getreceivedbyaddress:      callRpc('getreceivedbyaddress'),
       getwalletinfo:             callRpc('getwalletinfo'),
+      importaddress:             callRpc('importaddress'),
       rescanblockchain:          callRpc('rescanblockchain'),
       sendtoaddress:             callRpc('sendtoaddress'),
       sendrawtransaction:        callRpc('sendrawtransaction'),
