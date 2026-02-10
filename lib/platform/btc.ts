@@ -215,4 +215,54 @@ namespace Btc {
     })
   };
 
+  /** Spawn Elements in `elementsregtest` mode with Simplicity enabled. */
+  export function ElementsRegtest (options?: Options) {
+    return Btc({
+      chain:                       'elementsregtest',
+      acceptnonstdtxn:             true,
+      anyonecanspendaremine:       true,
+      bech32_hrp:                  'tex',
+      blech32_hrp:                 'tlq',
+      blindedprefix:               23,
+      blindedaddresses:            true,
+      con_blocksubsidy:            0,
+      con_connect_genesis_outputs: true,
+      con_elementsmode:            true,
+      defaultpeggedassetname:      'bitcoin',
+      discover:                    false,
+      dnsseed:                     false,
+      evbparams:                   'simplicity:-1:::',
+      initialfreecoins:            ElementsRegtest.INITIAL.COINS,
+      initialreissuancetokens:     ElementsRegtest.INITIAL.REISSUE,
+      maxtxfee:                    100.0,
+      persistmempool:              false,
+      pubkeyprefix:                36,
+      rest:                        true,
+      rpcallowip:                  '127.0.0.1',
+      rpcpassword:                 'fadroma',
+      rpcport:                     8941,
+      rpcuser:                     'fadroma',
+      scriptprefix:                13,
+      server:                      true,
+      txindex:                     true,
+      validatepegin:               false,
+      vbparams:                    "taproot:1:1",
+      //feeasset:                    BITCOIN,
+      //subsidyasset:                BITCOIN,
+      ...options,
+    })
+  }
+  export namespace ElementsRegtest {
+    /** 1 BTC = 100000000 Satoshis. */
+    export const DECIMAL = 100000000n;
+    /** Default values for `initialfreecoins` and `initialreissuancetokens`. */
+    export const INITIAL = { COINS: 1000000n * DECIMAL, REISSUE: 1n * DECIMAL };
+    /** Asset ID for default initial reissuance token. */
+    export const REISSUE = 'a6be6b365498cd451be75ba0f68c258ee01e08f3cb30d5f8469f6628db58dc61';
+    /** Asset ID for regular old Bitcoin. */
+    export const BITCOIN = 'b2e15d0d7a0c94e4e2ce0fe6e8691b9e451377f6e46e8045a86f7c4b5d4f0f23';
+    ///** Asset IDs of (t)L-BTC. */
+    //const LIQUID  = { mainnet: '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d'
+    //               , testnet: '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49' };
+  }
 }
