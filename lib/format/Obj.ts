@@ -1,4 +1,3 @@
-import Async from './Async.ts';
 import Fn from './Fn.ts';
 
 /** Slice off the 1st arg of every function */
@@ -81,7 +80,7 @@ export const when = (condition: boolean, ...fns: Fn.Step<unknown>[]) =>
 
 /** Specify a ternary condition. */
 export const either = <C> (
-  condition:  boolean|((_: C)=>Async<boolean>),
+  condition:  boolean|((_: C)=>Fn.Async<boolean>),
   whenTrue:   Fn.Takes<[C]>,
   whenFalse?: Fn.Takes<[C]>
 ) => Object.assign(async function branch (state: C) {

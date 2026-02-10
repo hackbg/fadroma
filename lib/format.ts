@@ -10,5 +10,4 @@ export * from './format/Time.ts';
 export * from './format/Wasm.ts';
 export * as Ansi  from './format/Ansi.ts';
 export * as Borsh from './format/Borsh.ts';
-export { default as Async } from './format/Async.ts';
-export { default as Fn    } from './format/Fn.ts';
+export { default as Fn } from './format/Fn.ts';

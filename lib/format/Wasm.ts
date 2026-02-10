@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-export function wasmLoader <T> (
+export default function WasmLoader <T> (
   wasmUrl: string|URL,
   wrapUrl: string|URL,
 ): () => Promise<T> {
@@ -17,6 +17,7 @@ export function wasmLoader <T> (
       reject(e);
     }
   });
-  return () => ready
+  return function wasmLoader () {
+    return ready
+  }
 }
-

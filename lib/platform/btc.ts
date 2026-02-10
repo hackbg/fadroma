@@ -1,5 +1,5 @@
 import process from 'node:process';
-import { Async, Fn, Port, Run, Temp, Num, callUrl } from '../index.ts';
+import { Fn, Port, Run, Temp, Num, callUrl } from '../index.ts';
 export default Btc;
 /** A Bitcoin or Elements daemon. */
 interface Btc extends Run.Daemon {
@@ -46,7 +46,7 @@ async function Btc <T> ({
   txindex                     = null             as boolean,
   validatepegin               = null             as boolean,
   vbparams                    = null             as string,
-} = {}): Promise<Async<T>> {
+} = {}): Promise<Fn.Async<T>> {
   const bool = (x: unknown) => x ? '1' : '0';
   const options = [
     (acceptnonstdtxn             !== null) && `-acceptnonstdtxn=${bool(acceptnonstdtxn)}`,
@@ -119,7 +119,7 @@ namespace Btc {
   }
 
   /** Bitcoin node's JSON-RPC API. */
-  export const Rpc = function btcRpc (url: string): Rpc {
+  export function Rpc (url: string): Rpc {
     const callRpc = (method: string) => async (...params: unknown[]) => {
       const body = { jsonrpc: "1.0", id: 1, method, params, };
       const text = await callUrl(url, 'POST', body);
@@ -163,7 +163,7 @@ namespace Btc {
   };
 
   /** Bitcoin node's optional REST API. */
-  export const Rest = function btcRest (url: string): Rest {
+  export function Rest (url: string): Rest {
     return {
       async chaininfo (format = "json") {
         let data = await callUrl(`${url}/rest/chaininfo.${format}`);

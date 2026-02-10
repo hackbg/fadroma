@@ -1,6 +1,7 @@
 import type Btc from './btc.ts';
-import { Fn, wasmLoader } from '../index.ts';
-import { exit, env, argv, stdout, stderr } from '../deps.ts';
+import Fn from '../format/Fn.ts';
+import WasmLoader from '../format/Wasm.ts';
+import { exit, env, argv, stdout, stderr } from 'node:process';
 export default Simf;
 /** A SimplicityHL program. */
 interface Simf {
@@ -15,12 +16,20 @@ interface Simf {
   *
   *   #!/usr/bin/env -S deno --allow-read=.
   *   import { Btc, Simf } from '@hackbg/fadroma';
+  *   
+  *   // Connect:
   *   const { rpc, rest } = await Btc.LiquidTestnet();
+  *
+  *   // Compile:
   *   const program = await Simf('...source...').compile();
-  *   const witness = { ...see tests for example witness data... };
-  *   const you     = 'tex1000000000000000000000000000000000000000';
+  *   
+  *   // Deploy:
+  *   const you = 'tex1000000000000000000000000000000000000000';
   *   console.log(await program.fund({ rpc, rest, tx, witness, from: you, amount: 1, fee: 1e-4 }));
-  *   console.log(await program.spend({ rpc, rest, tx, witness, to: you,  amount: 1, fee: 1e-4 }));
+  *   
+  *   // Invoke:
+  *   const witness = { ...see tests for example witness data... };
+  *   console.log(await program.spend({ rpc, rest, tx, witness, to: you, amount: 1, fee: 1e-4 }));
   *
   **/
 function Simf (source: string): Simf {
@@ -51,17 +60,19 @@ namespace Simf {
   export type RpcCtx = { rpc, rest };
   export type Fund   = TxCtx & { from: string }
   export type Spend  = TxCtx & { to:   string };
-  /** Load SimplicityHL WASM module. */
-  export const Wasm = wasmLoader<Wasm>(
-    env['FADROMA_SIMF_WASM'] || import.meta.resolve('./simf/pkg/fadroma_simf_bg.wasm'),
-    env['FADROMA_SIMF_WRAP'] || import.meta.resolve('./simf/pkg/fadroma_simf.js'),
-  );
   /** SimplicityHL WASM module API. */
   export type Wasm = {
     cmr_to_p2tr: Fn.Returns<string>,
     compile:     Fn<[string, object?], Program>,
     toJSON:      Fn.Returns<object>,
   };
+  /** Load SimplicityHL WASM module. */
+  export function Wasm (
+    wasm = env['FADROMA_SIMF_WASM'] || import.meta.resolve('./simf/pkg/fadroma_simf_bg.wasm'),
+    wrap = env['FADROMA_SIMF_WRAP'] || import.meta.resolve('./simf/pkg/fadroma_simf.js'),
+  ) {
+    return WasmLoader<Wasm>(wasm, wrap)()
+  }
   /** Transaction returned by SimplicityHL WASM module. */
   export type WasmTx = {
     hex:         string,

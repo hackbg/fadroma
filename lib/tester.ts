@@ -1,4 +1,4 @@
-import type { Async, Prototype } from './index.ts';
+import type { Prototype } from './index.ts';
 import { Log, traceConsole } from './context.ts';
 import { ok, equal, throws, rejects } from 'node:assert';
 import { stdout, argv } from 'node:process';
@@ -32,7 +32,7 @@ namespace Test {
   /** A test step takes two arguments: the result of the previous test step,
     * and a mutable test context; and returns a result. */
   export type Step <C extends Context = Context, A = unknown, B = A> =
-    Fn.Reflects & ((_: A, __?: C) => Async<B>) & { skip?: boolean };
+    Fn.Reflects & ((_: A, __?: C) => Fn.Async<B>) & { skip?: boolean };
   /** Test stack and context. Passed to eacgh step as second argument. */
   export type Context    = Log & Test.Stack & Test.Result & Test.Options & Test.Categories;
   /** Test options. */
