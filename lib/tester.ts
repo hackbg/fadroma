@@ -4,13 +4,10 @@ import { ok, equal, throws, rejects } from 'node:assert';
 import { stdout, argv } from 'node:process';
 import { setImmediate } from 'node:timers';
 import { inspect } from 'node:util';
-import { Fn, Ansi, Error,
-  spaced, lines, msec, toString, merged,
-  withInfiniteStack, alignTrace } from './format.ts';
+import { Fn, Ansi, Error } from './format.ts';
+import { spaced, lines, msec, toString, merged, withInfiniteStack, alignTrace } from './format.ts';
 
 export default Test;
-// Reexport some default assertions:
-export { ok, equal, throws, rejects };
 /** Define a test case. */
 function Test (name: string, ...steps: (Test.Step|string)[]): Test.Step;
 /** Define the root test case. */
@@ -419,3 +416,6 @@ namespace Test {
     return [name, step?.name].filter(Boolean).join(': ') || Ansi.gray(7, '(unnamed)');
   }
 }
+
+// Reexport some assertion helpers:
+export { ok, equal, throws, rejects };

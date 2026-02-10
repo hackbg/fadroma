@@ -2,13 +2,13 @@
 import Btc from './btc.ts';
 import Simf from './simf.ts';
 import type { Async } from '../index.ts';
-import { Fn, Test as The } from '../index.ts';
-import { equal, throws, rejects } from '../deps.ts';
+import { Test as The, Fn, Base16 } from '../index.ts';
+import { equal, rejects } from '../deps.ts';
 import { pubSchnorr, pubECDSA } from '@scure/btc-signer/utils.js';
-import { p2pkh, p2wpkh } from '@scure/btc-signer';
+import { p2wpkh } from '@scure/btc-signer';
 const { is: Is, has: Has } = The;
 /** Non-private key. */
-const PRIVATE     = new Uint8Array(Array(32).fill(2));
+const PRIVATE     = new Uint8Array(Array(32).fill(1));
 /** Public key for Schnorr (witnesses). */
 const PUB_SCHNORR = pubSchnorr(PRIVATE);
 /** Public key for ECDSA (transactions). */
@@ -20,11 +20,13 @@ const INITIAL     = { COINS: 1000000n * DECIMAL, REISSUE: 1n * DECIMAL };
 /** Asset ID for initial reissuance token. */
 const REISSUE     = 'a6be6b365498cd451be75ba0f68c258ee01e08f3cb30d5f8469f6628db58dc61';
 /** Asset ID for regular old Bitcoin. */
-const BITCOIN = 'b2e15d0d7a0c94e4e2ce0fe6e8691b9e451377f6e46e8045a86f7c4b5d4f0f23';
+const BITCOIN     = 'b2e15d0d7a0c94e4e2ce0fe6e8691b9e451377f6e46e8045a86f7c4b5d4f0f23';
 /** Test the SimplicityHL support in Fadroma. */
 export default The(import.meta, 'Simf',
   // Check that the API entrypoints are present on the WASM module:
-  The('WASM', () => Simf.Wasm(), Has('cmr_to_p2tr', Is('function')), Has('compile', Is('function'))),
+  The('WASM', () => Simf.Wasm(),
+    Has('cmr_to_p2tr', Is('function')),
+    Has('compile',     Is('function'))),
   // Compile and deploy example programs:
   The('Deploy',
     () => Btc({ // Start by spawning a localnet:
@@ -42,7 +44,6 @@ export default The(import.meta, 'Simf',
       discover:                    false,
       dnsseed:                     false,
       evbparams:                   'simplicity:-1:::',
-      //feeasset:                    BITCOIN,
       initialfreecoins:            INITIAL.COINS,
       initialreissuancetokens:     INITIAL.REISSUE,
       maxtxfee:                    100.0,
@@ -55,10 +56,11 @@ export default The(import.meta, 'Simf',
       rpcuser:                     'fadroma',
       scriptprefix:                13,
       server:                      true,
-      //subsidyasset:                BITCOIN,
       txindex:                     true,
       validatepegin:               false,
       vbparams:                    "taproot:1:1",
+      //feeasset:                    BITCOIN,
+      //subsidyasset:                BITCOIN,
     }),
     // Optionally, pipe the localnet's output to stderr:
     Btc.Verbose(false),
@@ -80,11 +82,11 @@ export default The(import.meta, 'Simf',
                     let ab: u8  = <(u4, u4)>::into((0b1011, 0b1101));
                     let c:  u8  = 0b10111101;
                     assert!(jet::eq_8(ab, c)); }`),
-    Example(true,  "pay to pubkey",      2.7e-7, '990a6ec319fcfc0ee1c23feaeb3414ae0004b10512ec5e844e467839f240f048', 'tex1pe3fh3h6grs8lrjq6cmn7lw80x2rf3xty5unx9r26r2wzln32t20qhhll3a',
-      `fn main () { jet::bip_0340_verify((0x${PUB_ECDSA}, jet::sig_all_hash()), witness::SIG) }`,
+    Example(true,  "pay to pubkey",      2.7e-7, '0b771386a2ee6f0cfb296b0656a98431b77be650ea1eb0f7beb05894fe9bba87', 'tex1p53f33nnjed42the73v3y2hgdgmhq98fh3d5r05u23fjwc0xyp9fqzn6ulg',
+      `fn main () { jet::bip_0340_verify((0x${Base16.encode(PUB_SCHNORR)}, jet::sig_all_hash()), witness::SIG) }`,
       ({ user }) => ({ SIG: Signature("0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"), })),
     Example(true,  "pay to pubkey hash", 2.7e-7, 'e65e19e139a13583a0a7efb24be13c20d578f06f51b2a7fe7c7b9097072dbabe', 'tex1p305439usq06f4maelan8txnxshktvayu9z5gnwu6zrrxm9vmlufqcshcuv',
-      `fn main () { assert!(jet::eq_256(sha2(witness::PUB), 0x${PUB_SCHNORR}));
+      `fn main () { assert!(jet::eq_256(sha2(witness::PUB), 0x${Base16.encode(PUB_SCHNORR)}));
                     jet::bip_0340_verify((witness::PUB, jet::sig_all_hash()), witness::SIG) }
        fn sha2 (string: u256) -> u256 { let hasher: Ctx8 = jet::sha_256_ctx_8_init();
                                         let hasher: Ctx8 = jet::sha_256_ctx_8_add_32(hasher, string);
@@ -115,28 +117,34 @@ function Example (
   const fail = !pass
   return Fn.Name(`${name} (${p2tr||'unspecified P2TR'})`, testExample, { name, cost, cmr, p2tr, src, fail: !pass, witness })
   async function testExample (context: Btc) {
+    const { compile } = await Simf.Wasm();
     const result = compile(src, {}) as { toJSON: Fn.Returns<{ cmr: unknown }> };
     if (cmr) equal(result.toJSON().cmr, cmr);
-    p2tr ||= (await Simf(src).compile()).p2tr;
+    if (p2tr) equal(result.toJSON().p2tr, p2tr);
+    if (p2tr) equal(result.toString(), p2tr);
     const { rpc, rest } = context;
     // Fund program from deployer
     const id = await rpc.sendtoaddress(p2tr, String(1));
     const tx = testSplitTx(await rest.tx(id), p2tr, 1, cost).hex;
-    // Spend from program:
-    const amount = 1-1e-4;
-    const fee    = 1e-4;
-    const priv = randomPrivateKeyBytes();
-    const user = bech32.encode('tex', pubSchnorr(priv));
-    console.log({ user });
+    // Make spender wallet available in local RPC:
+    const net  = { bech32: 'tex', pubKeyHash: 0x6f, scriptHash: 0xc4, wif: 0xef, };
+    const user = p2wpkh(PUB_ECDSA, net).address;
+    await rpc.importaddress(user);
     const prog = await Simf(src).compile();
-    const wits = await witness({ user });
-    equal(await rpc.getreceivedbyaddress(user, 0), { bitcoin: 0 });
+    const wits = witness ? await witness({ user }) : {};
+    //await rpc.sendtoaddress(user, 1);
+    //equal(await rpc.getreceivedbyaddress(user, 0), { bitcoin: 1 });
+    // Spend from program:
+    const fee    = 1e-4;
+    const amount = 1. - fee;
+    await rpc.rescanblockchain();
+    const balance = ((await rpc.getreceivedbyaddress(user, 0)) as { bitcoin: number }).bitcoin;
     if (fail) {
       rejects(()=>prog.spend({ rpc, rest, tx, amount, fee, witness: wits, to: user }));
-      equal(await rpc.getreceivedbyaddress(user, 0), { bitcoin: 0 });
+      equal(await rpc.getreceivedbyaddress(user, 0), { bitcoin: balance });
     } else {
       const sent = await prog.spend({ rpc, rest, tx, amount, fee, witness: wits, to: user });
-      equal(await rpc.getreceivedbyaddress(user, 0), { bitcoin: amount });
+      equal(await rpc.getreceivedbyaddress(user, 0), { bitcoin: balance + amount });
     }
     return context;
   }
