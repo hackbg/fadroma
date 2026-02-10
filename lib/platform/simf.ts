@@ -31,16 +31,12 @@ function Simf (source: string): Simf {
       const compiled  = wasm.compile(program.source, options) as Simf.Program;
       const inspected = compiled.toJSON();
       const methods   = { fund, spend };
-      return Object.assign(compiled, inspected, methods) as unknown as Simf.Program;
-      async function fund ({
-        rpc, rest, tx, amount, fee, witness, from
-      }: Omit<Btc, 'kill'|'url'> & Simf.Fund) {
+      return Object.assign(compiled, program, inspected, methods);
+      async function fund ({ rpc, rest, tx, amount, fee, witness, from }: Simf.RpcCtx & Simf.Fund) {
         const fund = compiled.tx_fund({ tx, amount, fee, witness, from });
         return await rest.tx(await rpc.sendrawtransaction(fund.hex));
       }
-      async function spend ({
-        rpc, rest, tx, amount, fee, witness, to
-      }: Omit<Btc, 'kill'|'url'> & Simf.Spend) {
+      async function spend ({ rpc, rest, tx, amount, fee, witness, to }: Simf.RpcCtx & Simf.Spend) {
         const spend = compiled.tx_spend({ tx, amount, fee, witness, to });
         return await rest.tx(await rpc.sendrawtransaction(spend.hex));
       }
@@ -50,10 +46,11 @@ function Simf (source: string): Simf {
 }
 /** SimplicityHL utilities. */
 namespace Simf {
-  export type Tx    = unknown;
-  export type TxCtx = { tx: Tx, amount, fee, witness? };
-  export type Fund  = TxCtx & { from: string }
-  export type Spend = TxCtx & { to:   string };
+  export type Tx     = unknown;
+  export type TxCtx  = { tx: Tx, amount, fee, witness? };
+  export type RpcCtx = { rpc, rest };
+  export type Fund   = TxCtx & { from: string }
+  export type Spend  = TxCtx & { to:   string };
   /** Load SimplicityHL WASM module. */
   export const Wasm = wasmLoader<Wasm>(
     env['FADROMA_SIMF_WASM'] || import.meta.resolve('./simf/pkg/fadroma_simf_bg.wasm'),
