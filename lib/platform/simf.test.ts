@@ -9,18 +9,10 @@ import { p2wpkh } from '@scure/btc-signer';
 const { is: Is, has: Has } = The;
 /** Non-private key. */
 const PRIVATE     = new Uint8Array(Array(32).fill(1));
-/** Public key for Schnorr (witnesses). */
-const PUB_SCHNORR = pubSchnorr(PRIVATE);
 /** Public key for ECDSA (transactions). */
 const PUB_ECDSA   = pubECDSA(PRIVATE);
-/** 1 BTC = 100000000 Satoshis. */
-const DECIMAL     = 100000000n;
-/** Values for `initialfreecoins` and `initialreissuancetokens`. */
-const INITIAL     = { COINS: 1000000n * DECIMAL, REISSUE: 1n * DECIMAL };
-/** Asset ID for initial reissuance token. */
-const REISSUE     = 'a6be6b365498cd451be75ba0f68c258ee01e08f3cb30d5f8469f6628db58dc61';
-/** Asset ID for regular old Bitcoin. */
-const BITCOIN     = 'b2e15d0d7a0c94e4e2ce0fe6e8691b9e451377f6e46e8045a86f7c4b5d4f0f23';
+/** Public key for Schnorr (witnesses). */
+const PUB_SCHNORR = pubSchnorr(PRIVATE);
 /** Test the SimplicityHL support in Fadroma. */
 export default The(import.meta, 'Simf',
   // Check that the API entrypoints are present on the WASM module:
@@ -29,45 +21,15 @@ export default The(import.meta, 'Simf',
     Has('compile',     Is('function'))),
   // Compile and deploy example programs:
   The('Deploy',
-    () => Btc({ // Start by spawning a localnet:
-      chain:                       'elementsregtest',
-      acceptnonstdtxn:             true,
-      anyonecanspendaremine:       true,
-      bech32_hrp:                  'tex',
-      blech32_hrp:                 'tlq',
-      blindedprefix:               23,
-      blindedaddresses:            true,
-      con_blocksubsidy:            0,
-      con_connect_genesis_outputs: true,
-      con_elementsmode:            true,
-      defaultpeggedassetname:      'bitcoin',
-      discover:                    false,
-      dnsseed:                     false,
-      evbparams:                   'simplicity:-1:::',
-      initialfreecoins:            INITIAL.COINS,
-      initialreissuancetokens:     INITIAL.REISSUE,
-      maxtxfee:                    100.0,
-      persistmempool:              false,
-      pubkeyprefix:                36,
-      rest:                        true,
-      rpcallowip:                  '127.0.0.1',
-      rpcpassword:                 'fadroma',
-      rpcport:                     8941,
-      rpcuser:                     'fadroma',
-      scriptprefix:                13,
-      server:                      true,
-      txindex:                     true,
-      validatepegin:               false,
-      vbparams:                    "taproot:1:1",
-      //feeasset:                    BITCOIN,
-      //subsidyasset:                BITCOIN,
-    }),
+    // Start by spawning a localnet:
+    () => Btc.ElementsRegtest(),
     // Optionally, pipe the localnet's output to stderr:
     Btc.Verbose(false),
-    // Create empty test wallet:
+    // Create test wallet, which is first seen as empty:
     Btc.CreateWallet('test-simf', testHasBalance({ bitcoin: 0 })),
-    // Which, after rescan, turns out to not be empty:
-    Btc.Rescan(testHasBalance({ bitcoin: Number(INITIAL.COINS / DECIMAL), [REISSUE]: 1 })),
+    // But, after rescan, turns out to not be empty - it contains default balances:
+    Btc.Rescan(testHasBalance({ [Btc.ElementsRegtest.REISSUE]: 1,
+      bitcoin: Number(Btc.ElementsRegtest.INITIAL.COINS / Btc.ElementsRegtest.DECIMAL) })),
     // And now we can test the included example programs:
     Example(true,  "unit program",       2.4e-7, 'c40a10263f7436b4160acbef1c36fba4be4d95df181a968afeab5eac247adff7', 'tex1p9jcvyzkdwdqtf49kta4xpc5g35xkfcexwfsl8v70w2gwttelncyshxjk56',
       'fn main () {}'),
@@ -106,44 +68,47 @@ function Example (
   /** Expected deploy fee. */
   cost: number,
   /** Expected commitment Merkle root of program. */
-  cmr: string,
+  cmr:  string,
   /** Expected pay-to-taproot address of program. */
   p2tr: string,
   /** Source code of program. */
-  src: string,
+  src:  string,
   /** Function that provides witness data. */
-  witness?: Fn<[object], Async<object>>
+  wits?: Fn<[object], Async<object>>
 ) {
   const fail = !pass
-  return Fn.Name(`${name} (${p2tr||'unspecified P2TR'})`, testExample, { name, cost, cmr, p2tr, src, fail: !pass, witness })
-  async function testExample (context: Btc) {
-    const { compile } = await Simf.Wasm();
-    const result = compile(src, {}) as { toJSON: Fn.Returns<{ cmr: unknown }> };
-    if (cmr) equal(result.toJSON().cmr, cmr);
-    if (p2tr) equal(result.toJSON().p2tr, p2tr);
-    if (p2tr) equal(result.toString(), p2tr);
-    const { rpc, rest } = context;
+  const meta = { name, cost, cmr, p2tr, src, fail, wits };
+  return Fn.Name(`${name} (${p2tr||'unspecified P2TR'})`, testExample, meta)
+  async function testExample ({ rpc, rest }: Btc) {
+    // Compile the program.
+    const prog = await Simf(src).compile();
+    // Check against pre-defined CMR/P2TR.
+    if (cmr)  { equal(prog.toJSON().cmr, cmr); }
+    if (p2tr) { equal(prog.toJSON().p2tr, p2tr); equal(prog.toString(), p2tr); }
     // Fund program from deployer
     const id = await rpc.sendtoaddress(p2tr, String(1));
     const tx = testSplitTx(await rest.tx(id), p2tr, 1, cost).hex;
     // Make spender wallet available in local RPC:
-    const net  = { bech32: 'tex', pubKeyHash: 0x6f, scriptHash: 0xc4, wif: 0xef, };
-    const user = p2wpkh(PUB_ECDSA, net).address;
+    const network = { bech32: 'tex', pubKeyHash: 0x6f, scriptHash: 0xc4, wif: 0xef, };
+    const { address: user } = p2wpkh(PUB_ECDSA, network);
     await rpc.importaddress(user);
-    const prog = await Simf(src).compile();
-    const wits = witness ? await witness({ user }) : {};
-    //await rpc.sendtoaddress(user, 1);
-    //equal(await rpc.getreceivedbyaddress(user, 0), { bitcoin: 1 });
-    // Spend from program:
-    const fee    = 1e-4;
-    const amount = 1. - fee;
+    const witness = wits ? await wits({ user }) : {};
+    // Note current balance:
     await rpc.rescanblockchain();
     const balance = ((await rpc.getreceivedbyaddress(user, 0)) as { bitcoin: number }).bitcoin;
+    // Try spending from program:
+    const fee = 1e-4;
+    const amount = 1. - fee;
+    const context = { rpc, rest, tx, amount, fee, witness, to: user };
     if (fail) {
-      rejects(()=>prog.spend({ rpc, rest, tx, amount, fee, witness: wits, to: user }));
+      // TX is expected to fail
+      rejects(()=>prog.spend(context));
+      // Balance is expected to remain the same
       equal(await rpc.getreceivedbyaddress(user, 0), { bitcoin: balance });
     } else {
-      const sent = await prog.spend({ rpc, rest, tx, amount, fee, witness: wits, to: user });
+      // TX is expected to pass
+      await prog.spend(context);
+      // Balance is expected to increas
       equal(await rpc.getreceivedbyaddress(user, 0), { bitcoin: balance + amount });
     }
     return context;
@@ -165,26 +130,7 @@ function testSplitTx (
   //hasVout((x: Btc.Vout)=>x.value===bitcoin, `remaining: must be ${bitcoin}`);
   return tx
 }
-///** Asset ID for regular old Bitcoin. */
-//const BITCOIN = 'b2e15d0d7a0c94e4e2ce0fe6e8691b9e451377f6e46e8045a86f7c4b5d4f0f23';
-///** Asset IDs of (t)L-BTC. */
-//const LIQUID  = { mainnet: '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d'
-//               , testnet: '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49' };
-    //The('Examples',
-      //// If examples were not overridden, initialize default examples with test constants:
-      //Fn.Name('Provide test constants', async (btc: Btc) => {
-        //const address = await btc.rpc.getnewaddress(`fadroma-test`, "bech32");
-        //const { pubkey } = await btc.rpc.getaddressinfo(address);
-        //examples ||= Example({ pubkey: pubkey.slice(2) });
-        //return btc
-      //}),
-      //// Test funding and spending each example:
-      //Fn.Name('Fund and spend', async (btc: Btc, context: Test.Testing) => {
-        //const testCase = The('Example', ...examples.map(testFundAndSpend));
-        //await testCase(btc, context);
-        //return btc;
-      //})
-    //),
+
   // TODO:
   /* https://github.com/BlockstreamResearch/SimplicityHL/blob/master/examples/escrow_with_delay.simf
    * https://docs.ivylang.org/bitcoin/language/ExampleContracts.html#escrowwithdelay */
