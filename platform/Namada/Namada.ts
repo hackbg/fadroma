@@ -15,12 +15,17 @@
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
+
 import { env } from 'node:process';
-import { Error, Uint128 } from '../format.ts';
-import init, { Decode } from './pkg/fadroma_namada.js';
+import { Error } from '../../library/Err.ts';
+import { Uint128 } from '../../library/Number.ts';
 import Tendermint from '../Tendermint/Tendermint.ts';
+import init, { Decode } from './pkg/fadroma_namada.js';
+
+export default Namada;
+
 /** Describe a Namada chain. */
-export async function Namada (
+async function Namada (
   { ...options }: Parameters<typeof Tendermint.chain>[0] & { decoder?: string|URL|Uint8Array }
 ): Promise<Namada> {
   // Init the WASM translation blob.
@@ -45,11 +50,13 @@ export async function Namada (
   }
   return chain as Chain
 }
-export interface Namada {
+
+interface Namada {
   rpcUrl?: string
   decode?: Namada.Decoder
 }
-export namespace Namada {
+
+namespace Namada {
   type TendermintMetadata = Record<string, Validator>
 
   export type Epoch = number|bigint|string

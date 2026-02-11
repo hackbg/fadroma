@@ -1,62 +1,13 @@
 import { env } from 'node:process';
 
-export function Solana () {}
-
-export interface Solana {}
-
-export namespace Solana {
-  export type Project = {};
-  export type Program = {};
-  export type ProjectOptions = BaseProjectOptions & {
-    solana?: boolean|Semver,
-    web3?:   boolean,
-    kit?:    boolean,
-    codama?: boolean,
-  };
-  export type ProgramOptions = CrateOptions & {
-    idl?:    IDL,
-    notIdl?: NotIDL,
-    solana?: true|Semver,
-    anchor?: true|Semver|null
-  };
-  export type IDL    = { /* TODO */ };
-  export type NotIDL = { /* TODO */ };
-
-  export const Workspace = () => toml('Cargo.toml', {
-    "workspace": {
-      resolver: "2", members: [ "programs/*" ]
-    },
-    "profile.release": {
-      "codegen-units": 1, "overflow-checks": true, "lto": "fat",
-    },
-    "profile.release.build-override": {
-      "codegen-units": 1, "incremental": "false", "opt-level": 3,
-    }
-  });
-
-  export const AnchorToml = (options: Solana.ProjectOptions) => Toml('Anchor.toml', {
-    "toolchain": {
-      "solana_version":  opts.solana,
-      "package_manager": opts.pnpm ? "pnpm" : "npm",
-    },
-    "features": { "resolution": true, "skip-lint": false, },
-    "programs.localnet": { [name]: "", },
-    "registry": { "url": "https://api.apr.dev" },
-    "provider": { "cluster": "localnet", "wallet": "~/.config/solana/id.json" },
-    "scripts": { "test": "./test/test.ts" },
-    "test": {
-      "startup_wait":  5000,
-      "shutdown_wait": 2000,
-      "upgradeable":   true
-    },
-    "test.validator": {
-      "bind_address": "127.0.0.1",
-      "url": "https://api.devnet.solana.com",
-      "ledger": ".anchor/test-ledger",
-      "rpc_port": "8899"
-    }
-  });
-
+export default Solana;
+/** Connect to Solana or launch localnet. */
+function Solana () {}
+/** A Solana connection. */
+interface Solana {}
+/** Solana internals. */
+namespace Solana {
+  export interface Project {};
   export const Project = (options: Solana.ProjectOptions) => Dir(
     Gitignore(),
     Readme({ title: name }),
@@ -69,11 +20,275 @@ export namespace Solana {
     When(!!opts.anchor,  Solana.AnchorToml(options)),
     Dir('programs',      Solana.Program({ name, idl: opts.idl, notIdl: opts.notIdl })),
     Dir('test',          Ts("test.ts"), dir("accounts"))));
-
+  export namespace Project {
+    export interface Options = BaseProjectOptions & {
+      solana?: boolean|Semver,
+      web3?:   boolean,
+      kit?:    boolean,
+      codama?: boolean,
+    };
+    export const Workspace = () => Toml('Cargo.toml', {
+      "workspace": {
+        resolver: "2", members: [ "programs/*" ]
+      },
+      "profile.release": {
+        "codegen-units": 1, "overflow-checks": true, "lto": "fat",
+      },
+      "profile.release.build-override": {
+        "codegen-units": 1, "incremental": "false", "opt-level": 3,
+      }
+    });
+    export const AnchorToml = (options: Solana.Options) => Toml('Anchor.toml', {
+      "toolchain": {
+        "solana_version":  options.solana,
+        "package_manager": options.pnpm ? "pnpm" : "npm",
+      },
+      "features": { "resolution": true, "skip-lint": false, },
+      "programs.localnet": { [name]: "", },
+      "registry": { "url": "https://api.apr.dev" },
+      "provider": { "cluster": "localnet", "wallet": "~/.config/solana/id.json" },
+      "scripts": { "test": "./test/test.ts" },
+      "test": {
+        "startup_wait":  5000,
+        "shutdown_wait": 2000,
+        "upgradeable":   true
+      },
+      "test.validator": {
+        "bind_address": "127.0.0.1",
+        "url": "https://api.devnet.solana.com",
+        "ledger": ".anchor/test-ledger",
+        "rpc_port": "8899"
+      }
+    });
+  };
+  export interface Program {};
   export const Program = (opts: Solana.ProgramOptions) => Dir(
     CargoToml(Pick('name', 'deps', 'devDeps', 'features')(opts)),
     Dir('src', Rs('lib.rs')));
+  export namespace Program {
+    export interface Options = CrateOptions & {
+      idl?:    IDL,
+      notIdl?: NotIDL,
+      solana?: true|Semver,
+      anchor?: true|Semver|null
+    };
+    export type IDL    = { /* TODO */ };
+    export type NotIDL = { /* TODO */ };
+  };
 }
+
+export function SolanaWeb3 () {}
+export interface SolanaWeb3 {}
+export namespace SolanaWeb3 {
+  const { default: Anchor, web3 } = await import('@coral-xyz/anchor');
+  export const BN = Anchor.BN;
+  export const KP = web3.Keypair;
+  export const PK = web3.PublicKey;
+  export const TX = web3.Transaction;
+  export type BN = InstanceType<typeof Anchor.BN>;
+  export type KP = InstanceType<typeof web3.Keypair>;
+  export type PK = InstanceType<typeof web3.PublicKey>;
+  export type TX = InstanceType<typeof web3.Transaction>;
+  env.ANCHOR_PROVIDER_URL ??= 'http://localhost:8899';
+  env.ANCHOR_WALLET ??= resolve(homedir(), '.config/solana/id.json'); // FIXME use XDG
+  export { Anchor, Program, workspace }
+  export const wallet = Anchor.AnchorProvider.env().wallet
+  export const { payer, publicKey } = wallet;
+  export const commitment  = 'processed'
+  export const connection  = new Anchor.web3.Connection(process.env.ANCHOR_PROVIDER_URL, commitment);
+  export const accountRent = await getMinimumBalanceForRentExemptAccount(connection);
+  export const provider    = new Anchor.AnchorProvider(connection, wallet);
+  Anchor.setProvider(provider);
+
+  export const get = (pubkey: PK) => connection.getAccountInfo(pubkey)
+
+  export const pda = (program: Program, seeds: Seeds) => PK.findProgramAddressSync(seeds.map(toSeed), program)[0]
+
+  export const toSeed = (seed: Seed) => {
+    if (seed instanceof PK) seed = seed.toBuffer()
+    if (seed instanceof BN || typeof seed === 'bigint' || typeof seed === 'number') seed = numToBuf(seed)
+    return seed
+  }
+
+  export const numToBuf = (n: string|number|bigint|InstanceType<typeof BN>) => {
+    if (!(typeof n === 'bigint')) n = BigInt(String(n))
+    const bytes = Buffer.alloc(8);
+    bytes.writeBigUInt64LE(n, 0);
+    return bytes;
+  }
+
+  export const getBalances = (keys: PK[]) =>
+    Promise.all(keys.map(key=>connection.getBalance(key)))
+
+  export const lazy = async ix => {
+    ix = await ix
+    if (typeof ix === 'function') ix = ix()
+    return await ix
+  }
+
+  const axByName = (a, b) => (a[0] > b[0]) ? 1 : (a[0] < b[0]) ? -1 : 0
+
+  const maxLength = 30//prepared.reduce((max, [name, _])=>Math.max(max, name.length), 28)
+
+  function fields (fields) {
+    return fields.join('\n     ')
+  }
+
+  function grouped (groups = [], item, index) {
+    const group = Math.floor(index / 16)
+    groups[group] ??= []
+    groups[group].push(item)
+    return groups
+  }
+
+  const toProgram = <T extends {}>(id: string, api?: (_: PK)=>T) =>
+    Object.assign(api ? api(new PK(id)) : {}, { programId: new PK(id) });
+
+  function showBuffer (buffer) {
+    return fields([...buffer]
+      .map(x=>toHex(x))
+      .reduce(grouped, [])
+      .map(group=>group.join(' ')))
+  }
+
+  function showObject (object) {
+    return fields(Object.entries(object)
+      .map(([x,y])=>`· ${x.padEnd(20)} \n     ${
+        (y instanceof Buffer) ? showBuffer(y) :
+        JSON.stringify(y)}`))
+  }
+
+  function tokenProgramApi (programId: PK): {
+    createMint     (): unknown[],
+    getAta         (): unknown,
+    createAta      (): unknown,
+    getOrCreateAta (): unknown,
+    mintApi (mint: PK, programId?: PK): {
+      approve (
+        owner: PK, account: PK, authority: PK, amount: number, bumps?: unknown[]): unknown,
+      getAta (
+        owner: PK, offCurve?: boolean): unknown,
+      initAccount (
+        account: PK, owner?: PK): unknown,
+      initAccountSpace (
+        account: PK, from?: PK): unknown,
+      initMint (
+        decimals: number, authority?: PK, freezer?: PK): unknown,
+      initMintSpace (
+        lamports: number, space: number, from?: PK): unknown,
+      initScaledUiAmountConfig (
+        multiplier: number, authority?: payer.publicKey): unknown,
+      mintTo (
+        owner: PK, amount: number, authority?: PK, bumps?: unknown[]): unknown,
+    },
+  } {
+    return {
+      createMint: ({
+        tokenProgram = programId,
+        mintKeypair  = new Keypair(),
+        mint         = mintKeypair.publicKey,
+        decimals     = 9,
+        extensions   = [ExtensionType.ScaledUiAmountConfig],
+        mintSpace    = getMintLen(extensions),
+        mintIxs      = mintApi(mint, tokenProgram),
+        multiplier   = 1.0,
+      }) => [
+        `init space for token mint at ${mint.toString()}`,
+        connection.getMinimumBalanceForRentExemption(mintSpace).then(fee=>mintIxs.initMintSpace(fee, mintSpace)),
+        'init ScaledUiAmountConfig extension immediately after account creation',
+        mintIxs.initScaledUiAmountConfig(multiplier),
+        'init mint',
+        mintIxs.initMint(decimals),
+      ],
+      getAta: ({
+        tokenProgram = programId, mint, owner, offCurve = false
+      }) => getAssociatedTokenAddressSync(
+        mint, owner, offCurve, tokenProgram
+      ),
+      createAta: async ({
+        tokenProgram = programId, checkMint = true, mint, owner
+      }) => {
+        if (checkMint && !await connection.getBalance(mint)) {
+          throw new Error(`ata: mint does not exist: ${mint}`)
+        }
+        return await createAssociatedTokenAccountInstruction(
+          payer.publicKey, getAta({ tokenProgram, mint, owner }),
+          owner, mint, tokenProgram
+        )
+      },
+      getOrCreateAta: async ({
+        tokenProgram = programId, mint, owner, offCurve = false
+      }) => {
+        const ata = getAta({ tokenProgram, mint, owner, offCurve })
+        if (!await connection.getAccountInfo(ata)) {
+          if (offCurve) throw new Error("only program can create off-curve ATA")
+          return await createAta({ tokenProgram, mint, owner })
+        }
+        return ata
+      },
+      mintApi: (mint: PK, programId = TOKEN_PROGRAM_ID) => {
+        if (mint?.publicKey) mint = mint.publicKey
+        const reflect = (ix, reflected) => Object.assign(ix, { reflected })
+        return {
+          getAta (owner, offCurve?) {
+            return getAta({ tokenProgram: programId, mint, owner, offCurve })
+          },
+          initScaledUiAmountConfig (multiplier, authority = payer.publicKey) {
+            return reflect(createInitializeScaledUiAmountConfigInstruction(
+              mint, authority, multiplier, programId
+            ), { createInitializeScaledUiAmountConfigInstruction: {
+              mint, authority, multiplier, programId
+            } })
+          },
+          initMint (decimals, authority = payer.publicKey, freezer = null) {
+            return reflect(createInitializeMintInstruction(
+              mint, decimals, authority, freezer, programId
+            ), { createInitializeMintInstruction: {
+              mint, decimals, authority, freezer, programId
+            } })
+          },
+          initAccount (account, owner = payer.publicKey) {
+            account = (account?.publicKey) ?? account
+            return reflect(createInitializeAccountInstruction(
+              account, mint, owner, programId
+            ), { createInitializeAccountInstruction: {
+              account, mint, owner, programId
+            } })
+          },
+          mintTo (account, amount, authority = payer.publicKey, bumps = []) {
+            account = (account?.publicKey) ?? account
+            return reflect(createMintToInstruction(
+              mint, account, authority, amount, bumps, programId
+            ), { createMintToInstruction: {
+              mint, account, authority, amount, bumps, programId
+            } })
+          },
+          approve (owner, account, authority, amount, bumps = []) {
+            return reflect(createApproveInstruction(
+              account, authority, owner, amount, bumps, programId
+            ), { createApproveInstruction: {
+              account, authority, owner, amount, bumps, programId
+            } })
+          },
+          initMintSpace (lamports, space, fromPubkey = payer.publicKey) {
+            return System.Program.createAccount({
+              programId, fromPubkey, lamports, space,
+              newAccountPubkey: mint,
+            })
+          },
+          initAccountSpace (newAccountPubkey, fromPubkey = payer.publicKey) {
+            newAccountPubkey = (newAccountPubkey?.publicKey) ?? newAccountPubkey
+            return System.Program.createAccount({
+              programId, fromPubkey, newAccountPubkey,
+              lamports: accountRent, space: ACCOUNT_SIZE,
+            })
+          },
+        }
+      }
+    }
+  }
+}
+
 
 function findInIdl (program, name: string) {
   const rawName = Case.snake(name)
@@ -120,136 +335,6 @@ export const Loader    = toProgram('BPFLoaderUpgradeab1e11111111111111111111111'
 export const Token     = toProgram(TOKEN_PROGRAM_ID,      tokenProgramApi);
 
 export const Token2022 = toProgram(TOKEN_2022_PROGRAM_ID, tokenProgramApi);
-
-function tokenProgramApi (programId: PK): {
-  createMint     (): unknown[],
-  getAta         (): unknown,
-  createAta      (): unknown,
-  getOrCreateAta (): unknown,
-  mintApi (mint: PK, programId?: PK): {
-    approve (
-      owner: PK, account: PK, authority: PK, amount: number, bumps?: unknown[]): unknown,
-    getAta (
-      owner: PK, offCurve?: boolean): unknown,
-    initAccount (
-      account: PK, owner?: PK): unknown,
-    initAccountSpace (
-      account: PK, from?: PK): unknown,
-    initMint (
-      decimals: number, authority?: PK, freezer?: PK): unknown,
-    initMintSpace (
-      lamports: number, space: number, from?: PK): unknown,
-    initScaledUiAmountConfig (
-      multiplier: number, authority?: payer.publicKey): unknown,
-    mintTo (
-      owner: PK, amount: number, authority?: PK, bumps?: unknown[]): unknown,
-  },
-} {
-  return {
-    createMint: ({
-      tokenProgram = programId,
-      mintKeypair  = new Keypair(),
-      mint         = mintKeypair.publicKey,
-      decimals     = 9,
-      extensions   = [ExtensionType.ScaledUiAmountConfig],
-      mintSpace    = getMintLen(extensions),
-      mintIxs      = mintApi(mint, tokenProgram),
-      multiplier   = 1.0,
-    }) => [
-      `init space for token mint at ${mint.toString()}`,
-      connection.getMinimumBalanceForRentExemption(mintSpace).then(fee=>mintIxs.initMintSpace(fee, mintSpace)),
-      'init ScaledUiAmountConfig extension immediately after account creation',
-      mintIxs.initScaledUiAmountConfig(multiplier),
-      'init mint',
-      mintIxs.initMint(decimals),
-    ],
-    getAta: ({
-      tokenProgram = programId, mint, owner, offCurve = false
-    }) => getAssociatedTokenAddressSync(
-      mint, owner, offCurve, tokenProgram
-    ),
-    createAta: async ({
-      tokenProgram = programId, checkMint = true, mint, owner
-    }) => {
-      if (checkMint && !await connection.getBalance(mint)) {
-        throw new Error(`ata: mint does not exist: ${mint}`)
-      }
-      return await createAssociatedTokenAccountInstruction(
-        payer.publicKey, getAta({ tokenProgram, mint, owner }),
-        owner, mint, tokenProgram
-      )
-    },
-    getOrCreateAta: async ({
-      tokenProgram = programId, mint, owner, offCurve = false
-    }) => {
-      const ata = getAta({ tokenProgram, mint, owner, offCurve })
-      if (!await connection.getAccountInfo(ata)) {
-        if (offCurve) throw new Error("only program can create off-curve ATA")
-        return await createAta({ tokenProgram, mint, owner })
-      }
-      return ata
-    },
-    mintApi: (mint: PK, programId = TOKEN_PROGRAM_ID) => {
-      if (mint?.publicKey) mint = mint.publicKey
-      const reflect = (ix, reflected) => Object.assign(ix, { reflected })
-      return {
-        getAta (owner, offCurve?) {
-          return getAta({ tokenProgram: programId, mint, owner, offCurve })
-        },
-        initScaledUiAmountConfig (multiplier, authority = payer.publicKey) {
-          return reflect(createInitializeScaledUiAmountConfigInstruction(
-            mint, authority, multiplier, programId
-          ), { createInitializeScaledUiAmountConfigInstruction: {
-            mint, authority, multiplier, programId
-          } })
-        },
-        initMint (decimals, authority = payer.publicKey, freezer = null) {
-          return reflect(createInitializeMintInstruction(
-            mint, decimals, authority, freezer, programId
-          ), { createInitializeMintInstruction: {
-            mint, decimals, authority, freezer, programId
-          } })
-        },
-        initAccount (account, owner = payer.publicKey) {
-          account = (account?.publicKey) ?? account
-          return reflect(createInitializeAccountInstruction(
-            account, mint, owner, programId
-          ), { createInitializeAccountInstruction: {
-            account, mint, owner, programId
-          } })
-        },
-        mintTo (account, amount, authority = payer.publicKey, bumps = []) {
-          account = (account?.publicKey) ?? account
-          return reflect(createMintToInstruction(
-            mint, account, authority, amount, bumps, programId
-          ), { createMintToInstruction: {
-            mint, account, authority, amount, bumps, programId
-          } })
-        },
-        approve (owner, account, authority, amount, bumps = []) {
-          return reflect(createApproveInstruction(
-            account, authority, owner, amount, bumps, programId
-          ), { createApproveInstruction: {
-            account, authority, owner, amount, bumps, programId
-          } })
-        },
-        initMintSpace (lamports, space, fromPubkey = payer.publicKey) {
-          return System.Program.createAccount({
-            programId, fromPubkey, lamports, space,
-            newAccountPubkey: mint,
-          })
-        },
-        initAccountSpace (newAccountPubkey, fromPubkey = payer.publicKey) {
-          newAccountPubkey = (newAccountPubkey?.publicKey) ?? newAccountPubkey
-          return System.Program.createAccount({
-            programId, fromPubkey, newAccountPubkey,
-            lamports: accountRent, space: ACCOUNT_SIZE,
-          })
-        },
-      }
-    }
-  }
-}
 
 export const testAx = (name, address, ...validators) =>
   expect(name, Fn(exists, address, name), ...validators)
@@ -423,87 +508,5 @@ function prepareArg (ixName, arg, value, index) {
     return [value, msg]
   } catch (e) {
     throw Object.assign(e, { ixName, value, index, ...arg })
-  }
-}
-
-export function SolanaWeb3 () {}
-export interface SolanaWeb3 {}
-export namespace SolanaWeb3 {
-  const { default: Anchor, web3 } = await import('@coral-xyz/anchor');
-  export const BN = Anchor.BN;
-  export const KP = web3.Keypair;
-  export const PK = web3.PublicKey;
-  export const TX = web3.Transaction;
-  export type BN = InstanceType<typeof Anchor.BN>;
-  export type KP = InstanceType<typeof web3.Keypair>;
-  export type PK = InstanceType<typeof web3.PublicKey>;
-  export type TX = InstanceType<typeof web3.Transaction>;
-  env.ANCHOR_PROVIDER_URL ??= 'http://localhost:8899';
-  env.ANCHOR_WALLET ??= resolve(homedir(), '.config/solana/id.json'); // FIXME use XDG
-  export { Anchor, Program, workspace }
-  export const wallet = Anchor.AnchorProvider.env().wallet
-  export const { payer, publicKey } = wallet;
-  export const commitment  = 'processed'
-  export const connection  = new Anchor.web3.Connection(process.env.ANCHOR_PROVIDER_URL, commitment);
-  export const accountRent = await getMinimumBalanceForRentExemptAccount(connection);
-  export const provider    = new Anchor.AnchorProvider(connection, wallet);
-  Anchor.setProvider(provider);
-
-  export const get = (pubkey: PK) => connection.getAccountInfo(pubkey)
-
-  export const pda = (program: Program, seeds: Seeds) => PK.findProgramAddressSync(seeds.map(toSeed), program)[0]
-
-  export const toSeed = (seed: Seed) => {
-    if (seed instanceof PK) seed = seed.toBuffer()
-    if (seed instanceof BN || typeof seed === 'bigint' || typeof seed === 'number') seed = numToBuf(seed)
-    return seed
-  }
-
-  export const numToBuf = (n: string|number|bigint|InstanceType<typeof BN>) => {
-    if (!(typeof n === 'bigint')) n = BigInt(String(n))
-    const bytes = Buffer.alloc(8);
-    bytes.writeBigUInt64LE(n, 0);
-    return bytes;
-  }
-
-  export const getBalances = (keys: PK[]) =>
-    Promise.all(keys.map(key=>connection.getBalance(key)))
-
-  export const lazy = async ix => {
-    ix = await ix
-    if (typeof ix === 'function') ix = ix()
-    return await ix
-  }
-
-  const axByName = (a, b) => (a[0] > b[0]) ? 1 : (a[0] < b[0]) ? -1 : 0
-
-  const maxLength = 30//prepared.reduce((max, [name, _])=>Math.max(max, name.length), 28)
-
-  function fields (fields) {
-    return fields.join('\n     ')
-  }
-
-  function grouped (groups = [], item, index) {
-    const group = Math.floor(index / 16)
-    groups[group] ??= []
-    groups[group].push(item)
-    return groups
-  }
-
-  const toProgram = <T extends {}>(id: string, api?: (_: PK)=>T) =>
-    Object.assign(api ? api(new PK(id)) : {}, { programId: new PK(id) });
-
-  function showBuffer (buffer) {
-    return fields([...buffer]
-      .map(x=>toHex(x))
-      .reduce(grouped, [])
-      .map(group=>group.join(' ')))
-  }
-
-  function showObject (object) {
-    return fields(Object.entries(object)
-      .map(([x,y])=>`· ${x.padEnd(20)} \n     ${
-        (y instanceof Buffer) ? showBuffer(y) :
-        JSON.stringify(y)}`))
   }
 }

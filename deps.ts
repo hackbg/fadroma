@@ -50,9 +50,6 @@ export const getPbVarint     = () => import('protobuf-varint');
 
 export { base16, base64, bech32, bech32m } from '@scure/base'
 
-export { zipSync, strToU8 as zipStr } from 'fflate';
-export type { Zippable } from 'fflate';
-
 export async function fetchText (href: string|URL): Promise<string> {
   if (('Deno' in globalThis) && ('readFile' in globalThis.Deno)) {
     return new TextDecoder().decode(await Deno.readFile(new URL(href).pathname))

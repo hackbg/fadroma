@@ -1,8 +1,10 @@
+import { zipSync, strToU8 as zipStr } from 'fflate';
 import * as Monaco from 'monaco-editor';
+
+import { Bytes } from '../../library/Byte.ts';
+import Html from '../../library/Html.ts';
+
 import { Link, Icon, elById, textVal, download } from '../lib.ts';
-import { Html } from '../../lib/index.ts';
-import { zipSync, zipStr } from '../../lib/deps.ts';
-import { Bytes } from '../../lib/index.ts';
 import { on } from '../lib.ts';
 import { urls } from '../urls.ts';
 

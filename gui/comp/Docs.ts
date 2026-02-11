@@ -1,6 +1,5 @@
+import Html from '../../library/Html.ts';
 import { elById } from '../lib.ts';
-import { Html } from '../../lib/index.ts';
-
 export async function loadDocs (href: string) {
   const main = elById("main");
   const resp = await fetch(href);
@@ -49,5 +48,4 @@ export async function loadDocs (href: string) {
       item.dataset.ns = ns;
     }
   }
-
 }

@@ -18,6 +18,17 @@
 
 // Bitcoin, Elements
 export { default as Btc  } from './Bitcoin/Bitcoin.ts';
+
 // SimplicityHL
 export { default as Simf } from './SimplicityHL/SimplicityHL.ts';
-// TODO: Reenable other platforms.
+
+// TODO: Reenable other platforms:
+//
+// 1. export { default as Solana, SolanaWeb3 } from './Solana/Solana.ts';
+//
+// 2. export { default as Tendermint }         from './Tendermint/Tendermint.ts';
+//    export { default as Namada }             from './Namada/Namada.ts';
+//
+// 3. export { default as CosmWasm }           from './CosmWasm/CosmWasm.ts';
+//    export { default as SecretNetwork }      from './SecretNetwork/SecretNetwork.ts';
+//
