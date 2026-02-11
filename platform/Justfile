@@ -1,9 +1,9 @@
 simf:
-	cd simf && wasm-pack build --release --target web && rm -v pkg/package.json pkg/.gitignore
+	cd SimplicityHL && wasm-pack build --release --target web && rm -v pkg/package.json pkg/.gitignore
 simf-dev:
-	cd simf && wasm-pack build --dev --target web && rm -v pkg/package.json pkg/.gitignore
+	cd SimplicityHL && wasm-pack build --dev --target web && rm -v pkg/package.json pkg/.gitignore
 
 namada:
-	cd namada && wasm-pack build --release --target web && rm -v pkg/package.json pkg/.gitignore
+	cd Namada && wasm-pack build --release --target web && rm -v pkg/package.json pkg/.gitignore
 namada-dev:
-	cd namada && wasm-pack build --dev --target web && rm -v pkg/package.json pkg/.gitignore
+	cd Namada && wasm-pack build --dev --target web && rm -v pkg/package.json pkg/.gitignore
