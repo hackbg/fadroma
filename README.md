@@ -1,10 +1,20 @@
 <div align="center">
+
 🌹 🇧🇬 🚜 🇪🇺 <br />
 <strong>https://hack.bg presents:</strong>
+
+</div>
+
+<!--<img src="./www/logo_color.svg" alt="Fadroma" width="360">-->
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/hackbg/fadroma/refs/heads/v3-alpha/www/logo_color.svg" alt="Fadroma" width="360">
 
 # Fadroma
 
 <strong>Cross-chain application framework with a vengeance.</strong>
+
+</div>
 
 <hr />
 
@@ -19,22 +29,21 @@ way to get started with Fadroma is the project configurator at
 
 ## Repo overview
 
-### `library/`: Core Data Types and Composable Operations DSL
+### `library/`: Core Capabilities
 
-* Bit, Byte, Number
-* String, Ansi
-* Object, Stream, Time, Hash
-* Function, Error
-* UI: Log, DOM, HTML, SVG, TUI
-* OS: FS, OCI, Run
-* Network: Port, TCP, HTTP
+* Control: Fn, Pipe, Async, Error
+* Data: Number, Bit, Byte, Hash, Time, String, Object, Stream
+* UI: Log, Ansi, Tui, Dom (Html, Svg)
+* OS: Fs, Run, Spawn, Oci
+* Network: Port, Tcp, Http
+* Watcher: Typecheck, Run tests
 
 ### `platform/`: Platform Support Modules
 
 * Bitcoin: Elements, SimplicityHL
 * Tendermint: CosmWasm, Secret Network, Namada
 
-### About WASM blobs
+#### About WASM blobs
 
 * Build in container:
 
@@ -46,8 +55,3 @@ just wasm # or just wasm-release
 ```
 
 * May need stub env to run, see `../stub/wasm_*` and import map.
-
-## `watcher/`: Live Reloading Services
-
-* Check types
-* Run tests
