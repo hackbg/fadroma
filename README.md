@@ -1,10 +1,20 @@
 <div align="center">
+
 🌹 🇧🇬 🚜 🇪🇺 <br />
 <strong>https://hack.bg presents:</strong>
+
+</div>
+
+<!--<img src="./www/logo_color.svg" alt="Fadroma" width="360">-->
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/hackbg/fadroma/refs/heads/v3-alpha/www/logo_color.svg" alt="Fadroma" width="360">
 
 # Fadroma
 
 <strong>Cross-chain application framework with a vengeance.</strong>
+
+</div>
 
 <hr />
 
