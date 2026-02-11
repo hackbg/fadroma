@@ -17,6 +17,12 @@
 **/
 import type { Log, Uint128, Hash as BaseHash } from '../index.ts';
 import { Error } from '../format.ts';
+
+export default Tendermint;
+interface Tendermint {};
+namespace Tendermint {};
+function Tendermint () {}
+
 export type Hash = BaseHash<'sha256'>;
 /** An address on a chain. */
 export type Address = string;

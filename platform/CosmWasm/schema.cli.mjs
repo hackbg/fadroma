@@ -4,7 +4,7 @@ import {dirname, basename, resolve, relative} from 'node:path'
 import {existsSync, realpathSync, readFileSync} from 'node:fs'
 import {fileURLToPath} from 'node:url'
 import {createHash} from 'node:crypto'
-import {SchemaToMarkdown} from './schema.mjs'
+import {CosmWasmSchemaToMarkdown} from './CosmWasm.ts'
 const { name, version } = JSON.parse(
   readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'package.json'))
 )
@@ -16,7 +16,7 @@ if (argv.length > 2) {
   const source = readFileSync(input, 'utf8')
   const hash = createHash('sha256').update(source, 'utf8').digest().toString('hex').slice(0, 16)
   const parsed = JSON.parse(source)
-  const schema = new SchemaToMarkdown(argv[2], parsed)
+  const schema = new CosmWasmSchemaToMarkdown(argv[2], parsed)
   process.stdout.write(schema.toMd())
   process.stdout.write(
     `\n\n---\n\n*Rendered by [Fadroma](https://fadroma.tech) (${link}) ` +

@@ -1,5 +1,5 @@
 /**
-  Fadroma
+  Fadroma for Namada
   Copyright (C) 2023 Hack.bg
 
   This program is free software: you can redistribute it and/or modify
@@ -15,10 +15,10 @@
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-import { env } from '../deps.ts';
+import { env } from 'node:process';
 import { Error, Uint128 } from '../format.ts';
-import init, { Decode } from './namada/pkg/fadroma_namada.js';
-import * as Tendermint from './Tendermint.ts';
+import init, { Decode } from './pkg/fadroma_namada.js';
+import Tendermint from '../Tendermint/Tendermint.ts';
 /** Describe a Namada chain. */
 export async function Namada (
   { ...options }: Parameters<typeof Tendermint.chain>[0] & { decoder?: string|URL|Uint8Array }
