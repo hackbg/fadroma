@@ -1,1 +1,1 @@
-# Hack.bg Fadroma for Namada
+# Namada support in Fadroma

@@ -1,0 +1,2 @@
+# CosmWasm support in Fadroma
+
