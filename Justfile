@@ -19,13 +19,13 @@ wasm-sh builder="$BUILDER":
 # Compile dev builds of all WASM modules.
 wasm-all builder="$BUILDER":
   time just wasm-img {{builder}}
-  time just wasm {{builder}} simf
-  time just wasm {{builder}} namada
+  time just wasm {{builder}} SimplicityHL
+  time just wasm {{builder}} Namada
 # Compile dev builds of SimplicityHL module.
-wasm builder="$BUILDER" platform="simf":
+wasm builder="$BUILDER" platform="SimplicityHL":
   time just wasm-img {{builder}}
   time {{builder}} run -v .:/app:rw --workdir=/app -it "{{IMAGE}}" \
-    sh -c "cd lib/platform/$platform && just wasm"
+    sh -c "cd platform/{{platform}} && just build"
 # Typecheck.
 check:
   ${CHECK} lib/*.ts
