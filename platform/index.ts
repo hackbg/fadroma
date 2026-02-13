@@ -17,10 +17,10 @@
 **/
 
 // Bitcoin, Elements
-export { default as Btc  } from './Bitcoin/Bitcoin.ts';
+export { default as Bitcoin } from './Bitcoin/Bitcoin.ts';
 
 // SimplicityHL
-export { default as Simf } from './SimplicityHL/SimplicityHL.ts';
+export { default as SimplicityHL } from './SimplicityHL/SimplicityHL.ts';
 
 // TODO: Reenable other platforms:
 //
