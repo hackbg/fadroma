@@ -4,8 +4,8 @@
 import type { Str } from '../index.ts';
 import { env } from '../deps.ts';
 
-export const ifColor  = x => NO_COLOR ? '' : x;
-export const escaped  = x => `\x1b[${x}`;
+export const ifColor  = <T>(x: T) => NO_COLOR ? '' : x;
+export const escaped  = <T>(x: T) => `\x1b[${x}`;
 export const NO_COLOR = env.NO_COLOR === '1'                                                                                                                                                                                   
 export const RESET    = escaped('0m'); // `\x1b[0m`
 export const BOLD     = ifColor(escaped('1m'));
