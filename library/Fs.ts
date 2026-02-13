@@ -106,7 +106,7 @@ export function Txt <T = string|number|object|null> (
 export const textFormat =
   <T = string|number|object|null> (format: Fn.Returns<string>) =>
     (path: string, value?: T|T[]|Fn.Step<T>, ...steps: Array<T|Fn.Step<T>>) =>
-      Txt(path, value, ...steps, format as (_:T)=>Async<T>);
+      Txt(path, value, ...steps, format as (_:T)=>Fn.Async<T>);
 
 /** Specify a binary data file. */
 export function Bin (
