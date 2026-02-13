@@ -1,12 +1,13 @@
 set export
-BUILDER := "docker" # podman, buildah...
-JUST    := "time just"
-RUN     := "time podman run --rm -v .:/app:rw --workdir=/app -it hackbg/fadroma:dev"
-CHECK   := "time deno check --allow-import"
-DOC     := "time deno doc"
-TEST    := "time deno test"
-COV     := "deno coverage"
-IMAGE   := "hackbg/fadroma:dev"
+BUILDER  := "docker" # podman, buildah...
+IMAGE    := "hackbg/fadroma:dev"
+JUST     := "time just"
+RUN      := "time podman run --rm -v .:/app:rw --workdir=/app -it hackbg/fadroma:dev"
+CHECK    := "time deno check --allow-import"
+DOC      := "time deno doc"
+TEST     := "time deno test"
+TEST_ENV := "FADROMA_SIMF_WASM,FADROMA_SIMF_WRAP,TERM_PROGRAM,COLUMNS,TMPDIR,TMP,TEMP,NODE_V8_COVERAGE"
+COV      := "deno coverage"
 # Display available recipes.
 list:
   @just --list
@@ -38,12 +39,13 @@ doc-lint:
 # Run test suite and report coverage.
 test:
   ${TEST} --no-check --coverage \
-    --allow-env=FADROMA_SIMF_WASM,FADROMA_SIMF_WRAP,TERM_PROGRAM,COLUMNS,TMPDIR,TMP,TEMP \
+    --allow-env=${TEST_ENV} \
     --allow-net \
     --allow-import=deno.land:443,cdn.skypack.dev:443 \
+    --allow-run=elementsd \
     --allow-read=. \
     --allow-write=/tmp/fadroma \
-      lib/index.test.ts
+      test/index.test.ts
   ${COV}
   ${COV} --html
 # Report test coverage.
