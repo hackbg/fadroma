@@ -1,4 +1,9 @@
-export function __assert_fail () { throw new Error('not implemented') }
+// FIXME: This should be propagated from the Fadroma/SimplicityHL module.
+export function __assert_fail (...args) {
+  throw new Error(['__assert_fail:', ...args].join(' '))
+}
+
+// FIXME: the following should be unneeded:
 
 export function __syscall_getcwd () { throw new Error('not implemented') }
 
