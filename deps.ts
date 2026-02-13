@@ -1,4 +1,5 @@
-//export { Buffer as StreamBuffer } from '@std/streams';
+// Node-style builtins:
+
 export { ok, throws, rejects, deepStrictEqual as equal } from 'node:assert';
 export { setImmediate, } from 'node:timers';
 export { tmpdir } from 'node:os';
@@ -26,29 +27,31 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 export const execImpl = promisify(execFile);
 export { execFile };
+
+// Deno-style builtins:
+
 export const {
   connect: denoConnect, listen: denoListen, watchFs
 } = globalThis.Deno || {};
 
 export type TcpConn = Deno.TcpConn;
 
+// Third-party packages:
+
+export { base16, base64, bech32, bech32m } from 'npm:@scure/base'
 export { default as Case } from 'case';
+//export { Buffer as StreamBuffer } from '@std/streams';
+
 export const getCreateLogUpdate = () =>
   import('log-update').then(c=>c.createLogUpdate)
 if (globalThis.Deno) {
   await import("https://deno.land/x/indexeddb@v1.1.0/polyfill_memory.ts");
 }
 
-//export * as ZMQ    from 'npm:zeromq';
 export const getIndexd       = () => import('indexd');
-
 export const getBrowserLevel = () => import('browser-level');
-
 export const getBtcJs        = () => import('bitcoinjs-lib');
-
 export const getPbVarint     = () => import('protobuf-varint');
-
-export { base16, base64, bech32, bech32m } from '@scure/base'
 
 export async function fetchText (href: string|URL): Promise<string> {
   if (('Deno' in globalThis) && ('readFile' in globalThis.Deno)) {

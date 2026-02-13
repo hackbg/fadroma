@@ -8,18 +8,12 @@ importers:
 
   .:
     dependencies:
-      '@scure/base':
-        specifier: ^2
-        version: 2.0.0
       bitcoinjs-lib:
         specifier: ^7.0.0
         version: 7.0.0(typescript@5.7.3)
       bitcore-lib:
         specifier: ^11.4.5
         version: 11.4.5
-      log-update:
-        specifier: ^7.0.1
-        version: 7.0.1
     devDependencies:
       '@noble/curves':
         specifier: ^2.0.1
@@ -33,10 +27,16 @@ importers:
       '@noble/secp256k1':
         specifier: ^3.0.0
         version: 3.0.0
+      '@scure/base':
+        specifier: ^2
+        version: 2.0.0
       '@scure/bip32':
         specifier: ^2.0.1
         version: 2.0.1
       '@scure/bip39':
+        specifier: ^2.0.1
+        version: 2.0.1
+      '@scure/btc-signer':
         specifier: ^2.0.1
         version: 2.0.1
       '@types/deno':
@@ -54,6 +54,9 @@ importers:
       indexd:
         specifier: ^0.9.1
         version: 0.9.1
+      log-update:
+        specifier: ^7.0.1
+        version: 7.0.1
       monaco-editor:
         specifier: ^0.55.1
         version: 0.55.1
@@ -403,6 +406,9 @@ packages:
 
   '@scure/bip39@2.0.1':
     resolution: {integrity: sha512-PsxdFj/d2AcJcZDX1FXN3dDgitDDTmwf78rKZq1a6c1P1Nan1X/Sxc7667zU3U+AN60g7SxxP0YCVw2H/hBycg==}
+
+  '@scure/btc-signer@2.0.1':
+    resolution: {integrity: sha512-vk5a/16BbSFZkhh1JIJ0+4H9nceZVo5WzKvJGGWiPp3sQOExeW+L53z3dI6u0adTPoE8ZbL+XEb6hEGzVZSvvQ==}
 
   '@shikijs/engine-oniguruma@3.14.0':
     resolution: {integrity: sha512-TNcYTYMbJyy+ZjzWtt0bG5y4YyMIWC2nyePz+CFMWqm+HnZZyy9SWMgo8Z6KBJVIZnx8XUXS8U2afO6Y0g1Oug==}
@@ -881,6 +887,10 @@ packages:
 
   mdurl@2.0.0:
     resolution: {integrity: sha512-Lf+9+2r+Tdp5wXDXC4PcIBjTDtq4UKjCPMQhKIuzpJNW0b96kVqSwW0bT7FhRSfmAiFYgP+SCRvdrDozfh0U5w==}
+
+  micro-packed@0.8.0:
+    resolution: {integrity: sha512-AKb8znIvg9sooythbXzyFeChEY0SkW0C6iXECpy/ls0e5BtwXO45J9wD9SLzBztnS4XmF/5kwZknsq+jyynd/A==}
+    engines: {node: '>= 20.19.0'}
 
   miller-rabin@4.0.1:
     resolution: {integrity: sha512-115fLhvZVqWwHPbClyntxEVfVDfl9DLLTuJvq3g2O/Oxi8AiNouAHvDSzHS0viUJc+V5vm3eq91Xwqn9dp4jRA==}
@@ -1496,6 +1506,13 @@ snapshots:
       '@noble/hashes': 2.0.1
       '@scure/base': 2.0.0
 
+  '@scure/btc-signer@2.0.1':
+    dependencies:
+      '@noble/curves': 2.0.1
+      '@noble/hashes': 2.0.1
+      '@scure/base': 2.0.0
+      micro-packed: 0.8.0
+
   '@shikijs/engine-oniguruma@3.14.0':
     dependencies:
       '@shikijs/types': 3.14.0
@@ -2091,6 +2108,10 @@ snapshots:
       safe-buffer: 5.2.1
 
   mdurl@2.0.0: {}
+
+  micro-packed@0.8.0:
+    dependencies:
+      '@scure/base': 2.0.0
 
   miller-rabin@4.0.1:
     dependencies:

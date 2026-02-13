@@ -29,6 +29,7 @@
     pkgs.bitcoind
     pkgs.binaryen
     pkgs.python3
+    pkgs.pnpm
     (over pkgs.elements {
       patches = [];
       doCheck = false;

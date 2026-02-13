@@ -10,10 +10,6 @@
     "doc:type": "typedoc --out doc/type --darkHighlightTheme everforest-dark --cleanOutputDir --groupReferencesByType --useFirstParagraphOfCommentAsSummary index.ts",
     "doc:deno": "deno doc --output doc/deno --html index.ts"
   },
-  "dependencies": {
-    "@scure/base": "^2",
-    "log-update": "^7.0.1"
-  },
   "peerDependencies": {
     "@noble/curves": "^2.0.1",
     "@noble/ed25519": "^3.0.0",
@@ -30,6 +26,7 @@
     "case": "^1.6.3",
     "fflate": "^0.8.2",
     "indexd": "^0.9.1",
+    "log-update": "^7.0.1",
     "protobuf-varint": "^1"
   },
   "peerDependenciesMeta": {
@@ -52,6 +49,9 @@
       "optional": true
     },
     "@scure/bip39": {
+      "optional": true
+    },
+    "@scure/btc-signer": {
       "optional": true
     },
     "@types/deno": {
@@ -79,9 +79,6 @@
       "optional": true
     },
     "protobuf-varint": {
-      "optional": true
-    },
-    "@scure/btc-signer": {
       "optional": true
     }
   },

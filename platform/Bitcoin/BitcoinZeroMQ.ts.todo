@@ -1,3 +1,4 @@
+import * as ZMQ from 'npm:zeromq';
 import type { Async, AsyncIter, Log } from '../../index.ts';
 import { Tcp } from '../../context.ts';
 import { Fn, UTF8, Bytes, Bit, readBytes, readUntilDone, write, merged } from '../../format.ts';

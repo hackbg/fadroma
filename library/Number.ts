@@ -1,7 +1,7 @@
 import { Bytes } from './Byte.ts';
 import Fn from './Fn.ts';
-import { base16, base64, bech32, bech32m } from '@scure/base'
 import { webcrypto } from '../deps.ts';
+import { base16, base64, bech32, bech32m } from 'npm:@scure/base'
 
 export type Num = number|string|bigint;
 

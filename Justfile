@@ -6,7 +6,6 @@ RUN      := "time podman run --rm -v .:/app:rw --workdir=/app -it hackbg/fadroma
 CHECK    := "time deno check --allow-import"
 DOC      := "time deno doc"
 TEST     := "time deno test"
-TEST_ENV := "FADROMA_SIMF_WASM,FADROMA_SIMF_WRAP,TERM_PROGRAM,COLUMNS,TMPDIR,TMP,TEMP,NODE_V8_COVERAGE"
 COV      := "deno coverage"
 # Display available recipes.
 list:
@@ -38,14 +37,7 @@ doc-lint:
   ${DOC} --html --private --lint --name=@hackbg/fadroma index.ts
 # Run test suite and report coverage.
 test:
-  ${TEST} --no-check --coverage \
-    --allow-env=${TEST_ENV} \
-    --allow-net \
-    --allow-import=deno.land:443,cdn.skypack.dev:443 \
-    --allow-run=elementsd \
-    --allow-read=. \
-    --allow-write=/tmp/fadroma \
-      test/index.test.ts
+  ${TEST} -P --no-check --coverage --allow-net test/index.test.ts
   ${COV}
   ${COV} --html
 # Report test coverage.

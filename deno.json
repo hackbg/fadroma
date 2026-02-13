@@ -3,4 +3,12 @@
 , "noUnusedParameters": false
 , "nodeModulesDir": "auto"
 , "lint": { "rules": { "exclude": [ "no-namespace", "no-async-promise-executor", "require-await"] } }
-, "imports": { "env": "./wasm_env.ts" } }
+, "imports": { "env": "./wasm_env.ts" }
+, "permissions": {
+    "default": {
+      "run":    ["elementsd"],
+      "read":   ["."],
+      "write":  ["/tmp/fadroma"],
+      "import": ["cdn.skypack.dev:443", "deno.land:443", "jsr.io:443"],
+      "env":    ["FADROMA_SIMF_WASM", "FADROMA_SIMF_WRAP", "TERM_PROGRAM", "TMPDIR", "TMP", "TEMP",
+                 "NODE_V8_COVERAGE", "COLUMNS"] } } }
