@@ -1,4 +1,5 @@
 import { env } from 'node:process';
+import type { Semver } from '../../library/Version.ts';
 
 export default Solana;
 /** Connect to Solana or launch localnet. */
