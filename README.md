@@ -32,12 +32,12 @@ way to get started with Fadroma is the project configurator at
 Fadroma v3 is not yet available in package repositories.
 
 You can, nonetheless, easily add it to your project -
-putting you in a better position explore Fadroma an
-easily contribute back on the features you most need:
+putting you in a better position to explore and
+contribute to the Fadroma codebase:
 
 ### Install as Git submodule
 
-```
+```sh
 mkdir project # Create project 
 cd project    # Enter project
 git init      # Make it a repo
@@ -52,7 +52,7 @@ git submodule update --init --recursive
 
 ### Install as Git subtree
 
-```
+```sh
 mkdir project                # Create project 
 cd project                   # Enter project
 git init                     # Make it a repo
@@ -67,31 +67,106 @@ cd fadroma
 git submodule update --init --recursive
 ```
 
-## Repo overview
+## `platform/`: Integration Modules
 
-### `library/`: Core Capabilities
+### Bitcoin, Liquid, Elements
 
-* Control: Fn, Pipe, Async, Error
-* Data: Number, Bit, Byte, Hash, Time, String, Object, Stream
-* UI: Log, Ansi, Tui, Dom (Html, Svg)
-* OS: Fs, Run, Spawn, Oci
-* Network: Port, Tcp, Http
-* Watcher: Typecheck, Run tests
-
-### `platform/`: Platform Support Modules
-
-* Bitcoin: Elements, SimplicityHL
-* Tendermint: CosmWasm, Secret Network, Namada
-
-#### About WASM blobs
-
-* Build in container:
-
-```sh
-just wasm-img
-just wasm-sh
-cd lib/platform/simf
-just wasm # or just wasm-release
+```ts
+import { Bitcoin } from 'fadroma';
 ```
 
-* May need stub env to run, see `../stub/wasm_*` and import map.
+#### SimplicityHL
+
+```ts
+import { SimplicityHL } from 'fadroma';
+```
+
+### Cosmos, Tendermint, CometBFT
+
+```ts
+import { Tendermint } from 'fadroma';
+```
+
+#### CosmWasm
+
+```ts
+import { CosmWasm } from 'fadroma';
+```
+
+#### Secret Network
+
+```ts
+import { SecretNetwork } from 'fadroma';
+```
+
+#### Namada
+
+```ts
+import { Namada } from 'fadroma';
+```
+
+### Solana
+
+```ts
+import { Solana } from 'fadroma';
+```
+
+## `library/`: Core Capabilities
+
+### Control flow
+
+#### Fn, Pipe, Async
+
+```ts
+import { Fn } from 'fadroma';
+```
+
+#### Error
+
+### Test DSL
+
+```ts
+import { Test } from 'fadroma';
+```
+
+### Data types
+
+#### Number, Bit, Byte, Hash
+
+#### Time
+
+#### String
+
+#### Object
+
+#### Stream
+
+### Network
+
+#### Port, Tcp
+
+#### Http
+
+```ts
+import { Http } from 'fadroma';
+```
+
+### Fs
+
+### Run, Spawn
+
+### Oci
+
+### Log
+
+### Ansi
+
+### Tui
+
+### Dom, Html, Svg
+
+### Watcher
+
+#### Typechecker
+
+#### Test runner
