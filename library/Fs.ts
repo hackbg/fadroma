@@ -8,8 +8,8 @@ import type { Versioned } from './Version.ts';
 import { cwd } from 'node:process';
 import { joinPath, tmpdir, mkdir, rm, mkdtemp, writeFile, resolvePath } from '../deps.ts';
 
-import { zipSync, strToU8 as zipStr } from 'fflate';
-import type { Zippable } from 'fflate';
+import { zipSync, strToU8 as zipStr } from 'npm:fflate';
+import type { Zippable } from 'npm:fflate';
 
 /** A directory, with optional implementations of methods for writing to it. */
 export type Dir = {
