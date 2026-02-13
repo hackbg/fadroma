@@ -4,38 +4,30 @@ import { Buffer } from 'node:buffer';
 import { Ports } from './Port.ts';
 import { Log } from './Log.ts';
 import Fn from './Fn.ts';
+
 export default Http;
-/** A HTTP route handler.
-  *
-  * - Handlers are tried sequentially, in the order they are added to the listener.
-  *   Asynchronous handlers are awaited.
-  *
-  * - A matching handler that returns undefined is a middleware; use this to modify the context.
-  *
-  * - A matching handler that returns anything besides undefined terminates the handling.
-  *   Its return value is written to the HTTP response with code 200.
-  *
-  * - If you want a different status code, set the `http` property of
-  *   an error and throw it from the handler.
-  *
-  * - If handlers are matched but no value is returned, the response is an empty 200.
-  *
-  * - TODO: If no handlers are matched, the response is an empty 404. */
-export interface Http extends Fn.Takes<[Http.Context]> {}
+
+export type Http<C extends Http.Context = Http.Context> = Http.Handler<C>;
+
 /** Define HTTP routes.
   *
   * Example 1: Building blocks
   *
   *     import { Http } from 'fadroma';
+  *
   *     // define routes:
   *     const route1 = Http.Get('/',  ({ req }) => {}),
   *     const route2 = Http.Post('/', ({ req }) => {}),
-  *     // define router with optional name (they nest):
+  *
+  *     // define router, with optional name. they nest
   *     const router = Http("example", route1, route2);
+  *
   *     // handle extant node-style request/response pair:
   *     await route({ req, res });
+  *
   *     // define listener with one or more routers:
   *     const listen = Http.Listen(8000, routes);
+  *
   *     // listen for requests:
   *     const server = listen();
   *
@@ -43,7 +35,9 @@ export interface Http extends Fn.Takes<[Http.Context]> {}
   *
   *     import { Http } from 'fadroma';
   *     import { DB } from 'your-persistence-layer';
+  *
   *     export default API Http(CRUD('User'), CRUD('Item'),);
+  *
   *     function CRUD (model, ...modelSpecificRoutes) {
   *       return Http.Prefix(`/${model}/:id`,
   *         async context => {
@@ -55,7 +49,9 @@ export interface Http extends Fn.Takes<[Http.Context]> {}
   *         Http.Get(({    model, id       }) => model.retrieve(id)),
   *         Http.Patch(({  model, id, data }) => model.update(id, data)),
   *         Http.Delete(({ model, id       }) => model.delete(id)),
-  *         ...modelSpecificRoutes); }
+  *         ...modelSpecificRoutes
+  *       );
+  *     }
   *
   *   */
 function Http (name?: string, ...routes: Http[]): Http;
@@ -73,34 +69,107 @@ function Http (...routes: unknown[]) {
     }
   }
 }
+
 namespace Http {
-  export type Server   = HttpServer;
-  export type Request  = ClientRequest;
-  export type Response = ServerResponse;
-  export type Context  = Log & { req: Request, res: Response };
-  export type Method   = 'GET'|'PUT'|'PATCH'|'POST'|'DELETE'|'HEAD'|'OPTIONS';
-  export const Method  = (m: Method, ...f: Http[]): Http => Fn.Name(`Method ${m}`,
-    function methodHandler (r: Context) {
-      if (r.req.method === m) return Fn.Pipe(...f)(r)
-    }, { ...f, method: m });
-  export const Get    = (prefix?: string, ..._: Http[]) => method('GET',    prefix, ..._);
-  export const Put    = (prefix?: string, ..._: Http[]) => method('PUT',    prefix, ..._);
-  export const Patch  = (prefix?: string, ..._: Http[]) => method('PATCH',  prefix, ..._);
-  export const Post   = (prefix?: string, ..._: Http[]) => method('POST',   prefix, ..._);
-  export const Delete = (prefix?: string, ..._: Http[]) => method('DELETE', prefix, ..._);
-  function method (m: Method, ...args: unknown[]) {
-    if (typeof args[0] === 'string') return Prefix(args[0], method(m, ...args.slice(1)));
-    return Method(m, ...args as Http[]);
+  const decoder = new TextDecoder();
+
+  /** Alias to Node-style HTTP server, which responds to
+    * HTTP requests by invoking its [Http.Handler]. */
+  export interface Server extends HttpServer {}
+
+  /** Alias to Node-style HTTP request input, where the body must be read out in chunks. */
+  export interface Request extends ClientRequest {
+    url: string;
   }
+
+  /** Read the body of an incoming [Request]. */
+  export function readBody (req: Http.Request): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const data = [];
+      try {
+        req.on('error', reject);
+        req.on('data', chunk => data.push(chunk));
+        req.on('end', () => resolve(decoder.decode(Buffer.concat(data))));
+      } catch(e) {
+        reject(e);
+      }
+    })
+  }
+
+  /** Alias to Node-style HTTP response output. */
+  export interface Response extends ServerResponse {}
+
+  /** Write status code and JSON-serialized data to [Response]. */
+  export function respond (res: Response, code: number, data: unknown) {
+    res.writeHead(code).end(JSON.stringify(data));
+    return res;
+  }
+
+  /** A HTTP route handler.
+    *
+    * - Handlers are tried sequentially, in the order they are added to the listener.
+    *   Asynchronous handlers are awaited.
+    *
+    * - A matching handler that returns undefined is a middleware; use this to modify the context.
+    *
+    * - A matching handler that returns anything besides undefined terminates the handling.
+    *   Its return value is written to the HTTP response with code 200.
+    *
+    * - If you want a different status code, set the `http` property of
+    *   an error and throw it from the handler.
+    *
+    * - If handlers are matched but no value is returned, the response is an empty 200.
+    *
+    * - TODO: If no handlers are matched, the response is an empty 404. */
+  export interface Handler<C extends Context = Context> extends Fn.Takes<[C]> {}
+
+  /** Context available to HTTP route handlers. */
+  export interface Context extends Log { req: Request, res: Response, }
+
+  /** HTTP method names. */
+  export type Method = 'GET'|'PUT'|'PATCH'|'POST'|'DELETE'|'HEAD'|'OPTIONS';
+
+  /** Define method handler.
+    *
+    * It evaluates contained handlers IFF the request is of method `m` */
+  export function Method (m: Method, ...f: Http[]): Http {
+    return Fn.Name(`Method ${m}`, function methodHandler (c: Context) {
+      if (c.req.method === m) return Fn.Pipe(...f)(c)
+    }, { ...f, method: m });
+  }
+
+  export namespace Method {
+    export const Get    = (prefix?: string, ..._: Http[]) => method('GET',    prefix, ..._);
+    export const Put    = (prefix?: string, ..._: Http[]) => method('PUT',    prefix, ..._);
+    export const Patch  = (prefix?: string, ..._: Http[]) => method('PATCH',  prefix, ..._);
+    export const Post   = (prefix?: string, ..._: Http[]) => method('POST',   prefix, ..._);
+    export const Delete = (prefix?: string, ..._: Http[]) => method('DELETE', prefix, ..._);
+    function method (m: Method, ...args: unknown[]) {
+      if (typeof args[0] === 'string') return Prefix(args[0], method(m, ...args.slice(1)));
+      return Method(m, ...args as Http[]);
+    }
+  }
+
+  /** Define path handler.
+    *
+    * It evaluates contained handlers IFF the request path is equal to `p`.
+    *
+    * FIXME: Actually match the path prefix. */
   export const Prefix = (p: string, ...f: Http[]): Http => Fn.Name(`Prefix ${p}`,
     function prefixHandler (r: Context) {
       if (r.req.url === p) return Fn.Pipe(...f)(r)
     }, { ...f, path: p });
+
+  /** Define guard handler.
+    *
+    * Path handler throws specified `code` if the pipe `...f` does not evaluate to true-ish.
+    * This prevents subsequent handlers from evaluating. */
   export const Guard  = (code: number, ...f: Http[]): Http => Fn.Name(`Guard ${code}`,
     async function guardHandler (r: Context) {
       const x = await Fn.Pipe(...f)(r);
       if (!x) throw Object.assign(new Error(`HTTP ${code}`), { http: code })
     }, { ...f, code });
+
   export function Listen (l: string|number|URL, ...routes: Http[]) {
     if (typeof l === 'number') l = `localhost:${l}`;
     if (typeof l === 'string') l = new URL(l);
@@ -144,34 +213,21 @@ namespace Http {
       }
     }
   }
-  export function respond (res: Response, code: number, data: unknown) {
-    res.writeHead(code).end(JSON.stringify(data));
-    return res;
+
+  /** Fetch helper. */
+  export async function fetchText (url: string|URL, method = 'GET', body?: BodyInit) {
+    const result = await fetch(url, { method, body: JSON.stringify(body) });
+    const text = await result.text();
+    const code = result.status;
+    if (code !== 200) {
+      throw Object.assign(new Error(`${url}: ${code} (${text})`), { code, text })
+    } else {
+      return text;
+    }
   }
-  export function readBody (req: Http.Request): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const data = [];
-      try {
-        req.on('error', reject);
-        req.on('data', chunk => data.push(chunk));
-        req.on('end', () => resolve(decoder.decode(Buffer.concat(data))));
-      } catch(e) {
-        reject(e);
-      }
-    })
-  }
+
 }
-/** Fetch helper. */
-export async function callUrl (url: string|URL, method = 'GET', body?: BodyInit) {
-  const result = await fetch(url, { method, body: JSON.stringify(body) });
-  const text = await result.text();
-  const code = result.status;
-  if (code !== 200) {
-    throw Object.assign(new Error(`${url}: ${code} (${text})`), { code, text })
-  } else {
-    return text;
-  }
-}
+
 // TODO: construct API client from method set
 // like `Endpoint` in old `@hackbg/port`
 //[>* API endpoint client. <]

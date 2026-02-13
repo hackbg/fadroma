@@ -1,11 +1,10 @@
-import process from 'node:process';
-
-import Fn           from '../../library/Fn.ts';
+import Fn from '../../library/Fn.ts';
+import Run from '../../library/Run.ts';
+import Http from '../../library/Http.ts';
+import { Port } from '../../library/Port.ts';
+import { Temp } from '../../library/Fs.ts';
 import type { Num } from '../../library/Number.ts';
-import { Port }     from '../../library/Port.ts';
-import Run          from '../../library/Run.ts';
-import { Temp }     from '../../library/Fs.ts';
-import { callUrl }  from '../../library/Http.ts';
+import process from 'node:process';
 
 export default Btc;
 
@@ -131,7 +130,7 @@ namespace Btc {
   export function Rpc (url: string): Rpc {
     const callRpc = (method: string) => async (...params: unknown[]) => {
       const body = { jsonrpc: "1.0", id: 1, method, params, };
-      const text = await callUrl(url, 'POST', body);
+      const text = await Http.fetchText(url, 'POST', body);
       return JSON.parse(text).result
     };
     return {
@@ -175,17 +174,17 @@ namespace Btc {
   export function Rest (url: string): Rest {
     return {
       async chaininfo (format = "json") {
-        let data = await callUrl(`${url}/rest/chaininfo.${format}`);
+        let data = await Http.fetchText(`${url}/rest/chaininfo.${format}`);
         if (format === 'json') data = JSON.parse(data);
         return data;
       },
       async block (hash, format = "json") {
-        let data = await callUrl(`${url}/rest/block/${hash}.${format}`);
+        let data = await Http.fetchText(`${url}/rest/block/${hash}.${format}`);
         if (format === 'json') data = JSON.parse(data);
         return data;
       },
       async tx (hash, format = "json") {
-        let data = await callUrl(`${url}/rest/tx/${hash}.${format}`);
+        let data = await Http.fetchText(`${url}/rest/tx/${hash}.${format}`);
         if (format === 'json') data = JSON.parse(data);
         return data;
       },
