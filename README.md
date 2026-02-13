@@ -27,6 +27,46 @@ way to get started with Fadroma is the project configurator at
 
 </div>
 
+## Installation
+
+Fadroma v3 is not yet available in package repositories.
+
+You can, nonetheless, easily add it to your project -
+putting you in a better position explore Fadroma an
+easily contribute back on the features you most need:
+
+### Install as Git submodule
+
+```
+mkdir project # Create project 
+cd project    # Enter project
+git init      # Make it a repo
+
+# Add Fadroma submodule:
+git submodule add https://github.com/hackbg/fadroma
+
+# Fetch the rest:
+cd fadroma
+git submodule update --init --recursive
+```
+
+### Install as Git subtree
+
+```
+mkdir project                # Create project 
+cd project                   # Enter project
+git init                     # Make it a repo
+touch README.md              # Make it non-empty
+git commit -m "tabula rasa"  # Initial commit
+
+# Add Fadroma subtree:
+git subtree add --prefix=fadroma https://github.com/hackbg/fadroma v3-alpha
+
+# Fetch the rest:
+cd fadroma
+git submodule update --init --recursive
+```
+
 ## Repo overview
 
 ### `library/`: Core Capabilities
