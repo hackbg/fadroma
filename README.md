@@ -73,18 +73,36 @@ git submodule update --init --recursive
 
 ```ts
 import { Bitcoin } from 'fadroma';
+const localnet = await Bitcoin.ElementsRegtest();
+const testnet  = await Bitcoin.LiquidTestnet(); // TODO
+// TODO others
 ```
 
 #### SimplicityHL
 
 ```ts
 import { SimplicityHL } from 'fadroma';
+const program  = await SimplicityHL("fn main () { assert!(true) }");
+const commitTx = await program.commit({ ... });
+const redeem   = await program.redeem({ ... });
+```
+
+### Solana
+
+```ts
+import { Solana } from 'fadroma';
 ```
 
 ### Cosmos, Tendermint, CometBFT
 
 ```ts
 import { Tendermint } from 'fadroma';
+```
+
+#### Namada
+
+```ts
+import { Namada } from 'fadroma';
 ```
 
 #### CosmWasm
@@ -97,18 +115,6 @@ import { CosmWasm } from 'fadroma';
 
 ```ts
 import { SecretNetwork } from 'fadroma';
-```
-
-#### Namada
-
-```ts
-import { Namada } from 'fadroma';
-```
-
-### Solana
-
-```ts
-import { Solana } from 'fadroma';
 ```
 
 ## `library/`: Core Capabilities
