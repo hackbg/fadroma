@@ -106,24 +106,96 @@ async function Btc <T> ({
 /** Bitcoin internals. */
 namespace Btc {
 
+  export namespace Mainnet { /* TODO */ }
+
+  export namespace Testnet { /* TODO */ }
+
+  /** Spawn Elements in `elementsregtest` mode with Simplicity enabled. */
+  export function ElementsRegtest (options?: Options) {
+    return Btc({
+      chain:                       'elementsregtest',
+      acceptnonstdtxn:             true,
+      anyonecanspendaremine:       true,
+      bech32_hrp:                  'tex',
+      blech32_hrp:                 'tlq',
+      blindedprefix:               23,
+      blindedaddresses:            true,
+      con_blocksubsidy:            0,
+      con_connect_genesis_outputs: true,
+      con_elementsmode:            true,
+      defaultpeggedassetname:      'bitcoin',
+      discover:                    false,
+      dnsseed:                     false,
+      evbparams:                   'simplicity:-1:::',
+      initialfreecoins:            ElementsRegtest.INITIAL.COINS,
+      initialreissuancetokens:     ElementsRegtest.INITIAL.REISSUE,
+      maxtxfee:                    100.0,
+      persistmempool:              false,
+      pubkeyprefix:                36,
+      rest:                        true,
+      rpcallowip:                  '127.0.0.1',
+      rpcpassword:                 'fadroma',
+      rpcport:                     8941,
+      rpcuser:                     'fadroma',
+      scriptprefix:                13,
+      server:                      true,
+      txindex:                     true,
+      validatepegin:               false,
+      vbparams:                    "taproot:1:1",
+      //feeasset:                    BITCOIN,
+      //subsidyasset:                BITCOIN,
+      ...options,
+    })
+  }
+
+  export namespace Liquid {
+
+    export namespace Mainnet {
+      export const LBTC = '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d';
+    }
+
+    export namespace Testnet {
+      export const ASSET_LBTC  = '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49';
+      export const ASSET_TEST  = '38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5';
+      export const ASSET_AMP   = 'bea126b86ac7f7b6fc4709d1bb1a8482514a68d35633a5580d50b18504d5c322';
+      export const FAUCET_URL  = 'https://liquidtestnet.com/faucet';
+      export const RETURN_TEST = 'tlq1qq2g07nju42l0nlx0erqa3wsel2l8prnq96rlnhml262mcj7pe8w6ndvvyg237japt83z24m8gu4v3yfhaqvrqxydadc9scsmw';
+      export const RETURN_AMP  = 'vjU8JWGnZu6XavzMEbLZ3mGZ3nrPxpwoBNC3brPi7CFm12sb7bHSkB4gz4SGSV9LhBceZVGaF8nsevu6';
+    }
+
+  }
+
+  export namespace ElementsRegtest {
+    /** 1 BTC = 100000000 Satoshis. */
+   export const DECIMAL = 100000000n;
+    /** Default values for `initialfreecoins` and `initialreissuancetokens`. */
+    export const INITIAL = { COINS: 1000000n * DECIMAL, REISSUE: 1n * DECIMAL };
+    /** Asset ID for default initial reissuance token. */
+    export const REISSUE = 'a6be6b365498cd451be75ba0f68c258ee01e08f3cb30d5f8469f6628db58dc61';
+    /** Asset ID for regular old Bitcoin. */
+    export const BITCOIN = 'b2e15d0d7a0c94e4e2ce0fe6e8691b9e451377f6e46e8045a86f7c4b5d4f0f23';
+  }
+
   /** Bitcoin daemon options. */
   export type Options = Parameters<typeof Btc>[0];
 
   export interface Rpc {
-    createwallet:              Fn,
-    decoderawtransaction:      Fn,
-    decodescript:              Fn,
-    generatetoaddress:         Fn,
-    getaddressinfo:            Fn.Returns<Promise<{ pubkey: string }>>,
-    getnewaddress:             Fn.Returns<Promise<string>>,
-    getreceivedbyaddress:      Fn,
-    getwalletinfo:             Fn.Returns<Promise<{ balance: Record<string, number> }>>,
-    importaddress:             Fn.Takes<[string, string?, boolean?, boolean?]>,
-    rescanblockchain:          Fn.Takes<[Num?, Num?]>,
-    sendtoaddress:             Fn,
-    sendrawtransaction:        Fn,
-    signrawtransactionwithkey: Fn,
-    validateaddress:           Fn,
+    createwallet:                 Fn,
+    createpsbt:                   Fn,
+    decoderawtransaction:         Fn,
+    decodescript:                 Fn,
+    generatetoaddress:            Fn,
+    getaddressinfo:               Fn.Returns<Promise<{ pubkey: string }>>,
+    getnewaddress:                Fn.Returns<Promise<string>>,
+    getreceivedbyaddress:         Fn,
+    getwalletinfo:                Fn.Returns<Promise<{ balance: Record<string, number> }>>,
+    importaddress:                Fn.Takes<[string, string?, boolean?, boolean?]>,
+    rescanblockchain:             Fn.Takes<[Num?, Num?]>,
+    sendtoaddress:                Fn,
+    sendrawtransaction:           Fn,
+    signrawtransactionwithkey:    Fn,
+    signrawtransactionwithwallet: Fn,
+    validateaddress:              Fn.Takes<[string]>,
   }
 
   /** Bitcoin node's JSON-RPC API. */
@@ -134,20 +206,21 @@ namespace Btc {
       return JSON.parse(text).result
     };
     return {
-      createwallet:              callRpc('createwallet'),
-      decoderawtransaction:      callRpc('decoderawtransaction'),
-      decodescript:              callRpc('decodescript'),
-      generatetoaddress:         callRpc('generatetoaddress'),
-      getaddressinfo:            callRpc('getaddressinfo'),
-      getnewaddress:             callRpc('getnewaddress'),
-      getreceivedbyaddress:      callRpc('getreceivedbyaddress'),
-      getwalletinfo:             callRpc('getwalletinfo'),
-      importaddress:             callRpc('importaddress'),
-      rescanblockchain:          callRpc('rescanblockchain'),
-      sendtoaddress:             callRpc('sendtoaddress'),
-      sendrawtransaction:        callRpc('sendrawtransaction'),
-      signrawtransactionwithkey: callRpc('signrawtransactionwithkey'),
-      validateaddress:           callRpc('validateaddress'),
+      createwallet:                 callRpc('createwallet'),
+      decoderawtransaction:         callRpc('decoderawtransaction'),
+      decodescript:                 callRpc('decodescript'),
+      generatetoaddress:            callRpc('generatetoaddress'),
+      getaddressinfo:               callRpc('getaddressinfo'),
+      getnewaddress:                callRpc('getnewaddress'),
+      getreceivedbyaddress:         callRpc('getreceivedbyaddress'),
+      getwalletinfo:                callRpc('getwalletinfo'),
+      importaddress:                callRpc('importaddress'),
+      rescanblockchain:             callRpc('rescanblockchain'),
+      sendtoaddress:                callRpc('sendtoaddress'),
+      sendrawtransaction:           callRpc('sendrawtransaction'),
+      signrawtransactionwithkey:    callRpc('signrawtransactionwithkey'),
+      signrawtransactionwithwallet: callRpc('signrawtransactionwithwallet'),
+      validateaddress:              callRpc('validateaddress'),
     }
   }
 
@@ -222,57 +295,5 @@ namespace Btc {
       return context
     })
   };
-
-  /** Spawn Elements in `elementsregtest` mode with Simplicity enabled. */
-  export function ElementsRegtest (options?: Options) {
-    return Btc({
-      chain:                       'elementsregtest',
-      acceptnonstdtxn:             true,
-      anyonecanspendaremine:       true,
-      bech32_hrp:                  'tex',
-      blech32_hrp:                 'tlq',
-      blindedprefix:               23,
-      blindedaddresses:            true,
-      con_blocksubsidy:            0,
-      con_connect_genesis_outputs: true,
-      con_elementsmode:            true,
-      defaultpeggedassetname:      'bitcoin',
-      discover:                    false,
-      dnsseed:                     false,
-      evbparams:                   'simplicity:-1:::',
-      initialfreecoins:            ElementsRegtest.INITIAL.COINS,
-      initialreissuancetokens:     ElementsRegtest.INITIAL.REISSUE,
-      maxtxfee:                    100.0,
-      persistmempool:              false,
-      pubkeyprefix:                36,
-      rest:                        true,
-      rpcallowip:                  '127.0.0.1',
-      rpcpassword:                 'fadroma',
-      rpcport:                     8941,
-      rpcuser:                     'fadroma',
-      scriptprefix:                13,
-      server:                      true,
-      txindex:                     true,
-      validatepegin:               false,
-      vbparams:                    "taproot:1:1",
-      //feeasset:                    BITCOIN,
-      //subsidyasset:                BITCOIN,
-      ...options,
-    })
-  }
-
-  export namespace ElementsRegtest {
-    /** 1 BTC = 100000000 Satoshis. */
-    export const DECIMAL = 100000000n;
-    /** Default values for `initialfreecoins` and `initialreissuancetokens`. */
-    export const INITIAL = { COINS: 1000000n * DECIMAL, REISSUE: 1n * DECIMAL };
-    /** Asset ID for default initial reissuance token. */
-    export const REISSUE = 'a6be6b365498cd451be75ba0f68c258ee01e08f3cb30d5f8469f6628db58dc61';
-    /** Asset ID for regular old Bitcoin. */
-    export const BITCOIN = 'b2e15d0d7a0c94e4e2ce0fe6e8691b9e451377f6e46e8045a86f7c4b5d4f0f23';
-    ///** Asset IDs of (t)L-BTC. */
-    //const LIQUID  = { mainnet: '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d'
-    //               , testnet: '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49' };
-  }
 
 }
