@@ -19,20 +19,28 @@ export type Decimal256<P extends Num> = Decimal<P, 256>; // deprecated
 
 export { base16, base64, bech32, bech32m }
 
-export type Base<B extends number> = { __base: B,
+export type Base<B extends number> = {
+  __base: B,
   random: (bytes?: number) => string & { __base: B },
   encode: (_: Bytes)       => string & { __base: B },
-  decode: (_: string)      => Bytes };
+  decode: (_: string)      => Bytes
+};
 
-export const Base64 = { __base: 64,
+export const Base64 = {
+  __base: 64,
   random: (n = 64) => base64.encode(randomBytes(n)),
   encode: Fn.Pipe(Bytes, base64.encode),
-  decode: base64.decode } as Base<64>;
+  decode: base64.decode
+} as Base<64>;
 
-export const Base16 = { __base: 16,
+// BASE58
+
+export const Base16 = {
+  __base: 16,
   random: (n = 64)  => base16.encode(randomBytes(n)),
   encode: Fn.Pipe(Bytes, base16.encode),
-  decode: base16.decode } as Base<16>;
+  decode: base16.decode
+} as Base<16>;
 
 export const toHex = (d: string|number|bigint, pad = 2) => {
   let hex = Number(d).toString(16)

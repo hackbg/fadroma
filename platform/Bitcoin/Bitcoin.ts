@@ -3,7 +3,7 @@ import Run from '../../library/Run.ts';
 import Http from '../../library/Http.ts';
 import { Port } from '../../library/Port.ts';
 import { Temp } from '../../library/Fs.ts';
-import type { Num } from '../../library/Number.ts';
+import { Num, Base16 } from '../../library/Number.ts';
 import process from 'node:process';
 
 export default Btc;
@@ -15,6 +15,8 @@ interface Btc extends Run.Daemon {
   rest:     Btc.Rest
   verbose?: boolean
 }
+
+const temp = (chain: string) => Temp.make(`${chain}-${+new Date()}`)
 
 /** Launch Bitcoin node. */
 async function Btc <T> ({
@@ -32,7 +34,7 @@ async function Btc <T> ({
   con_connect_genesis_outputs = null             as boolean,
   chain                       = 'regtest'        as string,
   daemon                      = 'elementsd'      as string,
-  datadir                     = Temp.make(chain) as string|Promise<string>,
+  datadir                     = temp(chain)      as string|Promise<string>,
   defaultpeggedassetname      = null             as string,
   discover                    = null             as boolean,
   dnsseed                     = null             as boolean,
@@ -194,7 +196,7 @@ namespace Btc {
     sendtoaddress:                Fn,
     sendrawtransaction:           Fn,
     signrawtransactionwithkey:    Fn,
-    signrawtransactionwithwallet: Fn,
+    signrawtransactionwithwallet: Fn<[string], Signed>,
     validateaddress:              Fn.Takes<[string]>,
   }
 
@@ -295,5 +297,45 @@ namespace Btc {
       return context
     })
   };
+
+  /** The [Sign]er is an optionally-[Async]hronous function
+    * that takes bytes and returns signed hex + complete flag + errors. */
+  export interface Sign extends Fn<[Uint8Array], Fn.Async<Sign.Result>> {}
+
+  /** Signer internals. */
+  export namespace Sign {
+    /** Sign with RPC to wallet node. */
+    export function Rpc (rpc: Bitcoin.Rpc) {
+      return async function signWithRpc (hex: Uint8Array): Promise<Bitcoin.Signed> {
+        return await rpc.signrawtransactionwithwallet(Base16.encode(hex));
+      }
+    }
+    /** Sign with keypair. */
+    export function Key (secret: Uint8Array) {
+      throw new Error('TODO')
+    }
+    /** Result of signing. */
+    export interface Result {
+      hex:      string,
+      complete: boolean,
+      errors?:  Error[]
+    }
+    /** RPC signing error. */
+    export interface Error {
+      txid:      string,
+      vout:      number,
+      witness:   string[],
+      scriptSig: string,
+      sequencer: number,
+      error:     string
+    }
+  }
+
+  export function Send ({ rpc, rest }: Pick<Bitcoin, 'rpc'|'rest'>) {
+    return async function sendWithRpcAndRest (hex: Uint8Array) {
+      const txid = await rpc.sendrawtransaction(tx.hex);
+      return await rest.tx(txid);
+    }
+  }
 
 }

@@ -3,6 +3,7 @@ import { UTF8 } from './String.ts';
 
 /** Alias for various buffer types. */
 export type Bytes = Uint8Array|Buffer;
+
 /** Convert a buffer to `Uint8Array` if it isn't already one. */
 export const Bytes = Object.assign(function toBytes <T>(x: T): Uint8Array {
   return (x instanceof Uint8Array) ? x : new Uint8Array(x as any);
