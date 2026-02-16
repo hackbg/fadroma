@@ -2,6 +2,10 @@ import type { Fn, Str } from '../index.ts';
 import { bold, gray } from './Ansi.ts';
 import { cwd } from 'node:process';
 
+export default function Err (message: string, ...args: object[]) {
+  return Object.assign(new Error(message), ...args)
+}
+
 export function formatError (e: Error, name?: Str) {
   const [head, ...tail] = (e?.stack||'').split('\n');
   const stack = tail.map(x=>x
