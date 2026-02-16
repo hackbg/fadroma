@@ -108,78 +108,107 @@ async function Btc <T> ({
 /** Bitcoin internals. */
 namespace Btc {
 
-  export namespace Mainnet { /* TODO */ }
+  /** 1 BTC = 100000000 Satoshis. */
+  export const DECIMAL = 100000000n;
 
-  export namespace Testnet { /* TODO */ }
+  /** Bitcoin daemon options. */
+  export type Options = Parameters<typeof Btc>[0];
+
+  /** Connect to Bitcoin mainnet. */
+  export function Mainnet (options?: Options) {/* TODO */}
+  export namespace Mainnet {/* TODO */}
+
+  /** Connect to Bitcoin testnet. */
+  export function Testnet (options?: Options) {/* TODO */}
+  export namespace Testnet {/* TODO */}
+
+  /** Connect to Liquid mainnet. */
+  export function Liquid1 (options?: Options) {/* TODO */}
+  export namespace Liquid1 {
+    export const ID           = 'liquid1';
+    export const HRP_BECH32   = 'ex';
+    export const HRP_BLECH32  = 'lq';
+    export const PREFIX_P2PKH = 57;
+    export const PREFIX_P2SH  = 39;
+    export const PREFIX_BLIND = 12;
+    export const ASSET_LBTC   = '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d';
+    // ... TODO ...
+  }
+
+  /** Connect to Liquid testnet. */
+  export function LiquidTestnet (options?: Options) {/* TODO */}
+  export namespace LiquidTestnet {
+    export const ID           = 'liquidtestnet';
+    export const HRP_BECH32   = 'tex';
+    export const HRP_BLECH32  = 'tlq';
+    export const PREFIX_P2PKH = 36;
+    export const PREFIX_P2SH  = 19;
+    export const PREFIX_BLIND = 23;
+    export const ASSET_LBTC   = '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49';
+    export const ASSET_TEST   = '38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5';
+    export const ASSET_AMP    = 'bea126b86ac7f7b6fc4709d1bb1a8482514a68d35633a5580d50b18504d5c322';
+    export const FAUCET_URL   = 'https://liquidtestnet.com/faucet';
+    export const RETURN_TEST  = 'tlq1qq2g07nju42l0nlx0erqa3wsel2l8prnq96rlnhml262mcj7pe8w6ndvvyg237japt83z24m8gu4v3yfhaqvrqxydadc9scsmw';
+    export const RETURN_AMP   = 'vjU8JWGnZu6XavzMEbLZ3mGZ3nrPxpwoBNC3brPi7CFm12sb7bHSkB4gz4SGSV9LhBceZVGaF8nsevu6';
+  }
 
   /** Spawn Elements in `elementsregtest` mode with Simplicity enabled. */
   export function ElementsRegtest (options?: Options) {
     return Btc({
-      chain:                       'elementsregtest',
+      chain:                       ElementsRegtest.ID,
+      bech32_hrp:                  ElementsRegtest.HRP_BECH32,
+      blech32_hrp:                 ElementsRegtest.HRP_BLECH32,
+      blindedprefix:               ElementsRegtest.PREFIX_BLIND,
+      pubkeyprefix:                ElementsRegtest.PREFIX_PUBKEY,
+      scriptprefix:                ElementsRegtest.PREFIX_SCRIPT,
+      initialfreecoins:            ElementsRegtest.INITIAL_COINS,
+      initialreissuancetokens:     ElementsRegtest.INITIAL_REISSUE,
+
+      vbparams:                    "taproot:1:1",
+      evbparams:                   'simplicity:-1:::',
       acceptnonstdtxn:             true,
       anyonecanspendaremine:       true,
-      bech32_hrp:                  'tex',
-      blech32_hrp:                 'tlq',
-      blindedprefix:               23,
       blindedaddresses:            true,
       con_blocksubsidy:            0,
       con_connect_genesis_outputs: true,
       con_elementsmode:            true,
       defaultpeggedassetname:      'bitcoin',
+      maxtxfee:                    100.0,
+      validatepegin:               false,
+      //feeasset:                  BITCOIN,
+      //subsidyasset:              BITCOIN,
+
+      persistmempool:              false,
       discover:                    false,
       dnsseed:                     false,
-      evbparams:                   'simplicity:-1:::',
-      initialfreecoins:            ElementsRegtest.INITIAL.COINS,
-      initialreissuancetokens:     ElementsRegtest.INITIAL.REISSUE,
-      maxtxfee:                    100.0,
-      persistmempool:              false,
-      pubkeyprefix:                36,
+      server:                      true,
+      txindex:                     true,
+
       rest:                        true,
       rpcallowip:                  '127.0.0.1',
       rpcpassword:                 'fadroma',
       rpcport:                     8941,
       rpcuser:                     'fadroma',
-      scriptprefix:                13,
-      server:                      true,
-      txindex:                     true,
-      validatepegin:               false,
-      vbparams:                    "taproot:1:1",
-      //feeasset:                    BITCOIN,
-      //subsidyasset:                BITCOIN,
+
       ...options,
     })
   }
-
-  export namespace Liquid {
-
-    export namespace Mainnet {
-      export const LBTC = '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d';
-    }
-
-    export namespace Testnet {
-      export const ASSET_LBTC  = '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49';
-      export const ASSET_TEST  = '38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5';
-      export const ASSET_AMP   = 'bea126b86ac7f7b6fc4709d1bb1a8482514a68d35633a5580d50b18504d5c322';
-      export const FAUCET_URL  = 'https://liquidtestnet.com/faucet';
-      export const RETURN_TEST = 'tlq1qq2g07nju42l0nlx0erqa3wsel2l8prnq96rlnhml262mcj7pe8w6ndvvyg237japt83z24m8gu4v3yfhaqvrqxydadc9scsmw';
-      export const RETURN_AMP  = 'vjU8JWGnZu6XavzMEbLZ3mGZ3nrPxpwoBNC3brPi7CFm12sb7bHSkB4gz4SGSV9LhBceZVGaF8nsevu6';
-    }
-
-  }
-
   export namespace ElementsRegtest {
-    /** 1 BTC = 100000000 Satoshis. */
-   export const DECIMAL = 100000000n;
-    /** Default values for `initialfreecoins` and `initialreissuancetokens`. */
-    export const INITIAL = { COINS: 1000000n * DECIMAL, REISSUE: 1n * DECIMAL };
+    export const ID              = 'elementsregtest';
+    export const HRP_BECH32      = 'ert';
+    export const HRP_BLECH32     = 'el';
+    export const PREFIX_P2PKH    = 235;
+    export const PREFIX_P2SH     = 75;
+    export const PREFIX_BLIND    = 4;
+    export const PREFIX_PUBKEY   = 36;
+    export const PREFIX_SCRIPT   = 13;
+    export const INITIAL_COINS   = 1000000n * DECIMAL;
+    export const INITIAL_REISSUE = 1n * DECIMAL;
     /** Asset ID for default initial reissuance token. */
     export const REISSUE = 'a6be6b365498cd451be75ba0f68c258ee01e08f3cb30d5f8469f6628db58dc61';
-    /** Asset ID for regular old Bitcoin. */
+    /** Asset ID for Bitcoin. */
     export const BITCOIN = 'b2e15d0d7a0c94e4e2ce0fe6e8691b9e451377f6e46e8045a86f7c4b5d4f0f23';
   }
-
-  /** Bitcoin daemon options. */
-  export type Options = Parameters<typeof Btc>[0];
 
   export interface Rpc {
     createwallet:                 Fn,
