@@ -1,3 +1,3 @@
 [submodule "lib/platform/simf"]
-	path = platform/SimplicityHL
-	url  = https://github.com/hackbg/simf.git
+  path = platform/SimplicityHL
+  url  = https://github.com/hackbg/simf.git
