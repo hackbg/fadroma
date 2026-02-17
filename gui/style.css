@@ -315,6 +315,10 @@ input[type=checkbox].collapse
   }
 }
 
+.work {
+  margin-top: 0.5rem;
+}
+
 .buttons {
   margin-top: 0.9rem;
   gap: 0.33rem;
