@@ -10,37 +10,72 @@
   <body>
     <nav class="nav align-start around" id="navbar">
       <noscript><strong>Contains JavaScript.</strong><br />Enable JS to proceed.</noscript>
-      <div id="brand" class="col">
-        <div class="logo" data-action="home"></div>
+      <div id="brand" class="col pin-nw">
+        <a class="logo" href="https://fadroma.tech" data-action="home"></a>
         <div class="col">
           <a class="hackbg subtitle" href="https://hack.bg" style=""><strong>Hack.bg</strong> presents:</a>
-          <div class="wordmark" data-action="home"></div>
+          <a class="wordmark" data-action="home" href="https://fadroma.tech"></a>
           <span class="subtitle" data-action="home">dApp workbench</span>
         </div>
       </div>
-      <div class="buttons">
+      <div class="buttons pin-n">
         <a class="custom work" href="https://hack.bg/contact"><strong>Need custom work?</strong></a>
       </div>
-      <nav class="col buttons" id="buttonbar">
+      <nav class="col buttons pin-ne" id="buttonbar">
         <script type="module">import('./comp/Nav.ts').then(({Nav})=>Nav());</script>
         <!--<button data-action="new"  class="rel"><svg class="icon"><use href="icons.svg#document"></use></svg> New</button>-->
         <!--<button style="opacity:0.5" data-action="load" class="rel"><svg class="icon"><use href="icons.svg#upload"></use></svg> Load</button>-->
         <!--<button data-action="save" class="rel"><svg class="icon"><use href="icons.svg#download"></use></svg> Save</button>-->
-        <a href="https://github.com/hackbg/fadroma"><svg class="icon"><use href="icons.svg#github"></use></svg> Code</a>
-        <a data-action="docs" href="/docs/deno/index.html"><svg class="icon"><use href="icons.svg#book"></use></svg> Docs</a>
+        <a href="https://github.com/hackbg/fadroma"><svg class="icon"><use href="icons.svg#github"></use></svg> GitHub</a>
+        <!--<a data-action="docs" href="/docs/deno/index.html"><svg class="icon"><use href="icons.svg#book"></use></svg> Docs</a>-->
         <!--<a style="opacity:0.5" data-action="test" href="#"><svg class="icon"><use href="icons.svg#doc"></use></svg> Test</a>-->
         <!--<a href="/cov/index.html"><svg class="icon"><use href="icons.svg#code"></use></svg> Coverage</a>-->
       </nav>
     </nav>
-    <div id="main" class="row rel align-stretch justify-center overflow-hidden">
-      <div id="sidebar"><div id="features"></div></div>
-      <div class="grow" id="editors"></div>
+    <div class="pin-sw"></div>
+    <div class="pin-e"><div class="sidebar"><div class="features" id="oracledemo"><div id="oracledemo-log"></div></div></div></div>
+    <div id="main" class="rel align-stretch justify-center">
       <script type="module">
         import('./comp/Editor.ts')
           .then(({ Editor, Config })=>{Editor();Config();});
         import('./net/chat.ts')
           .then(({ default: P2P })=>P2P())
       </script>
+      <p><strong>🤫 Pre-release:</strong> Not on package registries yet!</p>
+      <p>Enjoy a fresh dev snapshot of <strong>Fadroma with SimplicityHL</strong> today:</p>
+      <div class="row gap"><pre class="sh"># Install as Git submodule
+
+mkdir project # Create project 
+cd project    # Enter project
+git init      # Make it a repo
+
+# Add Fadroma submodule:
+git submodule add https://github.com/hackbg/fadroma
+
+# Fetch the rest:
+cd fadroma
+git submodule update --init --recursive
+</pre><pre class="sh"># Install as Git subtree
+
+mkdir project                # Create project 
+cd project                   # Enter project
+git init                     # Make it a repo
+touch README.md              # Make it non-empty
+git commit -m "tabula rasa"  # Initial commit
+
+# Add Fadroma subtree:
+git subtree add --prefix=fadroma https://github.com/hackbg/fadroma v3-alpha
+
+# Fetch the rest:
+cd fadroma
+git submodule update --init --recursive
+</pre></div>
+      <!--<div class="row gap"><pre class="sh"># Install with NPM:
+# soon</pre><pre class="sh"># Install without NPM:
+# also soon</pre></div>-->
+      <p>Example service core (see <a target="_blank" href="https://github.com/hackbg/simf-app">hackbg/simf-app</a> for full project):</p>
+      <div class="grow" id="editors"></div>
+<div class="sidebar" id="sidebar"><div class="features" id="features"></div></div>
     </div>
   </body>
 </html>

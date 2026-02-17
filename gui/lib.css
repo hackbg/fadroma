@@ -48,3 +48,28 @@
 
 .overflow-hidden
 { overflow: hidden }
+
+.pin-nw 
+{ position: fixed; top: 0.25rem; left: 0.25rem; z-index: 2 }
+
+.pin-n
+{ position: fixed; top: 0.5rem; left: 0.5rem; right: 0.5rem; z-index: 1; }
+
+.pin-ne
+{ position: fixed; top: 0.5rem; right: 0.5rem; z-index: 2 }
+
+.pin-w
+{ position: fixed; top: 0.5rem; bottom: 0.5rem; left: 0.66rem; z-index: 1 }
+
+.pin-e
+{ position: fixed; top: 0.5rem; bottom: 0.5rem; right: 0.66rem; z-index: 1 }
+
+.pin-se
+{ position: fixed; bottom: 0.5rem; right: 0.66rem; z-index: 1 }
+
+.pin-sw
+{ position: fixed; bottom: 0.5rem; left: 0.66rem; z-index: 1 }
+
+.pin-w,
+.pin-e
+{ display: flex; flex-flow: column; align-items: center; justify-content: center }

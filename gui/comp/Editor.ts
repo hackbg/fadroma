@@ -13,45 +13,12 @@ export function Config (
   features = elById("features"),
 ) {
   on(features, "change", Editor.update);
-  Html.append(features, ActiveFeatures());
-  Html.append(features, InactiveFeatures());
-  return sidebar;
-}
-
-
-export function ActiveFeatures () {
-  return Html(['div', 'Stack:', ['ul#features-active']])
-}
-
-export function InactiveFeatures () {
-  return Html(['ul.features',
+  Html.append(features, Html(['p', 'Current and planned platform support:',]));
+  Html.append(features, Html(['ul.features',
 
     Config.Section({
       open: false,
-      name: 'Environment',
-      help: 'https://github.com/hackbg/fadroma/discussions/categories/guides',
-      features: [
-        [true,  0, "enable:git",          "Git",
-          "Automatically init Git repo in new project."],
-        [true,  0, "enable:nix",          "Nix Shell",
-          ["Obtain dependencies from ", Link(urls.nixPkgs, "nixpkgs")],
-          ["Install", urls.nixInstall]],
-        [true,  0, "enable:direnv",       "Direnv",
-          ["Automatically load Nix shell when entering project directory."],
-          ["Wiki", urls.direnvWiki]],
-        [false, 0, "enable:editorconfig", "EditorConfig",
-          "IDE-agnostic settings.",
-          ["Spec", urls.edConfSpec]],
-        [false, 0, "enable:gha",          "GHA",
-          "Config for GitHub Actions."],
-        [false, 0, "enable:drone",        "Drone",
-          "Config for Drone CI."],
-      ]
-    }),
-
-    Config.Section({
-      open: false,
-      name: 'Bitcoin',
+      name: 'Bitcoin ecosystem',
       help: 'https://github.com/hackbg/fadroma/discussions/240',
       features: [
         [true, 0, "enable:btc",      "Bitcoin",
@@ -69,7 +36,7 @@ export function InactiveFeatures () {
 
     Config.Section({
       open: false,
-      name: 'ECMAScript',
+      name: 'ECMAScript ecosystem',
       help: 'https://github.com/hackbg/fadroma/discussions/239',
       features: [
         [true, 0, "enable:deno", "Deno",
@@ -90,7 +57,7 @@ export function InactiveFeatures () {
 
     Config.Section({
       open: false,
-      name: 'Rust',
+      name: 'Rust ecosystem',
       help: 'https://github.com/hackbg/fadroma/discussions/236',
       features: [
         [false, 0, "enable:rust", "Rust",
@@ -102,7 +69,26 @@ export function InactiveFeatures () {
 
     Config.Section({
       open: false,
-      name: 'Solana',
+      name: 'Unix ecosystem',
+      help: 'https://github.com/hackbg/fadroma/discussions/categories/guides',
+      features: [
+        [true,  0, "enable:git",          "Git",
+          "Automatically init Git repo in new project."],
+        [true,  0, "enable:nix",          "Nix Shell",
+          ["Obtain dependencies from ", Link(urls.nixPkgs, "nixpkgs")],
+          ["Install", urls.nixInstall]],
+        [true,  0, "enable:direnv",       "Direnv",
+          ["Automatically load Nix shell when entering project directory."],
+          ["Wiki", urls.direnvWiki]],
+        [false, 0, "enable:editorconfig", "EditorConfig",
+          "IDE-agnostic settings.",
+          ["Spec", urls.edConfSpec]],
+      ]
+    }),
+
+    Config.Section({
+      open: false,
+      name: 'Solana ecosystem',
       help: 'https://github.com/hackbg/fadroma/discussions/237',
       features: [
         [false, 0, "enable:sol", "Solana", "Client for Solana.",
@@ -121,7 +107,7 @@ export function InactiveFeatures () {
 
     Config.Section({
       open: false,
-      name: 'Tendermint',
+      name: 'Cosmos ecosystem',
       help: 'https://github.com/hackbg/fadroma/discussions/238',
       features: [
         [false, 0, "enable:tm", "Tendermint",
@@ -133,9 +119,24 @@ export function InactiveFeatures () {
         [false, 1, "enable:cw", "CosmWasm",
           "Write contracts for the Cosmos ecosystem."],
       ]
-    })
+    }),
 
-  ])
+    Config.Section({
+      open: false,
+      name: 'CI / CD',
+      help: 'https://github.com/hackbg/fadroma/discussions/categories/guides',
+      features: [
+        [false, 0, "enable:gha",          "GHA",
+          "Config for GitHub Actions."],
+        [false, 0, "enable:drone",        "Drone",
+          "Config for Drone CI."],
+        [false, 0, "enable:woodpecker",   "Woodpecker",
+          "Config for Woodpecker CI."],
+      ]
+    }),
+
+  ]));
+  return sidebar;
 }
 
 export namespace Config {
@@ -208,26 +209,74 @@ export namespace Editor {
         ['div.field.head.grow', ['div.name', 'Examples']],
         ['div.field.head.grow', ['div.name', 'Clear']]]],
     ['div.box.editors',
-    Fields.Text("README", "Created at https://fadroma.tech"),
-    Fields.Simf("src/main.simf", 'fn main () {', '}'),
-    Fields.Witness("src/main.wit", 
-      Fields.WitnessRow('u32', 'ORACLE_HEIGHT', '1000'),
-      Fields.WitnessRow('u32', 'ORACLE_PRICE',  '100000'),
-      Fields.WitnessRow('sig', 'ORACLE_SIG',    ''),
-      Fields.WitnessRow('sig', 'OWNER_SIG',     '')),
-    Fields.TS("index.ts",
-      ES.HashBang({ deno, node }),
-      ES.Import("@hackbg/fadroma", simf && 'Simf'),
-      simf && `export default Simf(import.meta, "src/main.simf");`),
-    Fields.TS("test.ts",
-      ES.HashBang({ deno, node }),
-      ES.Import("@hackbg/fadroma", btc && 'Btc', 'Test'),
-      `import Program from './index.ts';`,
-      `export default Test.suite(import.meta, Btc(`,
-      `  Test.the("Build",    Program.build),`,
-      `  Test.the("Deposit",  Program.deposit),`,
-      `  Test.the("Withdraw", Program.withdraw)));`),
-    nix && Fields.Text("shell.nix",
+      Fields.Text("README", "Created at https://fadroma.tech"),
+      Fields.Simf("vault.simf", `/*
+ * HODL VAULT
+ *
+ * Lock your coins until the Bitcoin price exceeds a threshold.
+ *
+ * An oracle signs a message with the current block height and the current
+ * Bitcoin price. The block height is compared with a minimum height to prevent
+ * the use of old data. The transaction is timelocked to the oracle height,
+ * which means that the transaction becomes valid after the oracle height.
+ */
+fn checksig(pk: Pubkey, sig: Signature) {
+    let msg: u256 = jet::sig_all_hash();
+    jet::bip_0340_verify((pk, msg), sig);
+}
+
+fn checksigfromstack(pk: Pubkey, bytes: [u32; 2], sig: Signature) {
+    let [word1, word2]: [u32; 2] = bytes;
+    let hasher: Ctx8 = jet::sha_256_ctx_8_init();
+    let hasher: Ctx8 = jet::sha_256_ctx_8_add_4(hasher, word1);
+    let hasher: Ctx8 = jet::sha_256_ctx_8_add_4(hasher, word2);
+    let msg: u256 = jet::sha_256_ctx_8_finalize(hasher);
+    jet::bip_0340_verify((pk, msg), sig);
+}
+
+fn main() {
+    let min_height: Height = 1000;
+    let oracle_height: Height = witness::ORACLE_HEIGHT;
+    assert!(jet::le_32(min_height, oracle_height));
+    jet::check_lock_height(oracle_height);
+
+    let target_price: u32 = 100000; // laser eyes until 100k
+    let oracle_price: u32 = witness::ORACLE_PRICE;
+    assert!(jet::le_32(target_price, oracle_price));
+
+    let oracle_pk: Pubkey = 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798; // 1 * G
+    let oracle_sig: Signature = witness::ORACLE_SIG;
+    checksigfromstack(oracle_pk, [oracle_height, oracle_price], oracle_sig);
+
+    let owner_pk: Pubkey = 0xc6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5; // 2 * G
+    let owner_sig: Signature = witness::OWNER_SIG;
+    checksig(owner_pk, owner_sig);
+}`),
+      Fields.Witness("oracle.wit", 
+        Fields.WitnessRow('u32', 'ORACLE_HEIGHT', '1000'),
+        Fields.WitnessRow('u32', 'ORACLE_PRICE',  '100000'),
+        Fields.WitnessRow('sig', 'ORACLE_SIG',    ''),
+        Fields.WitnessRow('sig', 'OWNER_SIG',     '')),
+      Fields.TS("oracle.ts",
+        ES.HashBang({ deno, node }),
+        ES.Import("@hackbg/fadroma", simf && 'Simf'),
+        simf && `export default Simf(import.meta, "src/main.simf");`),
+      Fields.TS("test.ts",
+        ES.HashBang({ deno, node }),
+        ES.Import("@hackbg/fadroma", btc && 'Btc', 'Test'),
+        `import Program from './index.ts';`,
+        `export default Test.suite(import.meta, Btc(`,
+        `  Test.the("Build",    Program.build),`,
+        `  Test.the("Deposit",  Program.deposit),`,
+        `  Test.the("Withdraw", Program.withdraw)));`),
+    //packageJsonField({ node, vite }),
+    //tsConfigField(),
+    denoField(deno),
+    nixField({ nix, btc, simf, element }),
+    direnv && Fields.Text(".envrc", "use nix"),
+  ]);
+
+  const nixField = ({ nix, btc, simf, element }) => nix && Fields.Text("shell.nix",
       `#!/usr/bin/env nix-shell`,
       `{ pkgs ? import<nixpkgs> {} }: let`,
       ``,
@@ -277,42 +326,38 @@ export namespace Editor {
           , `  })` ]
         : []),
 
-      `\n]; }`
-  ),
-  direnv && Fields.Text(".envrc", "use nix"),
-    Fields.Text("package.json",
-      `{`,
-      `  "name":    "untitled",`,
-      `  "type":    "module",`,
-      `  "main":    "index.ts",`,
-      `  "version": "0.1.0",`,
-      `  "licence": "AGPL-3.0-or-later",`,
-      `  "dependencies": {`,
-      `    "@hackbg/fadroma": "https://github.com/hackbg/fadroma.git#v3-alpha"`,
-      `  },`,
-      `  "devDependencies": {`, [
-        (node && `    "tsx":  "^4.20.6"`),
-        (vite && `    "vite": "^7.2.2"`),
-      ].filter(Boolean).join(',\n'),
-      `  }`,
-      `}`,
-    ),
-    Fields.Text("tsconfig.json",
-      `{`,
-      `  "compilerOptions": {`,
-      `    "strict":                    false,`,
-      `    "target":                    "esnext",`,
-      `    "module":                    "esnext",`,
-      `    "moduleResolution":          "bundler",`,
-      `    "allowImportingTsExtensions": true,`,
-      `    "noUnusedLocals":             false,`,
-      `    "noUnusedParameters":         false,`,
-      `    "isolatedModules":            false`,
-      `  }`,
-      `}`,
-    ),
-    deno && Fields.Text("deno.json", "{}"),
-    ]);
+      `\n]; }`);
+
+  const denoField = deno => deno && Fields.Text("deno.json", "{}");
+  const packageJsonField = ({ node, vite }) => Fields.Text("package.json", `{`,
+    `  "name":    "untitled",`,
+    `  "type":    "module",`,
+    `  "main":    "index.ts",`,
+    `  "version": "0.1.0",`,
+    `  "licence": "AGPL-3.0-or-later",`,
+    `  "dependencies": {`,
+    `    "@hackbg/fadroma": "https://github.com/hackbg/fadroma.git#v3-alpha"`,
+    `  },`,
+    `  "devDependencies": {`, [
+      (node && `    "tsx":  "^4.20.6"`),
+      (vite && `    "vite": "^7.2.2"`),
+    ].filter(Boolean).join(',\n'),
+    `  }`,
+    `}`,
+  );
+  const tsConfigField = () => Fields.Text("tsconfig.json", `{`,
+    `  "compilerOptions": {`,
+    `    "strict":                    false,`,
+    `    "target":                    "esnext",`,
+    `    "module":                    "esnext",`,
+    `    "moduleResolution":          "bundler",`,
+    `    "allowImportingTsExtensions": true,`,
+    `    "noUnusedLocals":             false,`,
+    `    "noUnusedParameters":         false,`,
+    `    "isolatedModules":            false`,
+    `  }`,
+    `}`,
+  );
 
   export const init = el => {
     elById('title').focus();
@@ -483,10 +528,10 @@ export namespace Fields {
       [`div.row#result:${id}`, ['div.grow']],
       [`div.row.simf-result`, ['strong', `P2TR: `],
         [`div.grow#commit:${id}`, `(not compiled)`],
-        ['a.help', { target: 'blank', title: 'Address of program', href: 'https://docs.rs/simplicity-lang/0.6.0/simplicity/node/commit/type.CommitNode.html' }, Icon('help')]],
+        ['a.help', { target: 'blank', title: 'Address of program', href: "#" }, Icon('help')]],
       [`div.row.simf-result`, ['strong.w', `Sighash: `],
         [`div.grow#cmr:${id}`, `(not generated)`],
-        ['a.help', { target: 'blank', title: 'Witness signing hash', href: "https://docs.rs/simplicity-lang/0.6.0/simplicity/struct.Cmr.html" }, Icon('help')]],
+        ['a.help', { target: 'blank', title: 'Witness signing hash', href: "#" }, Icon('help')]],
     ] });
 
   let simf = null
