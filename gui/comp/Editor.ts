@@ -14,7 +14,7 @@ export function Config (
 ) {
   on(features, "change", Editor.update);
   Html.append(features, Html(['p', 'Current and planned platform support:',]));
-  Html.append(features, Html(['ul.features',
+  Html.append(features, Html(['div.row.gap', ['ul.features',
 
     Config.Section({
       open: false,
@@ -31,58 +31,6 @@ export function Config (
           ["Compile and run ", Link(urls.simfRef, "SimplicityHL"), " programs."],
           ["Language", urls.simfRef],
           ["Jets", urls.simfJets]]
-      ]
-    }),
-
-    Config.Section({
-      open: false,
-      name: 'ECMAScript ecosystem',
-      help: 'https://github.com/hackbg/fadroma/discussions/239',
-      features: [
-        [true, 0, "enable:deno", "Deno",
-          "Run on next-gen TS/JS runtime by default.",
-          ["@std", urls.denoStd],
-          ["API",  urls.denoApi]],
-        [true, 0, "enable:node", "Node.js",
-          ["Will use ", Link(urls.tsxNpm, "tsx"), " to run TypeScript."],
-          ["API", urls.nodeApi]],
-        [true, 0, "enable:pnpm", "PNPM",
-          ["Recommended package manager."], ["Compare", urls.pnpmCompare]],
-        [false, 0, "enable:eslint", "ESLint",
-          "Static analyzer.", ["Config", urls.eslintConf]],
-        [false, 0, "enable:vite",
-          "Vite", "Build your front-end in the same repo."]
-      ]
-    }),
-
-    Config.Section({
-      open: false,
-      name: 'Rust ecosystem',
-      help: 'https://github.com/hackbg/fadroma/discussions/236',
-      features: [
-        [false, 0, "enable:rust", "Rust",
-          "Different targets may need different toolchains."],
-        [false, 0, "enable:mold", "Mold",
-          "Improves build times."],
-      ]
-    }),
-
-    Config.Section({
-      open: false,
-      name: 'Unix ecosystem',
-      help: 'https://github.com/hackbg/fadroma/discussions/categories/guides',
-      features: [
-        [true,  0, "enable:git",          "Git",
-          "Automatically init Git repo in new project."],
-        [true,  0, "enable:nix",          "Nix Shell",
-          ["Obtain dependencies from ", Link(urls.nixPkgs, "nixpkgs")],
-          ["Install", urls.nixInstall]],
-        [true,  0, "enable:direnv",       "Direnv",
-          ["Automatically load Nix shell when entering project directory."],
-          ["Wiki", urls.direnvWiki]],
-        [false, 0, "enable:editorconfig", "EditorConfig",
-          "IDE-agnostic settings.",
-          ["Spec", urls.edConfSpec]],
       ]
     }),
 
@@ -121,6 +69,60 @@ export function Config (
       ]
     }),
 
+  ], ['ul.features', 
+
+    Config.Section({
+      open: false,
+      name: 'JS / TS / ECMAScript ecosystem',
+      help: 'https://github.com/hackbg/fadroma/discussions/239',
+      features: [
+        [true, 0, "enable:deno", "Deno",
+          "Run on next-gen TS/JS runtime by default.",
+          ["@std", urls.denoStd],
+          ["API",  urls.denoApi]],
+        [true, 0, "enable:node", "Node.js",
+          ["Will use ", Link(urls.tsxNpm, "tsx"), " to run TypeScript."],
+          ["API", urls.nodeApi]],
+        [true, 0, "enable:pnpm", "PNPM",
+          ["Recommended package manager."], ["Compare", urls.pnpmCompare]],
+        [false, 0, "enable:eslint", "ESLint",
+          "Static analyzer.", ["Config", urls.eslintConf]],
+        [false, 0, "enable:vite",
+          "Vite", "Build your front-end in the same repo."]
+      ]
+    }),
+
+    Config.Section({
+      open: false,
+      name: 'Rust ecosystem',
+      help: 'https://github.com/hackbg/fadroma/discussions/236',
+      features: [
+        [false, 0, "enable:rust", "Rust",
+          "Different targets may need different toolchains."],
+        [false, 0, "enable:mold", "Mold",
+          "Improves build times."],
+      ]
+    }),
+
+    Config.Section({
+      open: false,
+      name: 'DevOps / Unix ecosystem',
+      help: 'https://github.com/hackbg/fadroma/discussions/categories/guides',
+      features: [
+        [true,  0, "enable:git",          "Git",
+          "Automatically init Git repo in new project."],
+        [true,  0, "enable:nix",          "Nix Shell",
+          ["Obtain dependencies from ", Link(urls.nixPkgs, "nixpkgs")],
+          ["Install", urls.nixInstall]],
+        [true,  0, "enable:direnv",       "Direnv",
+          ["Automatically load Nix shell when entering project directory."],
+          ["Wiki", urls.direnvWiki]],
+        [false, 0, "enable:editorconfig", "EditorConfig",
+          "IDE-agnostic settings.",
+          ["Spec", urls.edConfSpec]],
+      ]
+    }),
+
     Config.Section({
       open: false,
       name: 'CI / CD',
@@ -135,7 +137,7 @@ export function Config (
       ]
     }),
 
-  ]));
+  ]]));
   return sidebar;
 }
 
