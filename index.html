@@ -3,36 +3,71 @@
   <head>
     <meta charset="utf8" />
     <title>Fadroma by Hack.bg</title>
-    <script type="module" crossorigin src="/assets/index-BN3NjIf1.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-CpGPKqPz.css">
+    <script type="module" crossorigin src="/assets/index-DeSKbMgn.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-PNeTY6rR.css">
   </head>
-  <body class="align-stretch justify-center">
-    <nav class="nav align-start" id="navbar">
+  <body>
+    <nav class="nav align-start around" id="navbar">
       <noscript><strong>Contains JavaScript.</strong><br />Enable JS to proceed.</noscript>
-      <div class="col">
-        <a class="hackbg subtitle" href="https://hack.bg" style=""><strong>Hack.bg</strong> presents:</a>
+      <div id="brand" class="col pin-nw">
+        <a class="logo" href="https://fadroma.tech" data-action="home"></a>
         <div class="col">
-          <div class="wordmark" data-action="home"></div>
+          <a class="hackbg subtitle" href="https://hack.bg" style=""><strong>Hack.bg</strong> presents:</a>
+          <a class="wordmark" data-action="home" href="https://fadroma.tech"></a>
           <span class="subtitle" data-action="home">dApp workbench</span>
         </div>
       </div>
-      <nav class="col buttons" id="buttonbar">
-        <button data-action="new"  class="rel"><svg class="icon"><use href="icons.svg#document"></use></svg> New</button>
-        <button style="opacity:0.5" data-action="load" class="rel"><svg class="icon"><use href="icons.svg#upload"></use></svg> Load</button>
-        <button data-action="save" class="rel"><svg class="icon"><use href="icons.svg#download"></use></svg> Save</button>
-        <a data-action="docs" href="/docs/deno/index.html"><svg class="icon"><use href="icons.svg#book"></use></svg> Docs</a>
-        <a style="opacity:0.5" data-action="test" href="#"><svg class="icon"><use href="icons.svg#doc"></use></svg> Test</a>
-        <a href="/cov/index.html"><svg class="icon"><use href="icons.svg#code"></use></svg> Coverage</a>
+      <div class="buttons pin-n">
+        <a class="custom work" href="https://hack.bg/contact"><strong>Need custom work?</strong></a>
+      </div>
+      <nav class="col buttons pin-ne" id="buttonbar">
+        <!--<button data-action="new"  class="rel"><svg class="icon"><use href="icons.svg#document"></use></svg> New</button>-->
+        <!--<button style="opacity:0.5" data-action="load" class="rel"><svg class="icon"><use href="icons.svg#upload"></use></svg> Load</button>-->
+        <!--<button data-action="save" class="rel"><svg class="icon"><use href="icons.svg#download"></use></svg> Save</button>-->
+        <a href="https://github.com/hackbg/fadroma"><svg class="icon"><use href="icons.svg#github"></use></svg> GitHub</a>
+        <!--<a data-action="docs" href="/docs/deno/index.html"><svg class="icon"><use href="icons.svg#book"></use></svg> Docs</a>-->
+        <!--<a style="opacity:0.5" data-action="test" href="#"><svg class="icon"><use href="icons.svg#doc"></use></svg> Test</a>-->
+        <!--<a href="/cov/index.html"><svg class="icon"><use href="icons.svg#code"></use></svg> Coverage</a>-->
       </nav>
     </nav>
-    <div class="row justify-center overflow-hidden">
-      <div class="row rel gap align-stretch" id="main">
-        <section id="editors" class="box">
-        </section>
-        <section id="sidebar" class="flex col" style="gap:0.5rem">
-          <ul id="features" class="features smol"></ul>
-        </section>
-      </div>
+    <div class="pin-sw"></div>
+    <div class="pin-e"><div class="sidebar"><div class="features" id="oracledemo"><div id="oracledemo-log"></div></div></div></div>
+    <div id="main" class="rel align-stretch justify-center">
+      <p><strong>🤫 Pre-release:</strong> Not on package registries yet!</p>
+      <p>Enjoy a fresh dev snapshot of <strong>Fadroma with SimplicityHL</strong> today:</p>
+      <div class="row gap"><pre class="sh"># Install as Git submodule
+
+mkdir project # Create project 
+cd project    # Enter project
+git init      # Make it a repo
+
+# Add Fadroma submodule:
+git submodule add https://github.com/hackbg/fadroma
+
+# Fetch the rest:
+cd fadroma
+git submodule update --init --recursive
+</pre><pre class="sh"># Install as Git subtree
+
+mkdir project                # Create project 
+cd project                   # Enter project
+git init                     # Make it a repo
+touch README.md              # Make it non-empty
+git commit -m "tabula rasa"  # Initial commit
+
+# Add Fadroma subtree:
+git subtree add --prefix=fadroma https://github.com/hackbg/fadroma v3-alpha
+
+# Fetch the rest:
+cd fadroma
+git submodule update --init --recursive
+</pre></div>
+      <!--<div class="row gap"><pre class="sh"># Install with NPM:
+# soon</pre><pre class="sh"># Install without NPM:
+# also soon</pre></div>-->
+      <p>Example service core (see <a target="_blank" href="https://github.com/hackbg/simf-app">hackbg/simf-app</a> for full project):</p>
+      <div class="grow" id="editors"></div>
+<div class="sidebar" id="sidebar"><div class="features" id="features"></div></div>
     </div>
   </body>
 </html>
