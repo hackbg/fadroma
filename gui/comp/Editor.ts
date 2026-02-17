@@ -13,127 +13,129 @@ export function Config (
   features = elById("features"),
 ) {
   on(features, "change", Editor.update);
-
-  Html.prepend(sidebar, Html(['div.row.gap.fields',
-    ['div.field.head.grow', ['div.name', 'Download']],
-    ['div.field.head.grow', ['div.name', 'Examples']],
-    ['div.field.head.grow', ['div.name', 'Clear']]]));
-
-  Html.append(features,
-    Html(['div', 'Stack:', ['ul#features-active']]),
-    Html(['ul.features',
-
-      Config.Section({
-        open: false,
-        name: 'Environment',
-        help: 'https://github.com/hackbg/fadroma/discussions/categories/guides',
-        features: [
-          [true,  0, "enable:git",          "Git",
-            "Automatically init Git repo in new project."],
-          [true,  0, "enable:nix",          "Nix Shell",
-            ["Obtain dependencies from ", Link(urls.nixPkgs, "nixpkgs")],
-            ["Install", urls.nixInstall]],
-          [true,  0, "enable:direnv",       "Direnv",
-            ["Automatically load Nix shell when entering project directory."],
-            ["Wiki", urls.direnvWiki]],
-          [false, 0, "enable:editorconfig", "EditorConfig",
-            "IDE-agnostic settings.",
-            ["Spec", urls.edConfSpec]],
-          [false, 0, "enable:gha",          "GHA",
-            "Config for GitHub Actions."],
-          [false, 0, "enable:drone",        "Drone",
-            "Config for Drone CI."],
-        ]
-      }),
-
-      Config.Section({
-        open: true,
-        name: 'Bitcoin',
-        help: 'https://github.com/hackbg/fadroma/discussions/240',
-        features: [
-          [true, 0, "enable:btc",      "Bitcoin",
-            ["Develop and test with local bitcoind in ", Link(urls.btcTest, "regtest"), " mode."],
-            ["RPC", urls.btcRpc]],
-          [true, 0, "enable:elements", "Elements",
-            ["Develop and test with local elementsd in ", Link(urls.btcTest, "regtest"), " mode."],
-            ["RPC", urls.btcRpc]],
-          [true, 0, "enable:simf",     "SimplicityHL",
-            ["Compile and run ", Link(urls.simfRef, "SimplicityHL"), " programs."],
-            ["Language", urls.simfRef],
-            ["Jets", urls.simfJets]]
-        ]
-      }),
-
-      Config.Section({
-        open: false,
-        name: 'ECMAScript',
-        help: 'https://github.com/hackbg/fadroma/discussions/239',
-        features: [
-          [true, 0, "enable:deno", "Deno",
-            "Run on next-gen TS/JS runtime by default.",
-            ["@std", urls.denoStd],
-            ["API",  urls.denoApi]],
-          [true, 0, "enable:node", "Node.js",
-            ["Will use ", Link(urls.tsxNpm, "tsx"), " to run TypeScript."],
-            ["API", urls.nodeApi]],
-          [true, 0, "enable:pnpm", "PNPM",
-            ["Recommended package manager."], ["Compare", urls.pnpmCompare]],
-          [false, 0, "enable:eslint", "ESLint",
-            "Static analyzer.", ["Config", urls.eslintConf]],
-          [false, 0, "enable:vite",
-            "Vite", "Build your front-end in the same repo."]
-        ]
-      }),
-
-      Config.Section({
-        open: false,
-        name: 'Rust',
-        help: 'https://github.com/hackbg/fadroma/discussions/236',
-        features: [
-          [false, 0, "enable:rust", "Rust",
-            "Different targets may need different toolchains."],
-          [false, 0, "enable:mold", "Mold",
-            "Improves build times."],
-        ]
-      }),
-
-      Config.Section({
-        open: false,
-        name: 'Solana',
-        help: 'https://github.com/hackbg/fadroma/discussions/237',
-        features: [
-          [false, 0, "enable:sol", "Solana", "Client for Solana.",
-            ["Web3",   urls.solanaWeb3],
-            ["Kit",    urls.solanaKit],
-            ["Codama", urls.codama]],
-          [false, 1, "enable:sol-prog", "Solana Rust",
-            "Write programs for Solana.",
-            ["Core",   urls.solanaCrate]],
-          [false, 1, "enable:sol-prog", "Solana Anchor",
-            "Framework for Solana programs.",
-            ["IDL",    urls.idlGuide],
-            ["Anchor", urls.anchorCrate]],
-        ]
-      }),
-
-      Config.Section({
-        open: false,
-        name: 'Tendermint',
-        help: 'https://github.com/hackbg/fadroma/discussions/238',
-        features: [
-          [false, 0, "enable:tm", "Tendermint",
-            "Client for Tendermint and compatibles."],
-          [false, 1, "enable:namada", "Namada",
-            ["Client and decoder for ", Link(urls.namadaRepo, "Namada"), "."]],
-          [false, 1, "enable:scrt", "Scrt",
-            ["Client for ", Link(urls.scrtHome, "Secret"), "."]],
-          [false, 1, "enable:cw", "CosmWasm",
-            "Write contracts for the Cosmos ecosystem."],
-        ]
-      })
-
-    ]));
+  Html.append(features, ActiveFeatures());
+  Html.append(features, InactiveFeatures());
   return sidebar;
+}
+
+
+export function ActiveFeatures () {
+  return Html(['div', 'Stack:', ['ul#features-active']])
+}
+
+export function InactiveFeatures () {
+  return Html(['ul.features',
+
+    Config.Section({
+      open: false,
+      name: 'Environment',
+      help: 'https://github.com/hackbg/fadroma/discussions/categories/guides',
+      features: [
+        [true,  0, "enable:git",          "Git",
+          "Automatically init Git repo in new project."],
+        [true,  0, "enable:nix",          "Nix Shell",
+          ["Obtain dependencies from ", Link(urls.nixPkgs, "nixpkgs")],
+          ["Install", urls.nixInstall]],
+        [true,  0, "enable:direnv",       "Direnv",
+          ["Automatically load Nix shell when entering project directory."],
+          ["Wiki", urls.direnvWiki]],
+        [false, 0, "enable:editorconfig", "EditorConfig",
+          "IDE-agnostic settings.",
+          ["Spec", urls.edConfSpec]],
+        [false, 0, "enable:gha",          "GHA",
+          "Config for GitHub Actions."],
+        [false, 0, "enable:drone",        "Drone",
+          "Config for Drone CI."],
+      ]
+    }),
+
+    Config.Section({
+      open: false,
+      name: 'Bitcoin',
+      help: 'https://github.com/hackbg/fadroma/discussions/240',
+      features: [
+        [true, 0, "enable:btc",      "Bitcoin",
+          ["Develop and test with local bitcoind in ", Link(urls.btcTest, "regtest"), " mode."],
+          ["RPC", urls.btcRpc]],
+        [true, 0, "enable:elements", "Elements",
+          ["Develop and test with local elementsd in ", Link(urls.btcTest, "regtest"), " mode."],
+          ["RPC", urls.btcRpc]],
+        [true, 0, "enable:simf",     "SimplicityHL",
+          ["Compile and run ", Link(urls.simfRef, "SimplicityHL"), " programs."],
+          ["Language", urls.simfRef],
+          ["Jets", urls.simfJets]]
+      ]
+    }),
+
+    Config.Section({
+      open: false,
+      name: 'ECMAScript',
+      help: 'https://github.com/hackbg/fadroma/discussions/239',
+      features: [
+        [true, 0, "enable:deno", "Deno",
+          "Run on next-gen TS/JS runtime by default.",
+          ["@std", urls.denoStd],
+          ["API",  urls.denoApi]],
+        [true, 0, "enable:node", "Node.js",
+          ["Will use ", Link(urls.tsxNpm, "tsx"), " to run TypeScript."],
+          ["API", urls.nodeApi]],
+        [true, 0, "enable:pnpm", "PNPM",
+          ["Recommended package manager."], ["Compare", urls.pnpmCompare]],
+        [false, 0, "enable:eslint", "ESLint",
+          "Static analyzer.", ["Config", urls.eslintConf]],
+        [false, 0, "enable:vite",
+          "Vite", "Build your front-end in the same repo."]
+      ]
+    }),
+
+    Config.Section({
+      open: false,
+      name: 'Rust',
+      help: 'https://github.com/hackbg/fadroma/discussions/236',
+      features: [
+        [false, 0, "enable:rust", "Rust",
+          "Different targets may need different toolchains."],
+        [false, 0, "enable:mold", "Mold",
+          "Improves build times."],
+      ]
+    }),
+
+    Config.Section({
+      open: false,
+      name: 'Solana',
+      help: 'https://github.com/hackbg/fadroma/discussions/237',
+      features: [
+        [false, 0, "enable:sol", "Solana", "Client for Solana.",
+          ["Web3",   urls.solanaWeb3],
+          ["Kit",    urls.solanaKit],
+          ["Codama", urls.codama]],
+        [false, 1, "enable:sol-prog", "Solana Rust",
+          "Write programs for Solana.",
+          ["Core",   urls.solanaCrate]],
+        [false, 1, "enable:sol-prog", "Solana Anchor",
+          "Framework for Solana programs.",
+          ["IDL",    urls.idlGuide],
+          ["Anchor", urls.anchorCrate]],
+      ]
+    }),
+
+    Config.Section({
+      open: false,
+      name: 'Tendermint',
+      help: 'https://github.com/hackbg/fadroma/discussions/238',
+      features: [
+        [false, 0, "enable:tm", "Tendermint",
+          "Client for Tendermint and compatibles."],
+        [false, 1, "enable:namada", "Namada",
+          ["Client and decoder for ", Link(urls.namadaRepo, "Namada"), "."]],
+        [false, 1, "enable:scrt", "Scrt",
+          ["Client for ", Link(urls.scrtHome, "Secret"), "."]],
+        [false, 1, "enable:cw", "CosmWasm",
+          "Write contracts for the Cosmos ecosystem."],
+      ]
+    })
+
+  ])
 }
 
 export namespace Config {
@@ -191,7 +193,7 @@ export namespace Editor {
     deno =    true,
     vite =    false,
   } = {}) => Html(
-    ['div.row.gap.fields',
+    ['div.row.fields',
       ['div.field.head.grow', ['div.name.title', 'Title'],
         ['input#title[type=text][focused=focused]', { placeholder: 'name your project' }]],
       ['div.field.head', ['div.name', 'Licence'],
@@ -200,7 +202,11 @@ export namespace Editor {
           ['option', 'AGPL 3.0 only'],
           ['option', 'GPL 3.0 or later'],
           ['option', 'GPL 3.0 only'],
-          ['option', 'Closed source (inquire)']]]],
+          ['option', 'Closed source (inquire)']]],
+      ['div.row.fields',
+        ['div.field.head.grow', ['div.name', 'Download']],
+        ['div.field.head.grow', ['div.name', 'Examples']],
+        ['div.field.head.grow', ['div.name', 'Clear']]]],
     ['div.box.editors',
     Fields.Text("README", "Created at https://fadroma.tech"),
     Fields.Simf("src/main.simf", 'fn main () {', '}'),
@@ -463,30 +469,24 @@ export namespace Fields {
     id, content: [Fields.TextArea(id, ...content)], });
 
   export const TS = (id: string, ...content: string[]) => Field({
-    id, collapsed: false, header: [
+    id, header: [
       Command('play', 'Check'), Command('play', 'Run')
     ], content: [
       Fields.TextArea(id, ...content) ], });
 
   export const Simf = (id: string, ...content: string[]) => Field({
-    id, collapsed: false, header: [
+    id, header: [
       Command('play', 'Compile', { onclick: simfCompile(id) }),
       //Command('circle-with-plus', 'Define')
     ], content: [
       Fields.TextArea(id, ...content),
       [`div.row#result:${id}`, ['div.grow']],
-      [`div.row.simf-result`, ['strong', `Commit: `],
+      [`div.row.simf-result`, ['strong', `P2TR: `],
         [`div.grow#commit:${id}`, `(not compiled)`],
-        ['a.help', { target: 'blank', title: 'Code of program without witness values', href: 'https://docs.rs/simplicity-lang/0.6.0/simplicity/node/commit/type.CommitNode.html' }, Icon('help')]],
-      [`div.row.simf-result`, ['strong.w', `CMR: `],
-        [`div.grow#cmr:${id}`, `(not compiled)`],
-        ['a.help', { target: 'blank', title: 'Commitment Merkle Root', href: "https://docs.rs/simplicity-lang/0.6.0/simplicity/struct.Cmr.html" }, Icon('help')]],
-      [`div.row.simf-result`, ['strong.w', `AMR: `],
-        [`div.grow#amr:${id}`, `(not compiled)`],
-        ['a.help', { target: 'blank', title: 'Annotated Merkle Root', href: "https://docs.rs/simplicity-lang/0.6.0/simplicity/struct.Amr.html" }, Icon('help')]],
-      [`div.row.simf-result`, ['strong.w', `IHR: `],
-        [`div.grow#ihr:${id}`, `(not compiled)`],
-        ['a.help', { target: 'blank', title: 'Identity Hash Root', href: "https://docs.rs/simplicity-lang/0.6.0/simplicity/struct.Ihr.html" }, Icon('help')]],
+        ['a.help', { target: 'blank', title: 'Address of program', href: 'https://docs.rs/simplicity-lang/0.6.0/simplicity/node/commit/type.CommitNode.html' }, Icon('help')]],
+      [`div.row.simf-result`, ['strong.w', `Sighash: `],
+        [`div.grow#cmr:${id}`, `(not generated)`],
+        ['a.help', { target: 'blank', title: 'Witness signing hash', href: "https://docs.rs/simplicity-lang/0.6.0/simplicity/struct.Cmr.html" }, Icon('help')]],
     ] });
 
   let simf = null
@@ -520,7 +520,7 @@ export namespace Fields {
       ['textarea', content.join('\n')||' '], '}'];
 
   export const Witness = (id: string, ...content: unknown[]) => Field({
-    id, collapsed: false, header: [
+    id, collapsed: true, header: [
       ['select', ['option', 'src/main.simf']],
       Command('play', 'Satisfy', { onclick: simfCompile(id) }),
     ], content: [['div.col.collapsible',
