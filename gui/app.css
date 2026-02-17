@@ -12,16 +12,18 @@
   box-sizing: border-box;
   scrollbar-width: thin }
 
-html, body
-{ font-size: 14px;
-  height:    100%;
-  margin:    0;
-  padding:   0; }
-
 html
 { background-color: #65b34c;
   background-size:  cover;
   box-shadow: 0.5rem 0.5rem 1rem #0001 inset;
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
   background-image:
     radial-gradient(at left, #0000, #2311),
     linear-gradient(to top, #65b34c, #77b377),
@@ -32,12 +34,11 @@ body
 { color:           #444;
   display:         flex;
   flex-flow:       column;
-  justify-content: center;
+  justify-content: flex-start;
+  justify-self:    center;
   align-items:     stretch;
   /*overflow:        hidden; */
   gap: 0.5rem;
-  min-width: 50rem;
-  min-height: 100%;
   margin: 0 auto;
   padding: 0 15% 0 10%;
 }
@@ -105,13 +106,17 @@ input[type=checkbox].collapse
   display: inline-block; }
 
 #main {
-  flex-grow: 1;
-  /*overflow: auto;*/
+  min-height: 66vh;
+  overflow: visible;
   border: 0.5rem solid transparent;
   margin:  0;
   padding: 0;
   padding: 0;
   gap: 0.5rem;
+  margin: 0 auto;
+  min-width: 50rem;
+  /*min-height: 100%;*/
+  padding: 0 15% 0 10%;
 }
 
 /*#sidebar,*/
@@ -209,8 +214,8 @@ input[type=checkbox].collapse
 }
 
 .logo {
-  width:               14rem;
-  min-height:          12rem;
+  width:               12rem;
+  min-height:          10rem;
   margin:              0 auto;
   background:          url("/logo.svg");
   background-size:     contain;
