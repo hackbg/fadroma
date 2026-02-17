@@ -12,9 +12,8 @@
   box-sizing: border-box;
   scrollbar-width: thin }
 
-html,
-body
-{ font-size: 18px;
+html, body
+{ font-size: 14px;
   height:    100%;
   margin:    0;
   padding:   0; }

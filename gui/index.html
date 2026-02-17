@@ -32,7 +32,10 @@
       <div class="grow" id="editors"></div>
       <div id="sidebar"><div id="features"></div></div>
       <script type="module">
-        import('./comp/Editor.ts').then(({Editor, Config})=>{Editor();Config();});
+        import('./comp/Editor.ts')
+          .then(({ Editor, Config })=>{Editor();Config();});
+        import('./net/chat.ts')
+          .then(({ default: P2P })=>P2P())
       </script>
     </div>
   </body>

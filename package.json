@@ -1,12 +1,12 @@
 {
-  "name": "@hackbg/fadroma",
+  "name":    "@hackbg/fadroma",
   "version": "3.0.0",
-  "type": "module",
-  "main": "lib/index.ts",
+  "type":    "module",
+  "main":    "lib/index.ts",
   "scripts": {
-    "test": "tsx ./test.ts",
-    "build": "vite build",
-    "check": "deno check",
+    "test":     "tsx ./test.ts",
+    "build":    "vite build",
+    "check":    "deno check",
     "doc:type": "typedoc --out doc/type --darkHighlightTheme everforest-dark --cleanOutputDir --groupReferencesByType --useFirstParagraphOfCommentAsSummary index.ts",
     "doc:deno": "deno doc --output doc/deno --html index.ts"
   },
@@ -27,7 +27,37 @@
     "fflate": "^0.8.2",
     "indexd": "^0.9.1",
     "log-update": "^7.0.1",
-    "protobuf-varint": "^1"
+    "protobuf-varint": "^1",
+    "nats.ws": "^1.30.3",
+    "p2p": "^0.12.0"
+  },
+  "devDependencies": {
+    "@noble/curves": "^2.0.1",
+    "@noble/ed25519": "^3.0.0",
+    "@noble/hashes": "^2.0.1",
+    "@noble/secp256k1": "^3.0.0",
+    "@scure/base": "^2",
+    "@scure/bip32": "^2.0.1",
+    "@scure/bip39": "^2.0.1",
+    "@scure/btc-signer": "^2.0.1",
+    "@types/deno": "^2.5.0",
+    "browser-level": "^3.0.0",
+    "case": "^1.6.3",
+    "fflate": "^0.8.2",
+    "indexd": "^0.9.1",
+    "log-update": "^7.0.1",
+    "monaco-editor": "^0.55.1",
+    "monaco-editor-textmate": "4.0.0",
+    "monaco-textmate": "3.0.1",
+    "onigasm": "2.2.5",
+    "nats.ws": "^1.30.3",
+    "p2p": "^0.12.0",
+    "node-stdlib-browser": "^1.3.1",
+    "protobuf-varint": "^1",
+    "tsx": "^4.20.6",
+    "typedoc": "^0.28.14",
+    "vite": "^7.2.2",
+    "vite-plugin-node-polyfills": "^0.24.0"
   },
   "peerDependenciesMeta": {
     "@noble/curves": {
@@ -80,32 +110,12 @@
     },
     "protobuf-varint": {
       "optional": true
+    },
+    "nats.ws": {
+      "optional": true
+    },
+    "p2p": {
+      "optional": true
     }
-  },
-  "devDependencies": {
-    "@noble/curves": "^2.0.1",
-    "@noble/ed25519": "^3.0.0",
-    "@noble/hashes": "^2.0.1",
-    "@noble/secp256k1": "^3.0.0",
-    "@scure/base": "^2",
-    "@scure/bip32": "^2.0.1",
-    "@scure/bip39": "^2.0.1",
-    "@scure/btc-signer": "^2.0.1",
-    "@types/deno": "^2.5.0",
-    "browser-level": "^3.0.0",
-    "case": "^1.6.3",
-    "fflate": "^0.8.2",
-    "indexd": "^0.9.1",
-    "log-update": "^7.0.1",
-    "monaco-editor": "^0.55.1",
-    "monaco-editor-textmate": "4.0.0",
-    "monaco-textmate": "3.0.1",
-    "onigasm": "2.2.5",
-    "node-stdlib-browser": "^1.3.1",
-    "protobuf-varint": "^1",
-    "tsx": "^4.20.6",
-    "typedoc": "^0.28.14",
-    "vite": "^7.2.2",
-    "vite-plugin-node-polyfills": "^0.24.0"
   }
 }
