@@ -13,10 +13,12 @@ export function Config (
   features = elById("features"),
 ) {
   on(features, "change", Editor.update);
+
   Html.prepend(sidebar, Html(['div.row.gap.fields',
     ['div.field.head.grow', ['div.name', 'Download']],
     ['div.field.head.grow', ['div.name', 'Examples']],
     ['div.field.head.grow', ['div.name', 'Clear']]]));
+
   Html.append(features,
     Html(['div', 'Stack:', ['ul#features-active']]),
     Html(['ul.features',
@@ -490,7 +492,7 @@ export namespace Fields {
   let simf = null
   function simfCompile (id) {
     return async e => {
-      simf ??= await import('../../lib/platform/simf/pkg/fadroma_simf.js')
+      simf ??= await import('../../platform/SimplicityHL/pkg/fadroma_simf.js')
       console.log(e.target)
       const resp = await fetch('/wasm/simf.wasm');
       const wasm = await resp.bytes();
