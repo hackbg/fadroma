@@ -1,45 +1,3 @@
-#main {
-  z-index: 4000000;
-  /*min-height: 66vh;*/
-  overflow: visible;
-  border: 0.5rem solid transparent;
-  margin:  0;
-  padding: 5rem 0;
-  gap: 0.5rem;
-  margin: 0 auto;
-  min-width: 50rem;
-  /*min-height: 100%;*/
-  /*padding: 0 15% 0 10%;*/
-
-  p {
-    font-size: 1.5rem;
-    color: white;
-    text-shadow: -1px -1px 0 #0004;
-    padding: 0 1rem;
-    margin: 1.33rem 0 0 0;
-    a { color: white }
-  }
-  pre.sh {
-    flex-grow: 1;
-    font-size: 0.95rem;
-    color: #ffff;
-    background: #132a;
-    padding: 1rem 1rem;
-    font-family: monospace;
-    border-radius: 0.5rem;
-  }
-}
-
-.box {
-  background:linear-gradient(180deg, #fff8, #fff4);
-  box-shadow:3px 3px 3px #5551;
-  border-width:1px;
-  border-style:solid;
-  border-top-color:#ffffffff;
-  border-left-color:#ffffff88;
-  border-bottom-color:#00000028;
-  border-right-color:#00000022;
-}
 
 .collapsible {
   max-width:  100%;
@@ -177,12 +135,6 @@
   }
 }
 
-.pin-nw { 
-  z-index: 30000000;
-}
-.pin-n { 
-  z-index: 20000000;
-}
 .work {
   text-align: center;
   text-decoration: underline !important;
@@ -191,10 +143,9 @@
 }
 
 .buttons {
-  margin-top: 1rem;
 
-  a, button
-  { color: #fff;
+  a, button {
+    color: #fff;
     text-decoration: none;
     font-size: 1.25rem;
     font-weight: bold;
@@ -206,108 +157,24 @@
     align-items: center;
     justify-content: center;
     padding: 0.5rem 1rem;
-    margin: 0.5rem;
+    margin: 0;
     text-shadow: 0 1px 2px #0004;
     text-align: center;
     gap: 0.5rem;
 
-    .icon
-    { padding: 0.25rem;
+    .icon {
+      padding: 0.25rem;
       width: 2rem;
       height: 2rem;
       box-sizing: content-box;
-      border-radius: 1rem; } }
+      border-radius: 1rem;
+    }
+  }
 
   button
   { font-size: 0.875rem; } }
 
 .pin-w { display: flex; flex-flow: column; align-items: center; justify-content: center }
-
-#features, .features {
-  /*overflow: auto;*/
-  padding: 0.5rem 0.5rem 0;
-}
-
-.features {
-  margin:     0;
-  flex-grow:  1;
-  list-style: none;
-  display:    flex;
-  flex-flow:  column;
-  padding:    0;
-  details & {
-    margin: 0 -0.5rem;
-  }
-}
-
-.feature {
-  min-height:  1.33rem;
-  margin:      0;
-  padding:     0.75rem 0 0.25rem;
-  display:     flex;
-  flex-flow:   column nowrap;
-  padding:     0 0.5rem 0 0;
-  align-items: stretch;
-  user-select: none;
-  margin-top:  0.5rem;
-  /*background:  #eeea;*/
-
-  &[data-depth="0"] {
-    label { font-weight: 700; }
-  }
-
-  &[data-depth="1"] {
-    padding-left: 0.75rem;
-  }
-
-  &[data-depth="1"] + &[data-depth="0"] {
-    margin-top: 0.5rem; border-top: 1px solid #8888;
-  }
-
-  &.disabled {
-    opacity: 0.8
-  }
-
-  .links {
-    font-size: 1.25rem;
-    margin-top: 0.25rem;
-    margin-left: 0.75rem;
-    flex-flow: row nowrap
-  }
-
-  p {
-    font-size: 0.875rem;
-    margin: 0.25rem 0.25rem 0.25rem 1.5rem;
-  }
-
-  select {
-    padding: 0.25rem; margin-left:-1rem
-  }
-
-  label {
-    align-items:center;padding:0.1rem 0.25rem;
-    user-select:none;font-size:1.5rem;display:flex;flex-flow:row nowrap;
-    white-space:nowrap;font-weight:600;min-width:14ch;
-
-    &>input {
-      margin-right: 0.25rem
-    }
-
-    .feature.disabled & {
-      background:none;border-radius:0.25rem;opacity:0.9;
-    }
-  }
-
-  a.flex .icon {
-    margin-right: 0.25rem; margin-left: 0.75rem;
-  }
-}
-
-.feature p {
-  margin-top: 0 !important;
-  margin-bottom: 1rem !important;
-  font-size: 1.25rem !important
-}
 
 /*.features.smol*/
 /*{ a, p { display: none; visibility: hidden } }*/
@@ -556,4 +423,25 @@ a.help { color: #777; &:hover { color: #000; } }
 
 button.pill {
   background: none; color: #fff; border: 1px solid #fffa; padding: 0.33rem 0.5rem; font-size: 1rem; border-radius: 2rem; opacity: 0.8; &:hover { opacity: 1 }
+}
+
+nav.header {
+  width: 100%; position: fixed; top: 0; left: 0; right: 0; z-index: 10000000;
+  padding: 0.25rem;
+  display: flex;
+  justify-content: space-between;
+  background: radial-gradient(at bottom right, #fff2, #fff0), radial-gradient(at top left, #3544, #3542), #3541;
+  backdrop-filter: blur(2px);
+}
+.banner {
+  flex-grow: 1;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #353b;
+  backdrop-filter: blur(3px);
+  z-index: 1000000;
+  text-shadow: 1px 1px 0 #000;
+  font-weight: semibold;
 }

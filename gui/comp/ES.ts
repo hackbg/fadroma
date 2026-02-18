@@ -6,7 +6,7 @@ export default ES;
 function ES (id: string, ...content: string[]) {
   return Field({
     id,
-    header:  [ Command('play', 'Check'), Command('play', 'Run') ],
+    header:  [ /*Command('play', 'Check'), Command('play', 'Run')*/ ],
     content: [ Field.TextArea(id, ...content) ],
   });
 }

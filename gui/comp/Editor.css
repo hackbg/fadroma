@@ -1,4 +1,5 @@
 #editors {
+  background-size: 100%;
   align-items:     center;
   color:           #fff;
   display:         flex;
@@ -6,71 +7,91 @@
   font-size:       1.5rem;
   gap:             1px;
   justify-content: center;
-  margin:          0.5rem -2rem;
   min-height:      36rem;
-  padding:         1rem;
   position:        relative;
-}
+  box-shadow: 0 0 1rem 1rem #0001 inset;
+  border-top: 1px solid #0002;
+  border-bottom: 1px solid #fff3;
+  width: 100%;
 
-.editors {
-  font-size: 1rem;
-  padding: 1rem 1rem;
-  min-width:  48vw;
-  display:    flex;
-  flex-flow:  column;
-  /*overflow:   auto;*/
-  border:     none;
-  /*background: #3544;*/
-  background: #0104;
-  /*padding:    1px 2px;*/
-  gap:        1px;
+  .editors {
+    background: #0002;
+    border:     none;
+    display:    flex;
+    flex-flow:  column;
+    font-size:  1rem;
+    gap:        1px;
+    min-width:  1024px;
+    max-width:  1366px;
+    padding:    1rem 2rem;
 
-  &>.box {
-    background: linear-gradient(to right, #d8d8d8, #c8c8c8);
-    margin-right: 0.5rem;
-    border-top: none;
-  }
+    & > .box {
+      background: linear-gradient(to right, #d8d8d8, #c8c8c8);
+      margin-right: 0.5rem;
+      border-top: none;
+    }
 
-  input, textarea, select
-  { border:     none;
-    box-shadow: none;
-    background: #fff0;
-    /*transition: background ease-in 0.16s;*/
-    .field:hover &
-    { background: #fff8 }
-    &:hover
-    { background: #fff8 }
-    &:focus, &:focus-visible, &:hover:focus, .field:hover &:focus
-    { background: #fff;
-      outline:    none;
-      &::placeholder {
-        color: #fa0f;
-        text-shadow: 1px 1px 0 #000;
-      } } }
+    input, textarea, select {
+      border:     none;
+      box-shadow: none;
+      background: #fff2;
+      /*transition: background ease-in 0.16s;*/
+      &:hover, .field:hover & {
+        background: #fff3
+      }
+      &:focus, &:focus-visible, &:hover:focus, .field:hover, &:focus {
+        background: #fff;
+        color:      #000 !important;
+        outline:    none;
+        &::placeholder {
+          color: #fa0f;
+          text-shadow: 1px 1px 0 #000;
+        }
+      }
+    }
 
-  select
-  { padding-left: 0.5rem }
+    select { padding-left: 0.5rem }
 
-  textarea
-  { font-size:       1rem;
-    min-height:      1.25rem;
-    line-height:     1.25;
-    border:          none;
-    box-shadow:      none;
-    background:      none;
-    font-family:     monospace;
-    white-space:     pre;
-    scrollbar-width: initial;
+    textarea {
+      font-size:       1rem;
+      min-height:      1.25rem;
+      line-height:     1.25;
+      border:          none;
+      box-shadow:      none;
+      background:      none;
+      font-family:     monospace;
+      white-space:     pre;
+      scrollbar-width: initial;
+      &:focus { background: #fff; }
+    };
 
-    &:focus
-    { background: #fff; } };
+    .layer {
+      display: flex;
+      flex-flow: column nowrap;
+      gap: 1rem;
+      padding: 1rem 0;
+      p { margin-top: 0 !important; margin-bottom: 1rem !important; }
+      /*@media screen and (min-width: 1920px) {*/
+        /*flex-flow: row nowrap;*/
+        /*align-items: flex-start;*/
+        /*p { width: 30ch }*/
+      /*}*/
+    }
 
-  .layer {
-    display: flex;
-    flex-flow: row nowrap;
-    align-items: flex-start;
-    gap: 1rem;
-    padding: 1rem 0;
-    p { width: 30ch; margin-top: 0 !important; margin-bottom: 1rem !important; }
+    .program-form {
+      padding: 1px;
+      gap: 0.125rem;
+      border: 1px solid #fff4;
+      margin-bottom: 0.5rem;
+      margin-left: 1rem;
+      background: #f8f4;
+      input, select, button { min-width: 16rem; color: #fff; background: #fff2; }
+      label { padding: 1px 0.5rem; display: flex; flex-flow: row nowrap; justify-content: space-between; align-items: center }
+      label strong { min-width: 6rem; display: inline-block }
+      label em { min-width: 3rem; display: inline-block }
+      button { border: 1px solid #fff4; padding: 3px; }
+      p { padding: 0; margin: 0 0 0.5rem 0 !important }
+      .title { font-size: 1.25rem; font-weight: semibold; border-bottom: 1px solid #0002; background: #0001; padding: 1px 0.5rem; }
+    }
   }
 }

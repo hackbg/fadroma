@@ -20,14 +20,54 @@ function Editor (el = elById("editors"), {
   //vite =    false,
 } = {}) {
   el.innerHTML = '';
-  Html.append(el, Html(['div.box.editors', ['div', ['div.grow',
-    Programs(),
-    Testing({ deno, node, btc }),
-    DevEx({ nix, btc, simf, element, direnv }),
-    Metadata()
-  ]]]));
+  Html.append(el, Html(['div.box.editors.col.grow.gap.justify-between',
+    Simf.Programs(
+      Metadata(),
+      ['div.row.wrap.gap',
+        DevEx({ nix, btc, simf, element, direnv }),
+        Testing({ deno, node, btc }),
+      ])]));
   setTimeout(()=>initEditor(el), 1);
   return el
+}
+
+function Testing ({ deno, node, btc }) {
+  return ['section.layer',
+    ['p', ['strong', 'Fast integration testing'], ' on ', ['code', 'elementsregtest'],
+      ' and ', ['code', 'liquidtestnet'], ' out of the box:'],
+    Field.Text("Justfile", "TODO"),
+    ES.TestSuite({ deno, node, btc })]
+}
+
+function DevEx ({ nix, btc, simf, element, direnv }) {
+  return ['section.layer',
+    ['p', ['strong', 'Local dev dependencies'], ' provided by Nix and Direnv (or bring your own Deno, Just and Elements.).'],
+    //ES.DenoJsonField(deno),
+    //PackageJsonField({ node, vite }),
+    //TsConfigField(),
+    direnv && Field.Text(".envrc", "use nix"),
+    Nix({ nix, btc, simf, element }),
+  ]
+}
+
+function Metadata () {
+  return ['section.layer',
+  ['p', 'These programs are part of the ', ['strong', 'Fadroma/SimplicityHL example project'], '. You can edit it here, then download it as a ZIP to explore locally:'],
+    ['div.col',
+      ['div.row.fields',
+        ['div.field.head.grow', ['div.name.title', 'Title'],
+          ['input#title[type=text][focused=focused]', { placeholder: 'name your project' }]],
+        ['div.field.head', ['div.name', 'Licence'], // It helps the software stay free.
+          ['select#licence',
+            ['option', 'AGPL 3.0 or later'],
+            ['option', 'AGPL 3.0 only'],
+            ['option', 'GPL 3.0 or later'],
+            ['option', 'GPL 3.0 only'],
+            ['option', 'Closed source (inquire)']]],
+        ['div.row.fields',
+          ['div.field.head.grow', ['div.name', 'Download']]]],
+      ['div.col.gap',
+        Field.Text("README",   "Created at https://fadroma.tech")]]]
 }
 
 namespace Editor {
@@ -75,48 +115,6 @@ namespace Editor {
     makeExecutable('shell.nix');
     download(`${+new Date()}-${title}.zip`, 'application/zip', zipSync(archive))
   }
-}
-
-function Programs () {
-  return ['section.layer',
-    ['p.36ch', ['strong', 'SimplicityHL programs'], ' can be imported from TS or run from the command line:'],
-    ['div.col.grow', Simf.P2PKTS(), Simf.P2PKHTS(), Simf.HodlVaultTS(), Simf.EscrowTS()]]
-}
-
-function Testing ({ deno, node, btc }) {
-  return ['section.layer',
-    ['p', ['strong', 'Fast integration testing on real localnet'], ' is included out of the box:'],
-    ['div.col.grow', ES.TestSuite({ deno, node, btc })]]
-}
-
-function DevEx ({ nix, btc, simf, element, direnv }) {
-  return ['section.layer',
-    ['p', ['strong', 'Local dev dependencies'], ' provided by Nix and Direnv, or bring your own:'],
-    //ES.DenoJsonField(deno),
-    //PackageJsonField({ node, vite }),
-    //TsConfigField(),
-    direnv && Field.Text(".envrc", "use nix"),
-    Nix({ nix, btc, simf, element })]
-}
-
-function Metadata () {
-  return ['section.layer',
-  ['p', 'Edit this example project, then download it to continue locally:'],
-    ['div.row.fields',
-      ['div.field.head.grow', ['div.name.title', 'Title'],
-        ['input#title[type=text][focused=focused]', { placeholder: 'name your project' }]],
-      ['div.field.head', ['div.name', 'Licence'],
-        ['select#licence',
-          ['option', 'AGPL 3.0 or later'],
-          ['option', 'AGPL 3.0 only'],
-          ['option', 'GPL 3.0 or later'],
-          ['option', 'GPL 3.0 only'],
-          ['option', 'Closed source (inquire)']]],
-      ['div.row.fields',
-        ['div.field.head.grow', ['div.name', 'Download']],
-        ['div.field.head.grow', ['div.name', 'Examples']],
-        ['div.field.head.grow', ['div.name', 'Clear']]],
-      Field.Text("README", "Created at https://fadroma.tech")]]
 }
 
 function initEditor (el: Element) {

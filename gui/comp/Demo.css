@@ -7,8 +7,6 @@
   background: radial-gradient(at bottom right, #fff2, #fff0), radial-gradient(at top left, #3544, #3542), #3541;
   background-size: 100%;
   padding: 2rem 3rem;
-  margin: 1rem -3rem;
-
 
   .demouser {
     flex-grow: 1;
