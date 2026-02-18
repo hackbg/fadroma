@@ -1,12 +1,18 @@
 <!doctype html>
 <html>
+
   <head>
     <meta charset="utf8" />
     <title>Fadroma by Hack.bg</title>
+    <link rel="stylesheet" href="theme.css" />
     <link rel="stylesheet" href="lib.css" />
     <link rel="stylesheet" href="app.css" />
-    <link rel="stylesheet" href="docs.css" />
+    <link rel="stylesheet" href="comp/Editor.css" />
+    <link rel="stylesheet" href="comp/Feature.css" />
+    <link rel="stylesheet" href="comp/Demo.css" />
+    <link rel="stylesheet" href="comp/Docs.css" />
   </head>
+
   <body>
 
     <nav id="brand" class="col pin-nw">
@@ -23,29 +29,88 @@
     </nav>
 
     <nav class="col buttons pin-ne" id="buttonbar">
+
       <script type="module">import('./comp/Nav.ts').then(({Nav})=>Nav());</script>
       <!--<button data-action="new"  class="rel"><svg class="icon"><use href="icons.svg#document"></use></svg> New</button>-->
       <!--<button style="opacity:0.5" data-action="load" class="rel"><svg class="icon"><use href="icons.svg#upload"></use></svg> Load</button>-->
       <!--<button data-action="save" class="rel"><svg class="icon"><use href="icons.svg#download"></use></svg> Save</button>-->
+
       <a href="https://github.com/hackbg/fadroma"><svg class="icon"><use href="icons.svg#github"></use></svg> GitHub</a>
       <!--<a data-action="docs" href="/docs/deno/index.html"><svg class="icon"><use href="icons.svg#book"></use></svg> Docs</a>-->
       <!--<a style="opacity:0.5" data-action="test" href="#"><svg class="icon"><use href="icons.svg#doc"></use></svg> Test</a>-->
       <!--<a href="/cov/index.html"><svg class="icon"><use href="icons.svg#code"></use></svg> Coverage</a>-->
-    </nav>
-    <div class="pin-sw"></div>
-    <div class="pin-e"><div class="sidebar"><div class="features" id="oracledemo"><div id="oracledemo-log"></div></div></div></div>
-    <div id="main" class="rel align-stretch justify-center">
-      <script type="module">
-        import('./comp/Editor.ts')
-          .then(({ Editor, Config })=>{Editor();Config();});
-        import('./net/chat.ts')
-          .then(({ default: P2P })=>P2P())
-      </script>
-      <p><strong>🤫 Pre-release:</strong> Not on package registries yet!</p>
-      <p>Enjoy a fresh dev snapshot of <strong>Fadroma with SimplicityHL</strong> today:</p>
-      <div class="row gap"><pre class="sh"># Install as Git submodule
 
-mkdir project # Create project 
+    </nav>
+
+    <div class="pin-sw"></div>
+
+    <div class="pin-e">
+      <div class="sidebar"><div class="features" id="oracledemo"><div id="oracledemo-log"></div></div></div>
+    </div>
+
+    <div id="main" class="rel align-stretch justify-center">
+
+      <script type="module" src="app.ts"></script>
+
+      <p>For <strong>users:</strong> peer discovery can happen in a chat-like interface:</p>
+
+      <div class="row gap demo">
+        <article class="demouser">
+          <div class="demolog">
+            Enter Bob, Carol.
+          </div>
+          <section><strong class="demoname">Alice</strong> <input placeholder="chat" /> <button class="pill">Say</button></section>
+          <section><strong>1.00000000 tLBTC</strong> at tex1p9sv7g8tyljjymz4t6zyjpvepw4...</section>
+          <section class="demoprogs">
+            <button class="pill">Send</button>
+            <button class="pill">P2PK</button>
+            <button class="pill">Vault</button>
+            <button class="pill">Escrow</button>
+          </section>
+        </article>
+        <article class="demouser">
+          <div class="demolog">
+            Enter Alice, Carol.
+          </div>
+          <section><strong class="demoname">Bob</strong> <input placeholder="chat" /> <button class="pill">Say</button></section>
+          <section><strong>1.00000000 tLBTC</strong> at tex1p9sv7g8tyljjymz4t6zyjpvepw4...</section>
+          <section class="demoprogs">
+            <button class="pill">Send</button>
+            <button class="pill">P2PK</button>
+            <button class="pill">Vault</button>
+            <button class="pill">Escrow</button>
+          </section>
+        </article>
+        <article class="demouser">
+          <div class="demolog">
+            Enter Alice, Bob.
+          </div>
+          <section><strong class="demoname">Carol</strong> <input placeholder="chat"/> <button class="pill">Say</button></section>
+          <section><strong>1.00000000 tLBTC</strong> at tex1p9sv7g8tyljjymz4t6zyjpvepw4...</section>
+          <section class="demoprogs">
+            <button class="pill">Send</button>
+            <button class="pill">P2PK</button>
+            <button class="pill">Vault</button>
+            <button class="pill">Escrow</button>
+          </section>
+        </article>
+      </div>
+
+      <p>
+        For <strong>developers:</strong>
+        a minimum of moving parts.
+        (see <a target="_blank" href="https://github.com/hackbg/simf-app">hackbg/simf-app</a> for full project):
+      </p>
+
+      <div class="grow" id="editors"></div>
+
+      <p><strong>🤫 Pre-release:</strong> Not on package registries yet!</p>
+
+      <p>Enjoy a fresh dev snapshot of <strong>Fadroma with SimplicityHL</strong> today:</p>
+
+      <div class="row gap">
+        <div class="grow col">
+          <p>With <strong>Git submodule</strong>:<pre class="sh">mkdir project # Create project 
 cd project    # Enter project
 git init      # Make it a repo
 
@@ -54,10 +119,8 @@ git submodule add https://github.com/hackbg/fadroma
 
 # Fetch the rest:
 cd fadroma
-git submodule update --init --recursive
-</pre><pre class="sh"># Install as Git subtree
-
-mkdir project                # Create project 
+git submodule update --init --recursive</pre></div><div class="grow col"><p>or with <strong>Git subtree</strong>:
+<pre class="sh">mkdir project                # Create project 
 cd project                   # Enter project
 git init                     # Make it a repo
 touch README.md              # Make it non-empty
@@ -68,14 +131,14 @@ git subtree add --prefix=fadroma https://github.com/hackbg/fadroma v3-alpha
 
 # Fetch the rest:
 cd fadroma
-git submodule update --init --recursive
-</pre></div>
-      <!--<div class="row gap"><pre class="sh"># Install with NPM:
-# soon</pre><pre class="sh"># Install without NPM:
-# also soon</pre></div>-->
-      <p>Example service core (see <a target="_blank" href="https://github.com/hackbg/simf-app">hackbg/simf-app</a> for full project):</p>
-      <div class="grow" id="editors"></div>
-<div class="sidebar" id="sidebar"><div class="features" id="features"></div></div>
+git submodule update --init --recursive</pre></div>
+      </div>
+        <p>Running our dev code and reporting issues on our bug tracker is the fastest way
+           of seeing Fadroma in operation.</p>
+        <p>All further inquiries welcome at <strong><a href="https://hack.bg/contact">https://hack.bg/contact</a></strong>.</p>
+
+      <div class="sidebar" id="sidebar"><div class="features" id="features"></div></div>
+
     </div>
   </body>
 </html>

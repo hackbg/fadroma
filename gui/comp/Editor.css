@@ -1,0 +1,80 @@
+#editors {
+  padding: 1rem;
+  margin-top: 0.5rem;
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 1px;
+  position: relative;
+  /*box-shadow: 0.25rem 0 1rem #0002;*/
+  /*&:before {*/
+    /*content: '';*/
+    /*position: absolute;*/
+    /*top: 0;*/
+    /*left: 0;*/
+    /*right: 0;*/
+    /*height: 0.5rem;*/
+    /*background: linear-gradient(to bottom, #000, #0000);*/
+  /*}*/
+  /*&:after {*/
+    /*content: '';*/
+    /*position: absolute;*/
+    /*bottom: 0;*/
+    /*left: 0;*/
+    /*right: 0;*/
+    /*height: 0.5rem;*/
+    /*background: linear-gradient(to top, #000, #0000);*/
+  /*}*/
+}
+
+.editors {
+  padding: 0 1rem 1rem;
+  min-width:  48vw;
+  display:    flex;
+  flex-flow:  column;
+  /*overflow:   auto;*/
+  border:     none;
+  /*background: #3544;*/
+  background: #0104;
+  /*padding:    1px 2px;*/
+  gap:        1px;
+
+  &>.box {
+    background: linear-gradient(to right, #d8d8d8, #c8c8c8);
+    margin-right: 0.5rem;
+    border-top: none;
+  }
+
+  input, textarea, select
+  { border:     none;
+    box-shadow: none;
+    background: #fff0;
+    /*transition: background ease-in 0.16s;*/
+    .field:hover &
+    { background: #fff8 }
+    &:hover
+    { background: #fff8 }
+    &:focus, &:focus-visible, &:hover:focus, .field:hover &:focus
+    { background: #fff;
+      outline:    none;
+      &::placeholder {
+        color: #fa0f;
+        text-shadow: 1px 1px 0 #000;
+      } } }
+
+  select
+  { padding-left: 0.5rem }
+
+  textarea
+  { font-size:       1rem;
+    min-height:      1.25rem;
+    line-height:     1.25;
+    border:          none;
+    box-shadow:      none;
+    background:      none;
+    font-family:     monospace;
+    white-space:     pre;
+    scrollbar-width: initial;
+
+    &:focus
+    { background: #fff; } };
+}

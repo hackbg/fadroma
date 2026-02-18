@@ -1,108 +1,3 @@
-@font-face
-{ font-family: "sans"; font-style: normal; font-weight: 100 1000;
-  src: url("/font.woff2")   format("woff2 supports variations"),
-       url("/font.woff2")   format("woff2-variations"); }
-@font-face
-{ font-family: "sans"; font-style: italic; font-weight: 100 1000;
-  src: url("/italic.woff2") format("woff2 supports variations"),
-       url("/italic.woff2") format("woff2-variations"); }
-
-*
-{ font-family:sans, sans-serif;
-  box-sizing: border-box;
-  scrollbar-width: thin }
-
-html
-{ background-color: #65b34c;
-  background-size:  cover;
-  box-shadow: 0.5rem 0.5rem 1rem #0001 inset;
-  display: flex;
-  flex-flow: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100%;
-  margin: 0;
-  padding: 0;
-  font-size: 14px;
-  background-image:
-    radial-gradient(at left, #0000, #2311),
-    linear-gradient(to top, #65b34c, #77b377),
-    radial-gradient(circle at top, #ddd8, #7778),
-    url('bg.svg'); }
-
-body
-{ color:           #444;
-  display:         flex;
-  flex-flow:       column;
-  justify-content: flex-start;
-  justify-self:    center;
-  align-items:     stretch;
-  /*overflow:        hidden; */
-  gap: 1rem;
-  margin: 0 auto;
-}
-
-@media (screen and min-width: 1366px) {
-  body { flex-flow: row wrap; }
-}
-
-a[href]
-{ color: #090; }
-
-h1
-{ color: #aaa; }
-
-input,
-textarea,
-select
-{ border:     1px solid #8884;
-  box-shadow: 3px 3px 6px #8882;
-  &, label
-  { &:hover { background: #fff8 }; }; }
-
-h1
-{ margin: 0;
-  font-size: 1.66rem;
-  font-weight: normal; }
-
-input,
-textarea,
-select
-{ font-size:   1rem;
-  padding:     0.33rem 0.5rem;
-  line-height: 1.33rem;
-  &::placeholder { text-decoration: underline; };
-  &:focus::placeholder { text-decoration: none; } };
-
-/*button {margin-top:0.25rem;background:#fff;border:1px solid #aaa;background:#4a4;color:#fff;padding:0.5rem 1rem;border:none;border-radius:0.25rem;box-shadow:3px 3px 9px #3333; text-transform:uppercase;letter-spacing:0.1rem;font-size:1rem}*/
-
-noscript {
-  display: inline-block;
-  inset: 0; z-index: 1000; background: #0004; backdrop-filter: blur(0.25rem);
-  font-weight: 350;
-  color: #fff; border: 1px solid tomato; padding: 0.25rem 0.5rem;
-  margin: 0 0.25rem;
-}
-
-.icon {
-  display: inline-block;
-  width: 1rem;
-  height: 1rem;
-  stroke-width: 0;
-  stroke: currentColor;
-  fill: currentColor;
-}
-
-input[type=checkbox]
-{ width:  1rem;
-  height: 1rem;
-  margin: 0; }
-
-input[type=checkbox].collapse
-{ width: 1rem;
-  height: 1rem;
-  position: relative;
-  display: inline-block; }
 
 #main {
   z-index: 4000000;
@@ -127,7 +22,7 @@ input[type=checkbox].collapse
   }
   pre.sh {
     flex-grow: 1;
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     color: #ffff;
     background: #132a;
     padding: 1rem 1rem;
@@ -135,10 +30,6 @@ input[type=checkbox].collapse
     border-radius: 0.5rem;
   }
 }
-
-/*#sidebar,*/
-/*#editors*/
-/*{ overflow: auto; }*/
 
 .box {
   background:linear-gradient(180deg, #fff8, #fff4);
@@ -186,8 +77,6 @@ input[type=checkbox].collapse
   #sidebar,
   #editors {
     height: 100%;
-    /*max-height: 100%;*/
-    /*align-self: center;*/
   }
   #navbar {
     flex-shrink: 0;
@@ -335,44 +224,6 @@ input[type=checkbox].collapse
 
 .pin-w { display: flex; flex-flow: column; align-items: center; justify-content: center }
 
-#sidebar, .sidebar {
-  .icon { width: 1.25rem; height: 1.25rem }
-  color: #fff;
-  padding: 0;
-  display: flex;
-  flex-flow: column nowrap;
-  min-width: 30ch;
-  height: auto;
-  .field .name {
-    margin: 0.5rem 0.25rem
-  }
-
-  a[href] {
-    text-decoration: none;
-    font-weight: 500;
-    color: #dfd;
-    text-decoration: underline;
-    &:hover {
-      text-decoration: none;
-    }
-  }
-
-  details {
-    border: 1px solid #fff6;
-    margin-top: 1rem;
-    padding: 0.5rem 1rem;
-    font-weight: 500;
-    summary {
-      font-size: 1.5rem;
-      display: flex;
-      flex-flow: row nowrap;
-      justify-content: space-between;
-      & > .row { width: 100% }
-      .help { color: #fffc; &:hover { color: #fff } }
-    }
-  }
-}
-
 #features, .features {
   /*overflow: auto;*/
   padding: 0.5rem 0.5rem 0;
@@ -490,85 +341,6 @@ input[type=checkbox].collapse
     display: none;
     visibility: hidden;
   }
-}
-
-#editors {
-  padding: 0;
-  margin-top: 1rem;
-  display: flex;
-  flex-flow: column nowrap;
-  gap: 1px;
-  position: relative;
-  /*box-shadow: 0.25rem 0 1rem #0002;*/
-  /*&:before {*/
-    /*content: '';*/
-    /*position: absolute;*/
-    /*top: 0;*/
-    /*left: 0;*/
-    /*right: 0;*/
-    /*height: 0.5rem;*/
-    /*background: linear-gradient(to bottom, #000, #0000);*/
-  /*}*/
-  /*&:after {*/
-    /*content: '';*/
-    /*position: absolute;*/
-    /*bottom: 0;*/
-    /*left: 0;*/
-    /*right: 0;*/
-    /*height: 0.5rem;*/
-    /*background: linear-gradient(to top, #000, #0000);*/
-  /*}*/
-}
-
-.editors {
-  min-width:  48vw;
-  display:    flex;
-  flex-flow:  column;
-  /*overflow:   auto;*/
-  border:     none;
-  background: #3544;
-  padding:    1px 2px;
-  gap:        1px;
-
-  &>.box {
-    background: linear-gradient(to right, #d8d8d8, #c8c8c8);
-    margin-right: 0.5rem;
-    border-top: none;
-  }
-
-  input, textarea, select
-  { border:     none;
-    box-shadow: none;
-    background: #fff0;
-    /*transition: background ease-in 0.16s;*/
-    .field:hover &
-    { background: #fff8 }
-    &:hover
-    { background: #fff8 }
-    &:focus, &:focus-visible, &:hover:focus, .field:hover &:focus
-    { background: #fff;
-      outline:    none;
-      &::placeholder {
-        color: #fa0f;
-        text-shadow: 1px 1px 0 #000;
-      } } }
-
-  select
-  { padding-left: 0.5rem }
-
-  textarea
-  { font-size:       1rem;
-    min-height:      1.25rem;
-    line-height:     1.25;
-    border:          none;
-    box-shadow:      none;
-    background:      none;
-    font-family:     monospace;
-    white-space:     pre;
-    scrollbar-width: initial;
-
-    &:focus
-    { background: #fff; } };
 }
 
 .field {
@@ -782,3 +554,7 @@ input[type=checkbox].collapse
 }
 
 a.help { color: #777; &:hover { color: #000; } }
+
+button.pill {
+  background: none; color: #fff; border: 1px solid #fffa; padding: 0.33rem 0.5rem; font-size: 1rem; border-radius: 2rem; opacity: 0.8; &:hover { opacity: 1 }
+}
