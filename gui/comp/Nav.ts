@@ -1,6 +1,6 @@
 import { on, elById } from '../lib.ts';
-import { Editor } from './Editor.ts';
 import { loadDocs } from './Docs.ts';
+import Editor from './Editor.ts';
 
 export async function Nav () {
   on(elById("navbar"), "click", navigate);

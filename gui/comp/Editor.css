@@ -1,33 +1,20 @@
 #editors {
-  padding: 1rem;
-  margin-top: 0.5rem;
-  display: flex;
-  flex-flow: column nowrap;
-  gap: 1px;
-  position: relative;
-  /*box-shadow: 0.25rem 0 1rem #0002;*/
-  /*&:before {*/
-    /*content: '';*/
-    /*position: absolute;*/
-    /*top: 0;*/
-    /*left: 0;*/
-    /*right: 0;*/
-    /*height: 0.5rem;*/
-    /*background: linear-gradient(to bottom, #000, #0000);*/
-  /*}*/
-  /*&:after {*/
-    /*content: '';*/
-    /*position: absolute;*/
-    /*bottom: 0;*/
-    /*left: 0;*/
-    /*right: 0;*/
-    /*height: 0.5rem;*/
-    /*background: linear-gradient(to top, #000, #0000);*/
-  /*}*/
+  align-items:     center;
+  color:           #fff;
+  display:         flex;
+  flex-flow:       column nowrap;
+  font-size:       1.5rem;
+  gap:             1px;
+  justify-content: center;
+  margin:          0.5rem -2rem;
+  min-height:      36rem;
+  padding:         1rem;
+  position:        relative;
 }
 
 .editors {
-  padding: 0 1rem 1rem;
+  font-size: 1rem;
+  padding: 1rem 1rem;
   min-width:  48vw;
   display:    flex;
   flex-flow:  column;
@@ -77,4 +64,13 @@
 
     &:focus
     { background: #fff; } };
+
+  .layer {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem 0;
+    p { width: 30ch; margin-top: 0 !important; margin-bottom: 1rem !important; }
+  }
 }
