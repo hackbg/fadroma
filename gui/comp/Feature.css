@@ -1,39 +1,10 @@
 #sidebar, .sidebar {
   background: radial-gradient(at top, #0001, #0002), radial-gradient(at bottom right, #fff2, #fff0), radial-gradient(at top left, #3544, #3542), #3541;
-
-  color: #fff;
-  padding: 2rem 0 0;
+  padding: 0;
   display: flex;
   flex-flow: column nowrap;
   min-width: 30ch;
   height: auto;
-
-  .icon { width: 1.25rem; height: 1.25rem }
-
-  a[href] {
-    text-decoration: none;
-    font-weight: 500;
-    color: #dfd;
-    text-decoration: underline;
-    &:hover {
-      text-decoration: none;
-    }
-  }
-
-  details {
-    border: 1px solid #fff6;
-    margin-top: 1rem;
-    padding: 0.5rem 1rem;
-    font-weight: 500;
-    summary {
-      font-size: 1.5rem;
-      display: flex;
-      flex-flow: row nowrap;
-      justify-content: space-between;
-      & > .row { width: 100% }
-      .help { color: #fffc; &:hover { color: #fff } }
-    }
-  }
 }
 
 #features, .features {
@@ -50,6 +21,34 @@
   padding:    0;
   details & {
     margin: 0 -0.5rem;
+  }
+
+  .icon { width: 1.25rem; height: 1.25rem }
+
+  a[href] {
+    text-decoration: none;
+    font-weight: 500;
+    color: #dfd;
+    text-decoration: underline;
+    &:hover {
+      text-decoration: none;
+    }
+  }
+
+  details {
+    color: #fff;
+    border: 1px solid #fff6;
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    summary {
+      font-size: 1.5rem;
+      display: flex;
+      flex-flow: row nowrap;
+      justify-content: space-between;
+      & > .row { width: 100% }
+      .help { color: #fffc; &:hover { color: #fff } }
+    }
   }
 }
 

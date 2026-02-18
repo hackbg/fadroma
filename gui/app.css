@@ -72,76 +72,6 @@
   /*&:hover { opacity: 1 }*/
 /*}*/
 
-#brand {
-  gap: 0.5rem
-}
-
-.logo {
-  width:               12rem;
-  min-height:          10rem;
-  margin:              0 auto;
-  background:          url("/logo.svg");
-  background-size:     contain;
-  background-repeat:   no-repeat;
-  background-position: center;
-  align-self:          stretch;
-  filter: drop-shadow(1px 1px 1px #0005);
-}
-
-.wordmark {
-  width:               16rem;
-  margin:              0.75rem 1.25rem 3px;
-  min-height:          3rem;
-  background:          url("/wordmark.svg");
-  background-size:     contain;
-  background-repeat:   no-repeat; 
-  background-position: center;
-  align-self:          stretch;
-  filter: drop-shadow(1px 1px 1px #0005);
-  border-bottom: 1px solid #fff8;
-  border-top: 1px solid #fff8;
-}
-
-.subtitle {
-  color: #fff !important;
-  align-self: stretch;
-  padding: 0 0.5rem;
-  font-size:2rem;
-  line-height:1;
-  font-weight:400;
-  color:#fff;
-  text-decoration:none;
-  margin-top: -1rem !important;
-  letter-spacing: 0.2rem;
-  font-size: 0.9rem;
-  font-weight: 700;
-  text-align: center;
-  /*border-bottom: 1px solid #fff;*/
-}
-
-.hackbg {
-  /*background: linear-gradient(to bottom, rgba(144, 19, 254, 1), rgba(144, 19, 254, 0));*/
-  font-size: 1.2rem;
-  letter-spacing: 0;
-  font-weight: normal;
-  padding: 0.66rem 0.5rem 0.66rem 1rem;
-  margin: 0 0 0.5rem -0.5rem;
-  border-bottom: none;
-  &:hover {
-    background: linear-gradient(to right, white, green, red);
-  }
-  strong {
-    font-weight: 800;
-  }
-}
-
-.work {
-  text-align: center;
-  text-decoration: underline !important;
-  padding: 1rem !important;
-  /*margin: 0 1rem !important;*/
-}
-
 .buttons {
 
   a, button {
@@ -417,31 +347,4 @@
   gap: 0.5rem;
   & > strong { opacity: 0.8; width: 4.5rem };
   & > div { font-family: monospace };
-}
-
-a.help { color: #777; &:hover { color: #000; } }
-
-button.pill {
-  background: none; color: #fff; border: 1px solid #fffa; padding: 0.33rem 0.5rem; font-size: 1rem; border-radius: 2rem; opacity: 0.8; &:hover { opacity: 1 }
-}
-
-nav.header {
-  width: 100%; position: fixed; top: 0; left: 0; right: 0; z-index: 10000000;
-  padding: 0.25rem;
-  display: flex;
-  justify-content: space-between;
-  background: radial-gradient(at bottom right, #fff2, #fff0), radial-gradient(at top left, #3544, #3542), #3541;
-  backdrop-filter: blur(2px);
-}
-.banner {
-  flex-grow: 1;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: #353b;
-  backdrop-filter: blur(3px);
-  z-index: 1000000;
-  text-shadow: 1px 1px 0 #000;
-  font-weight: semibold;
 }

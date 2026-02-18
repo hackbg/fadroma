@@ -22,10 +22,8 @@
 
     <nav class="header row justify-between">
       <nav id="brand" class="col">
-        <!--<a class="logo" href="https://fadroma.tech" data-action="home"></a>-->
         <div class="col">
-          <a class="wordmark" data-action="home" href="https://fadroma.tech"></a>
-          <a class="hackbg subtitle" href="https://hack.bg" style="">dApp workbench by <strong>Hack.bg</strong></a>
+          <a class="hackbg subtitle" href="https://hack.bg" style="">dApp workbench by<br><h1>Hack.bg</h1></a>
         </div>
       </nav>
 
@@ -43,9 +41,33 @@
 
     <div id="main" class="rel align-stretch justify-center">
 
+        <div class="col align-center justify-center content hero">
+          <a class="logo" href="https://fadroma.tech" data-action="home"></a>
+          <a class="wordmark" data-action="home" href="https://fadroma.tech"></a>
+          <p class="content"><strong>🤫 Pre-release:</strong> Official package upcoming!</p>
+          <p class="content">
+            Safely enjoy the freshest <strong>dev snapshot</strong> of <strong>Fadroma V3 with SimplicityHL</strong> today:
+          </p>
+          <pre class="sh"># git submodule add https://github.com/hackbg/fadroma
+# cd fadroma
+# git submodule update --init --recursive</pre>
+        </div>
+      <script type="module" src="app.ts"></script>
+      <p class="content">
+      </p>
+
+
+      <div class="sidebar col gap" id="sidebar">
+
+        <div class="grow" id="editors">
+          Loading example project...
+        </div>
+
+      </div>
+
       <div id="demo" class="col gap demo align-center">
         <script type="module">import('./comp/Demo.ts').then(({default: Demo})=>Demo());</script>
-        <p class="content"><strong>Watch this space:</strong> interactive peer discovery and deal-making in a chat-like interface will pop up here.</p>
+        <p class="content"><strong>Watch this space:</strong> interactive peer discovery and deal-making in a familiar conversational interface will pop up here.</p>
         <div class="content row justify-center">
         <article class="demouser">
           <section><strong class="demoname">Alice</strong><strong>1.00000000 tLBTC</strong> at tex1p9sv7g8tyljjymz4t6zyjpvepw4...</section>
@@ -87,43 +109,15 @@
           </section>
         </article>
         </div>
-      </div>
-      <script type="module" src="app.ts"></script>
-      <p class="content">
-      </p>
-
-
-      <div class="sidebar col gap" id="sidebar">
-
-        <div class="col gap content">
-
-          <p class="content">
-            <strong>🤫 Pre-release:</strong> Not on package registries yet!
-          </p>
-
-          <p class="content">
-            Safely enjoy the freshest <strong>dev snapshot</strong> of <strong>Fadroma V3 with SimplicityHL</strong> today:
-          </p>
-
-          <pre class="sh"># git submodule add https://github.com/hackbg/fadroma
-# cd fadroma
-# git submodule update --init --recursive</pre>
-
-        </div>
-
-        <div class="grow" id="editors">
-          Loading example project...
-        </div>
-
+        <p>Meanwhile, try the example project, and report any issues on our bug tracker!</p>
+        <p>All further inquiries welcome at <strong><a href="https://hack.bg/contact">https://hack.bg/contact</a></strong>.</p>
       </div>
 
       <div class="col gap content">
         <div class="grow col">
-          <p>Running our dev code and reporting issues on our bug tracker is the fastest way of getting involved with the Fadroma cross-chain framework.</p>
-          <p>All further inquiries welcome at <strong><a href="https://hack.bg/contact">https://hack.bg/contact</a></strong>.</p>
           <br />
         </div>
-        <div class="sidebar features" id="features"></div>
+        <div class="features" id="features"></div>
       </div>
 
     </div>
