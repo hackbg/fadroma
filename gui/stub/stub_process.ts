@@ -6,4 +6,6 @@ export const process = {
   exit () {},
 };
 
+export const argv = [];
+
 export default process;

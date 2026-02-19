@@ -360,36 +360,6 @@ nav.header {
 /*.features.smol*/
 /*{ a, p { display: none; visibility: hidden } }*/
 
-.monaco-editor {
-  --vscode-editor-background: transparent !important;
-  --vscode-editorGutter-background: linear-gradient(to right, #0000, #0002) !important;
-  * {
-    font-family: monospace;
-    font-size: 1rem;
-  }
-  .line-numbers {
-    background: #fff0
-  }
-  .collapsed & {
-    display: none;
-  }
-}
-
-.editor-wrapper {
-  /*resize: vertical;*/
-  /*overflow: auto;*/
-  margin: 0 0 0.5rem -1.5rem;
-  border-top: 1px solid #fff8;
-  background: #fff4;
-  /*max-width: 100%;*/
-  .collapsed & {
-    min-height: 0;
-    overflow: hidden;
-    display: none;
-    visibility: hidden;
-  }
-}
-
 .field {
   display:   flex;
   flex-flow: row nowrap;
@@ -468,8 +438,10 @@ nav.header {
     border: 1px solid white;
     min-height: 2rem;
     background: #ddd;
+    padding: 0.33rem;
+    border-radius: 3px;
     .name {
-      font-size:  1rem;
+      font-size: 1.25rem;
       min-height: 2rem;
       padding: 0 0.33rem;
     }
@@ -571,7 +543,7 @@ nav.header {
   min-height: 2rem;
   display: flex;
   svg {
-    width: 1.25rem; height: 2rem
+    width: 1.66rem; height: 2rem
   }
 }
 .handle-h {
@@ -586,7 +558,9 @@ nav.header {
   }
   &:hover {
     background: #fff4;
-    cursor: pointer
+    cursor: pointer;
+    box-shadow: 1px 1px 1px #0002;
+    border-radius: 0.1rem;
   }
 }
 .hex-row

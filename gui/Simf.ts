@@ -1,3 +1,4 @@
+import { Arg } from '../platform/SimplicityHL/SimplicityHL.ts';
 import Command from './Command.ts';
 import Chain   from './Chain.ts';
 import ES      from './ES.ts';
@@ -11,7 +12,23 @@ let simf = null; // WASM handle (initialized once)
 
 export default Simf;
 
-function Simf (...args) { return Simf.IDE(...args) }
+function Simf ({ nix, btc, simf, elements, direnv, deno, node }) {
+  const { Info, Programs, CompileForm, RedeemForm, Metadata, Readme } = Simf;
+  return ['div.col.gap',
+    ['section.layer',          Info[0]],
+    ['section.layer.programs', Info[1], ['div.col.grow.files.gap', ...Programs()]],
+    ['section.layer.actions',  Info[2], ['div.col.grow.gap',
+      ['section',              Info[3], CompileForm()],
+      ['section',              Info[4], RedeemForm()]]],
+    ['section.layer.project',  Info[5], ['div.col.grow.files.gap',
+      Metadata(),
+      Readme(),
+      Field.Text("Justfile", "TODO"),
+      ES.TestSuite({ deno, node, btc }),
+      ES.DenoJson({ deno }),
+      Nix({ nix, btc, simf, elements }),
+      direnv && Field.Text(".envrc", "use nix")]]];
+}
 
 namespace Simf {
 
@@ -21,15 +38,24 @@ namespace Simf {
     HodlVault.wrapped(),
   ];
 
+  const SimfTS = (source: string, param = {}, witness = {}) =>
+    `#!/usr/bin/env -S deno run -P default\nimport { SimplicityHL } from 'fadroma';\n`      +
+    `export default SimplicityHL.Program('${source}', {\n`                                  +
+    `  param:   ${JSON.stringify(param).split('\n').map(x=>'  '+x).join('\n').trim()},\n`   +
+    `  witness: ${JSON.stringify(witness).split('\n').map(x=>'  '+x).join('\n').trim()},\n` +
+    `  cli:     import.meta\n})`;
+
   namespace P2PK {
-    export const wrapped = () => ES("programs/P2PK.simf.ts", SimfTS(source));
+    export const wrapped = () => ES("src/P2PK.simf.ts", SimfTS(source,
+      { PK: Arg("Pubkey") }, { "SIG": Arg("Signature") }));
     export const source = `fn main () {
   jet::bip_0340_verify((param::PK, jet::sig_all_hash()), witness::SIG)
 }`;
   }
 
   namespace P2PKH {
-    export const wrapped = () => ES("programs/P2PKH.simf.ts", SimfTS(source));
+    export const wrapped = () => ES("src/P2PKH.simf.ts", SimfTS(source,
+      { "PKH": Arg("Pubkey") }, { "PUB": Arg("Pubkey"), "SIG": Arg("Signature") }));
     export const source = `fn main () {
   let hasher: Ctx8 = jet::sha_256_ctx_8_init();
   let hasher: Ctx8 = jet::sha_256_ctx_8_add_32(hasher, witness::PUB);
@@ -40,7 +66,12 @@ namespace Simf {
   }
 
   namespace HodlVault {
-    export const wrapped = () => ES("programs/HodlVault.simf.ts", SimfTS(source));
+    export const wrapped = () => Field("src/HodlVault.simf.ts")
+      .open(true)
+      .content(Field.TextArea("src/HodlVault.simf.ts", SimfTS(source,
+        { "MIN_HEIGHT":   Arg("u32"), "TARGET_PRICE":  Arg("u32") },
+        { "ORACLE_PRICE": Arg("u32"), "ORACLE_HEIGHT": Arg("u32") })))
+      .build();
     export const source = `export default simf\`fn main () {
   let min_height: Height = param::MIN_HEIGHT;
   let target_price: u32 = param::TARGET_PRICE;
@@ -58,10 +89,6 @@ namespace Simf {
 }\``
   }
 
-  const SimfTS = (x: string) => `#!/usr/bin/env -S deno run\n`+
-    `import { simf } from 'fadroma';\n`+
-    `export default simf\`${x}\``;
-
   export const Program = (id: string, ...content: string[]) => Field(id)
     .header(Command('play', 'Compile', { onclick: simfCompile(id) }))
     .header(Command('circle-with-plus', 'Define'))
@@ -75,7 +102,7 @@ namespace Simf {
         ['a.help', { target: 'blank', title: 'Witness signing hash', href: "#" }, Icon('help')]])
     .build();
 
-  const ProgramForm = (name: string, ...rest: unknown[]) =>
+  const ProgramForm = (name: string|unknown[], ...rest: unknown[]) =>
     ['div.program-form.col.grow', ['div.title', name], ...rest];
   const CompileTitle = ['span',
     ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, '1A. '], 'Obtain P2TR'],
@@ -83,7 +110,7 @@ namespace Simf {
   const FundTitle = ['span',
     ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, '1B. '], 'Transfer funds'],
     ' to the P2TR address:'];
-  const CompileForm = () => ['div.row.gap.grow',
+  export const CompileForm = () => ['div.row.gap.grow',
     ProgramForm(CompileTitle,
       ['label', ['strong', 'Chain:'],     ['select', ['option', 'liquidtestnet']]],
       ['label', ['strong', 'Program:'],   ['select', ['option', 'P2PK']]],
@@ -100,7 +127,7 @@ namespace Simf {
   const RedeemTitle = ['span',
     ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, '2B. '], 'Redeem funds'],
     ' by sending valid signatures:'];
-  const RedeemForm = () => ['div.row.gap.grow',
+  export const RedeemForm = () => ['div.row.gap.grow',
     ProgramForm(WitnessTitle,
       ['label', ['strong', 'Recipient:'], ['select', ['option', 'Bob']]],
       ['label', ['strong', 'Amount:'],    ['input']],
@@ -156,33 +183,16 @@ namespace Simf {
       ['div.field.head',      ['div.name', 'Licence'],     Select.License()],
       ['div.row.fields',      ['div.field.head.grow', ['div.name', 'Download']]]];
 
-  export const DevDeps = ({ direnv, nix, btc, simf, elements }) => [
-    direnv && Field.Text(".envrc", "use nix"),
-    Nix({ nix, btc, simf, elements })];
-
-  export const Testing = ({ deno, node, btc }) => [
-    Field.Text("Justfile", "TODO"),
-    ES.TestSuite({ deno, node, btc })];
-
-  export const IDE = ({ nix, btc, simf, elements, direnv, deno, node }) => ['div.col.gap',
-    ['section.layer',          Info[0]],
-    ['section.layer.programs', Info[1], ['div.col.grow.files.gap', ...Programs()]],
-    ['section.layer.actions',  Info[2], ['div.col.grow.gap',
-      ['section',              Info[3], CompileForm()],
-      ['section',              Info[4], RedeemForm()]]],
-    ['section.layer.project',  Info[5],
-      ['div.col.grow.files.gap', Metadata(), Readme(),
-        ...DevDeps({ direnv, nix, btc, simf, elements }),
-        ...Testing({ deno, node, btc })]]];
-
   const Dropcap = (...content) =>
     ['span', { style: 'float:left;font-size:2rem;padding-right:0.33rem' }, ...content]
 
   export const Info = {
-    0: ['p', ['strong', 'Fadroma V3'], ' employs WebAssembly to instantly compile, evaluate, and deploy ',
-      ['strong', 'SimplicityHL smart contracts'], ' from all modern JavaScript-based environments alike:',
-      ' browsers, servers, and edge services.'],
-    1: ['p.sidebox', 'Try these ', ['strong', 'SimplicityHL programs'], ' on Liquid Testnet:', Chain()],
+    0: ['p'
+       , ['strong', 'Fadroma V3'], ' employs WebAssembly to instantly compile, evaluate, and deploy '
+       , ['strong', 'SimplicityHL smart contracts'], ' from all modern JavaScript-based environments alike: browsers, servers, and edge services.'],
+    1: ['p.sidebox.flex.space-between'
+       , ['div.grow', 'Try these ', ['strong', 'SimplicityHL programs'], ' on ', ['a', { href: '#' }, 'Liquid Testnet:'], ' ']
+       , Chain()],
     2: ['p.sidebox', 'The ', ['strong', 'Simplicity transaction lifecycle'], ' happens in two phases:' ],
     3: ['p', ['span', ['strong', Dropcap('1. '), 'Commitment phase'], '. Compile program to P2TR address, and fund it on-chain:']],
     4: ['p', ['span', ['strong', Dropcap('2. '), 'Redemption phase'], '. Fulfill the program\'s conditions to redeem funds:']],

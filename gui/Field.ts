@@ -60,8 +60,8 @@ namespace Field {
       content.filter(x=>typeof x === 'string').join('\n')];
   }
 
-  export const Text = (id: string, ...content: string[]) => Field({
-    id, content: [TextArea(id, ...content)], });
+  export const Text = (id: string, ...content: string[]) =>
+    Field(id).content(TextArea(id, ...content)).build();
 
   export const Hex = (id: string, ...content: unknown[]) =>
     Html([`div.field.file.hex#${id}`,

@@ -5,7 +5,7 @@ import { chunked } from './String.ts';
 import type { Bytes } from './Byte.ts';
 import type { Versioned } from './Version.ts';
 
-import { cwd } from 'node:process';
+import process from 'node:process'; // destructuring this import breaks in Vite
 import { joinPath, tmpdir, mkdir, rm, mkdtemp, writeFile, resolvePath } from '../deps.ts';
 
 import { zipSync, strToU8 as zipStr } from 'npm:fflate';
@@ -165,7 +165,7 @@ function LocalFS <D extends Dir> (dir: string|D, path: string = ''): D {
 
   const opts = { recursive: true };
   dir.mkdir ??= async (sub: string) => {
-    const path = resolvePath(cwd(), sub);
+    const path = resolvePath(process.cwd(), sub);
     await mkdir(path, opts)
     return LocalFS(dir, path);
   };

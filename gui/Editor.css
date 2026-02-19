@@ -72,11 +72,15 @@
       padding: 0;
       margin: 0;
       margin-bottom: 1rem !important;
-      @media screen and (max-width: 1366px) {
-        flex-flow: row wrap;
+      @media screen and (max-width: 1280px) {
+        flex-flow: column;
+        align-items: stretch;
+        gap: 0;
+        .sidebox { max-width: initial; }
       }
-      @media screen and (min-width: 1367px) {
-        .sidebox { width: 24ch; flex-shrink: 0; }
+      @media screen and (min-width: 1281px) {
+        .sidebox { width: 24ch; flex-shrink: 0; flex-flow: column nowrap }
+        i
       }
       p {
         margin-top: 0 !important; margin-bottom: 1rem !important; line-height: 1.5;
@@ -113,4 +117,35 @@
 .sidebox {
   max-width: 30ch;
   margin-right: 1rem;
+}
+
+.monaco-editor {
+  --vscode-editor-background: transparent !important;
+  --vscode-editorGutter-background: linear-gradient(to right, #0000, #0002) !important;
+  * {
+    font-family: monospace;
+    font-size: 1.15rem;
+  }
+  .line-numbers {
+    background: #fff0
+  }
+  .collapsed & {
+    display: none;
+  }
+}
+
+.editor-wrapper {
+  margin:        0 0 0.5rem -1.5rem;
+  /*border-top:    1px solid #0002;*/
+  /*border-left:   1px solid #0002;*/
+  /*border-bottom: 1px solid #0002;*/
+  /*border-right:  1px solid #0002;*/
+  border-radius: 0.125rem;
+  background:    #fff4;
+  .collapsed & {
+    min-height: 0;
+    overflow:   hidden;
+    display:    none;
+    visibility: hidden;
+  }
 }

@@ -138,7 +138,9 @@ namespace Bitcoin {
   }
 
   /** Connect to Liquid testnet. */
-  export function LiquidTestnet (options?: Options) {/* TODO */}
+  export function LiquidTestnet (options?: Options) {
+    return Object.assign(Connect('https://liquidtestnet.com:18891'), LiquidTestnet);
+  }
   export namespace LiquidTestnet {
     export const ID           = 'liquidtestnet';
     export const HRP_BECH32   = 'tex';
@@ -219,6 +221,7 @@ namespace Bitcoin {
     decodescript:                 Fn,
     generatetoaddress:            Fn,
     getaddressinfo:               Fn.Returns<Promise<{ pubkey: string }>>,
+    getbestblockhash:             Fn.Returns<Promise<string>>,
     getblockhash:                 Fn<[Num], Promise<string>>,
     getnewaddress:                Fn.Returns<Promise<string>>,
     getreceivedbyaddress:         Fn,
@@ -245,6 +248,7 @@ namespace Bitcoin {
       decodescript:                 callRpc('decodescript'),
       generatetoaddress:            callRpc('generatetoaddress'),
       getaddressinfo:               callRpc('getaddressinfo'),
+      getbestblockhash:             callRpc('getbestblockhash'),
       getblockhash:                 callRpc('getblockhash'),
       getnewaddress:                callRpc('getnewaddress'),
       getreceivedbyaddress:         callRpc('getreceivedbyaddress'),

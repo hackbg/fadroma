@@ -28,7 +28,6 @@ export const { connect: denoConnect, listen: denoListen, watchFs } = globalThis.
 
 // Third-party packages:
 //export { base16, base64, bech32, bech32m } from 'npm:@scure/base'
-//export { default as Case } from 'npm:case';
 //export { Buffer as StreamBuffer } from '@std/streams';
 
 if (globalThis.Deno) {

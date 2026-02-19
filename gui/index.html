@@ -3,11 +3,13 @@
 
   <head>
     <meta charset="utf8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Fadroma by Hack.bg</title>
     <link rel="stylesheet" href="theme.css" />
     <link rel="stylesheet" href="lib.css" />
     <link rel="stylesheet" href="Editor.css" />
     <link rel="stylesheet" href="Feature.css" />
+    <link rel="stylesheet" href="Chain.css" />
     <link rel="stylesheet" href="Demo.css" />
     <link rel="stylesheet" href="Docs.css" />
   </head>
@@ -40,89 +42,37 @@
 
     <div id="main" class="rel align-stretch justify-center">
 
-        <div class="col align-center justify-center content hero">
-          <a class="logo" href="https://fadroma.tech" data-action="home"></a>
-          <a class="wordmark" data-action="home" href="https://fadroma.tech"></a>
-          <p class="content"><strong>🤫 Pre-release:</strong> Official package upcoming!</p>
-          <p class="content">
-            Safely enjoy the freshest <strong>dev snapshot</strong> of <strong>Fadroma V3 with SimplicityHL</strong> today:
-          </p>
-          <pre class="sh"># git submodule add https://github.com/hackbg/fadroma
+      <div class="scroll-to col align-center justify-center content hero">
+        <a class="logo" href="https://fadroma.tech" data-action="home"></a>
+        <a class="wordmark" data-action="home" href="https://fadroma.tech"></a>
+        <p class="content"><strong>🤫 Pre-release:</strong> Official package upcoming!</p>
+        <p class="content">Safely enjoy the freshest <strong>dev snapshot</strong> of <strong>Fadroma V3 with SimplicityHL</strong> today:</p>
+        <pre class="sh"># git submodule add https://github.com/hackbg/fadroma
 # cd fadroma
 # git submodule update --init --recursive</pre>
-        </div>
-      <p class="content">
-      </p>
-
-
-      <div class="sidebar col gap" id="sidebar">
-
-        <div class="grow" id="editors">
-          Loading example project...
-          <script type="module">
-            import('./Editor.ts').then(({ "default": x }) => x()).catch(console.error);
-          </script>
-        </div>
-
       </div>
 
-      <div id="demo" class="col gap demo align-center">
+      <div class="scroll-to sidebar col gap" id="sidebar">
+        <div class="grow" id="editors">Loading example project...
+          <script type="module">import('./Editor.ts').then(({ "default": x }) => x()).catch(console.error);</script>
+        </div>
+      </div>
+
+      <div id="demo" class="scroll-to col gap demo align-center">
         <script type="module">
           import('./Chat.ts').then(({ "default": x }) => x()).catch(console.error);
           import('./Demo.ts').then(({ "default": x }) => x()).catch(console.error);
         </script>
         <p class="content"><strong>Watch this space:</strong> interactive peer discovery and deal-making in a familiar conversational interface will pop up here.</p>
-        <div class="content row justify-center">
-        <article class="demouser">
-          <section><strong class="demoname">Alice</strong><strong>1.00000000 tLBTC</strong> at tex1p9sv7g8tyljjymz4t6zyjpvepw4...</section>
-          <div class="demolog">
-            Enter Bob, Carol.
-          </div>
-          <section class="demoprogs">
-            <button class="pill">Send</button>
-            <button class="pill">P2PK</button>
-            <button class="pill">Vault</button>
-            <button class="pill">Escrow</button>
-            <input placeholder="chat" /> <button class="pill">Say</button>
-          </section>
-        </article>
-        <article class="demouser">
-          <section><strong class="demoname">Bob</strong><strong>1.00000000 tLBTC</strong> at tex1p9sv7g8tyljjymz4t6zyjpvepw4...</section>
-          <div class="demolog">
-            Enter Alice, Carol.
-          </div>
-          <section class="demoprogs">
-            <button class="pill">Send</button>
-            <button class="pill">P2PK</button>
-            <button class="pill">Vault</button>
-            <button class="pill">Escrow</button>
-            <input placeholder="chat" /> <button class="pill">Say</button>
-          </section>
-        </article>
-        <article class="demouser">
-          <section><strong class="demoname">Carol</strong><strong>1.00000000 tLBTC</strong> at tex1p9sv7g8tyljjymz4t6zyjpvepw4...</section>
-          <div class="demolog">
-            <em>Enter Alice, Bob.</em>
-          </div>
-          <section class="demoprogs">
-            <button class="pill">Send</button>
-            <button class="pill">P2PK</button>
-            <button class="pill">Vault</button>
-            <button class="pill">Escrow</button>
-            <input placeholder="chat" /> <button class="pill">Say</button>
-          </section>
-        </article>
-        </div>
+        <div id="demousers" class="content row justify-center"></div>
         <p>Meanwhile, try the example project, and report any issues on our bug tracker!</p>
         <p>All further inquiries welcome at <strong><a href="https://hack.bg/contact">https://hack.bg/contact</a></strong>.</p>
       </div>
 
-      <div class="col gap content">
+      <div class="scroll-to col gap content">
         <div class="grow col"><br /></div>
         <div class="features" id="features"></div>
-        <script type="module">import('./Platform.ts')
-          .then(({ "default": x }) => x())
-          .catch(console.error);</script>
+        <script type="module">import('./Platform.ts').then(({ "default": x }) => x()).catch(console.error);</script>
       </div>
 
     </div>

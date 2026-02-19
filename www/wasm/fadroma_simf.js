@@ -1,0 +1,1 @@
+../../platform/SimplicityHL/pkg/fadroma_simf.js

@@ -31,9 +31,21 @@ namespace ES {
       `  Test.the("Deposit",  Program.deposit),`,
       `  Test.the("Withdraw", Program.withdraw)));`)
 
-  export const DenoJsonField = deno => deno && Field.Text("deno.json", "{}");
+  export const DenoJson = ({ deno } = {}) => deno && Field.Text('deno.json', '{',
+  '  "permissions": {',
+  '    "default": {',
+  '      "run":   ["elementsd"],'   ,
+  '      "write": ["/tmp/fadroma"],'   ,
+  '      "env":   [',
+  '        "FADROMA_SIMF_WASM", "FADROMA_SIMF_WRAP",',
+  '        "TERM_PROGRAM", "COLUMNS", "NODE_V8_COVERAGE",',
+  '        "TMPDIR", "TMP", "TEMP"',
+  '      ],'   ,
+  '    }',
+  '  }',
+  '}');
 
-  export const PackageJsonField = ({ node, vite }) => Field.Text("package.json", `{`,
+  export const PackageJson = ({ node, vite }) => Field.Text("package.json", `{`,
     `  "name":    "untitled",`,
     `  "type":    "module",`,
     `  "main":    "index.ts",`,
@@ -50,7 +62,7 @@ namespace ES {
     `}`,
   );
 
-  export const TsConfigField = () => Field.Text("tsconfig.json", `{`,
+  export const TsConfig = () => Field.Text("tsconfig.json", `{`,
     `  "compilerOptions": {`,
     `    "strict":                    false,`,
     `    "target":                    "esnext",`,
