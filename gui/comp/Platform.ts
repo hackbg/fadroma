@@ -1,7 +1,8 @@
-import Html from '../../library/Html.ts';
-import Editor from './Editor.ts';
+import Html    from '../../library/Html.ts';
+import Editor  from './Editor.ts';
 import Feature from './Feature.ts';
-import { Link, Icon, elById } from '../lib.ts';
+import Icon    from './Icon.ts';
+import { Link, elById } from '../lib.ts';
 import { on } from '../lib.ts';
 import { urls } from '../urls.ts';
 

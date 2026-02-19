@@ -6,7 +6,6 @@
     <title>Fadroma by Hack.bg</title>
     <link rel="stylesheet" href="theme.css" />
     <link rel="stylesheet" href="lib.css" />
-    <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="comp/Editor.css" />
     <link rel="stylesheet" href="comp/Feature.css" />
     <link rel="stylesheet" href="comp/Demo.css" />
@@ -52,7 +51,6 @@
 # cd fadroma
 # git submodule update --init --recursive</pre>
         </div>
-      <script type="module" src="app.ts"></script>
       <p class="content">
       </p>
 
@@ -61,6 +59,12 @@
 
         <div class="grow" id="editors">
           Loading example project...
+          <script type="module">
+            const init = ({ "default": x }) => x();
+            import('./comp/Editor.ts').then(init).catch(console.error);
+            import('./comp/Platform.ts').then(init).catch(console.error);
+            import('./comp/Chat.ts').then(init).catch(console.error);
+          </script>
         </div>
 
       </div>

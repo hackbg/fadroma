@@ -10,6 +10,16 @@ function Field ({ id, collapsed = true, header = [], content = [] }) {
 
 namespace Field {
 
+  export function Builder (id, { open = false, header = [], content = [] } = {}) {
+    return {
+      id,
+      open:    bool => Builder(id, { open: bool, header, content }),
+      header:  item => Builder(id, { open, header: [...header, item], content  }),
+      content: item => Builder(id, { open, header, content: [...content, item] }),
+      build:   () => Field({ id, collapsed: !open, header, content }),
+    }
+  }
+
   export const Wrapper = (id: string, collapsed: boolean, ...rest: unknown[]) =>
     ([`div.field.file${collapsed?'.collapsed':''}#${id}[data-path=${id}]`, ...rest]);
 

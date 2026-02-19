@@ -1,6 +1,6 @@
 import Field from './Field.ts';
 
-export default ({ nix, btc, simf, element }) => nix && Field.Text("shell.nix",
+export default ({ nix, btc, simf, elements }) => nix && Field.Text("shell.nix",
   `#!/usr/bin/env nix-shell`,
   `{ pkgs ? import<nixpkgs> {} }: let`,
   //`  # Build Rust package.`,
@@ -32,7 +32,7 @@ export default ({ nix, btc, simf, element }) => nix && Field.Text("shell.nix",
       //]
     //: []),
 
-  ...(element
+  ...(elements
     ? [ ``
       , `  (override pkgs.elementsd {`
       , `    version = "liquid-testnet-2024-10-08";`

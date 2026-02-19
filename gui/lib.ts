@@ -4,7 +4,6 @@ export const checked = (id: string) => !!(elById(id) as HTMLInputElement)?.check
 export const textVal = (id: string) => (elById(id) as HTMLInputElement)?.value?.trim();
 export const byteVal = (id: string) => (elById(id) as HTMLInputElement)?.value?.trim() as unknown as Bytes; // FIXME
 export const on = (x: EventTarget, ev: string, cb: Fn) => { x?.addEventListener(ev, cb); return cb; }
-export const Icon = (name: string) => ['svg.icon', [`use[href=icons.svg#${name}]`]];
 export const Link = (href: string, ...text: unknown[]) => ['a[target=_blank]', { href }, ...text];
 export function pinSize <T> (el: HTMLElement, cb: Fn<[number, number], T>) {
   const { offsetWidth: width, offsetHeight: height } = el;
