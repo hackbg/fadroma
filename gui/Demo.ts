@@ -1,4 +1,5 @@
 import Html from '../library/Html.ts';
+import P2P from './Chat.ts';
 import { Base16 } from '../library/Number.ts';
 import { Wasm } from '../platform/SimplicityHL/SimplicityHL.ts';
 import { pubECDSA } from 'npm:@scure/btc-signer/utils.js'; // not already in keypair?
@@ -32,13 +33,16 @@ export function User (name: string, {
   pubkeyX  = signer.xOnlyPublicKey(),
   chain    = { bech32: 'ert', pubKeyHash: 0x6f, scriptHash: 0xc4, wif: 0xef, },
   p2wpkh   = P2WPKH(pubkey, chain).address,
-  logger   = Html(['div.demolog', 'Enter Bob, Carol.']),
+  output   = Html(['div.demolog', 'Enter Bob, Carol.']),
   balance  = '1.00000000 tLBTC',
   toolbar  = Html(['section.demoprogs', ['button.pill', 'Send'], ['button.pill', 'P2PK'], ['button.pill', 'Vault'], ['button.pill', 'Escrow'], ['input.chat', { placeholder: 'chat' }], ['button.pill', 'Say']]),
-  identity = Html(['section.demometa', ['div.col.gap', ['div.row.gap.align-center', ['strong.demoname', name], ['strong', balance]]]])
+  identity = Html(['section.demometa', ['div.col.gap', ['div.row.gap.align-center', ['strong.demoname', name], ['strong', balance]]]]),
+  p2p      = P2P({ root: output }),
 } = {}) {
+  p2p.then(console.log).catch(console.error);
+  console.log({p2p});
   return ['div.col.align-center',
-    ['article.demouser', identity, logger, toolbar],
+    ['article.demouser', identity, output, toolbar],
     ['div.col.gap',
       ['div.col', ['strong', 'Address:'], ['div.address', p2wpkh]],
       //['div.col', ['strong', 'Pubkey:'],  ['div.address', Base16.encode(pubkey)]],

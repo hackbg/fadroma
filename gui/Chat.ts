@@ -10,10 +10,9 @@ async function P2P ({
   receiver  = new Receiver({ driver }),
   sender    = new Sender({ driver }),
   root      = document.getElementById('demo'),
-  logField  = document.getElementById('demolog'),
-  onConnect = (e) => { console.debug('connect', e); logField.innerHTML += JSON.stringify(e); },
-  onDispose = (e) => { console.debug('dispose', e); logField.innerHTML += JSON.stringify(e); },
-  onMessage = (e) => { console.debug('message', e); logField.innerHTML += JSON.stringify(e); },
+  onConnect = (e) => { console.debug('connect', e); root.innerHTML += JSON.stringify(e); },
+  onDispose = (e) => { console.debug('dispose', e); root.innerHTML += JSON.stringify(e); },
+  onMessage = (e) => { console.debug('message', e); root.innerHTML += JSON.stringify(e); },
   onStream  = (e) => { console.log('stream', e); },
 } = {}): Promise<P2P> {
   await driver.open(room);
@@ -23,7 +22,6 @@ async function P2P ({
   receiver.addEventListener('stream',          onStream);
   receiver.addEventListener('channel:message', onMessage);
   const context = { room, driver, receiver, sender };
-  root.appendChild(logField)
   return context;
 }
 

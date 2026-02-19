@@ -40,7 +40,7 @@ namespace Simf {
 
   const SimfTS = (source: string, param = {}, witness = {}) =>
     `#!/usr/bin/env -S deno run -P default\nimport { SimplicityHL } from 'fadroma';\n`      +
-    `export default SimplicityHL.Program('${source}', {\n`                                  +
+    `export default await SimplicityHL.Program('${source}', {\n`                                  +
     `  param:   ${JSON.stringify(param).split('\n').map(x=>'  '+x).join('\n').trim()},\n`   +
     `  witness: ${JSON.stringify(witness).split('\n').map(x=>'  '+x).join('\n').trim()},\n` +
     `  cli:     import.meta\n})`;
@@ -72,7 +72,7 @@ namespace Simf {
         { "MIN_HEIGHT":   Arg("u32"), "TARGET_PRICE":  Arg("u32") },
         { "ORACLE_PRICE": Arg("u32"), "ORACLE_HEIGHT": Arg("u32") })))
       .build();
-    export const source = `export default simf\`fn main () {
+    export const source = `fn main () {
   let min_height: Height = param::MIN_HEIGHT;
   let target_price: u32 = param::TARGET_PRICE;
   let oracle_price: u32 = witness::ORACLE_PRICE;
@@ -108,7 +108,7 @@ namespace Simf {
     ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'A1. '], 'Obtain P2TR'],
     ' by compiling the program:'];
   const FundTitle = ['span',
-    ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'A2. '], 'Transfer funds'],
+    ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'A2. '], 'Send funds'],
     ' to the P2TR address:'];
   export const CompileForm = () => ['div.row.gap.grow',
     ProgramForm(CompileTitle,
@@ -125,7 +125,7 @@ namespace Simf {
     ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'B1. '], 'Specify transaction'],
     ' to obtain SIGHASH_ALL:'];
   const RedeemTitle = ['span',
-    ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'B2. '], 'Redeem funds'],
+    ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'B2. '], 'Receive funds'],
     ' by sending valid signatures:'];
   export const RedeemForm = () => ['div.row.gap.grow',
     ProgramForm(WitnessTitle,
