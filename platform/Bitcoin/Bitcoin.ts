@@ -5,114 +5,116 @@ import { Port } from '../../library/Port.ts';
 import { Temp } from '../../library/Fs.ts';
 import { Num, Base16 } from '../../library/Number.ts';
 import process from 'node:process';
-
-export default Btc;
-
+export default Bitcoin;
 /** A Bitcoin or Elements daemon. */
-interface Btc extends Run.Daemon {
-  url:      string,
-  rpc:      Btc.Rpc
-  rest:     Btc.Rest
-  verbose?: boolean
-}
-
-const temp = (chain: string) => Temp.make(`${chain}-${+new Date()}`)
-
+type Bitcoin = Run.Daemon & Bitcoin.Connect & { verbose?: boolean };
 /** Launch Bitcoin node. */
-async function Btc <T> ({
-  debug = console.debug,
-  //log   = console.log,
-
-  acceptnonstdtxn             = null             as boolean,
-  anyonecanspendaremine       = null             as boolean,
-  bech32_hrp                  = null             as string,
-  blech32_hrp                 = null             as string,
-  blindedaddresses            = null             as boolean,
-  blindedprefix               = null             as number,
-  con_blocksubsidy            = null             as number,
-  con_elementsmode            = null             as boolean,
-  con_connect_genesis_outputs = null             as boolean,
-  chain                       = 'regtest'        as string,
-  daemon                      = 'elementsd'      as string,
-  datadir                     = temp(chain)      as string|Promise<string>,
-  defaultpeggedassetname      = null             as string,
-  discover                    = null             as boolean,
-  dnsseed                     = null             as boolean,
-  evbparams                   = null             as string,
-  feeasset                    = null             as string,
-  initialfreecoins            = null             as string|number|bigint,
-  initialreissuancetokens     = null             as string|number|bigint,
-  maxtxfee                    = null             as string|number|bigint,
-  persistmempool              = null             as boolean,
-  pubkeyprefix                = null             as number,
-  rest                        = null             as boolean,
-  rpcallowip                  = '127.0.0.1'      as string,
-  rpcpassword                 = `fadroma`        as string,
-  rpcport                     = '8941'           as string|number,
-  rpcuser                     = `fadroma`        as string,
-  scriptprefix                = null             as number,
-  server                      = null             as boolean,
-  subsidyasset                = null             as string,
-  txindex                     = null             as boolean,
-  validatepegin               = null             as boolean,
-  vbparams                    = null             as string,
-} = {}): Promise<Fn.Async<T>> {
-  const bool = (x: unknown) => x ? '1' : '0';
-  const options = [
-    (acceptnonstdtxn             !== null) && `-acceptnonstdtxn=${bool(acceptnonstdtxn)}`,
-    (anyonecanspendaremine       !== null) && `-anyonecanspendaremine=${bool(anyonecanspendaremine)}`,
-    (bech32_hrp                  !== null) && `-bech32_hrp=${bech32_hrp}`,
-    (blech32_hrp                 !== null) && `-blech32_hrp=${blech32_hrp}`,
-    (blindedaddresses            !== null) && `-blindedaddresses=${bool(blindedprefix)}`,
-    (blindedprefix               !== null) && `-blindedprefix=${blindedprefix}`,
-    (chain                       !== null) && `-chain=${chain}`,
-    (con_blocksubsidy            !== null) && `-con_blocksubsidy=${Number(con_blocksubsidy)||0}`,
-    (con_elementsmode            !== null) && `-con_elementsmode=${bool(con_elementsmode)}`,
-    (con_connect_genesis_outputs !== null) && `-con_connect_genesis_outputs=${con_connect_genesis_outputs?'1':'0'}`,
-    (datadir                     !== null) && `-datadir=${await datadir}`,
-    (defaultpeggedassetname      !== null) && `-defaultpeggedassetname=${defaultpeggedassetname}`,
-    (discover                    !== null) && `-discover=${bool(discover)}`,
-    (dnsseed                     !== null) && `-dnsseed=${bool(dnsseed)}`,
-    (evbparams                   !== null) && `-evbparams=${evbparams}`,
-    (feeasset                    !== null) && `-feeasset=${feeasset}`,
-    (initialfreecoins            !== null) && `-initialfreecoins=${initialfreecoins}`,
-    (initialreissuancetokens     !== null) && `-initialreissuancetokens=${initialreissuancetokens}`,
-    (maxtxfee                    !== null) && `-maxtxfee=${maxtxfee}`,
-    (persistmempool              !== null) && `-persistmempool=${bool(persistmempool)}`,
-    (pubkeyprefix                !== null) && `-pubkeyprefix=${pubkeyprefix}`,
-    (rest                        !== null) && `-rest=${bool(rest)}`,
-    (rpcallowip                  !== null) && `-rpcallowip=${rpcallowip}`,
-    (rpcpassword                 !== null) && `-rpcpassword=${rpcpassword}`,
-    (rpcport                     !== null) && `-rpcport=${rpcport}`,
-    (rpcuser                     !== null) && `-rpcuser=${rpcuser}`,
-    (scriptprefix                !== null) && `-scriptprefix=${scriptprefix}`,
-    (server                      !== null) && (server ? '-server' : null),
-    (subsidyasset                !== null) && `-subsidyasset=${subsidyasset}`,
-    (txindex                     !== null) && `-txindex=${bool(txindex)}`,
-    (validatepegin               !== null) && `-validatepegin=${validatepegin}`,
-    (vbparams                    !== null) && `-vbparams=${vbparams}`,
-    //'-debug=rpc', //'-debug=zmq',
-  ];
-  const spawn = Run.Spawn(daemon, ...options.filter(Boolean));
+async function Bitcoin <T> (options: Partial<Bitcoin.Options> = {}): Promise<Fn.Async<T>> {
+  const { daemon = 'elementsd', debug = console.debug } = options;
+  const args = Bitcoin.Options(options);
+  const spawn = Run.Spawn(daemon, ...args.filter(Boolean));
   debug('Spawning:', [spawn.daemon, ...spawn.options].join(' '));
   const btc = await spawn();
   const url = `http://${rpcuser}:${rpcpassword}@${rpcallowip}:${rpcport}`;
   await Port.Wait({ port: rpcport })();
-  return Object.assign(btc, {
-    url,
-    rest: Btc.Rest(url),
-    rpc:  Btc.Rpc(url)
-  });
+  return Object.assign(btc, Bitcoin.Connect(url));
 }
-
 /** Bitcoin internals. */
-namespace Btc {
+namespace Bitcoin {
+  /** Bitcoin daemon options. */
+  export type Options = Parameters<typeof Options>[0];
+  /** Parse [Options] to list of command-line arguments: */
+  export function Options ({
+    debug = console.debug,
+    //log   = console.log,
+
+    acceptnonstdtxn             = null             as boolean,
+    anyonecanspendaremine       = null             as boolean,
+    bech32_hrp                  = null             as string,
+    blech32_hrp                 = null             as string,
+    blindedaddresses            = null             as boolean,
+    blindedprefix               = null             as number,
+    con_blocksubsidy            = null             as number,
+    con_elementsmode            = null             as boolean,
+    con_connect_genesis_outputs = null             as boolean,
+    chain                       = 'regtest'        as string,
+    daemon                      = 'elementsd'      as string,
+    datadir                     = temp(chain)      as string|Promise<string>,
+    defaultpeggedassetname      = null             as string,
+    discover                    = null             as boolean,
+    dnsseed                     = null             as boolean,
+    evbparams                   = null             as string,
+    feeasset                    = null             as string,
+    initialfreecoins            = null             as string|number|bigint,
+    initialreissuancetokens     = null             as string|number|bigint,
+    maxtxfee                    = null             as string|number|bigint,
+    persistmempool              = null             as boolean,
+    pubkeyprefix                = null             as number,
+    rest                        = null             as boolean,
+    rpcallowip                  = '127.0.0.1'      as string,
+    rpcpassword                 = `fadroma`        as string,
+    rpcport                     = '8941'           as string|number,
+    rpcuser                     = `fadroma`        as string,
+    scriptprefix                = null             as number,
+    server                      = null             as boolean,
+    subsidyasset                = null             as string,
+    txindex                     = null             as boolean,
+    validatepegin               = null             as boolean,
+    vbparams                    = null             as string,
+  } = {}) {
+    return [
+      (acceptnonstdtxn             !== null) && `-acceptnonstdtxn=${bool(acceptnonstdtxn)}`,
+      (anyonecanspendaremine       !== null) && `-anyonecanspendaremine=${bool(anyonecanspendaremine)}`,
+      (bech32_hrp                  !== null) && `-bech32_hrp=${bech32_hrp}`,
+      (blech32_hrp                 !== null) && `-blech32_hrp=${blech32_hrp}`,
+      (blindedaddresses            !== null) && `-blindedaddresses=${bool(blindedprefix)}`,
+      (blindedprefix               !== null) && `-blindedprefix=${blindedprefix}`,
+      (chain                       !== null) && `-chain=${chain}`,
+      (con_blocksubsidy            !== null) && `-con_blocksubsidy=${Number(con_blocksubsidy)||0}`,
+      (con_elementsmode            !== null) && `-con_elementsmode=${bool(con_elementsmode)}`,
+      (con_connect_genesis_outputs !== null) && `-con_connect_genesis_outputs=${con_connect_genesis_outputs?'1':'0'}`,
+      (datadir                     !== null) && `-datadir=${await datadir}`,
+      (defaultpeggedassetname      !== null) && `-defaultpeggedassetname=${defaultpeggedassetname}`,
+      (discover                    !== null) && `-discover=${bool(discover)}`,
+      (dnsseed                     !== null) && `-dnsseed=${bool(dnsseed)}`,
+      (evbparams                   !== null) && `-evbparams=${evbparams}`,
+      (feeasset                    !== null) && `-feeasset=${feeasset}`,
+      (initialfreecoins            !== null) && `-initialfreecoins=${initialfreecoins}`,
+      (initialreissuancetokens     !== null) && `-initialreissuancetokens=${initialreissuancetokens}`,
+      (maxtxfee                    !== null) && `-maxtxfee=${maxtxfee}`,
+      (persistmempool              !== null) && `-persistmempool=${bool(persistmempool)}`,
+      (pubkeyprefix                !== null) && `-pubkeyprefix=${pubkeyprefix}`,
+      (rest                        !== null) && `-rest=${bool(rest)}`,
+      (rpcallowip                  !== null) && `-rpcallowip=${rpcallowip}`,
+      (rpcpassword                 !== null) && `-rpcpassword=${rpcpassword}`,
+      (rpcport                     !== null) && `-rpcport=${rpcport}`,
+      (rpcuser                     !== null) && `-rpcuser=${rpcuser}`,
+      (scriptprefix                !== null) && `-scriptprefix=${scriptprefix}`,
+      (server                      !== null) && (server ? '-server' : null),
+      (subsidyasset                !== null) && `-subsidyasset=${subsidyasset}`,
+      (txindex                     !== null) && `-txindex=${bool(txindex)}`,
+      (validatepegin               !== null) && `-validatepegin=${validatepegin}`,
+      (vbparams                    !== null) && `-vbparams=${vbparams}`,
+      //'-debug=rpc', //'-debug=zmq',
+    ]
+  }
+
+  // Helper for boolean arguments
+  const bool = (x: unknown) => x ? '1' : '0';
+
+  // Helper for temporary directories
+  const temp = (chain: string) => Temp.make(`${chain}-${+new Date()}`)
+
+  /** Connection to Bitcoin RPC and REST. */
+  export interface Connect { url: string, rest: Rest, rpc: Rpc }
+
+  /** Connect to Bitcoin RPC and REST at given URL. */
+  export function Connect (url: string): Connect {
+    return { url, rest: Bitcoin.Rest(url), rpc: Bitcoin.Rpc(url) }
+  }
 
   /** 1 BTC = 100000000 Satoshis. */
   export const DECIMAL = 100000000n;
-
-  /** Bitcoin daemon options. */
-  export type Options = Parameters<typeof Btc>[0];
 
   /** Connect to Bitcoin mainnet. */
   export function Mainnet (options?: Options) {/* TODO */}
@@ -154,7 +156,7 @@ namespace Btc {
 
   /** Spawn Elements in `elementsregtest` mode with Simplicity enabled. */
   export function ElementsRegtest (options?: Options) {
-    return Btc({
+    return Bitcoin({
       chain:                       ElementsRegtest.ID,
       bech32_hrp:                  ElementsRegtest.HRP_BECH32,
       blech32_hrp:                 ElementsRegtest.HRP_BLECH32,
@@ -299,7 +301,7 @@ namespace Btc {
 
   /** Define test wallet. */
   export function CreateWallet (name: string, cb?: Fn) {
-    return Fn.Name(`Create test wallet ${name}`, async (context: Btc) => {
+    return Fn.Name(`Create test wallet ${name}`, async (context: Bitcoin) => {
       await context.rpc.createwallet(name);
       cb && await cb(await context.rpc.getwalletinfo());
       return context
@@ -308,7 +310,7 @@ namespace Btc {
 
   /** Define rescan. */
   export function Rescan (cb?: Fn) {
-    return Fn.Name(`Rescan`, async (context: Btc) => {
+    return Fn.Name(`Rescan`, async (context: Bitcoin) => {
       await context.rpc.rescanblockchain();
       await cb(await context.rpc.getwalletinfo());
       return context
@@ -319,7 +321,7 @@ namespace Btc {
   export function Verbose (
     enabled?: boolean, stdout = process.stderr, stderr = process.stderr
   ) {
-    return Fn.Name(`Verbose: ${enabled}`, (context: Btc) => {
+    return Fn.Name(`Verbose: ${enabled}`, (context: Bitcoin) => {
       context.verbose = enabled;
       if (enabled) {
         context.stdout.pipe(stdout);
@@ -368,5 +370,4 @@ namespace Btc {
       return await rest.tx(txid);
     }
   }
-
 }
