@@ -3,22 +3,19 @@ import Html from '../../library/Html.ts';
 
 export default Field;
 
-function Field ({ id, collapsed = true, header = [], content = [] }) {
-  return Field.Wrapper(id, collapsed, Field.Handle(id, collapsed),
-    ['div.flex.col.grow', Field.Header(id, ...header), ...content]);
+function Field (id: string, { open = false, header = [], content = [] } = {}) {
+  return {
+    id,
+    open:    bool => Field(id, { open: bool, header, content }),
+    header:  item => Field(id, { open, header: [...header, item], content  }),
+    content: item => Field(id, { open, header, content: [...content, item] }),
+    build:   () => Field.Wrapper(id, !open, Field.Handle(id, !open),
+      ['div.flex.col.grow', Field.Header(id, ...header), ...content]),
+  }
 }
 
 namespace Field {
 
-  export function Builder (id, { open = false, header = [], content = [] } = {}) {
-    return {
-      id,
-      open:    bool => Builder(id, { open: bool, header, content }),
-      header:  item => Builder(id, { open, header: [...header, item], content  }),
-      content: item => Builder(id, { open, header, content: [...content, item] }),
-      build:   () => Field({ id, collapsed: !open, header, content }),
-    }
-  }
 
   export const Wrapper = (id: string, collapsed: boolean, ...rest: unknown[]) =>
     ([`div.field.file${collapsed?'.collapsed':''}#${id}[data-path=${id}]`, ...rest]);

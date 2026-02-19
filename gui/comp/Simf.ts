@@ -21,7 +21,7 @@ namespace Simf {
     //EscrowTS()
   ];
 
-  export const Program = (id: string, ...content: string[]) => Field.Builder(id)
+  export const Program = (id: string, ...content: string[]) => Field(id)
     .header(Command('play', 'Compile', { onclick: simfCompile(id) }))
     .header(Command('circle-with-plus', 'Define'))
     .content(Field.TextArea(id, ...content))
@@ -79,20 +79,20 @@ namespace Simf {
     WitnessRow('u32', 'ORACLE_PRICE',  '100000'),
     WitnessRow('sig', 'ORACLE_SIG',    ''),
     WitnessRow('sig', 'OWNER_SIG',     ''));
-  export const OracleTS = () => ES("oracle.ts",
+  export const OracleTS = ({ deno, node }) => ES("oracle.ts",
     ES.HashBang({ deno, node }),
     ES.Import("@hackbg/fadroma", simf && 'Simf'),
     simf && `export default Simf(import.meta, "src/main.simf");`);
-  export const Witness = (id: string, ...content: unknown[]) => Field({
-    id, collapsed: true, header: [
-      ['select', ['option', 'src/main.simf']],
-      Command('play', 'Satisfy', { onclick: simfCompile(id) }),
-    ], content: [['div.col.collapsible',
+  export const Witness = (id: string, ...content: unknown[]) => Field(id).open(false)
+    .header(['select', ['option', 'src/main.simf']])
+    .header(Command('play', 'Satisfy', { onclick: simfCompile(id) }))
+    .content([['div.col.collapsible',
       WitnessRow('u32', 'ORACLE_HEIGHT', '1000'),
       WitnessRow('u32', 'ORACLE_PRICE',  '100000'),
       WitnessRow('sig', 'ORACLE_SIG',    ''),
       WitnessRow('sig', 'OWNER_SIG',     ''),
-      ['div.row', ['div.grow'], Command('circle-with-plus', 'Witness')]]] });
+      ['div.row', ['div.grow'], Command('circle-with-plus', 'Witness')]]])
+    .build();
   export const WitnessRow = (t: 'sig'|'u32', k: string, v: string|Bytes) =>
     ['div.witness',
       ['input[type=text].grow', { value: k, placeholder: 'name' }],

@@ -3,7 +3,7 @@ import Field from './Field.ts';
 export default ES;
 
 function ES (id: string, ...content: string[]) {
-  return Field.Builder(id).content(Field.TextArea(id, ...content)).build()
+  return Field(id).content(Field.TextArea(id, ...content)).build()
 }
 
 namespace ES {
