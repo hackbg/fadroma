@@ -1,6 +1,6 @@
 import type { Fn, Str } from '../index.ts';
 import { bold, gray } from './Ansi.ts';
-import { cwd } from 'node:process';
+import process from 'node:process'; // destructuring this import breaks in Vite
 
 export default function Err (message: string, ...args: object[]) {
   return Object.assign(new Error(message), ...args)
@@ -9,7 +9,7 @@ export default function Err (message: string, ...args: object[]) {
 export function formatError (e: Error, name?: Str) {
   const [head, ...tail] = (e?.stack||'').split('\n');
   const stack = tail.map(x=>x
-    .replace('('+cwd()+'/', '(')
+    .replace('('+process.cwd()+'/', '(')
     .replace('./node_modules/.pnpm/', ''));
   e.message = e.message.split('Logs:')[0].trim();
   if (name) e.message = name + ': ' + e.message;
@@ -36,8 +36,8 @@ export function stackTrace (slice = 3, length?: number): string[] {
 }
 /** Relativize paths in stack trace, colorize, and reduce indent. */
 export function alignTrace (line: string) {
-  line = line.replace('file://'+cwd(), '.');
-  line = line.replace(cwd(), '.');
+  line = line.replace('file://'+process.cwd(), '.');
+  line = line.replace(process.cwd(), '.');
   const format = (x: string, i: number) => (i===0)
     ? bold(gray(2, x.padEnd(36))) : gray(4, x);
   line = line.split(' (').map(format).join(gray(4, ' ('));

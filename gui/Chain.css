@@ -1,0 +1,9 @@
+button.chain {
+  background: #0004;
+  border-radius: 0.125rem;
+  color: white;
+  font-weight: bold;
+  font-size: 1rem;
+  border: none;
+  padding: 1rem 2rem;
+}

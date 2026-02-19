@@ -179,10 +179,12 @@ namespace Simf {
     ['span', { style: 'float:left;font-size:2rem;padding-right:0.33rem' }, ...content]
 
   export const Info = {
-    0: ['p', ['strong', 'Fadroma V3'], ' employs WebAssembly to instantly compile, evaluate, and deploy ',
-      ['strong', 'SimplicityHL smart contracts'], ' from all modern JavaScript-based environments alike:',
-      ' browsers, servers, and edge services.'],
-    1: ['p.sidebox', 'Try these ', ['strong', 'SimplicityHL programs'], ' on Liquid Testnet:', Chain()],
+    0: ['p'
+       , ['strong', 'Fadroma V3'], ' employs WebAssembly to instantly compile, evaluate, and deploy '
+       , ['strong', 'SimplicityHL smart contracts'], ' from all modern JavaScript-based environments alike: browsers, servers, and edge services.'],
+    1: ['p.sidebox.flex.space-between'
+       , ['div.grow', 'Try these ', ['strong', 'SimplicityHL programs'], ' on ', ['a', { href: '#' }, 'Liquid Testnet:'], ' ']
+       , Chain()],
     2: ['p.sidebox', 'The ', ['strong', 'Simplicity transaction lifecycle'], ' happens in two phases:' ],
     3: ['p', ['span', ['strong', Dropcap('1. '), 'Commitment phase'], '. Compile program to P2TR address, and fund it on-chain:']],
     4: ['p', ['span', ['strong', Dropcap('2. '), 'Redemption phase'], '. Fulfill the program\'s conditions to redeem funds:']],

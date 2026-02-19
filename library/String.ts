@@ -1,23 +1,30 @@
+import Case from 'npm:case';
 import type { Maybe, Bytes } from '../index.ts';
-import { Case, stdout } from '../deps.ts';
+import { stdout } from '../deps.ts';
 import { NO_COLOR } from './Ansi.ts';
 import Fn from './Fn.ts';
+
 /** String, or something with a `toString` method. */
 export type Str = string|{ toString(): string };
+
 /** Concatenate strings. */
 export function Str (...strs: Array<Maybe<Str>|Array<Maybe<Str>>>) {
   return chunks(...strs).join('');
 }
+
 /** Flatten and filter nested arrays of strings. */
 export const chunks = (...strs: Array<Maybe<Str>|Array<Maybe<Str>>>) =>
   strs.flat().filter(Boolean).map(x=>x!.toString());
+
 /** Join nested arrays of strings. */
 export const joined = (joiner: string, ...strs: Array<Maybe<Str>|Array<Maybe<Str>>>) =>
   chunks(...strs).join(joiner);
+
 export const glued  = Fn(joined, '');
 export const spaced = Fn(joined, ' ');
 export const lines  = Fn(joined, '\n');
 export const joiner = (x?: Str, y = ' ') => x ? (x.toString() + y) : '';
+
 export function chunked (separator: string = '') {
   return function unchunk (...chunks: unknown[]): string {
     let buffer = '';

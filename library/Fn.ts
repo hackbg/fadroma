@@ -1,5 +1,5 @@
+import process from 'node:process'; // destructuring this import breaks in Vite
 import { setImmediate } from 'node:timers';
-import { argv, exit } from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 export default Fn;
@@ -265,10 +265,10 @@ namespace Fn {
     meta: Main.Meta = {},
     main: Fn<string[], unknown>
   ) {
-    const [_, argv1, ...args] = argv
+    const [_, argv1, ...args] = process.argv
     if (Main.is(meta || {}, argv1)) setImmediate(async ()=>{
       try {
-        await Promise.resolve(main({ args, exit }));
+        await Promise.resolve(main({ args, exit: process.exit }));
         //exit(0);
       } catch (e) {
         const error = e as Error & { exitCode?: number };

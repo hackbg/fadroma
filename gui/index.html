@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="lib.css" />
     <link rel="stylesheet" href="Editor.css" />
     <link rel="stylesheet" href="Feature.css" />
+    <link rel="stylesheet" href="Chain.css" />
     <link rel="stylesheet" href="Demo.css" />
     <link rel="stylesheet" href="Docs.css" />
   </head>
@@ -72,47 +73,7 @@
           import('./Demo.ts').then(({ "default": x }) => x()).catch(console.error);
         </script>
         <p class="content"><strong>Watch this space:</strong> interactive peer discovery and deal-making in a familiar conversational interface will pop up here.</p>
-        <div class="content row justify-center">
-        <article class="demouser">
-          <section><strong class="demoname">Alice</strong><strong>1.00000000 tLBTC</strong> at tex1p9sv7g8tyljjymz4t6zyjpvepw4...</section>
-          <div class="demolog">
-            Enter Bob, Carol.
-          </div>
-          <section class="demoprogs">
-            <button class="pill">Send</button>
-            <button class="pill">P2PK</button>
-            <button class="pill">Vault</button>
-            <button class="pill">Escrow</button>
-            <input placeholder="chat" /> <button class="pill">Say</button>
-          </section>
-        </article>
-        <article class="demouser">
-          <section><strong class="demoname">Bob</strong><strong>1.00000000 tLBTC</strong> at tex1p9sv7g8tyljjymz4t6zyjpvepw4...</section>
-          <div class="demolog">
-            Enter Alice, Carol.
-          </div>
-          <section class="demoprogs">
-            <button class="pill">Send</button>
-            <button class="pill">P2PK</button>
-            <button class="pill">Vault</button>
-            <button class="pill">Escrow</button>
-            <input placeholder="chat" /> <button class="pill">Say</button>
-          </section>
-        </article>
-        <article class="demouser">
-          <section><strong class="demoname">Carol</strong><strong>1.00000000 tLBTC</strong> at tex1p9sv7g8tyljjymz4t6zyjpvepw4...</section>
-          <div class="demolog">
-            <em>Enter Alice, Bob.</em>
-          </div>
-          <section class="demoprogs">
-            <button class="pill">Send</button>
-            <button class="pill">P2PK</button>
-            <button class="pill">Vault</button>
-            <button class="pill">Escrow</button>
-            <input placeholder="chat" /> <button class="pill">Say</button>
-          </section>
-        </article>
-        </div>
+        <div id="demousers" class="content row justify-center"></div>
         <p>Meanwhile, try the example project, and report any issues on our bug tracker!</p>
         <p>All further inquiries welcome at <strong><a href="https://hack.bg/contact">https://hack.bg/contact</a></strong>.</p>
       </div>

@@ -72,10 +72,12 @@
       padding: 0;
       margin: 0;
       margin-bottom: 1rem !important;
-      @media screen and (max-width: 1366px) {
-        flex-flow: row wrap;
+      @media screen and (max-width: 1280px) {
+        flex-flow: column;
+        align-items: stretch;
+        .sidebox { max-width: initial; }
       }
-      @media screen and (min-width: 1367px) {
+      @media screen and (min-width: 1281px) {
         .sidebox { width: 24ch; flex-shrink: 0; }
       }
       p {

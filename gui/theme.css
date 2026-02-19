@@ -376,16 +376,17 @@ nav.header {
 }
 
 .editor-wrapper {
-  /*resize: vertical;*/
-  /*overflow: auto;*/
-  margin: 0 0 0.5rem -1.5rem;
-  border-top: 1px solid #fff8;
-  background: #fff4;
-  /*max-width: 100%;*/
+  margin:        0 0 0.5rem -1.5rem;
+  /*border-top:    1px solid #0002;*/
+  /*border-left:   1px solid #0002;*/
+  /*border-bottom: 1px solid #0002;*/
+  /*border-right:  1px solid #0002;*/
+  border-radius: 0.125rem;
+  background:    #fff4;
   .collapsed & {
     min-height: 0;
-    overflow: hidden;
-    display: none;
+    overflow:   hidden;
+    display:    none;
     visibility: hidden;
   }
 }
@@ -468,6 +469,8 @@ nav.header {
     border: 1px solid white;
     min-height: 2rem;
     background: #ddd;
+    padding: 0.33rem;
+    border-radius: 3px;
     .name {
       font-size:  1rem;
       min-height: 2rem;
