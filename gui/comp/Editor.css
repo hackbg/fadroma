@@ -95,7 +95,7 @@
       border: 1px solid #fff4;
       /*margin-bottom: 1rem;*/
       background: #f8f4;
-      input, select, button { min-width: 16rem; color: #fff; background: #fff2; }
+      input, select, button { &:last-child { min-width: 16rem; } color: #fff; background: #fff2; }
       label { padding: 1px 0.5rem; display: flex; flex-flow: row nowrap; justify-content: space-between; align-items: center }
       label strong { min-width: 6rem; display: inline-block }
       label em { min-width: 3rem; display: inline-block }

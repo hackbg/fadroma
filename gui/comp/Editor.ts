@@ -155,24 +155,55 @@ export function Simf (id: string, ...content: string[]) {
     ] })
 }
 export namespace Simf {
+
+  export const Info = {
+
+    0: ['p', ['strong', 'Fadroma V3'],
+      ' employs WebAssembly to instantly compile, evaluate, and deploy ',
+      ['strong', 'SimplicityHL smart contracts'],
+      ' from all modern JavaScript-based environments alike:',
+      ' browsers, servers, and edge services.'],
+
+    1: ['p.sidebox',
+      'Try these ',
+      ['strong', 'SimplicityHL programs'],
+      ' on Liquid Testnet using the lifecycle controls below:'],
+
+    2: ['p', 'The ',
+      ['strong', 'Simplicity transaction lifecycle'],
+      ' consists of a ',
+      ['strong', 'commitment phase'],
+      ' and a ',
+      ['strong', 'redemption phase'], '.'],
+
+    3: ['p.sidebox', ['span',
+      ['strong', ['span', { style: 'float:left;font-size:2rem;padding-right:0.33rem' }, '1. '], 'Commitment phase'],
+      '. Compile program to P2TR address, and fund it on-chain:']],
+
+    4: ['p.sidebox', ['span',
+      ['strong', ['span', { style: 'float:left;font-size:2rem;padding-right:0.33rem' }, '2. '], 'Redemption phase'],
+      '. Fulfill the program\'s conditions to redeem funds:']],
+
+    5: ['p.sidebox', 'Here you can ',
+      ['strong', 'download an example project'],
+      ' containing the above programs, so that you can continue',
+      ' building in your preferred development environment.'],
+
+  };
+
   export const Programs = ({ nix, btc, simf, element, direnv, deno, node }) => ['div.col',
-    ['section.layer', ...Description],
-    ['section.layer.programs',
-      ['p.sidebox', 'Try these ', ['strong', 'SimplicityHL programs'], ' on Liquid Testnet using the lifecycle controls below:'],
-      ['div.col.grow.files.gap', P2PKTS(), P2PKHTS(), HodlVaultTS(), EscrowTS()]],
-    ['section.layer.actions',
-      ['p.sidebox', 'This is the ', ['strong', 'Simplicity transaction lifecycle'], '. Select a program, then fill in the inputs to see it in action!'],
-      ['div.col.gap', CompileForm(), CommitForm()], RedeemForm()],
-    ['section.layer.project',
-      ['p.sidebox', 'Here you can ', ['strong', 'download an example project'], ' containing the above programs, ',
-        'so that you can continue building in your preferred development environment.'],
+    ['section.layer',          Info[0]],
+    ['section.layer.programs', Info[1], ['div.col.grow.files.gap', P2PKTS(), P2PKHTS(), HodlVaultTS(), EscrowTS()]],
+    ['section.layer',          Info[2]],
+    ['section.layer.actions',  Info[3], CompileForm()],
+    ['section.layer.actions',  Info[4], RedeemForm()],
+    ['section.layer.project',  Info[5],
       ['div.col.grow.files.gap',
         ['div.row.fields.gap',
           ['div.field.head.grow', ['div.name.title', 'Title'], Input.Title()],
           ['div.field.head',      ['div.name', 'Licence'],     Select.License()],
           ['div.row.fields',      ['div.field.head.grow', ['div.name', 'Download']]]],
-        ['div.col.gap',
-          Field.Text("README",   "Created at https://fadroma.tech")],
+        ['div.col.gap', Field.Text("README",   "Created at https://fadroma.tech")],
       ['section.layer',
           ['p.smol', ['strong', 'Local dev dependencies'], ' can be provided by Nix and Direnv (or bring your own Deno, Just and Elements.).'],
           //ES.DenoJsonField(deno),
@@ -187,27 +218,41 @@ export namespace Simf {
           Field.Text("Justfile", "TODO"),
           ES.TestSuite({ deno, node, btc })]
           ]]];
-  const Description = [
-    ['p', ['strong', 'Fadroma V3'], ' employs WebAssembly to instantly compile, evaluate, and deploy ', ['strong', 'SimplicityHL smart contracts'], ' from all modern JavaScript-based environments alike: browsers, servers, and edge services.']];
   const ProgramForm = (name: string, ...rest: unknown[]) =>
-    ['div.program-form.col', ['div.title', name], ...rest];
-  const CompileForm = () => ProgramForm(['span', ['strong', ['span', { style: 'float:left;font-size:2rem;padding-right:0.33rem' }, '1. '], 'Compile source code'], ' to P2TR address:'],
-    ['label', ['strong', 'Chain:'],   ['select', ['option', 'liquidtestnet']]],
-    ['label', ['strong', 'Program:'], ['select', ['option', 'P2PK']]],
-    ['label', ['em', 'param::', 'PUB'],        ['input']],
-    ['label', ['strong', 'P2TR:'],  ['button', 'Compile',]]);
-  const CommitForm = () => ProgramForm(['span', ['strong', ['span', { style: 'float:left;font-size:2rem;padding-right:0.33rem' }, '2. '], 'Commit on-chain'], ' by funding that address:'],
-    ['label', ['strong', 'Sender:'],      ['select', ['option', 'Alice']]],
-    ['label', ['strong', 'Amount:'],      ['input']],
-    ['label', ['strong', 'Commit TXID:'], ['button', 'Commit']]);
-  const RedeemForm = () => ProgramForm(['span', ['strong', ['span', { style: 'float:left;font-size:2rem;padding-right:0.33rem' }, '3. '], 'Redeem funds'], ' by fulfilling the program\'s conditions:'],
-    ['label', ['strong', 'Recipient:'],         ['select', ['option', 'Bob']]],
-    ['label', ['em', 'witness::SIG'],           ['input']],
-    ['label', ['strong', 'Sign hash:'],         ['input']],
-    ['label', ['strong', 'Signer:'],            ['select', ['option', 'Carol']]],
-    ['label', ['strong', 'Witness signature:'], ['input']],
-    ['label', ['strong', 'TX bytes:'],          ['input']],
-    ['label', ['strong', 'Redeem TXID:'],       ['button', 'Redeem',]]);
+    ['div.program-form.col.grow', ['div.title', name], ...rest];
+  const CompileTitle = ['span',
+    ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, '1A. '], 'Obtain P2TR'],
+    ' by compiling the program:'];
+  const FundTitle = ['span',
+    ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, '1B. '], 'Transfer funds'],
+    ' to the P2TR address:'];
+  const CompileForm = () => ['div.row.gap.grow',
+    ProgramForm(CompileTitle,
+      ['label', ['strong', 'Chain:'],     ['select', ['option', 'liquidtestnet']]],
+      ['label', ['strong', 'Program:'],   ['select', ['option', 'P2PK']]],
+      ['label', ['em', 'param::', 'PUB'], ['select', ['option', 'Alice']], ['input'], ],
+      ['label', ['strong', 'Program address:'],  ['button', 'Compile',]]),
+    ProgramForm(FundTitle,
+      ['label', ['strong', 'Sender:'], ['select', ['option', 'Alice']]],
+      ['label', ['strong', 'Amount:'], ['input']],
+      ['label', ['strong', 'Transaction 1:'], ['button', 'Commit']]),
+  ];
+  const WitnessTitle = ['span',
+    ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, '2A. '], 'Obtain SIGHASH_ALL'],
+    ' of redeem transaction:'];
+  const RedeemTitle = ['span',
+    ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, '2B. '], 'Redeem funds'],
+    ' by sending valid signatures:'];
+  const RedeemForm = () => ['div.row.gap.grow',
+    ProgramForm(WitnessTitle,
+      ['label', ['strong', 'Recipient:'], ['select', ['option', 'Bob']]],
+      ['label', ['strong', 'Amount:'],    ['input']],
+      ['label', ['strong', 'Sign hash:'], ['input']]),
+    ProgramForm(RedeemTitle,
+      ['label', ['em', 'witness::SIG'],            ['select', ['option', 'Carol']], ['input']],
+      ['label', ['strong', 'Transaction bytes:'],  ['input']],
+      ['label', ['strong', 'Transaction 2:'], ['button', 'Redeem',]])
+  ];
   export const P2PKTS      = () => ES("programs/P2PK.simf.ts",   SimfTS(P2PK));
   export const P2PKHTS     = () => ES("programs/P2PKH.simf.ts",  SimfTS(P2PKH));
   export const EscrowTS    = () => ES("programs/Escrow.simf.ts", SimfTS(Escrow));
