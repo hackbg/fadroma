@@ -1,5 +1,5 @@
-import Html from '../../library/Html.ts';
-import { elById } from '../lib.ts';
+import Html from '../library/Html.ts';
+import { elById } from './lib.ts';
 export async function loadDocs (href: string) {
   const main = elById("main");
   const resp = await fetch(href);

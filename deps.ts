@@ -27,18 +27,18 @@ export type TcpConn = Deno.TcpConn;
 export const { connect: denoConnect, listen: denoListen, watchFs } = globalThis.Deno || {};
 
 // Third-party packages:
-export { base16, base64, bech32, bech32m } from 'npm:@scure/base'
-export { default as Case } from 'npm:case';
+//export { base16, base64, bech32, bech32m } from 'npm:@scure/base'
+//export { default as Case } from 'npm:case';
 //export { Buffer as StreamBuffer } from '@std/streams';
 
 if (globalThis.Deno) {
   await import("https://deno.land/x/indexeddb@v1.1.0/polyfill_memory.ts");
 }
 
-export const getIndexd       = () => import('npm:indexd');
-export const getBtcJs        = () => import('npm:bitcoinjs-lib');
-export const getPbVarint     = () => import('npm:protobuf-varint');
-export const getBrowserLevel = () => import('npm:browser-level');
+//export const getIndexd       = () => import('npm:indexd');
+//export const getBtcJs        = () => import('npm:bitcoinjs-lib');
+//export const getPbVarint     = () => import('npm:protobuf-varint');
+//export const getBrowserLevel = () => import('npm:browser-level');
 
 export const getCreateLogUpdate = () =>
   import('npm:log-update').then(c=>c.createLogUpdate);

@@ -1,4 +1,5 @@
 import Command from './Command.ts';
+import Chain   from './Chain.ts';
 import ES      from './ES.ts';
 import Field   from './Field.ts';
 import Icon    from './Icon.ts';
@@ -15,11 +16,51 @@ function Simf (...args) { return Simf.IDE(...args) }
 namespace Simf {
 
   export const Programs = () => [
-    P2PKTS(),
-    P2PKHTS(),
-    HodlVaultTS(),
-    //EscrowTS()
+    P2PK.wrapped(),
+    P2PKH.wrapped(),
+    HodlVault.wrapped(),
   ];
+
+  namespace P2PK {
+    export const wrapped = () => ES("programs/P2PK.simf.ts", SimfTS(source));
+    export const source = `fn main () {
+  jet::bip_0340_verify((param::PK, jet::sig_all_hash()), witness::SIG)
+}`;
+  }
+
+  namespace P2PKH {
+    export const wrapped = () => ES("programs/P2PKH.simf.ts", SimfTS(source));
+    export const source = `fn main () {
+  let hasher: Ctx8 = jet::sha_256_ctx_8_init();
+  let hasher: Ctx8 = jet::sha_256_ctx_8_add_32(hasher, witness::PUB);
+  let hash:   u256 = jet::sha_256_ctx_8_finalize(hasher)
+  assert!(jet::eq_256(hash, param::PKH));
+  jet::bip_0340_verify((witness::PUB, jet::sig_all_hash()), witness::SIG)
+}`;
+  }
+
+  namespace HodlVault {
+    export const wrapped = () => ES("programs/HodlVault.simf.ts", SimfTS(source));
+    export const source = `export default simf\`fn main () {
+  let min_height: Height = param::MIN_HEIGHT;
+  let target_price: u32 = param::TARGET_PRICE;
+  let oracle_price: u32 = witness::ORACLE_PRICE;
+  let oracle_height: Height = witness::ORACLE_HEIGHT;
+  jet::check_lock_height(oracle_height);
+  assert!(jet::le_32(min_height, oracle_height));
+  assert!(jet::le_32(target_price, oracle_price));
+  let hasher: Ctx8 = jet::sha_256_ctx_8_init();
+  let hasher: Ctx8 = jet::sha_256_ctx_8_add_4(hasher, oracle_height);
+  let hasher: Ctx8 = jet::sha_256_ctx_8_add_4(hasher, oracle_price);
+  let msg: u256 = jet::sha_256_ctx_8_finalize(hasher);
+  jet::bip_0340_verify((param::ORACLE, msg), witness::ORACLE);
+  jet::bip_0340_verify((param::OWNER, jet::sig_all_hash()), witness:OWNER);
+}\``
+  }
+
+  const SimfTS = (x: string) => `#!/usr/bin/env -S deno run\n`+
+    `import { simf } from 'fadroma';\n`+
+    `export default simf\`${x}\``;
 
   export const Program = (id: string, ...content: string[]) => Field(id)
     .header(Command('play', 'Compile', { onclick: simfCompile(id) }))
@@ -69,11 +110,6 @@ namespace Simf {
       ['label', ['strong', 'Transaction bytes:'],  ['input']],
       ['label', ['strong', 'Transaction 2:'], ['button', 'Redeem',]])
   ];
-  export const P2PKTS      = () => ES("programs/P2PK.simf.ts",   SimfTS(P2PK));
-  export const P2PKHTS     = () => ES("programs/P2PKH.simf.ts",  SimfTS(P2PKH));
-  export const EscrowTS    = () => ES("programs/Escrow.simf.ts", SimfTS(Escrow));
-  export const HodlVaultTS = () => ES("programs/Vault.simf.ts",  SimfTS(HodlVault));
-  const SimfTS = (x: string) => `#!/usr/bin/env -S deno run\nimport { simf } from 'fadroma';\nexport default simf\`${x}\``;
   export const OracleForm = () => Witness("oracle.wit", 
     WitnessRow('u32', 'ORACLE_HEIGHT', '1000'),
     WitnessRow('u32', 'ORACLE_PRICE',  '100000'),
@@ -111,35 +147,6 @@ namespace Simf {
         Command('circle-with-cross', 'Remove')],
       ['textarea', content.join('\n')||' '], '}'];
 
-  const P2PK = `fn main () {
-  jet::bip_0340_verify((param::PK, jet::sig_all_hash()), witness::SIG)
-}`;
-  const P2PKH = `fn main () {
-  let hasher: Ctx8 = jet::sha_256_ctx_8_init();
-  let hasher: Ctx8 = jet::sha_256_ctx_8_add_32(hasher, witness::PUB);
-  let hash:   u256 = jet::sha_256_ctx_8_finalize(hasher)
-  assert!(jet::eq_256(hash, param::PKH));
-  jet::bip_0340_verify((witness::PUB, jet::sig_all_hash()), witness::SIG)
-}`;
-  const Escrow = `#!/usr/bin/env -S deno run\nimport { simf } from 'fadroma/simf';
-export default simf\`/*TODO*/\``;
-  const HodlVault = `#!/usr/bin/env -S deno run\nimport { simf } from 'fadroma/simf';
-export default simf\`fn main () {
-  let min_height: Height = param::MIN_HEIGHT;
-  let target_price: u32 = param::TARGET_PRICE;
-  let oracle_price: u32 = witness::ORACLE_PRICE;
-  let oracle_height: Height = witness::ORACLE_HEIGHT;
-  jet::check_lock_height(oracle_height);
-  assert!(jet::le_32(min_height, oracle_height));
-  assert!(jet::le_32(target_price, oracle_price));
-  let hasher: Ctx8 = jet::sha_256_ctx_8_init();
-  let hasher: Ctx8 = jet::sha_256_ctx_8_add_4(hasher, oracle_height);
-  let hasher: Ctx8 = jet::sha_256_ctx_8_add_4(hasher, oracle_price);
-  let msg: u256 = jet::sha_256_ctx_8_finalize(hasher);
-  jet::bip_0340_verify((param::ORACLE, msg), witness::ORACLE);
-  jet::bip_0340_verify((param::OWNER, jet::sig_all_hash()), witness:OWNER);
-}\``
-
   export const Readme = () =>
     ['div.col.gap', Field.Text("README",   "Created at https://fadroma.tech")];
 
@@ -175,7 +182,7 @@ export default simf\`fn main () {
     0: ['p', ['strong', 'Fadroma V3'], ' employs WebAssembly to instantly compile, evaluate, and deploy ',
       ['strong', 'SimplicityHL smart contracts'], ' from all modern JavaScript-based environments alike:',
       ' browsers, servers, and edge services.'],
-    1: ['p.sidebox', 'Try these ', ['strong', 'SimplicityHL programs'], ' on Liquid Testnet:'],
+    1: ['p.sidebox', 'Try these ', ['strong', 'SimplicityHL programs'], ' on Liquid Testnet:', Chain()],
     2: ['p.sidebox', 'The ', ['strong', 'Simplicity transaction lifecycle'], ' happens in two phases:' ],
     3: ['p', ['span', ['strong', Dropcap('1. '), 'Commitment phase'], '. Compile program to P2TR address, and fund it on-chain:']],
     4: ['p', ['span', ['strong', Dropcap('2. '), 'Redemption phase'], '. Fulfill the program\'s conditions to redeem funds:']],
@@ -191,7 +198,7 @@ export default simf\`fn main () {
 
 function simfCompile (id) {
   return async e => {
-    simf ??= await import('../../platform/SimplicityHL/pkg/fadroma_simf.js')
+    simf ??= await import('../platform/SimplicityHL/pkg/fadroma_simf.js')
     console.log(e.target)
     const resp = await fetch('/wasm/simf.wasm');
     const wasm = await resp.bytes();

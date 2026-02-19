@@ -1,4 +1,4 @@
-import Html from '../../library/Html.ts';
+import Html from '../library/Html.ts';
 import Icon from './Icon.ts';
 
 export default Feature;

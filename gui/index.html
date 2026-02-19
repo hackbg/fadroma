@@ -6,10 +6,10 @@
     <title>Fadroma by Hack.bg</title>
     <link rel="stylesheet" href="theme.css" />
     <link rel="stylesheet" href="lib.css" />
-    <link rel="stylesheet" href="comp/Editor.css" />
-    <link rel="stylesheet" href="comp/Feature.css" />
-    <link rel="stylesheet" href="comp/Demo.css" />
-    <link rel="stylesheet" href="comp/Docs.css" />
+    <link rel="stylesheet" href="Editor.css" />
+    <link rel="stylesheet" href="Feature.css" />
+    <link rel="stylesheet" href="Demo.css" />
+    <link rel="stylesheet" href="Docs.css" />
   </head>
 
   <body>
@@ -27,7 +27,7 @@
       </nav>
 
       <nav class="col buttons" id="buttonbar">
-        <script type="module">import('./comp/Nav.ts').then(({Nav})=>Nav());</script>
+        <script type="module">import('./Nav.ts').then(({Nav})=>Nav());</script>
         <!--<button data-action="new"  class="rel"><svg class="icon"><use href="icons.svg#document"></use></svg> New</button>-->
         <!--<button style="opacity:0.5" data-action="load" class="rel"><svg class="icon"><use href="icons.svg#upload"></use></svg> Load</button>-->
         <!--<button data-action="save" class="rel"><svg class="icon"><use href="icons.svg#download"></use></svg> Save</button>-->
@@ -60,17 +60,17 @@
         <div class="grow" id="editors">
           Loading example project...
           <script type="module">
-            const init = ({ "default": x }) => x();
-            import('./comp/Editor.ts').then(init).catch(console.error);
-            import('./comp/Platform.ts').then(init).catch(console.error);
-            import('./comp/Chat.ts').then(init).catch(console.error);
+            import('./Editor.ts').then(({ "default": x }) => x()).catch(console.error);
           </script>
         </div>
 
       </div>
 
       <div id="demo" class="col gap demo align-center">
-        <script type="module">import('./comp/Demo.ts').then(({default: Demo})=>Demo());</script>
+        <script type="module">
+          import('./Chat.ts').then(({ "default": x }) => x()).catch(console.error);
+          import('./Demo.ts').then(({ "default": x }) => x()).catch(console.error);
+        </script>
         <p class="content"><strong>Watch this space:</strong> interactive peer discovery and deal-making in a familiar conversational interface will pop up here.</p>
         <div class="content row justify-center">
         <article class="demouser">
@@ -118,10 +118,11 @@
       </div>
 
       <div class="col gap content">
-        <div class="grow col">
-          <br />
-        </div>
+        <div class="grow col"><br /></div>
         <div class="features" id="features"></div>
+        <script type="module">import('./Platform.ts')
+          .then(({ "default": x }) => x())
+          .catch(console.error);</script>
       </div>
 
     </div>

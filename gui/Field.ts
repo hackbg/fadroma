@@ -1,5 +1,5 @@
-import { elById } from '../lib.ts';
-import Html from '../../library/Html.ts';
+import { elById } from './lib.ts';
+import Html from '../library/Html.ts';
 
 export default Field;
 

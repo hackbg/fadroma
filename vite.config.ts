@@ -12,6 +12,7 @@ const alias = [
   { find: 'node:fs',            replacement: relpath('gui/stub/stub_fs.ts')            },
   { find: 'node:child_process', replacement: relpath('gui/stub/stub_child_process.ts') },
   { find: 'node:net',           replacement: relpath('gui/stub/stub_net.ts')           },
+  { find: 'npm:log-update',     replacement: relpath('gui/stub/stub_log.ts')           },
   //{ find: 'node:process',       replacement: resolve(__dirname, 'stub/stub_process.ts') },
 ];
 export default defineConfig({

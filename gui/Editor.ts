@@ -3,8 +3,8 @@ import { zipSync, strToU8 as zipStr } from 'fflate';
 
 import Field from './Field.ts';
 import Simf  from './Simf.ts';
-import Html  from '../../library/Html.ts';
-import { elById, textVal, download } from '../lib.ts';
+import Html  from '../library/Html.ts';
+import { elById, textVal, download } from './lib.ts';
 
 export default Editor;
 

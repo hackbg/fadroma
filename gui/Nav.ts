@@ -1,4 +1,4 @@
-import { on, elById } from '../lib.ts';
+import { on, elById } from './lib.ts';
 import { loadDocs } from './Docs.ts';
 import Editor from './Editor.ts';
 

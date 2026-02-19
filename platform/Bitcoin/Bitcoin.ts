@@ -11,7 +11,7 @@ type Bitcoin = Run.Daemon & Bitcoin.Connect & { verbose?: boolean };
 /** Launch Bitcoin node. */
 async function Bitcoin <T> (options: Partial<Bitcoin.Options> = {}): Promise<Fn.Async<T>> {
   const { daemon = 'elementsd', debug = console.debug } = options;
-  const args = Bitcoin.Options(options);
+  const args = await Bitcoin.Options(options);
   const spawn = Run.Spawn(daemon, ...args.filter(Boolean));
   debug('Spawning:', [spawn.daemon, ...spawn.options].join(' '));
   const btc = await spawn();
@@ -24,7 +24,7 @@ namespace Bitcoin {
   /** Bitcoin daemon options. */
   export type Options = Parameters<typeof Options>[0];
   /** Parse [Options] to list of command-line arguments: */
-  export function Options ({
+  export async function Options ({
     debug = console.debug,
     //log   = console.log,
 
