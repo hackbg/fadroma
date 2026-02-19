@@ -1,6 +1,7 @@
 import Fn from '../../library/Fn.ts';
 import Run from '../../library/Run.ts';
 import Http from '../../library/Http.ts';
+import { Log } from '../../library/Log.ts';
 import { Port } from '../../library/Port.ts';
 import { Temp } from '../../library/Fs.ts';
 import { Num, Base16 } from '../../library/Number.ts';
@@ -9,13 +10,12 @@ export default Bitcoin;
 /** A Bitcoin or Elements daemon. */
 type Bitcoin = Run.Daemon & Bitcoin.Connect & { verbose?: boolean };
 /** Launch Bitcoin node. */
-async function Bitcoin <T> (options: Partial<Bitcoin.Options> = {}): Promise<Fn.Async<T>> {
+async function Bitcoin <T> (options: Partial<Log & Bitcoin.Options> = {}): Promise<Fn.Async<T>> {
   const { daemon = 'elementsd', debug = console.debug } = options;
-  const args = await Bitcoin.Options(options);
+  const { url, rpcport, args } = await Bitcoin.Options(options);
   const spawn = Run.Spawn(daemon, ...args.filter(Boolean));
   debug('Spawning:', [spawn.daemon, ...spawn.options].join(' '));
   const btc = await spawn();
-  const url = `http://${rpcuser}:${rpcpassword}@${rpcallowip}:${rpcport}`;
   await Port.Wait({ port: rpcport })();
   return Object.assign(btc, Bitcoin.Connect(url));
 }
@@ -25,9 +25,6 @@ namespace Bitcoin {
   export type Options = Parameters<typeof Options>[0];
   /** Parse [Options] to list of command-line arguments: */
   export async function Options ({
-    debug = console.debug,
-    //log   = console.log,
-
     acceptnonstdtxn             = null             as boolean,
     anyonecanspendaremine       = null             as boolean,
     bech32_hrp                  = null             as string,
@@ -62,7 +59,8 @@ namespace Bitcoin {
     validatepegin               = null             as boolean,
     vbparams                    = null             as string,
   } = {}) {
-    return [
+    const url = `http://${rpcuser}:${rpcpassword}@${rpcallowip}:${rpcport}`;
+    const args = [
       (acceptnonstdtxn             !== null) && `-acceptnonstdtxn=${bool(acceptnonstdtxn)}`,
       (anyonecanspendaremine       !== null) && `-anyonecanspendaremine=${bool(anyonecanspendaremine)}`,
       (bech32_hrp                  !== null) && `-bech32_hrp=${bech32_hrp}`,
@@ -96,7 +94,8 @@ namespace Bitcoin {
       (validatepegin               !== null) && `-validatepegin=${validatepegin}`,
       (vbparams                    !== null) && `-vbparams=${vbparams}`,
       //'-debug=rpc', //'-debug=zmq',
-    ]
+    ];
+    return { url, rpcport, args }
   }
 
   // Helper for boolean arguments

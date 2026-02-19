@@ -7,11 +7,11 @@ export async function Nav () {
   on(elById("navbar"), "click", navigate);
   on(document.body, "click", ({ target }) => {
     while (target !== document.body) {
-      console.log(...target.classList)
+      //console.log(...target.classList)
       if (target.classList.contains('scroll-to')) {
         const y = target.offsetTop - 100;
         if (window.scrollY < y) scrollTo(Math.max(0, y));
-        console.log(target.offsetHeight, target.offsetTop, window.innerHeight, window.scrollY);
+        //console.log(target.offsetHeight, target.offsetTop, window.innerHeight, window.scrollY);
         break;
       }
       target = target.parentElement
