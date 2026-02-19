@@ -1,4 +1,5 @@
 import Html from '../library/Html.ts';
+import { Base16 } from '../library/Number.ts';
 import { Wasm } from '../platform/SimplicityHL/SimplicityHL.ts';
 import { pubECDSA } from 'npm:@scure/btc-signer/utils.js'; // not already in keypair?
 
@@ -26,12 +27,11 @@ async function Demo ({
 namespace Demo {
 
   export async function User (name: string, {
-    secret  = new Uint8Array(Array(32).fill(1)),
-    keypair = SimplicityHL.Keypair(secret),
-    pubkey  = pubECDSA(secret),
+    secret = new Uint8Array(Array(32).fill(1)),
+    signer = keypair(secret),
+    pubkey = Base16.encode(pubECDSA(secret)),
   } = {}) {
-    keypair = await keypair;
-    console.log({ name, pubkey });
+    console.log({ name, signer, pubkey });
     return ['article.demouser',
       ['section.demometa', ['strong.demoname', name], ['strong', '1.00000000 tLBTC'], 'at tex1p9sv7g8tyljjymz4t6zyjpvepw4...'],
       ['div.demolog', 'Enter Bob, Carol.'],

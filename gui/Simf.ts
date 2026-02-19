@@ -105,10 +105,10 @@ namespace Simf {
   const ProgramForm = (name: string|unknown[], ...rest: unknown[]) =>
     ['div.program-form.col.grow', ['div.title', name], ...rest];
   const CompileTitle = ['span',
-    ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, '1A. '], 'Obtain P2TR'],
+    ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'A1. '], 'Obtain P2TR'],
     ' by compiling the program:'];
   const FundTitle = ['span',
-    ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, '1B. '], 'Transfer funds'],
+    ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'A2. '], 'Transfer funds'],
     ' to the P2TR address:'];
   export const CompileForm = () => ['div.row.gap.grow',
     ProgramForm(CompileTitle,
@@ -122,10 +122,10 @@ namespace Simf {
       ['label', ['strong', 'Transaction 1:'], ['button', 'Commit']]),
   ];
   const WitnessTitle = ['span',
-    ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, '2A. '], 'Obtain SIGHASH_ALL'],
-    ' of redeem transaction:'];
+    ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'B1. '], 'Specify transaction'],
+    ' to obtain SIGHASH_ALL:'];
   const RedeemTitle = ['span',
-    ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, '2B. '], 'Redeem funds'],
+    ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'B2. '], 'Redeem funds'],
     ' by sending valid signatures:'];
   export const RedeemForm = () => ['div.row.gap.grow',
     ProgramForm(WitnessTitle,
@@ -194,8 +194,8 @@ namespace Simf {
        , ['div.grow', 'Try these ', ['strong', 'SimplicityHL programs'], ' on ', ['a', { href: '#' }, 'Liquid Testnet:'], ' ']
        , Chain()],
     2: ['p.sidebox', 'The ', ['strong', 'Simplicity transaction lifecycle'], ' happens in two phases:' ],
-    3: ['p', ['span', ['strong', Dropcap('1. '), 'Commitment phase'], '. Compile program to P2TR address, and fund it on-chain:']],
-    4: ['p', ['span', ['strong', Dropcap('2. '), 'Redemption phase'], '. Fulfill the program\'s conditions to redeem funds:']],
+    3: ['p', ['span', ['strong', Dropcap('A. '), 'Commitment phase'], '. Compile program to P2TR address, and fund it on-chain:']],
+    4: ['p', ['span', ['strong', Dropcap('B. '), 'Redemption phase'], '. Fulfill the program\'s conditions to redeem funds:']],
     5: ['p.sidebox', 'Here you can ', ['strong', 'download an example project'], ' containing the above programs.'],
     //['p.smol', ['strong', 'Local dev dependencies'], ' can be provided by Nix and Direnv (or bring your own Deno, Just and Elements.).'],
     //ES.DenoJsonField(deno),
