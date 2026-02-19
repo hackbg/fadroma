@@ -9,6 +9,14 @@
   padding: 2rem 3rem;
 
   .demouser {
+    .address {
+      font-family: monospace;
+      background: #0003;
+      padding: 0.5rem 0.75rem 0.325rem;
+      border-top: 1px solid #fff3;
+      border-bottom: 1px solid #fff3;
+      margin: 0 -0.25rem;
+    }
     flex-grow: 1;
     color: #ffff;
     background: linear-gradient(to bottom, #bbb4 50%, #4544);
@@ -63,6 +71,9 @@
       justify-content: center;
       color: #222;
       margin-bottom: -0.33rem;
+    }
+    input.chat {
+      width: 5rem
     }
   }
 

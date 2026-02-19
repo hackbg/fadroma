@@ -119,7 +119,7 @@ namespace Simf {
     ProgramForm(FundTitle,
       ['label', ['strong', 'Sender:'], ['select', ['option', 'Alice']]],
       ['label', ['strong', 'Amount:'], ['input']],
-      ['label', ['strong', 'Transaction 1:'], ['button', 'Commit']]),
+      ['label', ['strong', 'Transaction A:'], ['button', 'Commit']]),
   ];
   const WitnessTitle = ['span',
     ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'B1. '], 'Specify transaction'],
@@ -135,7 +135,7 @@ namespace Simf {
     ProgramForm(RedeemTitle,
       ['label', ['em', 'witness::SIG'],            ['select', ['option', 'Carol']], ['input']],
       ['label', ['strong', 'Transaction bytes:'],  ['input']],
-      ['label', ['strong', 'Transaction 2:'], ['button', 'Redeem',]])
+      ['label', ['strong', 'Transaction B:'], ['button', 'Redeem',]])
   ];
   export const OracleForm = () => Witness("oracle.wit", 
     WitnessRow('u32', 'ORACLE_HEIGHT', '1000'),
