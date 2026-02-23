@@ -6,23 +6,35 @@ export default P2P;
 
 async function P2P ({
   room      = 'fadroma',
+  name      = 'unnamed',
   driver    = new P2P.NatsDriver(),
   receiver  = new Receiver({ driver }),
   sender    = new Sender({ driver }),
   root      = document.getElementById('demo'),
-  onConnect = (e) => { console.debug('connect', e); root.innerHTML += JSON.stringify(e); },
-  onDispose = (e) => { console.debug('dispose', e); root.innerHTML += JSON.stringify(e); },
-  onMessage = (e) => { console.debug('message', e); root.innerHTML += JSON.stringify(e); },
-  onStream  = (e) => { console.log('stream', e); },
+  onConnect = (e: unknown) => { console.debug('connect', e); root.innerText += JSON.stringify([e.name, e.detail]); },
+  onDispose = (e: unknown) => { console.debug('dispose', e); root.innerText += JSON.stringify([e.name, e.detail]); },
+  onMessage = (e: unknown) => { console.debug('message', e); root.innerText += JSON.stringify([e.name, e.detail]); },
+  onStream  = (e: unknown) => { console.log('stream', e); },
 } = {}): Promise<P2P> {
   await driver.open(room);
   receiver.start({ room });
-  receiver.addEventListener('connect',         onConnect);
-  receiver.addEventListener('dispose',         onDispose);
-  receiver.addEventListener('stream',          onStream);
+  receiver.addEventListener('stream',  onStream);
+  receiver.addEventListener('connect', onConnect);
+  receiver.addEventListener('dispose', onDispose);
   receiver.addEventListener('channel:message', onMessage);
-  const context = { room, driver, receiver, sender };
+  sender.start({ room, channels: { chat: { ordered: true }, }, metadata: { pid: `${+ new Date()}`, nickname: name }, });
+  const context = { room, driver, receiver, sender, send };
   return context;
+  function send (message: unknown) {
+    console.log('send', name, message, sender.connections);
+    sender.connections.forEach((conn) => {
+      console.log('send', name, message, conn);
+      const channel = conn.channels.get('chat');
+      if (channel && channel.readyState === 'open') {
+        channel.send({ name, message });
+      }
+    });
+  }
 }
 
 interface P2P {
