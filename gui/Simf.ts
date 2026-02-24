@@ -3,6 +3,7 @@ import Command from './Command.ts';
 import Chain   from './Chain.ts';
 import ES      from './ES.ts';
 import Field   from './Field.ts';
+import Html    from '../library/Html.ts';
 import Icon    from './Icon.ts';
 import Input   from './Input.ts';
 import Nix     from './Nix.ts';
@@ -14,20 +15,22 @@ export default Simf;
 
 function Simf ({ nix, btc, simf, elements, direnv, deno, node }) {
   const { Info, Programs, CompileForm, RedeemForm, Metadata, Readme } = Simf;
-  return ['div.col.gap',
-    ['section.layer',          Info[0]],
-    ['section.layer.programs', Info[1], ['div.col.grow.files.gap', ...Programs()]],
-    ['section.layer.actions',  Info[2], ['div.col.grow.gap',
-      ['section',              Info[3], CompileForm()],
-      ['section',              Info[4], RedeemForm()]]],
-    ['section.layer.project',  Info[5], ['div.col.grow.files.gap',
-      Metadata(),
-      Readme(),
-      Field.Text("Justfile", "TODO"),
-      ES.TestSuite({ deno, node, btc }),
-      ES.DenoJson({ deno }),
-      Nix({ nix, btc, simf, elements }),
-      direnv && Field.Text(".envrc", "use nix")]]];
+  return {
+    view: () => Html(['div.col.gap',
+      ['section.layer',          Info[0]],
+      ['section.layer.programs', Info[1], ['div.col.grow.files.gap', ...Programs()]],
+      ['section.layer.actions',  Info[2], ['div.col.grow.gap',
+        ['section',              Info[3], CompileForm()],
+        ['section',              Info[4], RedeemForm()]]],
+      ['section.layer.project',  Info[5], ['div.col.grow.files.gap',
+        Metadata(),
+        Readme(),
+        Field.Text("Justfile", "TODO"),
+        ES.TestSuite({ deno, node, btc }),
+        ES.DenoJson({ deno }),
+        Nix({ nix, btc, simf, elements }),
+        direnv && Field.Text(".envrc", "use nix")]]])
+  };
 }
 
 namespace Simf {
@@ -110,32 +113,32 @@ namespace Simf {
   const FundTitle = ['span',
     ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'A2. '], 'Send funds'],
     ' to the P2TR address:'];
-  export const CompileForm = () => ['div.row.gap.grow',
-    ProgramForm(CompileTitle,
-      ['label', ['strong', 'Chain:'],     ['select', ['option', 'liquidtestnet']]],
-      ['label', ['strong', 'Program:'],   ['select', ['option', 'P2PK']]],
-      ['label', ['em', 'param::', 'PUB'], ['select', ['option', 'Alice']], ['input'], ],
-      ['label', ['strong', 'Program address:'],  ['button', 'Compile',]]),
-    ProgramForm(FundTitle,
-      ['label', ['strong', 'Sender:'], ['select', ['option', 'Alice']]],
-      ['label', ['strong', 'Amount:'], ['input']],
-      ['label', ['strong', 'Transaction A:'], ['button', 'Commit']]),
-  ];
   const WitnessTitle = ['span',
     ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'B1. '], 'Specify transaction'],
     ' to obtain SIGHASH_ALL:'];
   const RedeemTitle = ['span',
     ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'B2. '], 'Receive funds'],
     ' by sending valid signatures:'];
+  export const CompileForm = () => ['div.row.gap.grow',
+    ProgramForm(CompileTitle,
+      ['label', ['strong', 'Chain:'],           ['select.pick-chain',   ['option', 'liquidtestnet']]],
+      ['label', ['strong', 'Program:'],         ['select.pick-program', ['option', 'P2PK']]],
+      ['label', ['em', 'param::', 'PUB'],       ['div.row.gap', ['select.pick-user'], ['input']], ],
+      ['label', ['strong', 'Program address:'], ['button', 'Compile',]]),
+    ProgramForm(FundTitle,
+      ['label', ['strong', 'Sender:'],          ['select.pick-user', ['option', 'Alice']]],
+      ['label', ['strong', 'Amount (sats):'],   ['input[type="number"]', { value: '2345' }]],
+      ['label', ['strong', 'Commit TX:'],       ['button', 'Commit']]),
+  ];
   export const RedeemForm = () => ['div.row.gap.grow',
     ProgramForm(WitnessTitle,
-      ['label', ['strong', 'Recipient:'], ['select', ['option', 'Bob']]],
-      ['label', ['strong', 'Amount:'],    ['input']],
-      ['label', ['strong', 'Sign hash:'], ['input']]),
+      ['label', ['strong', 'Recipient:'],       ['select.pick-user']],
+      ['label', ['strong', 'Amount (sats):'],   ['input[type="number"]', { value: '1234' }]],
+      ['label', ['strong', 'Sign hash:'],       ['input']]),
     ProgramForm(RedeemTitle,
-      ['label', ['em', 'witness::SIG'],            ['select', ['option', 'Carol']], ['input']],
-      ['label', ['strong', 'Transaction bytes:'],  ['input']],
-      ['label', ['strong', 'Transaction B:'], ['button', 'Redeem',]])
+      ['label', ['em', 'witness::SIG'],         ['div.row.gap', ['select.pick-user'], ['input']]],
+      ['label', ['strong', 'TX bytes:'],        ['input']],
+      ['label', ['strong', 'Redeem TX:'],       ['button', 'Redeem',]])
   ];
   export const OracleForm = () => Witness("oracle.wit", 
     WitnessRow('u32', 'ORACLE_HEIGHT', '1000'),

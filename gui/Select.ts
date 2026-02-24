@@ -8,4 +8,8 @@ namespace Select {
     ['option', 'GPL 3.0 or later'],
     ['option', 'GPL 3.0 only'],
     ['option', 'Closed source (inquire)']];
+
+  export const Pubkey = () => {}
+
+  export const Signer = () => {}
 }

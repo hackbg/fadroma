@@ -9,19 +9,19 @@ import { elById, textVal, download } from './lib.ts';
 export default Editor;
 
 function Editor (el = elById("editors"), {
-  btc     = true,
-  element = true,
-  simf    = true,
-  nix     = true,
-  direnv  = true,
-  node    = true,
-  deno    = true,
+  btc      = true,
+  elements = true,
+  simf     = true,
+  nix      = true,
+  direnv   = true,
+  node     = true,
+  deno     = true,
   //vite =    false,
 } = {}) {
   el.innerHTML = '';
   setTimeout(()=>initEditor(el), 1);
   Html.append(el, Html(['div.box.editors.col.grow.gap.justify-between',
-    Simf({ nix, btc, simf, element, direnv, deno, node })]));
+    Simf({ nix, btc, simf, elements, direnv, deno, node }).view()]));
   return el
 }
 

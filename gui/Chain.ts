@@ -4,7 +4,7 @@ let chain = null;
 export default function Chain () {
   const el = Html(['button.chain', chain ? 'Connecting...' : 'Connected!']);
   chain ??= Bitcoin.LiquidTestnet();
-  console.log(chain);
+  console.debug('Chain:', chain);
   chain.rpc.getbestblockhash().then(console.log).catch(console.error);
   el.firstChild.innerText = 'Connected!';
   return el
