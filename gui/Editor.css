@@ -288,3 +288,10 @@
   padding: 0 0.5rem; font-weight: 600
 }
 
+.phase {
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.phase-form {
+  gap: 1rem;
+}
