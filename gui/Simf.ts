@@ -1,18 +1,13 @@
+import { Button, Field, Icon, Input, Select } from './Componen.ts';
+import { p2wpkh as P2WPKH } from 'npm:@scure/btc-signer';
+import { pubECDSA } from 'npm:@scure/btc-signer/utils.js'; // not already in keypair?
 import { Arg } from '../platform/SimplicityHL/SimplicityHL.ts';
 import { Base16 } from '../library/Number.ts';
 import Bitcoin from '../platform/Bitcoin/Bitcoin.ts';
-import Button  from './Button.ts';
 import ES      from './ES.ts';
-import Field   from './Field.ts';
 import Html    from '../library/Html.ts';
-import Icon    from './Icon.ts';
-import Input   from './Input.ts';
 import Nix     from './Nix.ts';
-import Select  from './Select.ts';
-
-import { p2wpkh as P2WPKH } from 'npm:@scure/btc-signer';
-import { pubECDSA } from 'npm:@scure/btc-signer/utils.js'; // not already in keypair?
-import Wasm from './Wasm.ts';
+import Wasm    from './Wasm.ts';
 
 let chain = null; // Chain handle (initialized once)
 let simf  = null; // WASM handle (initialized once)
@@ -40,18 +35,20 @@ function Simf ({
         Simf.HodlVault.wrapped()]],
       ['section.layer.actions',  Simf.Info[2], ['div.col.grow.gap',
         ['section', Simf.Info[3], ['div.row.gap.grow',
-          Simf.ProgramForm(Simf.CompileTitle, Select.Chain(),
+          Simf.ProgramForm('simf-compile', Simf.CompileTitle, Select.Chain(),
             Select.Program(),
             Select.Pubkey({ name: 'param::PUB' }).view,
             Button.Compile().view),
-          Simf.ProgramForm(Simf.FundTitle, Select.Sender().view,
-            ['label.row.gap', ['strong.grow', 'Amount:'],   ['input.balance.grow[type="number"]', { value: '2345' }], ' sats'],
+          Simf.ProgramForm('simf-commit', Simf.FundTitle, Select.Sender().view,
+            ['label.row.gap', ['strong.grow', 'Amount:'],   ['input.balance[type="number"]', { value: '2345' }]],
             Button.Commit().view)]],
         ['section', Simf.Info[4], ['div.row.gap.grow',
-          Simf.ProgramForm(Simf.WitnessTitle, Select.Recipient(),
-            ['label', ['strong', 'Amount:'],   ['input[type="number"]', { value: '1234' }], ' sats'],
+          Simf.ProgramForm('simf-witness', Simf.WitnessTitle,
+            Input.Balance(),
+            Select.Recipient(),
+            ['label', ['strong', 'Amount:'],   ['input[type="number"]', { value: '1234' }]],
             ['label', ['strong', 'Sign hash:'],       ['input']]),
-          Simf.ProgramForm(Simf.RedeemTitle, Select.Signer({ name: 'witness::SIG' }).view,
+          Simf.ProgramForm('simf-redeem', Simf.RedeemTitle, Select.Signer({ name: 'witness::SIG' }).view,
             ['label', ['strong', 'TX bytes:'],        ['input']],
             ['label', ['strong', 'Redeem TX:'],       ['button', 'Redeem',]])]]]],
       ['section.layer.project',  Simf.Info[5], ['div.col.grow.files.gap',
@@ -67,16 +64,6 @@ function Simf ({
 }
 
 namespace Simf {
-
-  export const Programs = () => [
-  ];
-
-  const SimfTS = (source: string, param = {}, witness = {}) =>
-    `#!/usr/bin/env -S deno run -P default\nimport { SimplicityHL } from 'fadroma';\n`      +
-    `export default await SimplicityHL.Program('${source}', {\n`                                  +
-    `  param:   ${JSON.stringify(param).split('\n').map(x=>'  '+x).join('\n').trim()},\n`   +
-    `  witness: ${JSON.stringify(witness).split('\n').map(x=>'  '+x).join('\n').trim()},\n` +
-    `  cli:     import.meta\n})`;
 
   export namespace P2PK {
     export const wrapped = () => ES("src/P2PK.simf.ts", SimfTS(source,
@@ -122,6 +109,13 @@ namespace Simf {
 }\``
   }
 
+  const SimfTS = (source: string, param = {}, witness = {}) =>
+    `#!/usr/bin/env -S deno run -P default\nimport { SimplicityHL } from 'fadroma';\n`      +
+    `export default await SimplicityHL.Program('${source}', {\n`                                  +
+    `  param:   ${JSON.stringify(param).split('\n').map(x=>'  '+x).join('\n').trim()},\n`   +
+    `  witness: ${JSON.stringify(witness).split('\n').map(x=>'  '+x).join('\n').trim()},\n` +
+    `  cli:     import.meta\n})`;
+
   export const Program = (id: string, ...content: string[]) => Field(id)
     .header(Button.Command('play', 'Compile', { onclick: simfCompile(id) }))
     .header(Button.Command('circle-with-plus', 'Define'))
@@ -135,8 +129,9 @@ namespace Simf {
         ['a.help', { target: 'blank', title: 'Witness signing hash', href: "#" }, Icon('help')]])
     .build();
 
-  export const ProgramForm = (name: string|unknown[], ...rest: unknown[]) =>
-    ['div.program-form.col.grow', ['div.title', name], ...rest];
+  export const ProgramForm = (id, name: string|unknown[], ...rest: unknown[]) =>
+    [`div.program-form.col.grow#${id}`, ['div.title', name], ...rest];
+
   export const CompileTitle = ['span',
     ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'A1. '], 'Obtain P2TR'],
     ' by compiling the program:'];

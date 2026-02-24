@@ -1,10 +1,9 @@
+import Html  from '../library/Html.ts';
+import Simf  from './Simf.ts';
 import * as Monaco from 'monaco-editor';
 import { zipSync, strToU8 as zipStr } from 'fflate';
-
-import Field from './Field.ts';
-import Simf  from './Simf.ts';
-import Html  from '../library/Html.ts';
 import { elById, textVal, download } from './lib.ts';
+import { Field } from './Componen.ts';
 
 export default Editor;
 

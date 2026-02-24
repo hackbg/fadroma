@@ -65,6 +65,7 @@
   label {
     padding: 1px 0.5rem;
     display: flex; flex-flow: row nowrap; justify-content: space-between; align-items: center;
+    label { padding: 0; margin: 0 }
     strong { min-width: 6rem; display: inline-block }
     em { min-width: 3rem; display: inline-block }
   }

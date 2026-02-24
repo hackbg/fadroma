@@ -1,4 +1,4 @@
-import Field from './Field.ts';
+import { Field } from './Componen.ts';
 
 export default ({ nix, btc, simf, elements }) => nix && Field.Text("shell.nix",
   `#!/usr/bin/env nix-shell`,

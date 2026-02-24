@@ -1,4 +1,4 @@
-import Field from './Field.ts';
+import { Field } from './Componen.ts';
 
 export default ES;
 
