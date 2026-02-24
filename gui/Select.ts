@@ -68,6 +68,6 @@ namespace Select {
 
   export const Chain     = () => ['label', ['strong', 'Chain:'],     ['select.pick-chain',   ['option', 'liquidtestnet']]];
   export const Program   = () => ['label', ['strong', 'Program:'],   ['select.pick-program', ['option', 'P2PK']]];
-  export const Sender    = () => ['label', ['strong', 'Sender:'],    ['select.pick-user',    ['option', 'Alice']]]; 
+  export const Sender    = () => ['label', ['strong', 'Sender:'],    ['select.pick-user#select-sender',    ['option', 'Alice']]]; 
   export const Recipient = () => ['label', ['strong', 'Recipient:'], ['select.pick-user']]
 }

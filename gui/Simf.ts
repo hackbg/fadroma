@@ -1,4 +1,5 @@
 import { Arg } from '../platform/SimplicityHL/SimplicityHL.ts';
+import { Base16 } from '../library/Number.ts';
 import Bitcoin from '../platform/Bitcoin/Bitcoin.ts';
 import Button  from './Button.ts';
 import ES      from './ES.ts';
@@ -15,7 +16,8 @@ import Wasm from './Wasm.ts';
 
 let chain = null; // Chain handle (initialized once)
 let simf  = null; // WASM handle (initialized once)
-const users = {}; // List of demo users
+export const usersByName   = {};
+export const usersByPubkey = {};
 
 const nonSecret = (n: number) => new Uint8Array(new Array(32).fill(n));
 
@@ -256,9 +258,21 @@ namespace Simf {
     for (const select of Select.findUserPickers()) Select.initUserPicker(select, users);
   }
 
-  export function addUser (name, options) {
-    if (users[name]) throw new Error(`user already exists: ${name}`);
-    return users[name] = User(name, options);
+  export function addUser (name, options): User {
+    if (usersByName[name]) throw new Error(`user already exists: ${name}`);
+    const user = User(name, options)
+    const pubkey = Base16.encode(user.pubkey)
+    if (usersByPubkey[pubkey]) throw new Error(`pubkey already exists: ${name}: ${pubkey}`)
+    usersByName[name] = user;
+    usersByPubkey[pubkey] = user;
+    return user;
+  }
+
+  export interface User {
+    pubkey
+    pubkeyX
+    p2wpkh
+    view
   }
 
   export function User (name: string, {
@@ -266,14 +280,15 @@ namespace Simf {
     signer   = Wasm.keypair(secret),
     pubkey   = pubECDSA(secret),
     pubkeyX  = signer.xOnlyPublicKey(),
-    chain    = { bech32: 'ert', pubKeyHash: 0x6f, scriptHash: 0xc4, wif: 0xef, },
+    //chain    = { bech32: 'ert', pubKeyHash: 0x6f, scriptHash: 0xc4, wif: 0xef, },
+    chain    = { bech32: 'tex', blech32: 'tlq', pubKeyHash: 36, scriptHash: 19, wif: 0xef, },
     p2wpkh   = P2WPKH(pubkey, chain).address,
     output   = Html(['div.demolog', 'Enter Bob, Carol.']),
     //p2p      = P2P({ name, root: output }),
     balance  = '1.00000000 tLBTC',
     toolbar  = Html(['section.demoprogs', ['button.pill', 'Send'], ['button.pill', 'P2PK'], ['button.pill', 'Vault'], ['button.pill', 'Escrow'], ['input.chat', { placeholder: 'chat' }], ['button.pill', 'Say']]),
     identity = Html(['section.demometa', ['div.col.gap', ['div.row.gap.align-center', ['strong.demoname', name], ['strong', balance]]]]),
-  } = {}) {
+  } = {}): User {
     return {
       name,
       signer,
