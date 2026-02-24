@@ -380,6 +380,7 @@ namespace Bitcoin {
     getBlockTipHash:   Fn
     getTxInfo:         Fn
     getAddressInfo:    Fn
+    getAddressUtxos:   (address: string) => Promise<Array<{ txid, asset, value }>>
     postTx:            Fn
   }
 
@@ -388,6 +389,7 @@ namespace Bitcoin {
       getBlockTipHeight: () => Http.fetchText(`${url}/blocks/tip/height`),
       getBlockTipHash:   () => Http.fetchText(`${url}/blocks/tip/hash`),
       getAddressInfo:  (ad) => Http.fetchJson(`${url}/address/${ad}`),
+      getAddressUtxos: (ad) => Http.fetchJson(`${url}/address/${ad}/utxo`),
       getTxInfo:       (id) => Http.fetchJson(`${url}/tx/${id}`),
       postTx:          (tx) => Http.postBinary(`${url}/tx`, tx),
     }

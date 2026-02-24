@@ -228,7 +228,6 @@ namespace Http {
   /** Fetch textual response of HTTP request and parse it as JSON. */
   export async function fetchJson (url: string|URL, method = 'GET', body?: BodyInit) {
     const text = await fetchText(url, method, body);
-    console.log({text});
     return JSON.parse(text)
   }
   /** Fetch textual response of HTTP request and parse it as JSON. */

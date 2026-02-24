@@ -44,12 +44,12 @@ function Simf ({
             Select.Program(),
             Select.Pubkey({ name: 'param::PUB' }).view,
             Button.Compile().view),
-          Simf.ProgramForm(Simf.FundTitle, Select.Sender(),
-            ['label', ['strong', 'Amount (sats):'],   ['input[type="number"]', { value: '2345' }]],
+          Simf.ProgramForm(Simf.FundTitle, Select.Sender().view,
+            ['label.row.gap', ['strong.grow', 'Amount:'],   ['input.balance.grow[type="number"]', { value: '2345' }], ' sats'],
             Button.Commit().view)]],
         ['section', Simf.Info[4], ['div.row.gap.grow',
           Simf.ProgramForm(Simf.WitnessTitle, Select.Recipient(),
-            ['label', ['strong', 'Amount (sats):'],   ['input[type="number"]', { value: '1234' }]],
+            ['label', ['strong', 'Amount:'],   ['input[type="number"]', { value: '1234' }], ' sats'],
             ['label', ['strong', 'Sign hash:'],       ['input']]),
           Simf.ProgramForm(Simf.RedeemTitle, Select.Signer({ name: 'witness::SIG' }).view,
             ['label', ['strong', 'TX bytes:'],        ['input']],
@@ -285,10 +285,11 @@ namespace Simf {
     p2wpkh   = P2WPKH(pubkey, chain).address,
     output   = Html(['div.demolog', 'Enter Bob, Carol.']),
     //p2p      = P2P({ name, root: output }),
-    balance  = '1.00000000 tLBTC',
+    balance  = Html(['span.balance', 'Loading balance...']).firstChild,
     toolbar  = Html(['section.demoprogs', ['button.pill', 'Send'], ['button.pill', 'P2PK'], ['button.pill', 'Vault'], ['button.pill', 'Escrow'], ['input.chat', { placeholder: 'chat' }], ['button.pill', 'Say']]),
     identity = Html(['section.demometa', ['div.col.gap', ['div.row.gap.align-center', ['strong.demoname', name], ['strong', balance]]]]),
   } = {}): User {
+    Bitcoin.LiquidTestnet().esplora
     return {
       name,
       signer,

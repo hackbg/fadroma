@@ -46,8 +46,8 @@ namespace Button {
       const { usersByPubkey } = await import('./Simf.ts');
       const sender = usersByPubkey[pubkey];
       if (!sender) throw new Error(`not our pubkey: ${sender}`);
-      console.log(chain, sender);
-      console.log(await chain().esplora.getAddressInfo(sender.p2wpkh));
+      const utxos = await chain().esplora.getAddressUtxos(sender.p2wpkh) as unknown[];
+      if (utxos.length < 1) throw new Error(`fund the address first: ${sender.p2wpkh}`)
     }
   }
 
