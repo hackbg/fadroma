@@ -23,9 +23,9 @@ function Editor ({
 } = {}) {
   editorView.innerHTML = '';
   Html.append(editorView, Html(['div.box.editors.col.grow.gap.justify-between',
-    Simf({ nix, btc, simf, elements, direnv, deno, node }).view()]));
+    Simf({ nix, btc, simf, elements, direnv, deno, node }).view]));
   setTimeout(()=>initEditor(editorView), 1);
-  Simf.Users(usersView);
+  Simf.Users({ view: usersView });
   return {
     editorView,
     usersView

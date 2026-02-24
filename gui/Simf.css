@@ -46,13 +46,14 @@
   padding-bottom: 0.5rem;
   gap: 0.33rem;
   input, select, button {
-    &:last-child {
-      min-width: 16rem;
-    }
     color: #fff;
     text-shadow: 0 1px 0 #0002;
     background: #0004;
     font-size: 1.15rem;
+    &[disabled] { opacity: 0.8 }
+    &:last-child {
+      min-width: 16rem;
+    }
     &:hover {
       background: #0005;
     }

@@ -1,6 +1,6 @@
 import { Arg } from '../platform/SimplicityHL/SimplicityHL.ts';
 import Bitcoin from '../platform/Bitcoin/Bitcoin.ts';
-import Command from './Command.ts';
+import Button  from './Button.ts';
 import ES      from './ES.ts';
 import Field   from './Field.ts';
 import Html    from '../library/Html.ts';
@@ -21,24 +21,31 @@ const nonSecret = (n: number) => new Uint8Array(new Array(32).fill(n));
 
 export default Simf;
 
-function Simf ({ nix, btc, simf, elements, direnv, deno, node }) {
-  const { Info, Programs, CompileForm, RedeemForm, Metadata, Readme } = Simf;
-  return {
-    view: () => Html(['div.col.gap',
-      ['section.layer',          Info[0]],
-      ['section.layer.programs', Info[1], ['div.col.grow.files.gap', ...Programs()]],
-      ['section.layer.actions',  Info[2], ['div.col.grow.gap',
-        ['section',              Info[3], CompileForm()],
-        ['section',              Info[4], RedeemForm()]]],
-      ['section.layer.project',  Info[5], ['div.col.grow.files.gap',
-        Metadata(),
-        Readme(),
+function Simf ({
+  nix       = true,
+  btc       = true,
+  simf      = true,
+  elements  = true,
+  direnv    = true,
+  deno      = true,
+  node      = false,
+  view = Html(
+    ['div.col.gap',
+      ['section.layer',          Simf.Info[0]],
+      ['section.layer.programs', Simf.Info[1], ['div.col.grow.files.gap', ...Simf.Programs()]],
+      ['section.layer.actions',  Simf.Info[2], ['div.col.grow.gap',
+        ['section',              Simf.Info[3], Simf.CompileForm()],
+        ['section',              Simf.Info[4], Simf.RedeemForm()]]],
+      ['section.layer.project',  Simf.Info[5], ['div.col.grow.files.gap',
+        Simf.Metadata(),
+        Simf.Readme(),
         Field.Text("Justfile", "TODO"),
         ES.TestSuite({ deno, node, btc }),
         ES.DenoJson({ deno }),
         Nix({ nix, btc, simf, elements }),
         direnv && Field.Text(".envrc", "use nix")]]])
-  };
+} = {}) {
+  return { view }
 }
 
 namespace Simf {
@@ -101,8 +108,8 @@ namespace Simf {
   }
 
   export const Program = (id: string, ...content: string[]) => Field(id)
-    .header(Command('play', 'Compile', { onclick: simfCompile(id) }))
-    .header(Command('circle-with-plus', 'Define'))
+    .header(Button.Command('play', 'Compile', { onclick: simfCompile(id) }))
+    .header(Button.Command('circle-with-plus', 'Define'))
     .content(Field.TextArea(id, ...content))
     .content([`div.row#result:${id}`, ['div.grow']])
     .content([`div.row.simf-result`, ['strong', `P2TR: `],
@@ -129,8 +136,9 @@ namespace Simf {
     ' by sending valid signatures:'];
   export const CompileForm = () => ['div.row.gap.grow',
     ProgramForm(CompileTitle, Select.Chain(),
-      Select.Program(), Select.Pubkey({ name: 'param::PUB' }).view,
-      ['label', ['strong', 'Program address:'], ['button', 'Compile',]]),
+      Select.Program(),
+      Select.Pubkey({ name: 'param::PUB' }).view,
+      Button.Compile().view),
     ProgramForm(FundTitle, Select.Sender(),
       ['label', ['strong', 'Amount (sats):'],   ['input[type="number"]', { value: '2345' }]],
       ['label', ['strong', 'Commit TX:'],       ['button', 'Commit']]),
@@ -154,20 +162,20 @@ namespace Simf {
     simf && `export default Simf(import.meta, "src/main.simf");`);
   export const Witness = (id: string, ...content: unknown[]) => Field(id).open(false)
     .header(['select', ['option', 'src/main.simf']])
-    .header(Command('play', 'Satisfy', { onclick: simfCompile(id) }))
+    .header(Button.Command('play', 'Satisfy', { onclick: simfCompile(id) }))
     .content([['div.col.collapsible',
       WitnessRow('u32', 'ORACLE_HEIGHT', '1000'),
       WitnessRow('u32', 'ORACLE_PRICE',  '100000'),
       WitnessRow('sig', 'ORACLE_SIG',    ''),
       WitnessRow('sig', 'OWNER_SIG',     ''),
-      ['div.row', ['div.grow'], Command('circle-with-plus', 'Witness')]]])
+      ['div.row', ['div.grow'], Button.Command('circle-with-plus', 'Witness')]]])
     .build();
   export const WitnessRow = (t: 'sig'|'u32', k: string, v: string|Bytes) =>
     ['div.witness',
       ['input[type=text].grow', { value: k, placeholder: 'name' }],
       ['label', ['select', ['option', { value: t }, t]]],
       ['label.row', ['input[type=text].grow', { value: v, placeholder: 'value' }]],
-      Command('circle-with-cross', 'Remove')];
+      Button.Command('circle-with-cross', 'Remove')];
 
   export const SimfFn = (name: string, ...content: unknown[]) =>
     ['div.col.fn',
@@ -177,7 +185,7 @@ namespace Simf {
         '(', [`input[type=text][size=2]`], ')',
         ' { ',
         ['div.grow'],
-        Command('circle-with-cross', 'Remove')],
+        Button.Command('circle-with-cross', 'Remove')],
       ['textarea', content.join('\n')||' '], '}'];
 
   export const Readme = () =>
