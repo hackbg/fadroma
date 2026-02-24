@@ -385,10 +385,11 @@ export namespace Button {
   }
 
   export function Compile ({
-    label   = Html(['strong', 'Program address:']),
-    button  = Html(['button', 'Compile', { style: 'padding:0 1rem; border: 1px solid #af48' }]),
+    errors  = Html(['pre.compile-errors']).firstChild,
+    label   = Html(['strong.grow', 'Program address:']),
+    button  = Html(['button#compile', 'Compile', { style: 'padding:0 1rem; border: 1px solid #af48' }]),
     input   = Html(['input']),
-    view    = Html(['label', label, ['div.row.gap', button, input]]).firstChild,
+    view    = Html(['label.col.gap.align-stretch', ['div.row.gap.justify-between', label, ['div.row.gap', button, input]], errors]).firstChild,
     chain   = Bitcoin.LiquidTestnet,
     genesis = 'a771da8e52ee6ad581ed1e9a99825e5b3b7992225534eaa2ae23244fe26ab1c1',
   } = {}) {
@@ -396,13 +397,23 @@ export namespace Button {
     return { view, compile }
     async function compile () {
       const { default: Wasm } = await import('./Wasm.ts');
-      const compiler = Wasm.compiler({ chain: chain.ID, genesis });
-      const program = compiler.compile(`fn main () {}`);
-      const address = program.toJSON().p2tr;
-      view.querySelector('input').value = address;
-      const balance = await getBalances(address);
-      console.debug('Balance of', address, 'is', balance);
-      document.querySelector('#simf-witness .balance').value = String(balance)
+      errors.innerText = '';
+      try {
+        const compiler = Wasm.compiler({ chain: chain.ID, genesis });
+        const selected = document.querySelector('.pick-program').value;
+        const source  = Simf[selected].source;
+        const pubkeyValue = document.querySelector('#simf-compile .pubkey')?.value;
+        const args = { PUB: { type: 'Pubkey', value: `${pubkeyValue}` } };
+        console.log({args});
+        const program = compiler.compile(source, { args });
+        const address = program.toJSON().p2tr;
+        view.querySelector('input').value = address;
+        const balance = await getBalances(address);
+        console.debug('Balance of', address, 'is', balance);
+        document.querySelector('#simf-witness .balance').value = String(balance)
+      } catch (e) {
+        errors.innerText = e.stack;
+      }
     }
   }
 
@@ -512,6 +523,8 @@ export namespace Input {
     ['input#title[type=text][focused=focused]', { placeholder: 'name your project' }];
   export const Balance = () =>
     ['label.row.gap', ['strong.grow', 'Balance:'], ['input.balance', { disabled: true }]]
+  export const SigHash = () =>
+    ['label', ['strong', 'Sign hash:'], ['input']]
 }
 
 export function Select () { /* TODO */ }
@@ -519,8 +532,17 @@ export function Select () { /* TODO */ }
 export namespace Select {
 
   export const Chain     = () => ['label', ['strong', 'Chain:'],     ['select.pick-chain',   ['option', 'liquidtestnet']]];
-  export const Program   = () => ['label', ['strong', 'Program:'],   ['select.pick-program', ['option', 'P2PK']]];
+
   export const Recipient = () => ['label', ['strong', 'Recipient:'], ['select.pick-user']]
+
+  export const Program   = ({
+    view = Html(['label', ['strong', 'Program:'], ['select.pick-program',
+      ['option', 'Null'], ['option', {'selected': true}, 'P2PK'], ['option', 'P2PKH'], ['option', 'HodlVault']]]).firstChild
+  } = {}) => {
+    const select = view.querySelector('select');
+    select.onchange = () => document.getElementById('compile').click();
+    return view
+  }
 
   export interface Update {
     update (_: Partial<this>): this
@@ -539,13 +561,13 @@ export namespace Select {
 
   export function Pubkey ({
     name = null as string,
-    view = Html(['label.col.gap', { style: 'align-items:stretch' }, ['div.row.gap', ['em.grow', name], ['select.pick-user']], ['input.pubkey']]),
+    view = Html(['label.col.gap.select-pubkey', { style: 'align-items:stretch' }, ['div.row.gap', ['em.grow', name], ['select.pick-user']], ['input.pubkey']]),
     input = view.querySelector('input'),
     select = view.querySelector('select'),
     update = (state: Select.Pubkey) => { state.input.value = state.select.value; return state },
   }: Partial<Select.Pubkey> = {}): Select.Pubkey {
     const state = { name, view, select, input, update };
-    select.onchange = () => update(state);
+    select.onchange = () => { update(state); document.getElementById('compile').click() };
     return update(state);
   }
 
@@ -652,7 +674,7 @@ export function Simf ({
         ['section.phase', Simf.Info[4], ['div.phase-form.row.grow',
           Simf.ProgramForm('simf-witness', Simf.WitnessTitle, Input.Balance(), Select.Recipient(),
             ['label', ['strong', 'Amount:'],   ['input[type="number"]', { value: '1234' }]],
-            ['label', ['strong', 'Sign hash:'],       ['input']]),
+            Input.SigHash()),
           Simf.ProgramForm('simf-redeem', Simf.RedeemTitle, Select.Signer({ name: 'witness::SIG' }).view,
             ['label', ['strong', 'TX bytes:'],        ['input']],
             ['label', ['strong', 'Redeem TX:'],       ['button', 'Redeem',]])]]]],
@@ -670,11 +692,19 @@ export function Simf ({
 
 export namespace Simf {
 
+  export namespace Null {
+    export const source = `fn main () {}`
+  }
+
+  export namespace AssertTrue {
+    export const source = `fn main () { assert!(true); }`
+  }
+
   export namespace P2PK {
     export const wrapped = () => ES("src/P2PK.simf.ts", SimfTS(source,
       { PK: Arg("Pubkey") }, { "SIG": Arg("Signature") }));
     export const source = `fn main () {
-  jet::bip_0340_verify((param::PK, jet::sig_all_hash()), witness::SIG)
+  jet::bip_0340_verify((param::PUB, jet::sig_all_hash()), witness::SIG)
 }`;
   }
 
@@ -682,11 +712,12 @@ export namespace Simf {
     export const wrapped = () => ES("src/P2PKH.simf.ts", SimfTS(source,
       { "PKH": Arg("Pubkey") }, { "PUB": Arg("Pubkey"), "SIG": Arg("Signature") }));
     export const source = `fn main () {
+  let pubkey: Pubkey = witness::PUB;
   let hasher: Ctx8 = jet::sha_256_ctx_8_init();
-  let hasher: Ctx8 = jet::sha_256_ctx_8_add_32(hasher, witness::PUB);
-  let hash:   u256 = jet::sha_256_ctx_8_finalize(hasher)
+  let hasher: Ctx8 = jet::sha_256_ctx_8_add_32(hasher, pubkey);
+  let hash:   u256 = jet::sha_256_ctx_8_finalize(hasher);
   assert!(jet::eq_256(hash, param::PKH));
-  jet::bip_0340_verify((witness::PUB, jet::sig_all_hash()), witness::SIG)
+  jet::bip_0340_verify((pubkey, jet::sig_all_hash()), witness::SIG)
 }`;
   }
 

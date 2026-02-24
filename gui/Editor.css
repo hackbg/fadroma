@@ -295,3 +295,19 @@
 .phase-form {
   gap: 1rem;
 }
+
+pre.compile-errors {
+  max-width:   90ch;
+  overflow:    auto;
+  font-family: monospace;
+  /*background:  #621a;*/
+  font-size:   1rem;
+  align-self:  center;
+  background: #8002;
+  /*border:      1px solid #f20;*/
+}
+
+.select-pubkey {
+  input.pubkey { display: none }
+  /*&:focus-within input.pubkey { display: block; }*/
+}
