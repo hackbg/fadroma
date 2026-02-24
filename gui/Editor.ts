@@ -8,7 +8,10 @@ import { elById, textVal, download } from './lib.ts';
 
 export default Editor;
 
-function Editor (el = elById("editors"), {
+function Editor ({
+  editorView = elById("editors"), 
+  usersView  = elById("demousers"),
+
   btc      = true,
   elements = true,
   simf     = true,
@@ -18,11 +21,15 @@ function Editor (el = elById("editors"), {
   deno     = true,
   //vite =    false,
 } = {}) {
-  el.innerHTML = '';
-  setTimeout(()=>initEditor(el), 1);
-  Html.append(el, Html(['div.box.editors.col.grow.gap.justify-between',
+  editorView.innerHTML = '';
+  Html.append(editorView, Html(['div.box.editors.col.grow.gap.justify-between',
     Simf({ nix, btc, simf, elements, direnv, deno, node }).view()]));
-  return el
+  setTimeout(()=>initEditor(editorView), 1);
+  Simf.Users(usersView);
+  return {
+    editorView,
+    usersView
+  }
 }
 
 function initEditor (el: Element) {

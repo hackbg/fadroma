@@ -31,21 +31,23 @@
       border-top: none;
     }
 
-    input, textarea, select {
-      border:     none;
-      box-shadow: none;
-      background: #fff2;
-      /*transition: background ease-in 0.16s;*/
-      &:hover, .field:hover & {
-        background: #fff3
-      }
-      &:focus, &:focus-visible, &:hover:focus, .field:hover, &:focus {
-        background: #fff;
-        color:      #000 !important;
-        outline:    none;
-        &::placeholder {
-          color: #fa0f;
-          text-shadow: 1px 1px 0 #000;
+    .project {
+      input, textarea, select {
+        border:     none;
+        box-shadow: none;
+        background: #fff2;
+        /*transition: background ease-in 0.16s;*/
+        &:hover, .field:hover & {
+          background: #fff3
+        }
+        &:focus, &:focus-visible, &:hover:focus, .field:hover, &:focus {
+          background: #fff;
+          color:      #000 !important;
+          outline:    none;
+          &::placeholder {
+            color: #fa0f;
+            text-shadow: 1px 1px 0 #000;
+          }
         }
       }
     }

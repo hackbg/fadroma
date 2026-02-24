@@ -37,15 +37,31 @@
   /*}*/
 }
 .program-form {
-  padding: 1px;
-  gap: 0.125rem;
+  padding:   1px;
+  gap:       0.125rem;
   font-size: 1.25rem;
-  border: 1px solid #fff4;
+  border:    1px solid #fff4;
   /*margin-bottom: 1rem;*/
   background: #f8f4;
   padding-bottom: 0.5rem;
   gap: 0.33rem;
-  input, select, button { &:last-child { min-width: 16rem; } color: #fff; background: #fff2; font-size: 1.15rem; }
+  input, select, button {
+    &:last-child {
+      min-width: 16rem;
+    }
+    color: #fff;
+    text-shadow: 0 1px 0 #0002;
+    background: #0004;
+    font-size: 1.15rem;
+    &:hover {
+      background: #0005;
+    }
+    &:focus, &:focus-within, &:focus-visible {
+      color: #fff;
+      background: #0006;
+      outline: none;
+    }
+  }
   label { padding: 1px 0.5rem; display: flex; flex-flow: row nowrap; justify-content: space-between; align-items: center }
   label strong { min-width: 6rem; display: inline-block }
   label em { min-width: 3rem; display: inline-block }

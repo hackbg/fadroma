@@ -9,8 +9,15 @@ import Input   from './Input.ts';
 import Nix     from './Nix.ts';
 import Select  from './Select.ts';
 
+import { p2wpkh as P2WPKH } from 'npm:@scure/btc-signer';
+import { pubECDSA } from 'npm:@scure/btc-signer/utils.js'; // not already in keypair?
+import Wasm from './Wasm.ts';
+
 let chain = null; // Chain handle (initialized once)
 let simf  = null; // WASM handle (initialized once)
+const users = {}; // List of demo users
+
+const nonSecret = (n: number) => new Uint8Array(new Array(32).fill(n));
 
 export default Simf;
 
@@ -121,23 +128,18 @@ namespace Simf {
     ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'B2. '], 'Receive funds'],
     ' by sending valid signatures:'];
   export const CompileForm = () => ['div.row.gap.grow',
-    ProgramForm(CompileTitle,
-      ['label', ['strong', 'Chain:'],           ['select.pick-chain',   ['option', 'liquidtestnet']]],
-      ['label', ['strong', 'Program:'],         ['select.pick-program', ['option', 'P2PK']]],
-      ['label', ['em', 'param::', 'PUB'],       ['div.row.gap', ['select.pick-user'], ['input']], ],
+    ProgramForm(CompileTitle, Select.Chain(),
+      Select.Program(), Select.Pubkey({ name: 'param::PUB' }).view,
       ['label', ['strong', 'Program address:'], ['button', 'Compile',]]),
-    ProgramForm(FundTitle,
-      ['label', ['strong', 'Sender:'],          ['select.pick-user', ['option', 'Alice']]],
+    ProgramForm(FundTitle, Select.Sender(),
       ['label', ['strong', 'Amount (sats):'],   ['input[type="number"]', { value: '2345' }]],
       ['label', ['strong', 'Commit TX:'],       ['button', 'Commit']]),
   ];
   export const RedeemForm = () => ['div.row.gap.grow',
-    ProgramForm(WitnessTitle,
-      ['label', ['strong', 'Recipient:'],       ['select.pick-user']],
+    ProgramForm(WitnessTitle, Select.Recipient(),
       ['label', ['strong', 'Amount (sats):'],   ['input[type="number"]', { value: '1234' }]],
       ['label', ['strong', 'Sign hash:'],       ['input']]),
-    ProgramForm(RedeemTitle,
-      ['label', ['em', 'witness::SIG'],         ['div.row.gap', ['select.pick-user'], ['input']]],
+    ProgramForm(RedeemTitle, Select.Signer({ name: 'witness::SIG' }).view,
       ['label', ['strong', 'TX bytes:'],        ['input']],
       ['label', ['strong', 'Redeem TX:'],       ['button', 'Redeem',]])
   ];
@@ -218,6 +220,7 @@ namespace Simf {
     chain ??= Bitcoin.LiquidTestnet();
     console.debug('Chain:', chain);
     statusView.innerText = 'Connected!';
+    statusView.style.color = '#af8';
     const state = { view, nextUpdate: setTimeout(update, interval), interval };
     update()
     return state
@@ -228,11 +231,56 @@ namespace Simf {
           .catch(e => {
             console.error(e)
             statusView.innerText = 'Error, retrying...';
+            statusView.style.color = '#f84';
           }),
         //chain.esplora.getBlockTipHash().then(hash => { hashView.innerText = height })
           //.catch(console.error),
       ]);
       state.nextUpdate = setTimeout(update, state.interval)
+    }
+  }
+
+  export function Users ({
+    view = document.getElementById('demousers'),
+    users = [
+      addUser('Alice', { secret: nonSecret(1) }),
+      addUser('Bob',   { secret: nonSecret(2) }),
+      addUser('Carol', { secret: nonSecret(3) })
+    ]
+  }) {
+    for (const user of users) Html.append(view, user.view());
+    for (const select of Select.findUserPickers()) Select.initUserPicker(select, users);
+  }
+
+  export function addUser (name, options) {
+    if (users[name]) throw new Error(`user already exists: ${name}`);
+    return users[name] = User(name, options);
+  }
+
+  export function User (name: string, {
+    secret   = new Uint8Array(Array(32).fill(1)),
+    signer   = Wasm.keypair(secret),
+    pubkey   = pubECDSA(secret),
+    pubkeyX  = signer.xOnlyPublicKey(),
+    chain    = { bech32: 'ert', pubKeyHash: 0x6f, scriptHash: 0xc4, wif: 0xef, },
+    p2wpkh   = P2WPKH(pubkey, chain).address,
+    output   = Html(['div.demolog', 'Enter Bob, Carol.']),
+    //p2p      = P2P({ name, root: output }),
+    balance  = '1.00000000 tLBTC',
+    toolbar  = Html(['section.demoprogs', ['button.pill', 'Send'], ['button.pill', 'P2PK'], ['button.pill', 'Vault'], ['button.pill', 'Escrow'], ['input.chat', { placeholder: 'chat' }], ['button.pill', 'Say']]),
+    identity = Html(['section.demometa', ['div.col.gap', ['div.row.gap.align-center', ['strong.demoname', name], ['strong', balance]]]]),
+  } = {}) {
+    return {
+      name,
+      signer,
+      pubkey,
+      pubkeyX,
+      p2wpkh,
+      view: () => Html(['div.col.align-center',
+        ['article.demouser', identity, output, toolbar],
+        ['div.col.gap', ['div.col', ['strong', 'Address:'], ['div.address', p2wpkh]]]])
+          //['div.col', ['strong', 'Pubkey:'],  ['div.address', Base16.encode(pubkey)]],
+          //['div.col', ['strong', 'Tweaked:'], ['div.address', Base16.encode(pubkeyX)]],
     }
   }
 
