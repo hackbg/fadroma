@@ -27,7 +27,9 @@ export namespace Button {
       const program = compiler.compile(`fn main () {}`);
       const address = program.toJSON().p2tr;
       view.querySelector('input').value = address;
-      document.querySelector('#simf-redeem .balance').value = String(await getBalances(address))
+      const balance = await getBalances(address);
+      console.debug('Balance of', address, 'is', balance);
+      document.querySelector('#simf-witness .balance').value = String(balance)
     }
   }
 
@@ -196,17 +198,6 @@ export namespace Select {
     input.value = String(await getBalances(sender.p2wpkh));
   }
 
-  async function getBalances (
-    p2wpkh: string,
-    chain = Bitcoin.LiquidTestnet(),
-    asset: string = "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5"
-  ): Promise<bigint> {
-    let balance = 0n;
-    const utxos  = await chain.esplora.getAddressUtxos(p2wpkh);
-    for (const utxo of utxos) if (utxo.asset === asset) balance += BigInt(utxo.value);
-    return balance
-  }
-
   export function Signer ({
     name   = null as string,
     update = (state: Select.Pubkey) => { console.error('Select.Signer: provide sighash first!'); return state },
@@ -248,4 +239,15 @@ export function Icon (name: string) {
 
 export namespace Icon {
   // preset icons
+}
+
+async function getBalances (
+  p2wpkh: string,
+  chain = Bitcoin.LiquidTestnet(),
+  asset: string = "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5"
+): Promise<bigint> {
+  let balance = 0n;
+  const utxos  = await chain.esplora.getAddressUtxos(p2wpkh);
+  for (const utxo of utxos) if (utxo.asset === asset) balance += BigInt(utxo.value);
+  return balance
 }
