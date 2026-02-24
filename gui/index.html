@@ -1,35 +1,30 @@
 <!doctype html>
 <html>
-
   <head>
     <meta charset="utf8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Fadroma by Hack.bg</title>
-    <link rel="stylesheet" href="theme.css"   />
-    <link rel="stylesheet" href="lib.css"     />
-    <link rel="stylesheet" href="Chain.css"   />
-    <link rel="stylesheet" href="Demo.css"    />
-    <link rel="stylesheet" href="Docs.css"    />
-    <link rel="stylesheet" href="Editor.css"  />
-    <link rel="stylesheet" href="Feature.css" />
-    <link rel="stylesheet" href="Simf.css"    />
-    <link rel="stylesheet" href="User.css"    />
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/lib.css" />
+    <link rel="stylesheet" href="css/chain.css" />
+    <link rel="stylesheet" href="css/demo.css" />
+    <link rel="stylesheet" href="css/docs.css" />
+    <link rel="stylesheet" href="css/editor.css" />
+    <link rel="stylesheet" href="css/feature.css" />
+    <link rel="stylesheet" href="css/simf.css" />
+    <link rel="stylesheet" href="css/user.css" />
   </head>
-
   <body>
-
     <nav class="banner buttons">
       <noscript><strong>Contains JavaScript.</strong><br />Enable JS to proceed.</noscript>
       <a class="custom work" href="https://hack.bg/contact"><strong>Need custom work with Bitcoin, Ethereum, Solana, Cosmos, or similar?</strong> Hack.bg has got you covered.</a>
     </nav>
-
     <nav class="header row justify-between">
       <nav id="brand" class="col">
         <div class="col"><a class="hackbg subtitle" href="https://hack.bg" style="">dApp workbench by<br><h1>Hack.bg</h1></a></div>
       </nav>
-
       <nav class="col buttons" id="buttonbar">
-        <script type="module">import('./Nav.ts').then(({Nav})=>Nav());</script>
+        <script type="module">import load from './loader.ts';load(import('./index.ts'), ({Nav})=>Nav());</script>
         <!--<button data-action="new"  class="rel"><svg class="icon"><use href="icons.svg#document"></use></svg> New</button>-->
         <!--<button style="opacity:0.5" data-action="load" class="rel"><svg class="icon"><use href="icons.svg#upload"></use></svg> Load</button>-->
         <!--<button data-action="save" class="rel"><svg class="icon"><use href="icons.svg#download"></use></svg> Save</button>-->
@@ -39,9 +34,7 @@
         <!--<a href="/cov/index.html"><svg class="icon"><use href="icons.svg#code"></use></svg> Coverage</a>-->
       </nav>
     </nav>
-
     <div id="main" class="rel align-stretch justify-center">
-
       <div class="scroll-to col align-center justify-center content hero">
         <a class="logo" href="https://fadroma.tech" data-action="home"></a>
         <a class="wordmark" data-action="home" href="https://fadroma.tech"></a>
@@ -51,31 +44,23 @@
 # cd fadroma
 # git submodule update --init --recursive</pre>
       </div>
-
       <div class="scroll-to sidebar col gap" id="sidebar">
-        <div class="grow" id="editors">Loading example project...
-          <script type="module">import('./Editor.ts').then(({ "default": x }) => x()).catch(e => {
-            console.error(e);
-            const stack = Object.assign(document.createElement('pre'), { innerText: e.stack });
-            document.getElementById('editors').innerText = '';
-            document.getElementById('editors').appendChild(stack);
-          });</script>
+        <div class="grow" id="editors">
+          <div class="loading">Loading example project...</div>
+          <script type="module">import load from './loader.ts';load(import('./index.ts'));</script>
         </div>
       </div>
-
       <div id="demo" class="scroll-to col gap demo align-center">
         <p class="content"><strong>Watch this space:</strong> interactive peer discovery and deal-making in a familiar conversational interface will pop up here.</p>
         <div id="demousers" class="content row justify-center"></div>
         <p>Meanwhile, try the example project, and report any issues on our bug tracker!</p>
         <p>All further inquiries welcome at <strong><a href="https://hack.bg/contact">https://hack.bg/contact</a></strong>.</p>
       </div>
-
       <div class="scroll-to col gap content">
         <div class="grow col"><br /></div>
         <div class="features" id="features"></div>
-        <script type="module">import('./Editor.ts').then(({ Platforms }) => Platforms()).catch(console.error);</script>
+        <script type="module">import load from './loader.ts';load(import('./index.ts'), ({Platforms})=>Platforms());</script>
       </div>
-
     </div>
   </body>
 </html>
