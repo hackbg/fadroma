@@ -51,21 +51,23 @@
     background: #0004;
     font-size: 1.15rem;
     &[disabled] { opacity: 0.8 }
-    &:last-child {
-      min-width: 16rem;
-    }
-    &:hover {
-      background: #0005;
-    }
+    &:last-child { min-width: 16rem; }
+    &:hover { background: #0005; }
     &:focus, &:focus-within, &:focus-visible {
       color: #fff;
       background: #0006;
       outline: none;
     }
   }
-  label { padding: 1px 0.5rem; display: flex; flex-flow: row nowrap; justify-content: space-between; align-items: center }
-  label strong { min-width: 6rem; display: inline-block }
-  label em { min-width: 3rem; display: inline-block }
+  input {
+    text-align: right !important
+  }
+  label {
+    padding: 1px 0.5rem;
+    display: flex; flex-flow: row nowrap; justify-content: space-between; align-items: center;
+    strong { min-width: 6rem; display: inline-block }
+    em { min-width: 3rem; display: inline-block }
+  }
   button { border: 1px solid #fff4; padding: 3px; }
   p { padding: 0; margin: 0 0 0.5rem 0 !important }
   .title { font-size: 1.33rem; font-weight: semibold; border-bottom: 1px solid #0002; background: #0001; padding: 1px 0.5rem; }

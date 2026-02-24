@@ -32,10 +32,26 @@ function Simf ({
   view = Html(
     ['div.col.gap',
       ['section.layer',          Simf.Info[0]],
-      ['section.layer.programs', Simf.Info[1], ['div.col.grow.files.gap', ...Simf.Programs()]],
+      ['section.layer.programs', Simf.Info[1], ['div.col.grow.files.gap',
+        Simf.P2PK.wrapped(),
+        Simf.P2PKH.wrapped(),
+        Simf.HodlVault.wrapped()]],
       ['section.layer.actions',  Simf.Info[2], ['div.col.grow.gap',
-        ['section',              Simf.Info[3], Simf.CompileForm()],
-        ['section',              Simf.Info[4], Simf.RedeemForm()]]],
+        ['section', Simf.Info[3], ['div.row.gap.grow',
+          Simf.ProgramForm(Simf.CompileTitle, Select.Chain(),
+            Select.Program(),
+            Select.Pubkey({ name: 'param::PUB' }).view,
+            Button.Compile().view),
+          Simf.ProgramForm(Simf.FundTitle, Select.Sender(),
+            ['label', ['strong', 'Amount (sats):'],   ['input[type="number"]', { value: '2345' }]],
+            Button.Commit().view)]],
+        ['section', Simf.Info[4], ['div.row.gap.grow',
+          Simf.ProgramForm(Simf.WitnessTitle, Select.Recipient(),
+            ['label', ['strong', 'Amount (sats):'],   ['input[type="number"]', { value: '1234' }]],
+            ['label', ['strong', 'Sign hash:'],       ['input']]),
+          Simf.ProgramForm(Simf.RedeemTitle, Select.Signer({ name: 'witness::SIG' }).view,
+            ['label', ['strong', 'TX bytes:'],        ['input']],
+            ['label', ['strong', 'Redeem TX:'],       ['button', 'Redeem',]])]]]],
       ['section.layer.project',  Simf.Info[5], ['div.col.grow.files.gap',
         Simf.Metadata(),
         Simf.Readme(),
@@ -51,9 +67,6 @@ function Simf ({
 namespace Simf {
 
   export const Programs = () => [
-    P2PK.wrapped(),
-    P2PKH.wrapped(),
-    HodlVault.wrapped(),
   ];
 
   const SimfTS = (source: string, param = {}, witness = {}) =>
@@ -63,7 +76,7 @@ namespace Simf {
     `  witness: ${JSON.stringify(witness).split('\n').map(x=>'  '+x).join('\n').trim()},\n` +
     `  cli:     import.meta\n})`;
 
-  namespace P2PK {
+  export namespace P2PK {
     export const wrapped = () => ES("src/P2PK.simf.ts", SimfTS(source,
       { PK: Arg("Pubkey") }, { "SIG": Arg("Signature") }));
     export const source = `fn main () {
@@ -71,7 +84,7 @@ namespace Simf {
 }`;
   }
 
-  namespace P2PKH {
+  export namespace P2PKH {
     export const wrapped = () => ES("src/P2PKH.simf.ts", SimfTS(source,
       { "PKH": Arg("Pubkey") }, { "PUB": Arg("Pubkey"), "SIG": Arg("Signature") }));
     export const source = `fn main () {
@@ -83,7 +96,7 @@ namespace Simf {
 }`;
   }
 
-  namespace HodlVault {
+  export namespace HodlVault {
     export const wrapped = () => Field("src/HodlVault.simf.ts")
       .open(true)
       .content(Field.TextArea("src/HodlVault.simf.ts", SimfTS(source,
@@ -120,37 +133,20 @@ namespace Simf {
         ['a.help', { target: 'blank', title: 'Witness signing hash', href: "#" }, Icon('help')]])
     .build();
 
-  const ProgramForm = (name: string|unknown[], ...rest: unknown[]) =>
+  export const ProgramForm = (name: string|unknown[], ...rest: unknown[]) =>
     ['div.program-form.col.grow', ['div.title', name], ...rest];
-  const CompileTitle = ['span',
+  export const CompileTitle = ['span',
     ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'A1. '], 'Obtain P2TR'],
     ' by compiling the program:'];
-  const FundTitle = ['span',
+  export const FundTitle = ['span',
     ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'A2. '], 'Send funds'],
     ' to the P2TR address:'];
-  const WitnessTitle = ['span',
+  export const WitnessTitle = ['span',
     ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'B1. '], 'Specify transaction'],
     ' to obtain SIGHASH_ALL:'];
-  const RedeemTitle = ['span',
+  export const RedeemTitle = ['span',
     ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'B2. '], 'Receive funds'],
     ' by sending valid signatures:'];
-  export const CompileForm = () => ['div.row.gap.grow',
-    ProgramForm(CompileTitle, Select.Chain(),
-      Select.Program(),
-      Select.Pubkey({ name: 'param::PUB' }).view,
-      Button.Compile().view),
-    ProgramForm(FundTitle, Select.Sender(),
-      ['label', ['strong', 'Amount (sats):'],   ['input[type="number"]', { value: '2345' }]],
-      ['label', ['strong', 'Commit TX:'],       ['button', 'Commit']]),
-  ];
-  export const RedeemForm = () => ['div.row.gap.grow',
-    ProgramForm(WitnessTitle, Select.Recipient(),
-      ['label', ['strong', 'Amount (sats):'],   ['input[type="number"]', { value: '1234' }]],
-      ['label', ['strong', 'Sign hash:'],       ['input']]),
-    ProgramForm(RedeemTitle, Select.Signer({ name: 'witness::SIG' }).view,
-      ['label', ['strong', 'TX bytes:'],        ['input']],
-      ['label', ['strong', 'Redeem TX:'],       ['button', 'Redeem',]])
-  ];
   export const OracleForm = () => Witness("oracle.wit", 
     WitnessRow('u32', 'ORACLE_HEIGHT', '1000'),
     WitnessRow('u32', 'ORACLE_PRICE',  '100000'),
