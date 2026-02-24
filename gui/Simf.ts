@@ -1,6 +1,6 @@
 import { Arg } from '../platform/SimplicityHL/SimplicityHL.ts';
+import Bitcoin from '../platform/Bitcoin/Bitcoin.ts';
 import Command from './Command.ts';
-import Chain   from './Chain.ts';
 import ES      from './ES.ts';
 import Field   from './Field.ts';
 import Html    from '../library/Html.ts';
@@ -9,7 +9,8 @@ import Input   from './Input.ts';
 import Nix     from './Nix.ts';
 import Select  from './Select.ts';
 
-let simf = null; // WASM handle (initialized once)
+let chain = null; // Chain handle (initialized once)
+let simf  = null; // WASM handle (initialized once)
 
 export default Simf;
 
@@ -194,8 +195,8 @@ namespace Simf {
        , ['strong', 'Fadroma V3'], ' employs WebAssembly to instantly compile, evaluate, and deploy '
        , ['strong', 'SimplicityHL smart contracts'], ' from all modern JavaScript-based environments alike: browsers, servers, and edge services.'],
     1: ['p.sidebox.flex.space-between'
-       , ['div.grow', 'Try these ', ['strong', 'SimplicityHL programs'], ' on ', ['a', { href: '#' }, 'Liquid Testnet:'], ' ']
-       , Chain()],
+       , ['div.grow', 'Try these ', ['strong', 'SimplicityHL programs'], ' on ', ['a', { href: 'https://blockstream.info/liquidtestnet/' }, 'Liquid Testnet:'], ' ']
+       , Chain().view],
     2: ['p.sidebox', 'The ', ['strong', 'Simplicity transaction lifecycle'], ' happens in two phases:' ],
     3: ['p', ['span', ['strong', Dropcap('A. '), 'Commitment phase'], '. Compile program to P2TR address, and fund it on-chain:']],
     4: ['p', ['span', ['strong', Dropcap('B. '), 'Redemption phase'], '. Fulfill the program\'s conditions to redeem funds:']],
@@ -207,6 +208,34 @@ namespace Simf {
     //['p.smol', ['strong', 'Fast integration testing'], ' on ', ['code', 'elementsregtest'],
       //' and ', ['code', 'liquidtestnet'], ' out of the box:'],
   };
+
+  function Chain ({ interval = 10000 } = {}) {
+    const view = Html(['div.chain', ['strong.status', chain ? 'Connecting...' : 'Connected!'],
+        ['div.row.gap', ['div', 'Height: '], ['strong.height']]]);
+    const statusView = view.querySelector('.status');
+    const heightView = view.querySelector('.height');
+    const hashView   = view.querySelector('.hash');
+    chain ??= Bitcoin.LiquidTestnet();
+    console.debug('Chain:', chain);
+    statusView.innerText = 'Connected!';
+    const state = { view, nextUpdate: setTimeout(update, interval), interval };
+    update()
+    return state
+    async function update () {
+      await Promise.all([
+        chain.esplora.getBlockTipHeight()
+          .then(height => { heightView.innerText = height })
+          .catch(e => {
+            console.error(e)
+            statusView.innerText = 'Error, retrying...';
+          }),
+        //chain.esplora.getBlockTipHash().then(hash => { hashView.innerText = height })
+          //.catch(console.error),
+      ]);
+      state.nextUpdate = setTimeout(update, state.interval)
+    }
+  }
+
 }
 
 function simfCompile (id) {
@@ -219,10 +248,10 @@ function simfCompile (id) {
     console.log(await simf.default(wasm));
     const result = simf.build('fn main () {}', {});
     console.log({result});
-    elById(`result:${id}`).style.whiteSpace = 'pre';
-    elById(`commit:${id}`).innerText = result.commit;
-    elById(`cmr:${id}`).innerText = result.cmr;
-    elById(`amr:${id}`).innerText = result.amr;
-    elById(`ihr:${id}`).innerText = result.ihr;
+    document.getElementById(`result:${id}`).style.whiteSpace = 'pre';
+    document.getElementById(`commit:${id}`).innerText = result.commit;
+    document.getElementById(`cmr:${id}`).innerText = result.cmr;
+    document.getElementById(`amr:${id}`).innerText = result.amr;
+    document.getElementById(`ihr:${id}`).innerText = result.ihr;
   }
 }

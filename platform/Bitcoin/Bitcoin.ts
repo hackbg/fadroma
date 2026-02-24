@@ -153,6 +153,7 @@ namespace Bitcoin {
     export const FAUCET_URL   = 'https://liquidtestnet.com/faucet';
     export const RETURN_TEST  = 'tlq1qq2g07nju42l0nlx0erqa3wsel2l8prnq96rlnhml262mcj7pe8w6ndvvyg237japt83z24m8gu4v3yfhaqvrqxydadc9scsmw';
     export const RETURN_AMP   = 'vjU8JWGnZu6XavzMEbLZ3mGZ3nrPxpwoBNC3brPi7CFm12sb7bHSkB4gz4SGSV9LhBceZVGaF8nsevu6';
+    export const esplora      = Esplora('https://blockstream.info/liquidtestnet/api/');
   }
 
   /** Spawn Elements in `elementsregtest` mode with Simplicity enabled. */
@@ -369,8 +370,27 @@ namespace Bitcoin {
 
   export function Send ({ rpc, rest }: Pick<Bitcoin, 'rpc'|'rest'>) {
     return async function sendWithRpcAndRest (hex: Uint8Array) {
-      const txid = await rpc.sendrawtransaction(tx.hex);
+      const txid = await rpc.sendrawtransaction(hex);
       return await rest.tx(txid);
     }
   }
+
+  export interface Esplora {
+    getBlockTipHeight: Fn
+    getBlockTipHash:   Fn
+    getTxInfo:         Fn
+    getAddressInfo:    Fn
+    postTx:            Fn
+  }
+
+  export function Esplora (url: string|URL): Esplora {
+    return {
+      getBlockTipHeight: () => Http.fetchText(`${url}/blocks/tip/height`),
+      getBlockTipHash:   () => Http.fetchText(`${url}/blocks/tip/hash`),
+      getAddressInfo:  (ad) => Http.fetchJson(`${url}/address/${ad}`),
+      getTxInfo:       (id) => Http.fetchJson(`${url}/tx/${id}`),
+      postTx:          (tx) => Http.postBinary(`${url}/tx`, tx),
+    }
+  }
+
 }

@@ -56,7 +56,12 @@
 
       <div class="scroll-to sidebar col gap" id="sidebar">
         <div class="grow" id="editors">Loading example project...
-          <script type="module">import('./Editor.ts').then(({ "default": x }) => x()).catch(console.error);</script>
+          <script type="module">import('./Editor.ts').then(({ "default": x }) => x()).catch(e => {
+            console.error(e);
+            const stack = Object.assign(document.createElement('pre'), { innerText: e.stack });
+            document.getElementById('editors').innerText = '';
+            document.getElementById('editors').appendChild(stack);
+          });</script>
         </div>
       </div>
 
