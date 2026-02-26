@@ -1,13 +1,22 @@
+import Html from '../library/Html.ts';
+
 export const Texts = {
   CONNECTED:     '⬤ Connected to ',
   CONNECTING:    '◯ Connecting to ',
   CONNECT_ERROR: '◯ Error, reconnecting to ',
-
-  Welcome:         ['p', ['strong', 'Fadroma V3'], ' employs WebAssembly to instantly compile, evaluate, and deploy ', ['strong', 'SimplicityHL smart contracts'], ' from modern JavaScript-based environments: browsers, servers, and edge services.'],
-  Examples:        ['p', 'Try these ', ['strong', 'SimplicityHL programs'], ' on ', ['a', { href: 'https://blockstream.info/liquidtestnet/' }, 'Liquid Testnet:'], ' '],
-  Phases:          ['p', 'The ', ['strong', 'Simplicity transaction lifecycle'], ' happens in two phases:' ],
-  CommitmentPhase: ['p', ['span', ['strong', Dropcap('A. '), 'Commitment phase'], '. Compile program to P2TR address, and fund it on-chain:']],
-  RedemptionPhase: ['p', ['span', ['strong', Dropcap('B. '), 'Redemption phase'], '. Fulfill the program\'s conditions to redeem funds:']],
+  SIMPLICITYHL1: [
+    ['p', ['a', { href: 'https://github.com/hackbg/simf/blob/dev/src/lib.rs' }, ['strong', 'Fadroma V3'], ' uses WebAssembly'],
+      ' to instantly compile, evaluate, and deploy ', ['a', { href: 'https://docs.simplicity-lang.org/getting-started/simplicityhl/' }, ['strong', 'SimplicityHL'], ' smart contracts'],
+      ' on ', ['a', { href: 'https://liquid.net/'}, 'the ', ['strong', 'Liquid'], ' Network'], '. It works from all modern JavaScript-based environments: browsers, servers, ', ['a', { href: 'https://deno.com/deploy' }, 'edge cloud'], ' — even this webpage!'],
+    ['p', 'The ', ['strong', 'Simplicity transaction lifecycle'], ' works in two phases: committing funds to a program, and redeeming them.' ],
+    ['h3', 'Commitment phase'],
+    ['p', 'This is when you write the program, compile it to a P2TR address, and fund that address. Then, the program is considered deployed.'],
+    ['p', 'Try it now with these ', ['strong', 'SimplicityHL programs'], ' on ', ['a', { href: 'https://blockstream.info/liquidtestnet/' }, 'Liquid Testnet, before proceeding to the next step.'], ' ']
+  ],
+  SIMPLICITYHL2: [
+    ['h3', 'Redemption phase'],
+    ['p', 'Once there are some funds locked in a program, you need to compute the correct witness signature to unlock them.'],
+  ],
   DownloadProject: ['p', 'Here you can ', ['strong', 'download an example project'], ' containing the above programs and the following support files:'],
   CompileTitle:    ['span', ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, '1. '], 'Compile program'], ' to P2TR address:'],
   FundTitle:       ['span', ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, '2. '], 'Send funds'], ' to the program\'s address:'],
@@ -56,4 +65,213 @@ export const Urls = {
 /** Shout out. */
 function Dropcap (...content) {
   return ['span', { style: 'float:left;font-size:2rem;padding-right:0.33rem' }, ...content]
+}
+
+export function Platforms (
+  sidebar  = Html.id("sidebar"),
+  features = Html.id("features"),
+) {
+  Html.on(features, "change", Platforms.updateProjectConfiguration);
+  Html.append(features, Platforms.Platforms1());
+  Html.append(features, Platforms.Platforms2());
+  return sidebar;
+}
+
+export namespace Platforms {
+
+  export function updateProjectConfiguration (e: InputEvent) {
+    let target = e.target as HTMLElement;
+    do {
+      if (target?.id?.startsWith('enable:')) {
+        console.log(target.id);
+        return;
+      }
+      target = target.parentElement;
+    } while (
+      target && target !== e.currentTarget
+    );
+  }
+
+  export function Section ({
+    open = true,
+    name = '',
+    help = null as string,
+    features = [] as Array<[boolean, number, string, ...unknown[]]>
+  }) {
+    return ['details', { open },
+      ['summary', name, (help ? ['a.help', { target: '_blank', href: help }, 'Discuss ', Icon('github')] : '')],
+      ['ul.features', ...features.map(
+        ([enabled, n, name, ...rest])=>(((!enabled) ? Feature.Disabled : Feature)(n, name, ...rest))
+      )]
+    ];
+  }
+
+  export function Platforms1 () {
+    return Html(['ul.features',
+      Platforms.Section({
+        //open: false,
+        name: 'Bitcoin ecosystem',
+        help: 'https://github.com/hackbg/fadroma/discussions/240',
+        features: [
+          [true, 0, "enable:btc",      "Bitcoin",
+            ["Develop and test with local bitcoind in ", Link(Urls.btcTest, ['code', "regtest"]), " mode."],
+            ["RPC", Urls.btcRpc]],
+          [true, 0, "enable:elements", "Elements",
+            ["Develop and test with local elementsd in ", ['code', "elementsregtest"], " mode."],
+            ["RPC", Urls.elementsRpc]],
+          [true, 0, "enable:simf",     "SimplicityHL",
+            ["Compile and run ", Link(Urls.simfRef, "SimplicityHL"), " programs."],
+            ["Language", Urls.simfRef],
+            ["Jets", Urls.simfJets]]
+        ]
+      }),
+      Platforms.Section({
+        //open: false,
+        name: 'Solana ecosystem',
+        help: 'https://github.com/hackbg/fadroma/discussions/237',
+        features: [
+          [false, 0, "enable:sol", "Solana", "Connect to Solana.",
+            ["Web3",   Urls.solanaWeb3],
+            ["Kit",    Urls.solanaKit]],
+          [false, 1, "enable:sol-prog", "Solana Programs",
+            "Write Solana programs in Rust.",
+            ["Core",   Urls.solanaCrate],
+            ["Codama", Urls.codama]],
+          [false, 1, "enable:sol-idl", "Solana Anchor IDL",
+            "Integrate with Solana Anchor IDL.",
+            ["IDL",    Urls.idlGuide],
+            ["Anchor", Urls.anchorCrate]],
+        ]
+      }),
+      Platforms.Section({
+        //open: false,
+        name: 'Cosmos ecosystem',
+        help: 'https://github.com/hackbg/fadroma/discussions/238',
+        features: [
+          [false, 0, "enable:tm", "Tendermint",
+            "Connect to for Tendermint, CometBFT, and compatibles."],
+          [false, 1, "enable:namada", "Namada",
+            ["Client and decoder for ", Link(Urls.namadaRepo, "Namada"), "."]],
+          [false, 1, "enable:scrt", "Scrt",
+            ["Client for ", Link(Urls.scrtHome, "Secret"), "."]],
+          [false, 1, "enable:cw", "CosmWasm",
+            "Write contracts for the Cosmos ecosystem."],
+        ]
+      }),
+    ])
+  }
+
+  export function Platforms2 () {
+    return Html(['ul.features',
+      Platforms.Section({
+        //open: false,
+        name: 'DevOps / Unix ecosystem',
+        help: 'https://github.com/hackbg/fadroma/discussions/categories/guides',
+        features: [
+          [true,  0, "enable:git",          "Git",
+            "Automatically init Git repo in new project."],
+          [true,  0, "enable:nix",          "Nix Shell",
+            ["Obtain dependencies from ", Link(Urls.nixPkgs, "nixpkgs")],
+            ["Install", Urls.nixInstall]],
+          [true,  0, "enable:direnv",       "Direnv",
+            ["Automatically load Nix shell when entering project directory."],
+            ["Wiki", Urls.direnvWiki]],
+          [false, 0, "enable:editorconfig", "EditorConfig",
+            "IDE-agnostic settings.",
+            ["Spec", Urls.edConfSpec]],
+        ]
+      }),
+      Platforms.Section({
+        //open: false,
+        name: 'JS / TS / ECMAScript ecosystem',
+        help: 'https://github.com/hackbg/fadroma/discussions/239',
+        features: [
+          [true, 0, "enable:deno", "Deno",
+            "Run on next-gen TS/JS runtime by default.",
+            ["@std", Urls.denoStd],
+            ["API",  Urls.denoApi]],
+          [true, 0, "enable:node", "Node.js",
+            ["Will use ", Link(Urls.tsxNpm, "tsx"), " to run TypeScript."],
+            ["API", Urls.nodeApi]],
+          [true, 0, "enable:pnpm", "PNPM",
+            ["Recommended package manager."], ["Compare", Urls.pnpmCompare]],
+          [false, 0, "enable:eslint", "ESLint",
+            "Static analyzer.", ["Platforms", Urls.eslintConf]],
+          [false, 0, "enable:vite",
+            "Vite", "Build your front-end in the same repo."]
+        ]
+      }),
+      Platforms.Section({
+        //open: false,
+        name: 'Rust ecosystem',
+        help: 'https://github.com/hackbg/fadroma/discussions/236',
+        features: [
+          [false, 0, "enable:mold", "Mold", "Improves build times."],
+          [false, 0, "enable:rust", "Rust", "Different targets may need different toolchains."],
+        ]
+      }),
+      //Platforms.Section({
+        ////open: false,
+        //name: 'CI / CD',
+        //help: 'https://github.com/hackbg/fadroma/discussions/categories/guides',
+        //features: [
+          //[false, 0, "enable:gha",          "GHA",
+            //"Setup for GitHub Actions."],
+          //[false, 0, "enable:drone",        "Drone",
+            //"Setup for Drone CI."],
+          //[false, 0, "enable:woodpecker",   "Woodpecker",
+            //"Setup for Woodpecker CI."],
+        //]
+      //}),
+    ])
+  }
+
+}
+
+export function Feature (
+  depth: number,
+  id: string,
+  name = ``,
+  description = `` as string|(unknown[]),
+  ...links: [string, string?][]
+) {
+  return Html([`li.feature[data-depth=${depth}]`,
+    ['div.row.between',
+      ['div.col', [`label`, [`input[type=checkbox][checked=checked]`, { id }], name],
+        ['p.grow', ...(typeof description === 'object')?description:[description]]],
+      Feature.Links(links)]]);
+}
+
+export namespace Feature {
+
+  export function Disabled (
+    depth:       number,
+    id:          string,
+    name:        string = ``,
+    description: string|(unknown[]) = ``,
+    ...links:   [string, string?][]
+  ) {
+    return Html([`li.feature.disabled[data-depth=${depth}]`,
+      ['div.row.between',
+        ['div.col', [`label`, [`input[type=checkbox][disabled=disabled]`, { id }], name],
+          ['p.grow', ...(typeof description === 'object')?description:[description]]],
+        Feature.Links(links)]]);
+  }
+
+  export function Links (
+    links: [string, string?][]
+  ) {
+    return ['div.links', ...links.map(([text, href = '#'])=>
+      ['a.flex[target=_blank]', { href }, text, Icon("book")])]
+  };
+}
+
+export function Link (href: string, ...text: unknown[]) {
+  return ['a[target=_blank]', { href }, ...text];
+}
+export function Icon (name: string) {
+  return ['svg.icon', [`use[href=icons.svg#${name}]`]]
+}
+export namespace Icon {
+  // preset icons
 }

@@ -1,18 +1,18 @@
 import * as Monaco                    from 'npm:monaco-editor';
+import Bitcoin                        from '../platform/Bitcoin/Bitcoin.ts';
+import Html                           from '../library/Html.ts';
+import Wasm                           from './wasm.ts';
 import scrollTo                       from 'npm:animated-scroll-to';
+import type { Bytes, Fn }             from '../library/index.ts';
+import { Arg }                        from '../platform/SimplicityHL/SimplicityHL.ts';
+import { Base16 }                     from '../library/Number.ts';
+import { Labels, Texts, Link, Icon }  from './cons.ts';
 import { Sender, Receiver }           from 'npm:p2p';
 import { connect, StringCodec }       from 'npm:nats.ws';
 import { p2wpkh as P2WPKH }           from 'npm:@scure/btc-signer';
 import { pubECDSA }                   from 'npm:@scure/btc-signer/utils.js'; // not already in keypair?
+import { reindent, joinLines }        from '../library/String.ts';
 import { zipSync, strToU8 as zipStr } from 'npm:fflate';
-import Bitcoin                 from '../platform/Bitcoin/Bitcoin.ts';
-import Html                    from '../library/Html.ts';
-import { reindent, joinLines } from '../library/String.ts';
-import Wasm                    from './wasm.ts';
-import type { Bytes, Fn }      from '../library/index.ts';
-import { Arg }                 from '../platform/SimplicityHL/SimplicityHL.ts';
-import { Base16 }              from '../library/Number.ts';
-import { Labels, Texts, Urls } from './cons.ts';
 const chain = Bitcoin.LiquidTestnet(); // Chain handle (initialized once)
 let simf  = null; // WASM handle (initialized once)
 const nonSecret = (n: number) => new Uint8Array(new Array(32).fill(n));
@@ -58,6 +58,12 @@ export function ChainList (view = Html.id("chains"), {
   return ErrorBoundary(view, ()=>{
     Html.replace(view, state.view = Html(['div.col.gap',
       ['div.chain.disabled.col.gap',
+        ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to Bitcoin Mainnet...'],
+          ['strong.status', 'SOON']]],
+      ['div.chain.disabled.col.gap',
+        ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to Bitcoin Testnet...'],
+          ['strong.status', 'SOON']]],
+      ['div.chain.disabled.col.gap',
         ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to Liquid Mainnet...'],
           ['strong.status', 'SOON']]],
       ['div.chain.active.col.gap',
@@ -66,6 +72,9 @@ export function ChainList (view = Html.id("chains"), {
           ['h3.name', 'Liquid Testnet'],
           ['div.grow'],
           ['div.row.gap', ['div', 'Height: '], ['strong.height']]]],
+      ['div.chain.disabled.col.gap',
+        ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to regtest...'],
+          ['strong.status', 'SOON']]],
       ['div.chain.disabled.col.gap',
         ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to elementsregtest...'],
           ['strong.status', 'SOON']]],
@@ -190,37 +199,28 @@ export function SimfDemo (view = Html.id("editors"), {
   node     = false,
 } = {}) {
   return ErrorBoundary(view, { view: Html.replace(view, Html(
-    ['div.row.grow.justify-center.editors',
+    ['div.editors',
       ['div.col',
-        Section.Layer(['div', ['h2', 'Now with SimplicityHL Support!'],
-          Texts.Welcome,
-          Texts.Phases,
-          Texts.CommitmentPhase]),
-        Programs(
-          Programs.P2PK.wrapped(),
-          Programs.P2PKH.wrapped(),
-          Programs.HodlVault.wrapped()),
-      ['div.col', ['h2', 'Transaction tester'],
-        Section.Phase('', ['div.phase-form',
-          SimfDemo.Form('simf-compile', Texts.CompileTitle, Select.Chain(),
-            Select.Program(), Select.Pubkey({ name: 'param::PUB' }).view, Button.Compile().view),
-          SimfDemo.Form('simf-commit', Texts.FundTitle, Select.Sender().view,
-            Label('Amount:', ['input.balance[type="number"]', { value: '2345' }]),
-            Button.Commit().view)]),
-        Section.Phase(Texts.RedemptionPhase, ['div.phase-form',
-          SimfDemo.Form('simf-witness', Texts.WitnessTitle, Input.Balance(), Select.Recipient(),
-            Label('Amount:', ['input[type="number"]', { value: '1234' }]), Input.SigHash()),
-          SimfDemo.Form('simf-redeem', Texts.RedeemTitle, Select.Signer({ name: 'witness::SIG' }).view,
-            Label('TX bytes:', ['input']), Label('Redeem TX:', Button('redeem')))])],
-      Section.Layer(['div', ['h2', 'Project configurator'], Texts.DownloadProject]),
+        Section.Layer(['div', ['h2', 'Now with SimplicityHL Support!'], ...Texts.SIMPLICITYHL1]),
+        Programs(Programs.P2PK.wrapped(), Programs.P2PKH.wrapped(), Programs.HodlVault.wrapped()),
+        Section.Phase(['div', ...Texts.SIMPLICITYHL2], SimfDemo.Instances())],
         Project(
           ES.TestSuite({ deno, node, btc }),
           ES.DenoJson({ deno }),
           Nix({ nix, btc, simf, elements }),
-          direnv && Field.Text(".envrc", "use nix"))],
-      ])) });
+          direnv && Field.Text(".envrc", "use nix"))])) });
 }
 export namespace SimfDemo {
+  export function Instances () {
+    return ['div.row.gap.field.file',
+      ['ul.instances'],
+      ['div.phase-form',
+        SimfDemo.Form('simf-witness', Texts.WitnessTitle, Input.Balance(), Select.Recipient(),
+          Label('Amount:', ['input[type="number"]', { value: '1234' }]), Input.SigHash()),
+        SimfDemo.Form('simf-redeem', Texts.RedeemTitle, Select.Signer({ name: 'witness::SIG' }).view,
+          Label('TX bytes:', ['input']), Label('Redeem TX:', Button('redeem')))],
+    ]
+  }
   export function Form (id, name: string|unknown[], ...rest: unknown[]) {
     return [`div.program-form.col.grow#${id}`, ['div.title', name], ...rest];
   }
@@ -280,8 +280,7 @@ export namespace SimfDemo {
   }
 }
 export function Programs (...args: unknown[]) {
-  return Section({ className: 'layer programs col' }, Texts.Examples,
-    ['div.files', ...args]);
+  return Section({ className: 'layer programs col' }, ['div.files', ...args]);
 }
 export namespace Programs {
   /** Empty program (always passes). */
@@ -360,6 +359,7 @@ export namespace Programs {
 /** A project repository. */
 export function Project (...args: unknown[]) {
   return Section({ className: 'layer project' }, ['div.col.grow.files.gap',
+    ['div', ['h2', 'Project configurator'], Texts.DownloadProject],
     Project.Metadata(), Project.Readme(), Field.Text("Justfile", "TODO"), ...args ]);
 }
 export namespace Project {
@@ -445,8 +445,10 @@ export function Nix ({ nix, elements }) {
   return nix && Field.Text("shell.nix",
     `#!/usr/bin/env nix-shell`,
     `{ pkgs ? import<nixpkgs> {} }: let`,
-    `  gh = owner: repo: rev: sha256: pkgs.fetchFromGitHub { inherit owner repo rev sha256; };`,
-    `  override = pkg: attrs: pkg.overrideAttrs (_: attrs);`,
+    `  gh = owner: repo: rev: sha256:`,
+    `    pkgs.fetchFromGitHub { inherit owner repo rev sha256; };`,
+    `  override = pkg: attrs:`,
+    `    pkg.overrideAttrs (_: attrs);`,
     `in pkgs.mkShell { nativeBuildInputs = [`,
     `  just  # Shell command runner`,
     `  deno  # TypeScript runtime`,
@@ -516,9 +518,6 @@ export namespace Section {
 }
 export function Label (text: string, ...content: unknown[]): HTMLLabelElement {
   return Html(['label', ['strong', text], ...content]).firstChild as HTMLLabelElement
-}
-export function Link (href: string, ...text: unknown[]) {
-  return ['a[target=_blank]', { href }, ...text];
 }
 export function Button (id: keyof typeof Button.Labels, onclick = () => {}): HTMLButtonElement {
   return Html(['button', Labels[id], { id, onclick }]).firstChild as HTMLButtonElement; // FIXME don't default to DocumentFragment
@@ -737,12 +736,6 @@ export namespace Select {
     ['option', 'GPL 3.0 only'],
     ['option', 'Closed source (inquire)']];
 }
-export function Icon (name: string) {
-  return ['svg.icon', [`use[href=icons.svg#${name}]`]]
-}
-export namespace Icon {
-  // preset icons
-}
 async function getBalances (
   p2wpkh: string,
   chain = Bitcoin.LiquidTestnet(),
@@ -752,205 +745,6 @@ async function getBalances (
   const utxos = await chain.esplora.getAddressUtxos(p2wpkh);
   for (const utxo of utxos) if (utxo.asset === asset) balance += BigInt(utxo.value);
   return balance
-}
-
-export function Platforms (
-  sidebar  = Html.id("sidebar"),
-  features = Html.id("features"),
-) {
-  on(features, "change", Platforms.updateProjectConfiguration);
-  Html.append(features, Platforms.Platforms1());
-  Html.append(features, Platforms.Platforms2());
-  return sidebar;
-}
-
-export namespace Platforms {
-
-  export function updateProjectConfiguration (e: InputEvent) {
-    let target = e.target as HTMLElement;
-    do {
-      if (target?.id?.startsWith('enable:')) {
-        console.log(target.id);
-        return;
-      }
-      target = target.parentElement;
-    } while (
-      target && target !== e.currentTarget
-    );
-  }
-
-  export function Section ({
-    open = true,
-    name = '',
-    help = null as string,
-    features = [] as Array<[boolean, number, string, ...unknown[]]>
-  }) {
-    return ['details', { open },
-      ['summary', name, (help ? ['a.help', { target: '_blank', href: help }, 'Discuss ', Icon('github')] : '')],
-      ['ul.features', ...features.map(
-        ([enabled, n, name, ...rest])=>(((!enabled) ? Feature.Disabled : Feature)(n, name, ...rest))
-      )]
-    ];
-  }
-
-  export function Platforms1 () {
-    return Html(['ul.features',
-      Platforms.Section({
-        //open: false,
-        name: 'Bitcoin ecosystem',
-        help: 'https://github.com/hackbg/fadroma/discussions/240',
-        features: [
-          [true, 0, "enable:btc",      "Bitcoin",
-            ["Develop and test with local bitcoind in ", Link(Urls.btcTest, ['code', "regtest"]), " mode."],
-            ["RPC", Urls.btcRpc]],
-          [true, 0, "enable:elements", "Elements",
-            ["Develop and test with local elementsd in ", ['code', "elementsregtest"], " mode."],
-            ["RPC", Urls.elementsRpc]],
-          [true, 0, "enable:simf",     "SimplicityHL",
-            ["Compile and run ", Link(Urls.simfRef, "SimplicityHL"), " programs."],
-            ["Language", Urls.simfRef],
-            ["Jets", Urls.simfJets]]
-        ]
-      }),
-      Platforms.Section({
-        //open: false,
-        name: 'Solana ecosystem',
-        help: 'https://github.com/hackbg/fadroma/discussions/237',
-        features: [
-          [false, 0, "enable:sol", "Solana", "Connect to Solana.",
-            ["Web3",   Urls.solanaWeb3],
-            ["Kit",    Urls.solanaKit]],
-          [false, 1, "enable:sol-prog", "Solana Programs",
-            "Write Solana programs in Rust.",
-            ["Core",   Urls.solanaCrate],
-            ["Codama", Urls.codama]],
-          [false, 1, "enable:sol-idl", "Solana Anchor IDL",
-            "Integrate with Solana Anchor IDL.",
-            ["IDL",    Urls.idlGuide],
-            ["Anchor", Urls.anchorCrate]],
-        ]
-      }),
-      Platforms.Section({
-        //open: false,
-        name: 'Cosmos ecosystem',
-        help: 'https://github.com/hackbg/fadroma/discussions/238',
-        features: [
-          [false, 0, "enable:tm", "Tendermint",
-            "Connect to for Tendermint, CometBFT, and compatibles."],
-          [false, 1, "enable:namada", "Namada",
-            ["Client and decoder for ", Link(Urls.namadaRepo, "Namada"), "."]],
-          [false, 1, "enable:scrt", "Scrt",
-            ["Client for ", Link(Urls.scrtHome, "Secret"), "."]],
-          [false, 1, "enable:cw", "CosmWasm",
-            "Write contracts for the Cosmos ecosystem."],
-        ]
-      }),
-    ])
-  }
-
-  export function Platforms2 () {
-    return Html(['ul.features',
-      Platforms.Section({
-        //open: false,
-        name: 'DevOps / Unix ecosystem',
-        help: 'https://github.com/hackbg/fadroma/discussions/categories/guides',
-        features: [
-          [true,  0, "enable:git",          "Git",
-            "Automatically init Git repo in new project."],
-          [true,  0, "enable:nix",          "Nix Shell",
-            ["Obtain dependencies from ", Link(Urls.nixPkgs, "nixpkgs")],
-            ["Install", Urls.nixInstall]],
-          [true,  0, "enable:direnv",       "Direnv",
-            ["Automatically load Nix shell when entering project directory."],
-            ["Wiki", Urls.direnvWiki]],
-          [false, 0, "enable:editorconfig", "EditorConfig",
-            "IDE-agnostic settings.",
-            ["Spec", Urls.edConfSpec]],
-        ]
-      }),
-      Platforms.Section({
-        //open: false,
-        name: 'JS / TS / ECMAScript ecosystem',
-        help: 'https://github.com/hackbg/fadroma/discussions/239',
-        features: [
-          [true, 0, "enable:deno", "Deno",
-            "Run on next-gen TS/JS runtime by default.",
-            ["@std", Urls.denoStd],
-            ["API",  Urls.denoApi]],
-          [true, 0, "enable:node", "Node.js",
-            ["Will use ", Link(Urls.tsxNpm, "tsx"), " to run TypeScript."],
-            ["API", Urls.nodeApi]],
-          [true, 0, "enable:pnpm", "PNPM",
-            ["Recommended package manager."], ["Compare", Urls.pnpmCompare]],
-          [false, 0, "enable:eslint", "ESLint",
-            "Static analyzer.", ["Platforms", Urls.eslintConf]],
-          [false, 0, "enable:vite",
-            "Vite", "Build your front-end in the same repo."]
-        ]
-      }),
-      Platforms.Section({
-        //open: false,
-        name: 'Rust ecosystem',
-        help: 'https://github.com/hackbg/fadroma/discussions/236',
-        features: [
-          [false, 0, "enable:mold", "Mold", "Improves build times."],
-          [false, 0, "enable:rust", "Rust", "Different targets may need different toolchains."],
-        ]
-      }),
-      //Platforms.Section({
-        ////open: false,
-        //name: 'CI / CD',
-        //help: 'https://github.com/hackbg/fadroma/discussions/categories/guides',
-        //features: [
-          //[false, 0, "enable:gha",          "GHA",
-            //"Setup for GitHub Actions."],
-          //[false, 0, "enable:drone",        "Drone",
-            //"Setup for Drone CI."],
-          //[false, 0, "enable:woodpecker",   "Woodpecker",
-            //"Setup for Woodpecker CI."],
-        //]
-      //}),
-    ])
-  }
-
-}
-
-export function Feature (
-  depth: number,
-  id: string,
-  name = ``,
-  description = `` as string|(unknown[]),
-  ...links: [string, string?][]
-) {
-  return Html([`li.feature[data-depth=${depth}]`,
-    ['div.row.between',
-      ['div.col', [`label`, [`input[type=checkbox][checked=checked]`, { id }], name],
-        ['p.grow', ...(typeof description === 'object')?description:[description]]],
-      Feature.Links(links)]]);
-}
-
-export namespace Feature {
-
-  export function Disabled (
-    depth:       number,
-    id:          string,
-    name:        string = ``,
-    description: string|(unknown[]) = ``,
-    ...links:   [string, string?][]
-  ) {
-    return Html([`li.feature.disabled[data-depth=${depth}]`,
-      ['div.row.between',
-        ['div.col', [`label`, [`input[type=checkbox][disabled=disabled]`, { id }], name],
-          ['p.grow', ...(typeof description === 'object')?description:[description]]],
-        Feature.Links(links)]]);
-  }
-
-  export function Links (
-    links: [string, string?][]
-  ) {
-    return ['div.links', ...links.map(([text, href = '#'])=>
-      ['a.flex[target=_blank]', { href }, text, Icon("book")])]
-  };
 }
 
 export async function loadDocs (href: string) {
@@ -1009,8 +803,6 @@ export const textVal = (id: string) => (Html.id(id) as HTMLInputElement)?.value?
 
 export const byteVal = (id: string) => (Html.id(id) as HTMLInputElement)?.value?.trim() as unknown as Bytes; // FIXME
 
-export const on = (x: EventTarget, ev: string, cb: Fn) => { x?.addEventListener(ev, cb); return cb; }
-
 /** Displa error thrown by component init in host element. */
 function ErrorBoundary (view: HTMLElement, callback) {
   try {
@@ -1047,8 +839,8 @@ export function download (name: string, type: string, ...parts: unknown[]) {
 }
 
 export async function Nav () {
-  on(Html.id("navbar"), "click", navigate);
-  on(document.body, "click", ({ target }) => {
+  Html.on(Html.id("navbar"), "click", navigate);
+  Html.on(document.body, "click", ({ target }) => {
     while (target !== document.body) {
       //console.log(...target.classList)
       if (target.classList.contains('scroll-to')) {

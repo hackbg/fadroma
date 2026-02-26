@@ -86,13 +86,13 @@ h2 {
   margin: 2rem 0.5rem 1.5rem;
   color: #fff;
   text-shadow: 1px 1px 1px #0004;
-  #app & {
+  .app & {
     display: flex;
     gap: 1.5rem;
     align-items: center;
     flex-flow: row nowrap;
   }
-  #app &:after {
+  .app &:after {
      content: ' ';
      display: inline-block;
      border-top: 1px solid #fff8;
@@ -100,8 +100,26 @@ h2 {
   }
 }
 h3 {
-  font-size: 1.33rem;
-  margin: 0.166rem 0;
+  font-size: 1.66rem;
+  color: #fff;
+  text-shadow: 1px 1px 1px #0004;
+  .chain &.name {
+    font-size: 1.25rem;
+    margin: 0.166rem 0;
+  }
+  .app & {
+    margin: 2rem 0.5rem 1.5rem;
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    flex-flow: row nowrap;
+  }
+  .app &:after {
+     content: ' ';
+     display: inline-block;
+     border-top: 1px solid #fff4;
+     flex-grow: 1;
+  }
 }
 input, textarea, select {
   border:     1px solid #8884;
@@ -141,7 +159,14 @@ code {
 }
 button {
   &.pill {
-    background: none; color: #fff; border: 1px solid #fffa; padding: 0.33rem 0.5rem; font-size: 1rem; border-radius: 2rem; opacity: 0.8; &:hover { opacity: 1 }
+    background: none;
+    color: #fff;
+    border: 1px solid #fffa;
+    padding: 0.33rem 0.5rem;
+    font-size: 1rem;
+    border-radius: 2rem;
+    opacity: 0.8;
+    &:hover { opacity: 1 }
   }
 }
 nav {
@@ -174,9 +199,9 @@ textarea {
   background:      none;
   font-family:     monospace;
   white-space:     pre;
-  min-width:       90ch;
   scrollbar-width: initial;
   &:focus { background: #fff; }
+  .programs & { min-width: 90ch; }
 };
 
 /** Component styles. */
@@ -229,7 +254,7 @@ a.help {
   font-weight: semibold;
 }
 .hero {
-  padding: 4.5rem 0 2rem;
+  padding: 4.5rem 2rem 1.5rem;
   gap: 2rem !important;
   display: flex;
   flex-flow: row wrap;
@@ -476,7 +501,11 @@ a.help {
   flex-grow: 1;
   font-size: 15px;
   gap: 2rem;
-  padding: 0.5rem 2rem 2rem;
+  padding: 0 1.5rem 2rem 1rem;
+  @media screen and (min-width: 1920px) { 
+    flex-flow: column nowrap;
+    justify-content: flex-start;
+  }
   /*& > * { flex-grow: 1 }*/
   strong, .address { color: #fff }
 }
@@ -552,11 +581,13 @@ a.help {
   }
 }
 .editors {
+  background: linear-gradient(to right, #0214, #1322);
   padding: 0 2rem 2rem;
   gap: 2rem;
-  & > .col {
-    max-width: 180ch;
-  }
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: stretch;
+  align-items: stretch;
 }
 #editors {
   background-size: 100%;
@@ -616,7 +647,7 @@ a.help {
 
   }
 }
-#app, .app {
+.app {
   background: radial-gradient(at top, #0001, #0002), radial-gradient(at bottom right, #fff2, #fff0), radial-gradient(at top left, #3544, #3542), #3541;
   padding: 0;
   display: flex;
@@ -624,6 +655,12 @@ a.help {
   align-items: stretch;
   min-width: 30ch;
   height: auto;
+  max-width: 500ch;
+  margin: 0 auto;
+  @media screen and (min-width: 1920px) { 
+    flex-flow: row nowrap;
+    justify-content: flex-start;
+  }
 }
 
 .features {
@@ -639,6 +676,7 @@ a.help {
     gap: 2rem;
     padding: 0 2rem;
     &>.features {
+      max-width: 42rem;
       gap: 1.33rem;
     }
   }
@@ -840,8 +878,12 @@ a.help {
     }
   }
   &.file {
-    min-width: 120ch;
-    max-width: 180ch;
+    /*min-width: 60ch;*/
+    /*max-width: 100ch;*/
+    .programs & {
+      min-width: 120ch;
+      /*max-width: 200ch;*/
+    }
     flex-shrink: 0;
     flex-flow:  row nowrap;
     border-top: 1px solid #8884;
@@ -901,7 +943,7 @@ a.help {
     &:hover {
       input, select {
         background: #fff0;
-        border-bottom: 1px dotted #0008;
+        /*border-bottom: 1px dotted #0008;*/
         &:focus {
           background: #fff;
         }
@@ -970,9 +1012,13 @@ a.help {
   gap: 1rem;
 }
 .phase-form {
+  color: #fff;
+  .file & { color: #444 }
+  max-width: 60ch;
   gap: 0;
   display: flex;
   flex-flow: row wrap;
+  .field-sidebar & { margin-top: -1.5rem }
 }
 
 pre.compile-errors {
@@ -1027,9 +1073,9 @@ pre.compile-errors {
 }
 .program-form {
   padding:   1px;
-  gap:       0;
+  gap:       0.5 rem;
   font-size: 1.25rem;
-  background: rgb(221, 221, 221);
+  /*background: rgb(221, 221, 221);*/
   /*color: #fff;*/
   /*margin-bottom: 1rem;*/
   /*background: #f8f4;*/
@@ -1052,16 +1098,16 @@ pre.compile-errors {
       outline: none;
     }
   }
-  input, select {
-    text-align: right !important
-  }
+  /*input, select {*/
+    /*text-align: right !important*/
+  /*}*/
   label {
     padding: 0 0.5rem;
-    border-top: 1px solid #4448;
+    border-left: 1px solid #4448;
     align-self: stretch;
     display: flex;
-    flex-flow: row nowrap;
-    align-items: center;
+    flex-flow: column nowrap;
+    align-items: stretch;
     justify-content: space-between;
     label {
       padding: 0; margin: 0; border: 0
@@ -1074,15 +1120,35 @@ pre.compile-errors {
     }
   }
   button {
-    border: 1px solid #fff4;
+    border: 1px solid #9f84;
     padding: 0.5rem 1rem;
     flex-grow: 0;
+    text-shadow:   1px 1px 1px #000;
+    box-shadow:    1px 1px 1px #000;
+    border-radius: 3px;
+    color:         #fff;
+    background:    linear-gradient(to bottom, #1509, #040a);
+    &:hover { 
+      background:    linear-gradient(to bottom, #381b, #031b);
+    }
   }
   p { padding: 0; margin: 0 0 0.5rem 0 !important }
   .title {
     font-size: 1.33rem;
     padding: 1px 0.5rem; margin-bottom: 0.5rem;
   }
+}
+.instances {
+  border: 1px solid #0008;
+  border-radius: 3px;
+  padding: 1rem;
+  margin: 1rem;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+  justify-content: flex-start;
+  min-width: 40ch;
+  flex-grow: 1;
 }
 
 .docs {

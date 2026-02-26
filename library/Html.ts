@@ -1,3 +1,4 @@
+import Fn from './Fn.ts';
 import Svg from './Svg.ts';
 import { domAttrs, domParse } from './Dom.ts';
 export default Html;
@@ -14,6 +15,10 @@ function Html (...args: unknown[]): DocumentFragment {
 namespace Html {
   export function id <T extends HTMLElement> (id: string): T {
     return document.getElementById(id) as T
+  }
+  export function on (x: EventTarget, ev: string, cb: Fn) {
+    x?.addEventListener(ev, cb);
+    return cb;
   }
   export function Div (spec: string) {
     return Html([`div${spec}`]).firstChild as HTMLDivElement
