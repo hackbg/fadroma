@@ -121,14 +121,16 @@ h3 {
      flex-grow: 1;
   }
 }
-input, textarea, select {
-  border:     1px solid #8884;
-  box-shadow: 3px 3px 6px #8882;
-  font-size:   1rem;
-  padding:     0.33rem 0.5rem;
-  line-height: 1.33rem;
+input, select {
+  &, textarea {
+    border:     1px solid #8884;
+    box-shadow: 3px 3px 6px #8882;
+    font-size:   1rem;
+    padding:     0.33rem 0.5rem;
+    line-height: 1.33rem;
+  }
   &, label { &:hover { background: #fff8 }; };
-  &::placeholder { text-decoration: underline; };
+  /*&::placeholder { text-decoration: underline; };*/
   &:focus::placeholder { text-decoration: none; }
 }
 input[type=checkbox] {
@@ -196,12 +198,12 @@ textarea {
   line-height:     1.25;
   border:          none;
   box-shadow:      none;
-  background:      none;
+  /*background:      none;*/
   font-family:     monospace;
   white-space:     pre;
   scrollbar-width: initial;
   &:focus { background: #fff; }
-  .programs & { min-width: 90ch; }
+  .programs & { min-width: 80ch; }
 };
 
 /** Component styles. */
@@ -293,6 +295,7 @@ a.help {
   z-index: 1000;
   flex-flow: column nowrap;
   align-items: center;
+  background: #fff2;
   .collapsed & .grow {
     display: none;
   }
@@ -626,14 +629,10 @@ a.help {
       input, textarea, select {
         border:     none;
         box-shadow: none;
-        background: #fff2;
-        /*transition: background ease-in 0.16s;*/
         &:hover, .field:hover & {
-          background: #fff3
         }
         &:focus, &:focus-visible, &:hover:focus, .field:hover, &:focus {
-          background: #fff;
-          color:      #000 !important;
+          color:      #fff !important;
           outline:    none;
           &::placeholder {
             color: #fa0f;
@@ -645,6 +644,17 @@ a.help {
 
     select { padding-left: 0.5rem }
 
+  }
+}
+textarea {
+  color: #ffa;
+  background: linear-gradient(to right, #132, #243) !important;
+  padding: 0.5ch;
+  &:hover, .field:hover & {
+    background: #354 !important;
+  }
+  &:focus, &:active, &:focus-visible, &:focus-within, &:hove:focus {
+    background: #132 !important;
   }
 }
 .app {
@@ -936,8 +946,8 @@ a.help {
     }
 
     input, select {
-      padding: 0.125rem 0.5rem;
-      background: none;
+      padding: 0.25rem 0.5rem;
+      background: #fff4;
       border: 1px solid transparent;
       box-shadow: none;
       &:focus {
@@ -980,6 +990,9 @@ a.help {
   display: flex;
   flex-flow: row nowrap;
   align-items: stretch;
+  @media screen and (max-width: 1600px) {
+    flex-flow: row wrap;
+  }
 }
 .files {
   display: flex;
@@ -1024,10 +1037,10 @@ a.help {
   gap: 0;
   display: flex;
   flex-flow: row wrap;
-  .field-sidebar & { margin-top: -1.5rem }
 }
 
 pre.compile-errors {
+  white-space: pre-wrap;
   border-radius: 3px;
   width:       100%;
   overflow:    auto;
@@ -1083,7 +1096,7 @@ pre.compile-errors {
 }
 .program-form {
   padding:   1px;
-  gap:       0.5 rem;
+  gap:       0.5rem;
   font-size: 1.25rem;
   /*background: rgb(221, 221, 221);*/
   /*color: #fff;*/
@@ -1112,22 +1125,25 @@ pre.compile-errors {
     /*text-align: right !important*/
   /*}*/
   label {
-    padding: 0 0.5rem;
-    border-left: 1px solid #4448;
-    border-bottom: 1px solid #4448;
+    padding: 0 0.5rem 0 0;
+    border-left: 1px solid #0408;
+    margin-left: 0.33rem;
+    /*border-bottom: 1px solid #4448;*/
     align-self: stretch;
     display: flex;
     flex-flow: column nowrap;
     align-items: stretch;
     justify-content: space-between;
     label {
-      padding: 0; margin: 0; border: 0
+      padding: 0;
+      margin: 0;
+      border: 0
     }
     strong, em {
       min-width: 12ch;
       display: inline-block;
       margin-right: 0.5rem;
-      padding-right: 0.5rem;
+      padding: 0.5rem 0.5rem 0;
     }
   }
   button {
@@ -1152,14 +1168,19 @@ pre.compile-errors {
 .instances {
   border: 1px solid #0008;
   border-radius: 3px;
-  padding: 1rem;
-  margin: 1rem;
   display: flex;
   flex-flow: column nowrap;
-  align-items: stretch;
-  justify-content: flex-start;
+  align-items: center;
+  justify-content: center;
   min-width: 40ch;
   flex-grow: 1;
+  margin: 0 0.5rem 0.166rem;
+  padding: 0.5rem;
+  .empty {
+    align-self: center; justify-self: center; color: #555; background: #0001; padding: 1rem;
+    font-size: 1.5rem;
+  }
+
 }
 
 .docs {

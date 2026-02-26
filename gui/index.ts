@@ -4,17 +4,15 @@ import Html                           from '../library/Html.ts';
 import Wasm                           from './wasm.ts';
 import scrollTo                       from 'npm:animated-scroll-to';
 import type { Bytes, Fn }             from '../library/index.ts';
-import { Arg }                        from '../platform/SimplicityHL/SimplicityHL.ts';
 import { Base16 }                     from '../library/Number.ts';
-import { Labels, Texts, Link, Icon }  from './cons.ts';
+import { Labels, Texts, Icon }        from './cons.ts';
 import { Sender, Receiver }           from 'npm:p2p';
 import { connect, StringCodec }       from 'npm:nats.ws';
 import { p2wpkh as P2WPKH }           from 'npm:@scure/btc-signer';
 import { pubECDSA }                   from 'npm:@scure/btc-signer/utils.js'; // not already in keypair?
-import { reindent, joinLines }        from '../library/String.ts';
+import { joinLines }                  from '../library/String.ts';
 import { zipSync, strToU8 as zipStr } from 'npm:fflate';
 const chain = Bitcoin.LiquidTestnet(); // Chain handle (initialized once)
-let simf  = null; // WASM handle (initialized once)
 const nonSecret = (n: number) => new Uint8Array(new Array(32).fill(n));
 export const usersByName   = {};
 export const usersByPubkey = {};
@@ -45,8 +43,12 @@ export default function App ({
     chainsView: ChainList(chainsView),
     editorView: SimfDemo(editorView, { nix, btc, elements, direnv, deno, node }),
     users:      UserList(usersView),
-    simf
   };
+  Html.id('identities').appendChild(Project(
+    ES.TestSuite({ deno, node, btc }),
+    ES.DenoJson({ deno }),
+    Nix({ nix, elements }),
+    direnv && Field.Text(".envrc", "use nix")));
   setTimeout(()=>SimfDemo.init(editorView), 1);
   return state;
 }
@@ -58,13 +60,16 @@ export function ChainList (view = Html.id("chains"), {
   return ErrorBoundary(view, ()=>{
     Html.replace(view, state.view = Html(['div.col.gap',
       ['div.chain.disabled.col.gap',
-        ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to Bitcoin Mainnet...'],
+        ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to Bitcoin Mainnet'],
           ['strong.status', 'SOON']]],
       ['div.chain.disabled.col.gap',
-        ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to Bitcoin Testnet...'],
+        ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to Bitcoin Testnet'],
           ['strong.status', 'SOON']]],
       ['div.chain.disabled.col.gap',
-        ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to Liquid Mainnet...'],
+        ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to regtest...'],
+          ['strong.status', 'SOON']]],
+      ['div.chain.disabled.col.gap',
+        ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to Liquid Mainnet'],
           ['strong.status', 'SOON']]],
       ['div.chain.active.col.gap',
         ['div.row.gap.align-center.justify-start',
@@ -72,9 +77,6 @@ export function ChainList (view = Html.id("chains"), {
           ['h3.name', 'Liquid Testnet'],
           ['div.grow'],
           ['div.row.gap', ['div', 'Height: '], ['strong.height']]]],
-      ['div.chain.disabled.col.gap',
-        ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to regtest...'],
-          ['strong.status', 'SOON']]],
       ['div.chain.disabled.col.gap',
         ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to elementsregtest...'],
           ['strong.status', 'SOON']]],
@@ -94,7 +96,7 @@ export function ChainList (view = Html.id("chains"), {
   });
 }
 export interface ChainList {
-  view:       HTMLElement
+  view:       Node
   statusView: HTMLElement
   heightView: HTMLElement
   hashView:   HTMLElement
@@ -166,7 +168,7 @@ export interface User {
 }
 /** User-related functions. */
 export namespace User {
-  export const add = function addUser (name: string, options): User {
+  export const add = function addUser (...[name, options]: Parameters<typeof User>): User {
     if (usersByName[name]) throw new Error(`user already exists: ${name}`);
     const user = User(name, options)
     const pubkey = Base16.encode(user.pubkey)
@@ -188,6 +190,83 @@ export namespace User {
     if (select.onchange) select.onchange(null);
   }
 }
+export async function EditableProgram (name: string, source: string) {
+  source = source.split('\n').map((line, index)=>(index > 0)?line.slice(2):line).join('\n');
+  const view = (host: HTMLElement = document.createElement('div')) =>
+    Html.replace(host, Html(ProgramEditor(`src/${name}.simf`, source, true)));
+  return { name, source, view }
+}
+function ProgramEditor (id: string, source: string, open = false) {
+  const errors   = Html(['pre.compile-errors.collapsible']).firstChild as HTMLElement;
+  const sender   = Select.Sender();
+  const params   = Object.entries(Wasm.params(source)).map(([name, type])=>{
+    if (type === 'u256') return Select.Pubkey({ name: `Parameter: ${name}` }).view;
+    if (type === 'u32')  return Input.Amount(`Parameter: ${name}`);
+    console.warn('param', name, type);
+  });
+  console.log({params});
+  const compiler = Wasm.compiler({ chain: chain.ID, genesis: chain.GENESIS });
+  //onst program = compiler.compile(source, { args });
+  //const params   = [Select.Pubkey({ name: 'Parameter: PUB' }).view];
+  const button   = Button.Compile({ source, compiler, errors }).view
+  const stage1   = SimfDemo.Form('simf-compile', Select.Chain(), ...params, button);
+  const amount   = Label('Amount:', ['input.balance[type="number"]', { value: '2345' }]);
+  const commit   = Button.Commit().view;
+  const stage2   = SimfDemo.Form('simf-commit', sender.select, ['div.row', amount, sender.balance], commit);
+  return Field(id)
+    .open(open)
+    .content(Field.TextArea(id, source))
+    .content(errors)
+    .sidebar(['div.phase-form', stage1])
+    .sidebar(['div.phase-form', stage2])
+    .build()
+}
+/** Wrap a SimplicityHL program as a standalone Deno executable. */
+function SimfTS (source: string) {
+  return `#!/usr/bin/env -S deno run -P default\nimport { SimplicityHL } from 'fadroma';\n` +
+    `export default await SimplicityHL.Program(\`${source}\`).cli(import.meta)`;
+}
+export const ExamplePrograms = {
+  /** Empty program (always passes). */
+  Nop:         await EditableProgram('Nop', `fn main () {}`),
+  /** Asserts truth (always passes but has different address from [Nop]). */
+  AssertTrue:  await EditableProgram('AssertTrue', `fn main () {
+    assert!(true);
+  }`),
+  /** Asserts falsity (always fails). */
+  AssertFalse: await EditableProgram('AssertFalse', `fn main () {
+    assert!(false); 
+  }`),
+  /** Pay to public key: minimal witness program. */
+  P2PK:        await EditableProgram('P2PK', `fn main () {
+    jet::bip_0340_verify((param::PUB, jet::sig_all_hash()), witness::SIG);
+  }`),
+  /** Pay to public key: minimal witness program. */
+  P2PKH:       await EditableProgram('P2PKH', `fn main () {
+    let pubkey: Pubkey = witness::PUB;
+    let hasher: Ctx8 = jet::sha_256_ctx_8_init();
+    let hasher: Ctx8 = jet::sha_256_ctx_8_add_32(hasher, pubkey);
+    let hash:   u256 = jet::sha_256_ctx_8_finalize(hasher);
+    assert!(jet::eq_256(hash, param::PKH));
+    jet::bip_0340_verify((pubkey, jet::sig_all_hash()), witness::SIG);
+  }\n`),
+  /** Hodl vault: prototype workhorse. */
+  HodlVault:   await EditableProgram('HodlVault', `fn main () {
+    let min_height: Height = param::MIN_HEIGHT;
+    let target_price: u32 = param::TARGET_PRICE;
+    let oracle_price: u32 = witness::ORACLE_PRICE;
+    let oracle_height: Height = witness::ORACLE_HEIGHT;
+    jet::check_lock_height(oracle_height);
+    assert!(jet::le_32(min_height, oracle_height));
+    assert!(jet::le_32(target_price, oracle_price));
+    let hasher: Ctx8 = jet::sha_256_ctx_8_init();
+    let hasher: Ctx8 = jet::sha_256_ctx_8_add_4(hasher, oracle_height);
+    let hasher: Ctx8 = jet::sha_256_ctx_8_add_4(hasher, oracle_price);
+    let msg: u256 = jet::sha_256_ctx_8_finalize(hasher);
+    jet::bip_0340_verify((param::ORACLE, msg), witness::ORACLE);
+    jet::bip_0340_verify((param::OWNER, jet::sig_all_hash()), witness::OWNER);
+  }\n`),
+};
 /** SimplicityHL example project and transaction runner. */
 export function SimfDemo (view = Html.id("editors"), {
   nix      = true,
@@ -201,19 +280,18 @@ export function SimfDemo (view = Html.id("editors"), {
   return ErrorBoundary(view, { view: Html.replace(view, Html(
     ['div.editors',
       ['div.col',
-        Section.Layer(['div', ['h2', 'Now with SimplicityHL Support!'], ...Texts.SIMPLICITYHL1]),
-        Programs(Programs.P2PK.wrapped(), Programs.P2PKH.wrapped(), Programs.HodlVault.wrapped()),
-        Section.Phase(['div', ...Texts.SIMPLICITYHL2], SimfDemo.Instances())],
-        Project(
-          ES.TestSuite({ deno, node, btc }),
-          ES.DenoJson({ deno }),
-          Nix({ nix, btc, simf, elements }),
-          direnv && Field.Text(".envrc", "use nix"))])) });
+        Section.Layer(['div', ['h2', 'Now with SimplicityHL Support!'], ...Texts.SIMPLICITYHL]),
+        Programs(
+          ExamplePrograms.P2PK.view(),
+          ExamplePrograms.P2PKH.view(),
+          ExamplePrograms.HodlVault.view()),
+        Section.Phase('', SimfDemo.Instances())],
+      ])) });
 }
 export namespace SimfDemo {
   export function Instances () {
     return ['div.row.gap.field.file',
-      ['ul.instances'],
+      ['ul.instances', ['div.empty', ['strong', 'No deployed programs!'], ' Deploy a program using the above form.' ]],
       ['div.phase-form',
         SimfDemo.Form('simf-witness', Texts.WitnessTitle, Input.Balance(), Select.Recipient(),
           Label('Amount:', ['input[type="number"]', { value: '1234' }]), Input.SigHash()),
@@ -221,8 +299,8 @@ export namespace SimfDemo {
           Label('TX bytes:', ['input']), Label('Redeem TX:', Button('redeem')))],
     ]
   }
-  export function Form (id, name: string|unknown[], ...rest: unknown[]) {
-    return [`div.program-form.col.grow#${id}`, ['div.title', name], ...rest];
+  export function Form (id, ...rest: unknown[]) {
+    return [`div.program-form.col.grow#${id}`, ...rest];
   }
   export const init = function initEditors (el: Element) {
     //Html.id('title').focus();
@@ -282,86 +360,10 @@ export namespace SimfDemo {
 export function Programs (...args: unknown[]) {
   return Section({ className: 'layer programs col' }, ['div.files', ...args]);
 }
-export namespace Programs {
-  /** Empty program (always passes). */
-  export namespace Nop         { export const source = `fn main () {}` }
-  /** Asserts truth (always passes but has different address from [Nop]). */
-  export namespace AssertTrue  { export const source = `fn main () { assert!(true); }` }
-  /** Asserts falsity (always fails). */
-  export namespace AssertFalse { export const source = `fn main () { assert!(false); }` }
-  /** Pay to public key: minimal witness program. */
-  export namespace P2PK {
-    export const wrapped = () => ProgramEditor("src/P2PK.simf.ts", source);
-    export const source = reindent(2, `fn main () {
-      jet::bip_0340_verify((param::PUB, jet::sig_all_hash()), witness::SIG);
-    }\n`);
-  }
-  /** Pay to public key: minimal witness program. */
-  export namespace P2PKH {
-    export const wrapped = () => ProgramEditor("src/P2PKH.simf.ts", source);
-    export const source = reindent(2, `fn main () {
-      let pubkey: Pubkey = witness::PUB;
-      let hasher: Ctx8 = jet::sha_256_ctx_8_init();
-      let hasher: Ctx8 = jet::sha_256_ctx_8_add_32(hasher, pubkey);
-      let hash:   u256 = jet::sha_256_ctx_8_finalize(hasher);
-      assert!(jet::eq_256(hash, param::PKH));
-      jet::bip_0340_verify((pubkey, jet::sig_all_hash()), witness::SIG);
-    }\n`);
-  }
-  /** Hodl vault: prototype workhorse. */
-  export namespace HodlVault {
-    export const wrapped = () => ProgramEditor("src/HodlVault.simf.ts", source, true);
-    export const source = reindent(2, `fn main () {
-      let min_height: Height = param::MIN_HEIGHT;
-      let target_price: u32 = param::TARGET_PRICE;
-      let oracle_price: u32 = witness::ORACLE_PRICE;
-      let oracle_height: Height = witness::ORACLE_HEIGHT;
-      jet::check_lock_height(oracle_height);
-      assert!(jet::le_32(min_height, oracle_height));
-      assert!(jet::le_32(target_price, oracle_price));
-      let hasher: Ctx8 = jet::sha_256_ctx_8_init();
-      let hasher: Ctx8 = jet::sha_256_ctx_8_add_4(hasher, oracle_height);
-      let hasher: Ctx8 = jet::sha_256_ctx_8_add_4(hasher, oracle_price);
-      let msg: u256 = jet::sha_256_ctx_8_finalize(hasher);
-      jet::bip_0340_verify((param::ORACLE, msg), witness::ORACLE);
-      jet::bip_0340_verify((param::OWNER, jet::sig_all_hash()), witness:OWNER);
-    }\n`);
-  }
-  /** Wrap a SimplicityHL program as a standalone Deno executable. */
-  const SimfTS = (source: string) =>
-    `#!/usr/bin/env -S deno run -P default\nimport { SimplicityHL } from 'fadroma';\n` +
-    `export default await SimplicityHL.Program(\`${source}\`).cli(import.meta)`;
-  /** Recompile currently selected program in response to changes. */
-  export const recompile = async function recompileSimplictyHL (name: string, e: Event) {
-    simf ??= await import('../platform/SimplicityHL/pkg/fadroma_simf.js')
-    const resp = await fetch('/wasm/simf.wasm');
-    const wasm = await resp.bytes();
-    await simf.default(wasm);
-    const result = simf.build('fn main () {}', {});
-    document.getElementById(`result:${name}`).style.whiteSpace = 'pre';
-    for (const key of ['commit', 'cmr', 'amr', 'ihr']) {
-      document.getElementById(`${key}:${name}`).innerText = result[key];
-    }
-  }
-  function ProgramEditor (id: string, source: string, open = false) {
-    const errors = Html(['pre.compile-errors.collapsible']).firstChild as HTMLElement;
-    return Field(id)
-      .open(open)
-      .content(Field.TextArea(id, SimfTS(source)))
-      .content(errors)
-      .sidebar(['div.phase-form',
-        SimfDemo.Form('simf-compile', Texts.CompileTitle, Select.Chain(),
-          Select.Program(), Select.Pubkey({ name: 'param::PUB' }).view, Button.Compile({ errors }).view),
-        SimfDemo.Form('simf-commit', Texts.FundTitle, Select.Sender().view,
-          Label('Amount:', ['input.balance[type="number"]', { value: '2345' }]),
-          Button.Commit().view)])
-      .build()
-  }
-}
 /** A project repository. */
 export function Project (...args: unknown[]) {
   return Section({ className: 'layer project' }, ['div.col.grow.files.gap',
-    ['div', ['h2', 'Project configurator'], Texts.DownloadProject],
+    ['div', ['h2', 'Project template:'], Texts.DownloadProject],
     Project.Metadata(), Project.Readme(), Field.Text("Justfile", "TODO"), ...args ]);
 }
 export namespace Project {
@@ -526,20 +528,19 @@ export function Button (id: keyof typeof Button.Labels, onclick = () => {}): HTM
 }
 export namespace Button {
   export function Compile ({
-    chain   = Bitcoin.LiquidTestnet,
-    genesis = chain.GENESIS, // TODO autofetch from block 0
-    button  = Button('compile', () => compile()),
-    errors  = Html(['pre.compile-errors.collapsible']).firstChild as HTMLElement,
-    input   = Html(['input']).firstChild as HTMLInputElement,
-    view    = Html(['label.col.gap.align-stretch', ['label.justify-between.gap', ['strong', 'Program address (P2TR):'], input, button], errors]).firstChild,
-    compile = async () => {
+    source   = null,
+    chain    = Bitcoin.LiquidTestnet,
+    genesis  = chain.GENESIS, // TODO autofetch from block 0
+    compiler = Wasm.compiler({ chain: chain.ID, genesis }),
+    button   = Button('compile', () => compile()),
+    errors   = Html(['pre.compile-errors.collapsible']).firstChild as HTMLElement,
+    input    = Html(['input', { placeholder: 'compile to get P2TR' }]).firstChild as HTMLInputElement,
+    view     = Html(['label.col.gap.align-stretch', button, ['label.justify-between.gap', ['strong', 'Program address (P2TR):'], input], errors]).firstChild,
+    compile  = async () => {
       //const { default: Wasm } = await import('./wasm.ts');
       errors.innerText = '';
       errors.style.display = 'none';
       try {
-        const compiler    = Wasm.compiler({ chain: chain.ID, genesis });
-        const selected    = document.querySelector('.pick-program').value;
-        const source      = Program[selected].source;
         const pubkeyValue = document.querySelector('#simf-compile .pubkey')?.value;
         const args        = { PUB: { type: 'Pubkey', value: `${pubkeyValue}` } };
         console.log({args});
@@ -658,7 +659,9 @@ export namespace Input {
   export const Balance = () =>
     ['label.gap', ['strong', 'Balance:'], ['input.balance', { disabled: true }]]
   export const SigHash = () =>
-    ['label', ['strong', 'Sign hash:'], ['input']]
+    ['label.gap', ['strong', 'Sign hash:'], ['input']]
+  export const Amount = (name = 'Amount:') =>
+    ['label.gap', ['strong', name], ['input']]
 }
 export function Select () { /* TODO */ }
 export namespace Select {
@@ -686,7 +689,7 @@ export namespace Select {
     select: HTMLSelectElement,
     input:  HTMLInputElement,
   }
-  export interface Sender extends Select.WithInput {}
+  export interface Sender extends Select.WithInput { balance: HTMLElement }
   export interface Pubkey extends Select.WithInput {}
   export interface Signer extends Select.WithInput {}
   export function Pubkey ({
@@ -701,13 +704,14 @@ export namespace Select {
     return update(state);
   }
   export function Sender ({
-    name   = 'Sender:',
-    view   = Html(['div.col', { style: 'align-items:stretch' }, Label(name, ['select.pick-user']), Input.Balance()]).firstChild,
-    input  = view.querySelector('input'),
-    select = view.querySelector('select'),
-    update = (state: Select.Sender) => { setTimeout(()=>updateSenderBalance(state), 1); return state },
+    name    = 'Sender:',
+    balance = Html(Input.Balance()).firstChild as HTMLElement,
+    view    = Html(['div.col', { style: 'align-items:stretch' }, Label(name, ['select.pick-user']), balance]).firstChild as HTMLElement,
+    input   = view.querySelector('input'),
+    select  = view.querySelector('select'),
+    update  = (state: Select.Sender) => { setTimeout(()=>updateSenderBalance(state), 1); return state },
   }: Partial<Select.Sender> = {}): Select.Sender {
-    const state = { name, view, select, input, update };
+    const state = { name, view, select, input, balance, update };
     select.onchange = () => update(state);
     return update(state);
   }

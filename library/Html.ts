@@ -30,8 +30,8 @@ namespace Html {
   export function replace (el: Node, ...els: Node[]) {
     const frag = new DocumentFragment();
     for (const nel of els) frag.appendChild(nel);
-    el.parentElement.replaceChild(frag, el);
-    return el;
+    if (el.parentElement) el.parentElement.replaceChild(frag, el);
+    return frag;
   }
   export function prepend (el: Node, ...els: Node[]) {
     const frag = Html()
