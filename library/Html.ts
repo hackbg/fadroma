@@ -12,11 +12,20 @@ function Html (...args: unknown[]): DocumentFragment {
   return frag;
 }
 namespace Html {
+  export function id <T extends HTMLElement> (id: string): T {
+    return document.getElementById(id) as T
+  }
   export function Div (spec: string) {
     return Html([`div${spec}`]).firstChild as HTMLDivElement
   }
   export function append (el: Node, ...els: Node[]) {
     for (const e of els) el.appendChild(e);
+    return el;
+  }
+  export function replace (el: Node, ...els: Node[]) {
+    const frag = new DocumentFragment();
+    for (const nel of els) frag.appendChild(nel);
+    el.parentElement.replaceChild(frag, el);
     return el;
   }
   export function prepend (el: Node, ...els: Node[]) {

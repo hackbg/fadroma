@@ -1,4 +1,46 @@
 
+
+  //export const OracleForm = () => Witness("oracle.wit", 
+    //WitnessRow('u32', 'ORACLE_HEIGHT', '1000'),
+    //WitnessRow('u32', 'ORACLE_PRICE',  '100000'),
+    //WitnessRow('sig', 'ORACLE_SIG',    ''),
+    //WitnessRow('sig', 'OWNER_SIG',     ''));
+
+  //export const OracleTS = ({ deno, node }) => ES("oracle.ts",
+    //ES.HashBang({ deno, node }),
+    //ES.Import("@hackbg/fadroma", simf && 'Simf'),
+    //simf && `export default Simf(import.meta, "src/main.simf");`);
+
+  //export const Witness = (id: string, ...content: unknown[]) => Field(id).open(false)
+    //.header(['select', ['option', 'src/main.simf']])
+    //.header(Button.Command('play', 'Satisfy', { onclick: e => recompileSimplictyHL(id, e) }))
+    //.content([['div.col.collapsible',
+      //WitnessRow('u32', 'ORACLE_HEIGHT', '1000'),
+      //WitnessRow('u32', 'ORACLE_PRICE',  '100000'),
+      //WitnessRow('sig', 'ORACLE_SIG',    ''),
+      //WitnessRow('sig', 'OWNER_SIG',     ''),
+      //['div.row', ['div.grow'], Button.Command('circle-with-plus', 'Witness')]]])
+    //.build();
+
+  //export const WitnessRow = (t: 'sig'|'u32', k: string, v: string|Bytes) =>
+    //['div.witness',
+      //['input[type=text].grow', { value: k, placeholder: 'name' }],
+      //['label', ['select', ['option', { value: t }, t]]],
+      //['label.row', ['input[type=text].grow', { value: v, placeholder: 'value' }]],
+      //Button.Command('circle-with-cross', 'Remove')];
+
+  //export const SimfFn = (name: string, ...content: unknown[]) =>
+    //['div.col.fn',
+      //['div.row.align-center',
+        //['strong.keyword', 'fn '],
+        //[`input[type=text][size=${name.length-2}]`, { value: name }],
+        //'(', [`input[type=text][size=2]`], ')',
+        //' { ',
+        //['div.grow'],
+        //Button.Command('circle-with-cross', 'Remove')],
+      //['textarea', content.join('\n')||' '], '}'];
+
+
   //export const HodlVault = () => Simf("vault.simf", `[>* HODL VAULT: Lock your coins until the Bitcoin price exceeds a threshold.
  //* - Oracle signs message with current block height and current Bitcoin price.
  //* - Block height compared with a minimum height to prevent use of old data.

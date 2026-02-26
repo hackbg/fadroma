@@ -1,69 +1,235 @@
-import { p2wpkh as P2WPKH } from 'npm:@scure/btc-signer';
-import { pubECDSA } from 'npm:@scure/btc-signer/utils.js'; // not already in keypair?
-import { Sender, Receiver } from 'npm:p2p';
-import { connect, StringCodec } from 'npm:nats.ws';
-import * as Monaco from 'npm:monaco-editor';
+import * as Monaco                    from 'npm:monaco-editor';
+import scrollTo                       from 'npm:animated-scroll-to';
+import { Sender, Receiver }           from 'npm:p2p';
+import { connect, StringCodec }       from 'npm:nats.ws';
+import { p2wpkh as P2WPKH }           from 'npm:@scure/btc-signer';
+import { pubECDSA }                   from 'npm:@scure/btc-signer/utils.js'; // not already in keypair?
 import { zipSync, strToU8 as zipStr } from 'npm:fflate';
-import scrollTo from 'npm:animated-scroll-to';
-
+import Bitcoin            from '../platform/Bitcoin/Bitcoin.ts';
+import Html               from '../library/Html.ts';
+import Wasm               from './wasm.ts';
 import type { Bytes, Fn } from '../library/index.ts';
-import Bitcoin from '../platform/Bitcoin/Bitcoin.ts';
-import { Arg } from '../platform/SimplicityHL/SimplicityHL.ts';
-import { Base16 } from '../library/Number.ts';
-import Html from '../library/Html.ts';
-import Wasm from './wasm.ts';
-
-let chain = null; // Chain handle (initialized once)
+import { Arg }            from '../platform/SimplicityHL/SimplicityHL.ts';
+import { Base16 }         from '../library/Number.ts';
+import { Texts, Urls }    from './cons.ts';
+const chain = Bitcoin.LiquidTestnet(); // Chain handle (initialized once)
 let simf  = null; // WASM handle (initialized once)
 const nonSecret = (n: number) => new Uint8Array(new Array(32).fill(n));
 export const usersByName   = {};
 export const usersByPubkey = {};
-
-export default App;
-
 /** Launch the editor and user views. */
-function App ({
+export default function App ({
+  /** Host element for chains view */
+  chainsView = Html.id("chains"),
   /** Host element for developer view */
-  editorView = elById("editors"), 
+  editorView = Html.id("editors"),
   /** Host element for user view */
-  usersView  = elById("demousers"),
+  usersView  = Html.id("users"),
   /** Integrate with Bitcoin ecosystem */
-  btc        = true,
+  btc      = true,
   /** Provide Nix shell with project. */
-  nix        = true,
+  nix      = true,
   /** Auto-activate Nix shell. */
-  direnv     = nix,
+  direnv   = nix,
   /** Include Elements in Nix shell. */
-  elements   = nix,
+  elements = nix,
   /** Make the repo a Node.js package. */
-  node       = false,
+  node     = false,
   /** Make the repo a Deno environment. */
-  deno       = true,
-  /** Configure the embedded SimplicityHL editor. */
-  simf       = Simf({ nix, btc, elements, direnv, deno, node }),
+  deno     = true,
 } = {}) {
-  editorView.innerHTML = '';
-  Html.append(editorView, Html(['div.box.editors.col.grow.gap.justify-between', simf.view]));
-  setTimeout(()=>initApp(editorView), 1);
-  Program.Users({ view: usersView });
-  return { editorView, usersView, simf };
+  chainsView.innerHTML = '';
+  usersView.innerHTML = '';
+  const state = {
+    chainsView: ChainList(chainsView),
+    editorView: SimfDemo(editorView, { nix, btc, elements, direnv, deno, node }),
+    users:      UserList(usersView),
+    simf
+  };
+  setTimeout(()=>SimfDemo.init(editorView), 1);
+  return state;
 }
-
-function initApp (el: Element) {
-  elById('title').focus();
-  el.querySelectorAll('textarea').forEach((textarea: HTMLTextAreaElement & {
-    monaco?: Monaco.editor.ITextModel
-  })=>{
+/** Chain connection indicator button. */
+export function ChainList (view = Html.id("chains"), {
+  interval   = 10000,
+} = {}) {
+  const state = { interval, nextUpdate: null, view, heightView: null, statusView: null, hashView: null };
+  return ErrorBoundary(view, ()=>{
+    Html.replace(view, state.view = Html(['div.col.gap',
+      ['div.chain.disabled.col.gap',
+        ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to Liquid Mainnet...'],
+          ['strong.status', 'SOON']]],
+      ['div.chain.active.col.gap',
+        ['div.row.gap.align-center.justify-start',
+          ['strong.status', chain ? Texts.CONNECTING : Texts.CONNECTED],
+          ['h3.name', 'Liquid Testnet'],
+          ['div.grow'],
+          ['div.row.gap', ['div', 'Height: '], ['strong.height']]]],
+      ['div.chain.disabled.col.gap',
+        ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to elementsregtest...'],
+          ['strong.status', 'SOON']]],
+      ['div.row.gap',
+        ['div.chain.disableder.col.gap.grow',
+          ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to Solana RPC...'],
+            ['strong.status', 'SOON']]],
+        ['div.chain.disableder.col.gap.grow',
+          ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to Tendermint RPC...'],
+            ['strong.status', 'SOON']]]]]).firstChild);
+    state.hashView   = state.view.querySelector('.chain.active .hash')   as HTMLDivElement;
+    state.heightView = state.view.querySelector('.chain.active .height') as HTMLDivElement;
+    state.statusView = state.view.querySelector('.chain.active .status') as HTMLDivElement;
+    state.statusView.style.color = '#af8';
+    state.statusView.innerText   = Texts.CONNECTED;
+    return ChainList.update(state)
+  });
+}
+export namespace ChainList {
+  export const update = async function updateChainList (state) {
+    try {
+      state.heightView.innerText = await chain.esplora.getBlockTipHeight()
+    } catch (e) {
+      console.error(e);
+      state.statusView.innerText = Texts.CONNECT_ERROR;
+      state.statusView.style.color = '#f84';
+    } finally {
+      state.nextUpdate = setTimeout(()=>update(state), state.interval);
+    }
+    return state
+  }
+}
+/** Generate and display test wallets. */
+export function UserList (view = Html.id('users'), {
+  users = [
+    User.add('Alice', { secret: nonSecret(1) }),
+    User.add('Bob',   { secret: nonSecret(2) }),
+    User.add('Carol', { secret: nonSecret(3) })
+  ]
+} = {}) {
+  return ErrorBoundary(view, () => {
+    for (const user of users) Html.append(view, user.view());
+    for (const select of User.findPickers()) User.initPicker(select, users);
+    return { view, users }
+  });
+}
+/** Create and dispay a user card. */
+export function User (name: string, {
+  secret   = new Uint8Array(Array(32).fill(1)),
+  signer   = Wasm.keypair(secret),
+  pubkey   = pubECDSA(secret),
+  pubkeyX  = signer.xOnlyPublicKey(),
+  //chain    = { bech32: 'ert', pubKeyHash: 0x6f, scriptHash: 0xc4, wif: 0xef, },
+  chain    = { bech32: 'tex', blech32: 'tlq', pubKeyHash: 36, scriptHash: 19, wif: 0xef, },
+  p2wpkh   = P2WPKH(pubkey, chain).address,
+  output   = Html(['div.log', 'Enter Bob, Carol.']),
+  //p2p      = P2P({ name, root: output }),
+  balance  = Html(['span.balance', 'Loading balance...']).firstChild,
+  toolbar  = Html(['section.progs', ['button.pill', 'Send'], ['button.pill', 'P2PK'], ['button.pill', 'Vault'], ['button.pill', 'Escrow'], ['input.chat', { placeholder: 'chat' }], ['button.pill', 'Say']]),
+  identity = Html(['section.meta',  ['div.col.gap', ['div.row.gap.align-center', ['strong.name', name], ['div.col.gap', p2wpkh, ['strong', balance]]]]]),
+  //identity = Html`(section.meta (.col.gap (.row.gap.align-center (strong.name ${name}) (.col.gap p2wpkh (strong ${balance})))))`,
+  view     = () => Html(['div.col', ['article.user', identity, output, toolbar]])
+} = {}): User {
+  return { name, signer, pubkey, pubkeyX, p2wpkh, view }
+}
+/** User model. */
+export interface User {
+  /** Human-friendly name. */
+  name:    string
+  /** Main address of user. */
+  p2wpkh:  string
+  /** Public key of user. */
+  pubkey:  Uint8Array
+  /** X-Only (tweaked?) public key of user. */
+  pubkeyX: Uint8Array
+  /** Can sign data with hidden secret key of user. */
+  signer:  ReturnType<typeof Wasm.keypair>
+  /** Render the user card. */
+  view (): DocumentFragment
+}
+/** User-related functions. */
+export namespace User {
+  export const add = function addUser (name: string, options): User {
+    if (usersByName[name]) throw new Error(`user already exists: ${name}`);
+    const user = User(name, options)
+    const pubkey = Base16.encode(user.pubkey)
+    if (usersByPubkey[pubkey]) throw new Error(`pubkey already exists: ${name}: ${pubkey}`)
+    usersByName[name] = user;
+    usersByPubkey[pubkey] = user;
+    return user;
+  }
+  export const findPickers = function findUserPickers (): HTMLSelectElement[] {
+    return document.querySelectorAll('select.pick-user') as unknown as HTMLSelectElement[]
+  }
+  export const initPicker = function initUserPicker (select: HTMLSelectElement, users: User[]) {
+    select.innerHTML = '';
+    for (const user of users) {
+      const label = ` (${user.p2wpkh})`;
+      const value = Base16.encode(user.pubkey);
+      select.appendChild(Html(['option', { value }, ['strong', user.name], label]));
+    }
+    if (select.onchange) select.onchange(null);
+  }
+}
+/** SimplicityHL example project and transaction runner. */
+export function SimfDemo (view = Html.id("editors"), {
+  nix      = true,
+  btc      = true,
+  simf     = true,
+  elements = true,
+  direnv   = true,
+  deno     = true,
+  node     = false,
+} = {}) {
+  return ErrorBoundary(view, { view: Html.replace(view, Html(
+    ['div.row.grow.gap.justify-between.editors',
+      ['div.col',
+        Section.Layer(['div', ['h2', 'Now with SimplicityHL Support!'], Texts.Welcome]),
+        Programs(
+          Programs.P2PK.wrapped(),
+          Programs.P2PKH.wrapped(),
+          Programs.HodlVault.wrapped()),
+        Section.Layer(['div', ['h2', 'Project configurator'], Texts.DownloadProject]),
+        Project(
+          ES.TestSuite({ deno, node, btc }),
+          ES.DenoJson({ deno }),
+          Nix({ nix, btc, simf, elements }),
+          direnv && Field.Text(".envrc", "use nix"))]],
+    ['div.row.grow.gap.justify-between.editors',
+      ['div.col', ['h2', 'Transaction tester'], Texts.Phases,
+        Section.Phase(Texts.CommitmentPhase, ['div.phase-form',
+          SimfDemo.Form('simf-compile', Texts.CompileTitle, Select.Chain(),
+            Select.Program(), Select.Pubkey({ name: 'param::PUB' }).view, Button.Compile().view),
+          SimfDemo.Form('simf-commit', Texts.FundTitle, Select.Sender().view,
+            Label('Amount:', ['input.balance[type="number"]', { value: '2345' }]),
+            Button.Commit().view)]),
+        Section.Phase(Texts.RedemptionPhase, ['div.phase-form',
+          SimfDemo.Form('simf-witness', Texts.WitnessTitle, Input.Balance(), Select.Recipient(),
+            Label('Amount:', ['input[type="number"]', { value: '1234' }]), Input.SigHash()),
+          SimfDemo.Form('simf-redeem', Texts.RedeemTitle, Select.Signer({ name: 'witness::SIG' }).view,
+            Label('TX bytes:', ['input']), Label('Redeem TX:', Button('redeem')))])]])) });
+}
+export namespace SimfDemo {
+  export const init = function initEditors (el: Element) {
+    //Html.id('title').focus();
+    for (const textarea of el.querySelectorAll('#editor textarea')) initEditor({
+      textarea: textarea as HTMLTextAreaElement
+    });
+  }
+  function initEditor ({
+    textarea = null as  HTMLTextAreaElement & { monaco?: Monaco.editor.ITextModel }
+  } = {}) {
     Field.computeHeight(textarea);
     const content  = textarea.value;
     const language = textarea.dataset.language ??= 'nix';
     const uri      = textarea.dataset.uri ??= `fadroma://${+new Date()}`;
-    const model    = Monaco.editor.createModel(content, language, Monaco.Uri.parse(uri));
-    textarea.monaco = model;
+    const model    = textarea.monaco = Monaco.editor.createModel(content, language, Monaco.Uri.parse(uri));
     const wrapper  = Html.Div('.editor-wrapper');
     const editor   = Monaco.editor.create(wrapper, monacoOptions(language, model));
     let ignoreEvent = false;
-    const updateHeight = () => {
+    editor.onDidContentSizeChange(updateHeight);
+    updateHeight();
+    textarea.parentElement.appendChild(wrapper);
+    textarea.parentElement.removeChild(textarea);
+    function updateHeight () {
       if (ignoreEvent) return;
       const width  = Math.max(300,  wrapper.offsetWidth);
       const height = Math.min(1000, editor.getContentHeight()) + 1;
@@ -76,463 +242,15 @@ function initApp (el: Element) {
       } finally {
         ignoreEvent = false;
       }
-    };
-    editor.onDidContentSizeChange(updateHeight);
-    updateHeight();
-    textarea.parentElement.appendChild(wrapper);
-    textarea.parentElement.removeChild(textarea);
-  })
-}
-
-function monacoOptions (language, model) {
-  return {
-    language,
-    model,
-    scrollBeyondLastLine:                       false,
-    wordWrap:                                   'on'       as const,
-    wrappingStrategy:                           'advanced' as const,
-    automaticLayout:                            true,
-    minimap:                                    { enabled: false },
-    overviewRulerLanes:                         0,
-    scrollbar:                                  {
-      alwaysConsumeMouseWheel:                  false,
-      ignoreHorizontalScrollbarInContentHeight: true,
-      horizontal:                               'hidden' as const,
-      vertical:                                 'auto'   as const,
-    },
-  }
-}
-
-namespace App {
-
-  export function update (e: InputEvent) {
-    let target = e.target as HTMLElement;
-    do {
-      if (target?.id?.startsWith('enable:')) {
-        console.log(target.id);
-        return;
-      }
-      target = target.parentElement;
-    } while (target && target !== e.currentTarget);
-  };
-}
-
-export function loadRepository ({
-  view: _1 = null as DocumentFragment,
-  url:  _2 = null as string|URL,
-} = {}) {
-  /* TODO */
-}
-
-export function downloadProjectTemplate ({
-  title   = textVal('title') || 'simplicityhl-starter-fadroma',
-  license = textVal('license'),
-  archive = {},
-  initGit = true,
-  initNix = true, // FIXME
-}) {
-  // Collect values of editors
-  elById("editors").querySelectorAll('[data-path]').forEach((el: HTMLElement)=>{
-    archive[el.dataset.path] = zipStr(el.querySelector('textarea')?.value);
-  });
-  // Set attributes of files
-  const makeExecutable = (x: string) => {
-    if (archive[x]) archive[x] = [archive[x], { os: 3, attrs: 0o755 << 16 }];
-  };
-  if (initGit) {
-    // Add empty Git repo
-    archive['.git/config'] = zipStr([
-      '[core]',
-      'repositoryformatversion = 0',
-      'filemode                = true',
-      'bare                    = false',
-      'logallrefupdates        = true',
-    ].filter(Boolean).join('\n')+'\n');
-    archive['.git/description'] = zipStr('Created at https://fadroma.tech');
-    archive['.git/HEAD']        = zipStr('ref: refs/heads/main');
-    archive['.git/objects']     = { info: {}, pack: {} };
-    archive['.git/refs']        = { heads: {}, tags: {} };
-    archive['.gitignore']       = zipStr([
-      '.direnv', 'coverage', 'node_modules', 'target'
-    ].filter(Boolean).join('\n')+'\n');
-  }
-  makeExecutable('index.ts');
-  makeExecutable('test.ts');
-  if (initNix) {
-    makeExecutable('shell.nix');
-  }
-  download(`${+new Date()}-${title}.zip`, 'application/zip', zipSync(archive))
-}
-
-export function Button () { /* TODO */ }
-
-export namespace Button {
-
-  export function Command (icon: string|null, ...content: unknown[]) {
-    return [ 'div.command', icon && Icon(icon), ...content ]
-  }
-
-  export function Compile ({
-    errors  = Html(['pre.compile-errors']).firstChild,
-    label   = Html(['strong.grow', 'Program address:']),
-    button  = Html(['button#compile', 'Compile', { style: 'padding:0 1rem; border: 1px solid #af48' }]),
-    input   = Html(['input']),
-    view    = Html(['label.col.gap.align-stretch', ['div.row.gap.justify-between', label, ['div.row.gap', button, input]], errors]).firstChild,
-    chain   = Bitcoin.LiquidTestnet,
-    genesis = 'a771da8e52ee6ad581ed1e9a99825e5b3b7992225534eaa2ae23244fe26ab1c1',
-  } = {}) {
-    view.querySelector('button').onclick = compile;
-    return { view, compile }
-    async function compile () {
-      //const { default: Wasm } = await import('./wasm.ts');
-      errors.innerText = '';
-      try {
-        const compiler    = Wasm.compiler({ chain: chain.ID, genesis });
-        const selected    = document.querySelector('.pick-program').value;
-        const source      = Program[selected].source;
-        const pubkeyValue = document.querySelector('#simf-compile .pubkey')?.value;
-        const args        = { PUB: { type: 'Pubkey', value: `${pubkeyValue}` } };
-        console.log({args});
-        const program = compiler.compile(source, { args });
-        const address = program.toJSON().p2tr;
-        view.querySelector('input').value = address;
-        const balance = await getBalances(address);
-        console.debug('Balance of', address, 'is', balance);
-        document.querySelector('#simf-witness .balance').value = String(balance)
-      } catch (e) {
-        errors.innerText = e.stack;
-      }
     }
   }
-
-  export function Commit ({
-    view    = Html(['label', ['strong', 'Commit TX:'], ['button', 'Commit']]).firstChild,
-    chain   = Bitcoin.LiquidTestnet,
-    genesis = 'a771da8e52ee6ad581ed1e9a99825e5b3b7992225534eaa2ae23244fe26ab1c1',
-  } = {}) {
-    view.querySelector('button').onclick = commit;
-    return { view, commit }
-    async function commit () {
-      //const { default: Wasm } = await import('./wasm.ts');
-      const compiler = Wasm.compiler({ chain: chain.ID, genesis });
-      const program = compiler.compile(`fn main () {}`);
-      const pubkey = document.getElementById('select-sender').value;
-      const sender = usersByPubkey[pubkey];
-      if (!sender) throw new Error(`not our pubkey: ${sender}`);
-      const utxos = await chain().esplora.getAddressUtxos(sender.p2wpkh) as unknown[];
-      if (utxos.length < 1) throw new Error(`fund the address first: ${sender.p2wpkh}`)
-    }
-  }
-
-}
-
-export function Field (id: string, { open = false, header = [], content = [] } = {}) {
-  return {
-    id,
-    open:    bool => Field(id, { open: bool, header, content }),
-    header:  item => Field(id, { open, header: [...header, item], content  }),
-    content: item => Field(id, { open, header, content: [...content, item] }),
-    build:   () => Field.Wrapper(id, !open, Field.Handle(id, !open),
-      ['div.flex.col.grow', Field.Header(id, ...header), ...content]),
+  export function Form (id, name: string|unknown[], ...rest: unknown[]) {
+    [`div.program-form.col.grow#${id}`, ['div.title', name], ...rest];
   }
 }
-
-export namespace Field {
-
-
-  export const Wrapper = (id: string, collapsed: boolean, ...rest: unknown[]) =>
-    ([`div.field.file${collapsed?'.collapsed':''}#${id}[data-path=${id}]`, ...rest]);
-
-  export const Handle = (id: string, collapsed: boolean) =>
-    (['div.handle-v', Field.toggle(id), Field.Icon(collapsed), ['div.grow']]);
-
-  export const Icon = (collapsed: boolean) =>
-    (['svg.icon', [`use[href=${'icons.svg#'+(collapsed?'chevron-right':'chevron-down')}]`]]);
-
-  export const Header = (id: string, ...header: unknown[]) =>
-    (['div.flex.row.align-center',
-      ['div.name', Field.toggle(id), id],
-      ['div.handle-h', Field.toggle(id)],
-      ...header]);
-
-  export const toggle = (id: string) => ({
-    onclick: () => {
-      const el = elById(id);
-      console.log({id, el});
-      const icon = el.querySelector('.icon') as SVGUseElement;
-      el.classList.toggle('collapsed');
-      if (el.classList.contains('collapsed')) {
-        (icon.firstChild as SVGUseElement).href.baseVal = 'icons.svg#chevron-right';
-      } else {
-        (icon.firstChild as SVGUseElement).href.baseVal = 'icons.svg#chevron-down';
-        const textarea = el.querySelector('textarea');
-        if (textarea) {
-          textarea.focus();
-          Field.computeHeight(textarea);
-        }
-      }
-    }
-  });
-  export const computeHeight = (textarea: HTMLTextAreaElement) => {
-    textarea.style.height ||= `${1.5*(1+Math.max(2, textarea.value.split('\n').length))}em`;
-  };
-
-  export function TextArea (id: string, ...content: string[]) {
-    return [`textarea.collapsible#text:${id}`,
-      {autocomplete: "off", autocorrect: "off", autocapitalize: "off", spellcheck: false},
-      content.filter(x=>typeof x === 'string').join('\n')];
-  }
-
-  export const Text = (id: string, ...content: string[]) =>
-    Field(id).content(TextArea(id, ...content)).build();
-
-  export const Hex = (id: string, ...content: unknown[]) =>
-    Html([`div.field.file.hex#${id}`,
-      ['div.handle-v', { onclick: Field.toggle(id) },
-        ['svg.icon.expanded', ['use[href=icons.svg#chevron-down]']],
-        ['div.grow']],
-      ['div.flex.col.grow',
-        ['div.flex.row',
-          ['div.name',     { onclick: Field.toggle(id) }, id],
-          ['div.handle-h', { onclick: Field.toggle(id) }]],
-        HexRow('00000000 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................'),
-        HexRow('00000010 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................'),
-        HexRow('00000020 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................'),
-        HexRow('00000030 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................')]]);
-
-  export const HexRow = (addr, bytes, chars) => ['div.row.hex-row', addr, bytes, chars];
-
-}
-
-export function Input () { /*TODO*/ }
-
-export namespace Input {
-  export const Title = () =>
-    ['input#title[type=text][focused=focused]', { placeholder: 'name your project' }];
-  export const Balance = () =>
-    ['label.row.gap', ['strong.grow', 'Balance:'], ['input.balance', { disabled: true }]]
-  export const SigHash = () =>
-    ['label', ['strong', 'Sign hash:'], ['input']]
-}
-
-export function Select () { /* TODO */ }
-
-export namespace Select {
-
-  export const Chain     = () => ['label', ['strong', 'Chain:'],     ['select.pick-chain',   ['option', 'liquidtestnet']]];
-
-  export const Recipient = () => ['label', ['strong', 'Recipient:'], ['select.pick-user']]
-
-  export const Program   = ({
-    view = Html(['label', ['strong', 'Program:'], ['select.pick-program',
-      ['option', 'Nop'], ['option', 'AssertTrue'], ['option', 'AssertFalse'],
-      ['option', {'selected': true}, 'P2PK'], ['option', 'P2PKH'], ['option', 'HodlVault']]]).firstChild
-  } = {}) => {
-    const select = view.querySelector('select');
-    select.onchange = () => document.getElementById('compile').click();
-    return view
-  }
-
-  export interface Update {
-    update (_: Partial<this>): this
-  }
-
-  export interface WithInput extends Update {
-    name:   string,
-    view:   DocumentFragment,
-    select: HTMLSelectElement,
-    input:  HTMLInputElement,
-  }
-
-  export interface Sender extends Select.WithInput {}
-  export interface Pubkey extends Select.WithInput {}
-  export interface Signer extends Select.WithInput {}
-
-  export function Pubkey ({
-    name = null as string,
-    view = Html(['label.col.gap.select-pubkey', { style: 'align-items:stretch' }, ['div.row.gap', ['em.grow', name], ['select.pick-user']], ['input.pubkey']]),
-    input = view.querySelector('input'),
-    select = view.querySelector('select'),
-    update = (state: Select.Pubkey) => { state.input.value = state.select.value; return state },
-  }: Partial<Select.Pubkey> = {}): Select.Pubkey {
-    const state = { name, view, select, input, update };
-    select.onchange = () => { update(state); document.getElementById('compile').click() };
-    return update(state);
-  }
-
-  export function Sender ({
-    name = 'Sender:',
-    view = Html(['label.col.gap', { style: 'align-items:stretch' },
-      ['div.row.gap', ['string.grow', name], ['select.pick-user']],
-      Input.Balance()
-    ]).firstChild,
-    input = view.querySelector('input'),
-    select = view.querySelector('select'),
-    update = (state: Select.Sender) => { setTimeout(()=>updateSenderBalance(state), 1); return state },
-  }: Partial<Select.Sender> = {}): Select.Sender {
-    const state = { name, view, select, input, update };
-    select.onchange = () => update(state);
-    return update(state);
-  }
-
-  async function updateSenderBalance ({ select, input }) {
-    const pubkey = select.value;
-    const sender = usersByPubkey[pubkey];
-    input.value = String(await getBalances(sender.p2wpkh));
-  }
-
-  export function Signer ({
-    name   = null as string,
-    update = (state: Select.Pubkey) => { console.error('Select.Signer: provide sighash first!'); return state },
-    view   = Html(['label', ['em', name], ['div.row.gap', ['select.pick-user'], ['input.signed']]]),
-    select = Object.assign(view.querySelector('select'), { onchange: update }),
-    input  = view.querySelector('input')
-  }: Partial<Select.Signer> = {}) {
-    return update({ name, view, select, input, update });
-  }
-
-  export function findUserPickers (): HTMLSelectElement[] {
-    return document.querySelectorAll('select.pick-user') as unknown as HTMLSelectElement[]
-  }
-
-  export function initUserPicker (
-    select: HTMLSelectElement, users: { name: string, p2wpkh: string, pubkey: string }[]
-  ) {
-    select.innerHTML = '';
-    for (const user of users) {
-      const label = `${user.name} (${user.p2wpkh.slice(0, 10)}...)`
-      select.appendChild(Html(['option', { value: Base16.encode(user.pubkey) }, label]));
-    }
-    if (select.onchange) select.onchange(null);
-  }
-
-  export const License = () => [
-    'select#licence', // Free software licensing helps the software stay free.
-    ['option', 'AGPL 3.0 or later'],
-    ['option', 'AGPL 3.0 only'],
-    ['option', 'GPL 3.0 or later'],
-    ['option', 'GPL 3.0 only'],
-    ['option', 'Closed source (inquire)']];
-
-}
-
-export function Icon (name: string) {
-  return ['svg.icon', [`use[href=icons.svg#${name}]`]]
-}
-
-export namespace Icon {
-  // preset icons
-}
-
-async function getBalances (
-  p2wpkh: string,
-  chain = Bitcoin.LiquidTestnet(),
-  asset: string = "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5"
-): Promise<bigint> {
-  let balance = 0n;
-  const utxos  = await chain.esplora.getAddressUtxos(p2wpkh);
-  for (const utxo of utxos) if (utxo.asset === asset) balance += BigInt(utxo.value);
-  return balance
-}
-
-export function Simf ({
-  nix       = true,
-  btc       = true,
-  simf      = true,
-  elements  = true,
-  direnv    = true,
-  deno      = true,
-  node      = false,
-  view = Html(
-    ['div.col.gap',
-      ['section.layer', Texts[0]],
-      ['section.layer.programs', Texts[1], ['div.col.grow.files.gap',
-        Program.P2PK.wrapped(),
-        Program.P2PKH.wrapped(),
-        Program.HodlVault.wrapped()]],
-      ['section.layer.actions',  Texts[2], ['div.col.grow.gap',
-        ['section.phase', Texts[3], ['div.phase-form.row.grow',
-          Program.Form('simf-compile', Program.CompileTitle, Select.Chain(),
-            Select.Program(),
-            Select.Pubkey({ name: 'param::PUB' }).view,
-            Button.Compile().view),
-          Program.Form('simf-commit', Program.FundTitle, Select.Sender().view,
-            ['label.row.gap', ['strong.grow', 'Amount:'],
-            ['input.balance[type="number"]', { value: '2345' }]],
-            Button.Commit().view)]],
-        ['section.phase', Texts[4], ['div.phase-form.row.grow',
-          Program.Form('simf-witness', Program.WitnessTitle, Input.Balance(), Select.Recipient(),
-            ['label', ['strong', 'Amount:'],   ['input[type="number"]', { value: '1234' }]],
-            Input.SigHash()),
-          Program.Form('simf-redeem', Program.RedeemTitle, Select.Signer({ name: 'witness::SIG' }).view,
-            ['label', ['strong', 'TX bytes:'],        ['input']],
-            ['label', ['strong', 'Redeem TX:'],       ['button', 'Redeem',]])]]]],
-      ['section.layer.project',  Texts[5], ['div.col.grow.files.gap',
-        Program.Metadata(),
-        Program.Readme(),
-        Field.Text("Justfile", "TODO"),
-        ES.TestSuite({ deno, node, btc }),
-        ES.DenoJson({ deno }),
-        Nix({ nix, btc, simf, elements }),
-        direnv && Field.Text(".envrc", "use nix")]]])
-} = {}) {
-  return { view }
-}
-
-const Texts = {
-
-  0: ['p'
-     , ['strong', 'Fadroma V3'], ' employs WebAssembly to instantly compile, evaluate, and deploy '
-     , ['strong', 'SimplicityHL smart contracts'], ' from modern JavaScript-based environments: browsers, servers, and edge services.'],
-
-  1: ['p.sidebox.flex.space-between'
-     , ['div.grow', 'Try these ', ['strong', 'SimplicityHL programs'], ' on ', ['a', { href: 'https://blockstream.info/liquidtestnet/' }, 'Liquid Testnet:'], ' ']
-     , Chain().view],
-
-  2: ['p.sidebox', 'The ', ['strong', 'Simplicity transaction lifecycle'], ' happens in two phases:' ],
-
-  3: ['p', ['span', ['strong', Dropcap('A. '), 'Commitment phase'], '. Compile program to P2TR address, and fund it on-chain:']],
-
-  4: ['p', ['span', ['strong', Dropcap('B. '), 'Redemption phase'], '. Fulfill the program\'s conditions to redeem funds:']],
-
-  5: ['p.sidebox', 'Here you can ', ['strong', 'download an example project'], ' containing the above programs.'],
-
-  //['p.smol', ['strong', 'Local dev dependencies'], ' can be provided by Nix and Direnv (or bring your own Deno, Just and Elements.).'],
-  //ES.DenoJsonField(deno),
-  //PackageJsonField({ node, vite }),
-  //TsConfigField(),
-  //['p.smol', ['strong', 'Fast integration testing'], ' on ', ['code', 'elementsregtest'],
-    //' and ', ['code', 'liquidtestnet'], ' out of the box:'],
-};
-
-export const Urls = {
-  anchorCrate: "https://docs.rs/anchor-lang/latest/anchor_lang/",
-  btcRpc:      "https://en.bitcoin.it/wiki/Original_Bitcoin_client/API_calls_list",
-  btcTest:     "https://developer.bitcoin.org/examples/testing.html",
-  codama:      "#",
-  denoApi:     "https://docs.deno.com/api/deno/",
-  denoStd:     "https://docs.deno.com/runtime/reference/std/",
-  direnvWiki:  "https://github.com/direnv/direnv/wiki",
-  edConfSpec:  "https://spec.editorconfig.org/",
-  eslintConf:  "https://eslint.org/docs/latest/use/configure/",
-  idlGuide:    "https://solana.com/developers/guides/advanced/idls",
-  namadaRepo:  "https://github.com/namada-net/namada",
-  nixInstall:  "https://nixos.org/download/",
-  nixPkgs:     "https://search.nixos.org/packages",
-  nodeApi:     "https://nodejs.org/api/index.html",
-  pnpmCompare: "https://pnpm.io/feature-comparison",
-  scrtHome:    "https://scrt.network/",
-  simfJets:    "https://docs.rs/simfony-as-rust/latest/simfony_as_rust/jet/index.html",
-  simfRef:     "https://docs.simplicity-lang.org/simplicityhl-reference/",
-  solanaCrate: "https://docs.rs/solana-program/latest/solana_program/",
-  solanaKit:   "#",
-  solanaWeb3:  "#",
-  tsxNpm:      "https://www.npmjs.com/package/tsx",
-};
-
 export function Program (id: string, ...content: string[]) {
   return Field(id)
-    .header(Button.Command('play', 'Compile', { onclick: simfCompile(id) }))
+    .header(Button.Command('play', 'Compile', { onclick: e => Program.recompile(id, e) }))
     .header(Button.Command('circle-with-plus', 'Define'))
     .content(Field.TextArea(id, ...content))
     .content([`div.row#result:${id}`, ['div.grow']])
@@ -544,42 +262,40 @@ export function Program (id: string, ...content: string[]) {
         ['a.help', { target: 'blank', title: 'Witness signing hash', href: "#" }, Icon('help')]])
     .build();
 }
-
-export namespace Program {
-
-  export namespace Nop {
-    export const source = `fn main () {}`
-  }
-
-  export namespace AssertTrue {
-    export const source = `fn main () { assert!(true); }`
-  }
-
-  export namespace AssertFalse {
-    export const source = `fn main () { assert!(false); }`
-  }
-
+export function Programs (...args: unknown[]) {
+  return Section({ className: 'layer programs' },
+    ['p.sidebox.flex.space-between', Texts.Examples],
+    ['div.col.grow.files.gap',...args]); 
+}
+export namespace Programs {
+  /** Empty program (always passes). */
+  export namespace Nop         { export const source = `fn main () {}` }
+  /** Asserts truth (always passes but has different address from [Nop]). */
+  export namespace AssertTrue  { export const source = `fn main () { assert!(true); }` }
+  /** Asserts falsity (always fails). */
+  export namespace AssertFalse { export const source = `fn main () { assert!(false); }` }
+  /** Pay to public key: minimal witness program. */
   export namespace P2PK {
     export const wrapped = () => ES("src/P2PK.simf.ts", SimfTS(source,
       { PK: Arg("Pubkey") }, { "SIG": Arg("Signature") }));
-    export const source = `fn main () {
-  jet::bip_0340_verify((param::PUB, jet::sig_all_hash()), witness::SIG)
-}`;
+    export const source = dedent(`fn main () {
+      jet::bip_0340_verify((param::PUB, jet::sig_all_hash()), witness::SIG)
+    }`);
   }
-
+  /** Pay to public key: minimal witness program. */
   export namespace P2PKH {
     export const wrapped = () => ES("src/P2PKH.simf.ts", SimfTS(source,
       { "PKH": Arg("Pubkey") }, { "PUB": Arg("Pubkey"), "SIG": Arg("Signature") }));
-    export const source = `fn main () {
-  let pubkey: Pubkey = witness::PUB;
-  let hasher: Ctx8 = jet::sha_256_ctx_8_init();
-  let hasher: Ctx8 = jet::sha_256_ctx_8_add_32(hasher, pubkey);
-  let hash:   u256 = jet::sha_256_ctx_8_finalize(hasher);
-  assert!(jet::eq_256(hash, param::PKH));
-  jet::bip_0340_verify((pubkey, jet::sig_all_hash()), witness::SIG)
-}`;
+    export const source = dedent(`fn main () {
+      let pubkey: Pubkey = witness::PUB;
+      let hasher: Ctx8 = jet::sha_256_ctx_8_init();
+      let hasher: Ctx8 = jet::sha_256_ctx_8_add_32(hasher, pubkey);
+      let hash:   u256 = jet::sha_256_ctx_8_finalize(hasher);
+      assert!(jet::eq_256(hash, param::PKH));
+      jet::bip_0340_verify((pubkey, jet::sig_all_hash()), witness::SIG)
+    }`);
   }
-
+  /** Hodl vault: prototype workhorse. */
   export namespace HodlVault {
     export const wrapped = () => Field("src/HodlVault.simf.ts")
       .open(true)
@@ -587,182 +303,63 @@ export namespace Program {
         { "MIN_HEIGHT":   Arg("u32"), "TARGET_PRICE":  Arg("u32") },
         { "ORACLE_PRICE": Arg("u32"), "ORACLE_HEIGHT": Arg("u32") })))
       .build();
-    export const source = `fn main () {
-  let min_height: Height = param::MIN_HEIGHT;
-  let target_price: u32 = param::TARGET_PRICE;
-  let oracle_price: u32 = witness::ORACLE_PRICE;
-  let oracle_height: Height = witness::ORACLE_HEIGHT;
-  jet::check_lock_height(oracle_height);
-  assert!(jet::le_32(min_height, oracle_height));
-  assert!(jet::le_32(target_price, oracle_price));
-  let hasher: Ctx8 = jet::sha_256_ctx_8_init();
-  let hasher: Ctx8 = jet::sha_256_ctx_8_add_4(hasher, oracle_height);
-  let hasher: Ctx8 = jet::sha_256_ctx_8_add_4(hasher, oracle_price);
-  let msg: u256 = jet::sha_256_ctx_8_finalize(hasher);
-  jet::bip_0340_verify((param::ORACLE, msg), witness::ORACLE);
-  jet::bip_0340_verify((param::OWNER, jet::sig_all_hash()), witness:OWNER);
-}\``
+    export const source = dedent(`fn main () {
+      let min_height: Height = param::MIN_HEIGHT;
+      let target_price: u32 = param::TARGET_PRICE;
+      let oracle_price: u32 = witness::ORACLE_PRICE;
+      let oracle_height: Height = witness::ORACLE_HEIGHT;
+      jet::check_lock_height(oracle_height);
+      assert!(jet::le_32(min_height, oracle_height));
+      assert!(jet::le_32(target_price, oracle_price));
+      let hasher: Ctx8 = jet::sha_256_ctx_8_init();
+      let hasher: Ctx8 = jet::sha_256_ctx_8_add_4(hasher, oracle_height);
+      let hasher: Ctx8 = jet::sha_256_ctx_8_add_4(hasher, oracle_price);
+      let msg: u256 = jet::sha_256_ctx_8_finalize(hasher);
+      jet::bip_0340_verify((param::ORACLE, msg), witness::ORACLE);
+      jet::bip_0340_verify((param::OWNER, jet::sig_all_hash()), witness:OWNER);
+    }\``);
   }
-
+  /** Wrap a SimplicityHL program as a standalone Deno executable. */
   const SimfTS = (source: string, param = {}, witness = {}) =>
     `#!/usr/bin/env -S deno run -P default\nimport { SimplicityHL } from 'fadroma';\n`      +
     `export default await SimplicityHL.Program('${source}', {\n`                                  +
-    `  param:   ${JSON.stringify(param).split('\n').map(x=>'  '+x).join('\n').trim()},\n`   +
-    `  witness: ${JSON.stringify(witness).split('\n').map(x=>'  '+x).join('\n').trim()},\n` +
     `  cli:     import.meta\n})`;
-
-  export const Form = (id, name: string|unknown[], ...rest: unknown[]) =>
-    [`div.program-form.col.grow#${id}`, ['div.title', name], ...rest];
-
-  export const CompileTitle = ['span',
-    ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'A1. '], 'Obtain P2TR'],
-    ' by compiling the program:'];
-
-  export const FundTitle = ['span',
-    ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'A2. '], 'Send funds'],
-    ' to the P2TR address:'];
-
-  export const WitnessTitle = ['span',
-    ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'B1. '], 'Specify transaction'],
-    ' to obtain SIGHASH_ALL:'];
-
-  export const RedeemTitle = ['span',
-    ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, 'B2. '], 'Receive funds'],
-    ' by sending valid signatures:'];
-
-  export const OracleForm = () => Witness("oracle.wit", 
-    WitnessRow('u32', 'ORACLE_HEIGHT', '1000'),
-    WitnessRow('u32', 'ORACLE_PRICE',  '100000'),
-    WitnessRow('sig', 'ORACLE_SIG',    ''),
-    WitnessRow('sig', 'OWNER_SIG',     ''));
-
-  export const OracleTS = ({ deno, node }) => ES("oracle.ts",
-    ES.HashBang({ deno, node }),
-    ES.Import("@hackbg/fadroma", simf && 'Simf'),
-    simf && `export default Simf(import.meta, "src/main.simf");`);
-
-  export const Witness = (id: string, ...content: unknown[]) => Field(id).open(false)
-    .header(['select', ['option', 'src/main.simf']])
-    .header(Button.Command('play', 'Satisfy', { onclick: simfCompile(id) }))
-    .content([['div.col.collapsible',
-      WitnessRow('u32', 'ORACLE_HEIGHT', '1000'),
-      WitnessRow('u32', 'ORACLE_PRICE',  '100000'),
-      WitnessRow('sig', 'ORACLE_SIG',    ''),
-      WitnessRow('sig', 'OWNER_SIG',     ''),
-      ['div.row', ['div.grow'], Button.Command('circle-with-plus', 'Witness')]]])
-    .build();
-
-  export const WitnessRow = (t: 'sig'|'u32', k: string, v: string|Bytes) =>
-    ['div.witness',
-      ['input[type=text].grow', { value: k, placeholder: 'name' }],
-      ['label', ['select', ['option', { value: t }, t]]],
-      ['label.row', ['input[type=text].grow', { value: v, placeholder: 'value' }]],
-      Button.Command('circle-with-cross', 'Remove')];
-
-  export const SimfFn = (name: string, ...content: unknown[]) =>
-    ['div.col.fn',
-      ['div.row.align-center',
-        ['strong.keyword', 'fn '],
-        [`input[type=text][size=${name.length-2}]`, { value: name }],
-        '(', [`input[type=text][size=2]`], ')',
-        ' { ',
-        ['div.grow'],
-        Button.Command('circle-with-cross', 'Remove')],
-      ['textarea', content.join('\n')||' '], '}'];
-
+  /** Recompile currently selected program in response to changes. */
+  export const recompile = async function recompileSimplictyHL (name: string, e: Event) {
+    simf ??= await import('../platform/SimplicityHL/pkg/fadroma_simf.js')
+    const resp = await fetch('/wasm/simf.wasm');
+    const wasm = await resp.bytes();
+    await simf.default(wasm);
+    const result = simf.build('fn main () {}', {});
+    document.getElementById(`result:${name}`).style.whiteSpace = 'pre';
+    for (const key of ['commit', 'cmr', 'amr', 'ihr']) {
+      document.getElementById(`${key}:${name}`).innerText = result[key];
+    }
+  }
+}
+/** A project repository. */
+export function Project (...args: unknown[]) {
+  return Section({ className: 'layer project' }, ['div.col.grow.files.gap',
+    Project.Metadata(),
+    Project.Readme(),
+    Field.Text("Justfile", "TODO"),
+    ...args
+  ]);
+}
+export namespace Project {
   export const Readme = () =>
     ['div.col.gap', Field.Text("README",   "Created at https://fadroma.tech")];
-
   export const Metadata = () =>
-    ['div.row.fields.gap',
+    ['div.row.fields',
       ['div.field.head.grow', ['div.name.title', 'Title'], Input.Title()],
       ['div.field.head',      ['div.name', 'Licence'],     Select.License()],
       ['div.row.fields',      ['div.field.head.grow', ['div.name', 'Download']]]];
-
-  export function Users ({
-    view = document.getElementById('demousers'),
-    users = [
-      addUser('Alice', { secret: nonSecret(1) }),
-      addUser('Bob',   { secret: nonSecret(2) }),
-      addUser('Carol', { secret: nonSecret(3) })
-    ]
-  }) {
-    for (const user of users) Html.append(view, user.view());
-    for (const select of Select.findUserPickers()) Select.initUserPicker(select, users);
-  }
-
-  export function addUser (name, options): User {
-    if (usersByName[name]) throw new Error(`user already exists: ${name}`);
-    const user = User(name, options)
-    const pubkey = Base16.encode(user.pubkey)
-    if (usersByPubkey[pubkey]) throw new Error(`pubkey already exists: ${name}: ${pubkey}`)
-    usersByName[name] = user;
-    usersByPubkey[pubkey] = user;
-    return user;
-  }
-
-  export interface User {
-    pubkey
-    pubkeyX
-    p2wpkh
-    view
-  }
-
-  export function User (name: string, {
-    secret   = new Uint8Array(Array(32).fill(1)),
-    signer   = Wasm.keypair(secret),
-    pubkey   = pubECDSA(secret),
-    pubkeyX  = signer.xOnlyPublicKey(),
-    //chain    = { bech32: 'ert', pubKeyHash: 0x6f, scriptHash: 0xc4, wif: 0xef, },
-    chain    = { bech32: 'tex', blech32: 'tlq', pubKeyHash: 36, scriptHash: 19, wif: 0xef, },
-    p2wpkh   = P2WPKH(pubkey, chain).address,
-    output   = Html(['div.demolog', 'Enter Bob, Carol.']),
-    //p2p      = P2P({ name, root: output }),
-    balance  = Html(['span.balance', 'Loading balance...']).firstChild,
-    toolbar  = Html(['section.demoprogs', ['button.pill', 'Send'], ['button.pill', 'P2PK'], ['button.pill', 'Vault'], ['button.pill', 'Escrow'], ['input.chat', { placeholder: 'chat' }], ['button.pill', 'Say']]),
-    identity = Html(['section.demometa', ['div.col.gap', ['div.row.gap.align-center', ['strong.demoname', name], ['strong', balance]]]]),
-  } = {}): User {
-    Bitcoin.LiquidTestnet().esplora
-    return {
-      name,
-      signer,
-      pubkey,
-      pubkeyX,
-      p2wpkh,
-      view: () => Html(['div.col.align-center',
-        ['article.demouser', identity, output, toolbar],
-        ['div.col.gap', ['div.col', ['strong', 'Address:'], ['div.address', p2wpkh]]]])
-          //['div.col', ['strong', 'Pubkey:'],  ['div.address', Base16.encode(pubkey)]],
-          //['div.col', ['strong', 'Tweaked:'], ['div.address', Base16.encode(pubkeyX)]],
-    }
-  }
-
 }
-
-function simfCompile (id) {
-  return async e => {
-    simf ??= await import('../platform/SimplicityHL/pkg/fadroma_simf.js')
-    console.log(e.target)
-    const resp = await fetch('/wasm/simf.wasm');
-    const wasm = await resp.bytes();
-    console.log({simf, resp, wasm});
-    console.log(await simf.default(wasm));
-    const result = simf.build('fn main () {}', {});
-    console.log({result});
-    document.getElementById(`result:${id}`).style.whiteSpace = 'pre';
-    document.getElementById(`commit:${id}`).innerText = result.commit;
-    document.getElementById(`cmr:${id}`).innerText = result.cmr;
-    document.getElementById(`amr:${id}`).innerText = result.amr;
-    document.getElementById(`ihr:${id}`).innerText = result.ihr;
-  }
-}
-
+/** An ECMAScript (JS/TS) module. */
 export function ES (id: string, ...content: string[]) {
   return Field(id).content(Field.TextArea(id, ...content)).build()
 }
-
 export namespace ES {
-
   export function Import (mod: string, ...items: (string|false|null)[]) {
     items = items.filter(x=>(typeof x === 'string'))
     if (items.length > 0) {
@@ -771,12 +368,10 @@ export namespace ES {
       return ''
     }
   }
-
   export const HashBang = ({ deno = false, node = false }) =>
     deno ? `#!/usr/bin/env -S deno run -I --coverage --allow-env --allow-run --allow-net` :
     node ? `#!/usr/bin/env -S npx tsx` :
     null;
-
   export const TestSuite = ({ deno, node, btc } = {}) => ES("test.ts",
       ES.HashBang({ deno, node }),
       ES.Import("@hackbg/fadroma", btc && 'Btc', 'Test'),
@@ -785,7 +380,6 @@ export namespace ES {
       `  Test.the("Build",    Program.build),`,
       `  Test.the("Deposit",  Program.deposit),`,
       `  Test.the("Withdraw", Program.withdraw)));`)
-
   export const DenoJson = ({ deno } = {}) => deno && Field.Text('deno.json', '{',
   '  "permissions": {',
   '    "default": {',
@@ -799,7 +393,6 @@ export namespace ES {
   '    }',
   '  }',
   '}');
-
   export const PackageJson = ({ node, vite }) => Field.Text("package.json", `{`,
     `  "name":    "untitled",`,
     `  "type":    "module",`,
@@ -816,7 +409,6 @@ export namespace ES {
     `  }`,
     `}`,
   );
-
   export const TsConfig = () => Field.Text("tsconfig.json", `{`,
     `  "compilerOptions": {`,
     `    "strict":                    false,`,
@@ -830,9 +422,7 @@ export namespace ES {
     `  }`,
     `}`,
   );
-
 }
-
 export function Nix ({ nix, btc, simf, elements }) {
   return nix && Field.Text("shell.nix",
     `#!/usr/bin/env nix-shell`,
@@ -882,178 +472,357 @@ export function Nix ({ nix, btc, simf, elements }) {
     `\n]; }`);
 }
 
-/** Shout out. */
-function Dropcap (...content) {
-  return ['span', { style: 'float:left;font-size:2rem;padding-right:0.33rem' }, ...content]
-}
-
-/** Chain connection indicator button. */
-function Chain ({ interval = 10000 } = {}) {
-  const view = Html(['div.chain', ['strong.status', chain ? 'Connecting...' : 'Connected!'],
-      ['div.row.gap', ['div', 'Height: '], ['strong.height']]]);
-  const statusView = view.querySelector('.status') as HTMLDivElement;
-  const heightView = view.querySelector('.height') as HTMLDivElement;
-  const hashView   = view.querySelector('.hash')   as HTMLDivElement;
-  chain ??= Bitcoin.LiquidTestnet();
-  console.debug('Chain:', chain);
-  statusView.innerText = 'Connected!';
-  statusView.style.color = '#af8';
-  const state = { view, nextUpdate: setTimeout(update, interval), interval };
-  update()
-  return state
-  async function update () {
-    await Promise.all([
-      chain.esplora.getBlockTipHeight()
-        .then(height => { heightView.innerText = height })
-        .catch(e => {
-          console.error(e)
-          statusView.innerText = 'Error, retrying...';
-          statusView.style.color = '#f84';
-        }),
-      //chain.esplora.getBlockTipHash().then(hash => { hashView.innerText = height })
-        //.catch(console.error),
-    ]);
-    state.nextUpdate = setTimeout(update, state.interval)
+function monacoOptions (language: string, model: Monaco.editor.ITextModel) {
+  return {
+    language,
+    model,
+    overviewRulerLanes:                         0,
+    automaticLayout:                            true,
+    scrollBeyondLastLine:                       false,
+    minimap:                                    { enabled: false },
+    wordWrap:                                   'on'       as const,
+    wrappingStrategy:                           'advanced' as const,
+    scrollbar:                                  {
+      horizontal:                               'hidden'   as const,
+      vertical:                                 'auto'     as const,
+      alwaysConsumeMouseWheel:                  false,
+      ignoreHorizontalScrollbarInContentHeight: true,
+    },
   }
 }
 
+export function loadRepository ({
+  view: _1 = null as DocumentFragment,
+  url:  _2 = null as string|URL,
+} = {}) {
+  /* TODO */
+}
+
+export function downloadProjectTemplate ({
+  title   = textVal('title') || 'simplicityhl-starter-fadroma',
+  license = textVal('license'),
+  archive = {},
+  initGit = true,
+  initNix = true, // FIXME
+}) {
+  // Collect values of editors
+  for (const el of Html.id("editors").querySelectorAll('[data-path]') as unknown as HTMLElement[]) {
+    archive[el.dataset.path] = zipStr(el.querySelector('textarea')?.value);
+  };
+  // Set attributes of files
+  const makeExecutable = (x: string) => {
+    if (archive[x]) archive[x] = [archive[x], { os: 3, attrs: 0o755 << 16 }];
+  };
+  if (initGit) addGit(archive)
+  if (initNix) makeExecutable('shell.nix');
+  makeExecutable('index.ts');
+  makeExecutable('test.ts');
+  download(`${+new Date()}-${title}.zip`, 'application/zip', zipSync(archive))
+}
+
+function addGit (archive = {}) {
+  // Add empty Git repo
+  archive['.git/objects']     = { info:  {}, pack: {} };
+  archive['.git/refs']        = { heads: {}, tags: {} };
+  archive['.git/HEAD']        = zipStr('ref: refs/heads/main');
+  archive['.git/description'] = zipStr('Created at https://fadroma.tech');
+  archive['.gitignore']       = zipStr(joinLines('.direnv', 'coverage', 'node_modules', 'target'));
+  archive['.git/config']      = zipStr(joinLines(
+    '[core]',
+    'repositoryformatversion = 0',
+    'filemode                = true',
+    'bare                    = false',
+    'logallrefupdates        = true'));
+  return archive
+}
+
+function joinLines (...lines: string[]) {
+  return lines.filter(Boolean).join('\n')+'\n'
+}
+
+export function Section (...content: unknown[]): HTMLElement {
+  return Html(['section', ...content]).firstChild as HTMLElement 
+}
+export namespace Section {
+  export const Layer    = (...args: unknown[]) => Section({ className: 'layer' }, ...args);
+  export const Actions  = (...args: unknown[]) => Section({ className: 'layer actions' }, ...args); 
+  export const Phase    = (...args: unknown[]) => Section({ className: 'phase' }, ...args); 
+}
+
+export function Label (text: string, ...content: unknown[]): HTMLLabelElement {
+  return Html(['label', ['strong', text], ...content]).firstChild as HTMLLabelElement
+}
+
+export function Link (href: string, ...text: unknown[]) {
+  return ['a[target=_blank]', { href }, ...text];
+}
+
+export function Button (id: keyof typeof Button.Labels, onclick = () => {}): HTMLButtonElement {
+  return Html(['button', Button.Labels[id], { id, onclick }]).firstChild as HTMLButtonElement; // FIXME don't default to DocumentFragment
+}
+
+export namespace Button {
+  export const Labels = {
+    compile: "Compile",
+    commit:  "Commit",
+    redeem:  "Redeem",
+  } as const;
+  export function Compile ({
+    chain   = Bitcoin.LiquidTestnet,
+    genesis = chain.GENESIS, // TODO autofetch from block 0
+    button  = Button('compile', () => compile()),
+    errors  = Html(['pre.compile-errors']).firstChild as HTMLElement,
+    input   = Html(['input']).firstChild as HTMLInputElement,
+    view    = Html(['label.col.gap.align-stretch', ['label.justify-between.gap', ['strong', 'Program address (P2TR):'], input, button], errors]).firstChild,
+    compile = async () => {
+      //const { default: Wasm } = await import('./wasm.ts');
+      errors.innerText = '';
+      errors.style.display = 'none';
+      try {
+        const compiler    = Wasm.compiler({ chain: chain.ID, genesis });
+        const selected    = document.querySelector('.pick-program').value;
+        const source      = Program[selected].source;
+        const pubkeyValue = document.querySelector('#simf-compile .pubkey')?.value;
+        const args        = { PUB: { type: 'Pubkey', value: `${pubkeyValue}` } };
+        console.log({args});
+        const program = compiler.compile(source, { args });
+        const address = program.toJSON().p2tr;
+        input.value = address;
+        const balance = await getBalances(address);
+        console.debug('Balance of', address, 'is', balance);
+        document.querySelector('#simf-witness .balance').value = String(balance)
+      } catch (e) {
+        errors.innerText = e.stack;
+        errors.style.display = 'block';
+      }
+    }
+  } = {}) {
+    return { view, compile }
+  }
+  export function Commit ({
+    chain   = Bitcoin.LiquidTestnet,
+    button  = Button('commit', () => commit()),
+    view    = Html(['label', ['strong', 'Commit TX:'], button]).firstChild,
+    genesis = 'a771da8e52ee6ad581ed1e9a99825e5b3b7992225534eaa2ae23244fe26ab1c1',
+    commit  = async () => {
+      //const { default: Wasm } = await import('./wasm.ts');
+      const compiler = Wasm.compiler({ chain: chain.ID, genesis });
+      const program = compiler.compile(`fn main () {}`);
+      const pubkey = document.getElementById('select-sender').value;
+      const sender = usersByPubkey[pubkey];
+      if (!sender) throw new Error(`not our pubkey: ${sender}`);
+      const utxos = await chain().esplora.getAddressUtxos(sender.p2wpkh) as unknown[];
+      if (utxos.length < 1) throw new Error(`fund the address first: ${sender.p2wpkh}`)
+    },
+  } = {}) {
+    return { view, commit }
+  }
+  export function Command (icon: string|null, ...content: unknown[]) {
+    return [ 'div.command', icon && Icon(icon), ...content ]
+  }
+}
+
+export function Field (id: string, { open = false, header = [], content = [] } = {}) {
+  return {
+    id,
+    open:    bool => Field(id, { open: bool, header, content }),
+    header:  item => Field(id, { open, header: [...header, item], content  }),
+    content: item => Field(id, { open, header, content: [...content, item] }),
+    build:   () => Field.Wrapper(id, !open, Field.Handle(id, !open),
+      ['div.flex.col.grow', Field.Header(id, ...header), ...content]),
+  }
+}
+
+export namespace Field {
+  export const Wrapper = (id: string, collapsed: boolean, ...rest: unknown[]) =>
+    ([`div.field.file${collapsed?'.collapsed':''}#${id}[data-path=${id}]`, ...rest]);
+  export const Handle = (id: string, collapsed: boolean) =>
+    (['div.handle-v', Field.toggle(id), Field.Icon(collapsed), ['div.grow']]);
+  export const Icon = (collapsed: boolean) =>
+    (['svg.icon', [`use[href=${'icons.svg#'+(collapsed?'chevron-right':'chevron-down')}]`]]);
+  export const Header = (id: string, ...header: unknown[]) =>
+    (['div.flex.row.align-center',
+      ['div.name', Field.toggle(id), id],
+      ['div.handle-h', Field.toggle(id)],
+      ...header]);
+  export const Text = (id: string, ...content: string[]) =>
+    Field(id).content(TextArea(id, ...content)).build();
+  export const toggle = (id: string) => ({
+    onclick: () => {
+      const el = Html.id(id);
+      console.log({id, el});
+      const icon = el.querySelector('.icon') as SVGUseElement;
+      el.classList.toggle('collapsed');
+      if (el.classList.contains('collapsed')) {
+        (icon.firstChild as SVGUseElement).href.baseVal = 'icons.svg#chevron-right';
+      } else {
+        (icon.firstChild as SVGUseElement).href.baseVal = 'icons.svg#chevron-down';
+        const textarea = el.querySelector('textarea');
+        if (textarea) {
+          textarea.focus();
+          Field.computeHeight(textarea);
+        }
+      }
+    }
+  });
+  export const computeHeight = (textarea: HTMLTextAreaElement) => {
+    textarea.style.height ||= `${1.5*(1+Math.max(2, textarea.value.split('\n').length))}em`;
+  };
+  export function TextArea (id: string, ...content: string[]) {
+    return [`textarea.collapsible#text:${id}`,
+      {autocomplete: "off", autocorrect: "off", autocapitalize: "off", spellcheck: false},
+      content.filter(x=>typeof x === 'string').join('\n')];
+  }
+  export const Hex = (id: string, ...content: unknown[]) =>
+    Html([`div.field.file.hex#${id}`,
+      ['div.handle-v', { onclick: Field.toggle(id) },
+        ['svg.icon.expanded', ['use[href=icons.svg#chevron-down]']],
+        ['div.grow']],
+      ['div.flex.col.grow',
+        ['div.flex.row',
+          ['div.name',     { onclick: Field.toggle(id) }, id],
+          ['div.handle-h', { onclick: Field.toggle(id) }]],
+        HexRow('00000000 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................'),
+        HexRow('00000010 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................'),
+        HexRow('00000020 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................'),
+        HexRow('00000030 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................')]]);
+
+  export const HexRow = (addr, bytes, chars) => ['div.row.hex-row', addr, bytes, chars];
+
+}
+
+export function Input () { /*TODO*/ }
+export namespace Input {
+  export const Title = () =>
+    ['input#title[type=text]', { placeholder: 'name your project' }];
+  export const Balance = () =>
+    ['label.gap', ['strong', 'Balance:'], ['input.balance', { disabled: true }]]
+  export const SigHash = () =>
+    ['label', ['strong', 'Sign hash:'], ['input']]
+}
+
+export function Select () { /* TODO */ }
+export namespace Select {
+  export function Chain () {
+    return ['label', ['strong', 'Chain:'], ['select.pick-chain', ['option', 'liquidtestnet'], ['option', { disabled: true }, 'elementsregtest']]];
+  }
+  export function Recipient () {
+    return ['label', ['strong', 'Recipient:'], ['select.pick-user']]
+  }
+  export function Program ({
+    view = Html(['label', ['strong', 'Program:'], ['select.pick-program',
+      ['option', 'Nop'], ['option', 'AssertTrue'], ['option', 'AssertFalse'],
+      ['option', {'selected': true}, 'P2PK'], ['option', 'P2PKH'], ['option', 'HodlVault']]]).firstChild
+  } = {}) {
+    const select = view.querySelector('select');
+    select.onchange = () => document.getElementById('compile').click();
+    return view
+  }
+  export interface Update {
+    update (_: Partial<this>): this
+  }
+  export interface WithInput extends Update {
+    name:   string,
+    view:   DocumentFragment,
+    select: HTMLSelectElement,
+    input:  HTMLInputElement,
+  }
+  export interface Sender extends Select.WithInput {}
+  export interface Pubkey extends Select.WithInput {}
+  export interface Signer extends Select.WithInput {}
+  export function Pubkey ({
+    name = null as string,
+    view = Html(['div.select-pubkey', { style: 'align-items:stretch' }, Label(name, ['select.pick-user']), ['input.pubkey']]),
+    input = view.querySelector('input'),
+    select = view.querySelector('select'),
+    update = (state: Select.Pubkey) => { state.input.value = state.select.value; return state },
+  }: Partial<Select.Pubkey> = {}): Select.Pubkey {
+    const state = { name, view, select, input, update };
+    select.onchange = () => { update(state); document.getElementById('compile').click() };
+    return update(state);
+  }
+  export function Sender ({
+    name   = 'Sender:',
+    view   = Html(['div.col', { style: 'align-items:stretch' }, Label(name, ['select.pick-user']), Input.Balance()]).firstChild,
+    input  = view.querySelector('input'),
+    select = view.querySelector('select'),
+    update = (state: Select.Sender) => { setTimeout(()=>updateSenderBalance(state), 1); return state },
+  }: Partial<Select.Sender> = {}): Select.Sender {
+    const state = { name, view, select, input, update };
+    select.onchange = () => update(state);
+    return update(state);
+  }
+  async function updateSenderBalance ({ select, input }) {
+    const pubkey = select.value;
+    const sender = usersByPubkey[pubkey];
+    input.value = String(await getBalances(sender.p2wpkh));
+  }
+  export function Signer ({
+    name   = null as string,
+    update = (state: Select.Pubkey) => { console.error('Select.Signer: provide sighash first!'); return state },
+    view   = Html(['label', ['em', name], ['div.col.gap', ['select.pick-user'], ['input.signed']]]),
+    select = Object.assign(view.querySelector('select'), { onchange: update }),
+    input  = view.querySelector('input')
+  }: Partial<Select.Signer> = {}) {
+    return update({ name, view, select, input, update });
+  }
+  export function findUserPickers (): HTMLSelectElement[] {
+    return document.querySelectorAll('select.pick-user') as unknown as HTMLSelectElement[]
+  }
+  export const License = () => [
+    'select#licence', // Free software licensing helps the software stay free.
+    ['option', 'AGPL 3.0 or later'],
+    ['option', 'AGPL 3.0 only'],
+    ['option', 'GPL 3.0 or later'],
+    ['option', 'GPL 3.0 only'],
+    ['option', 'Closed source (inquire)']];
+}
+
+export function Icon (name: string) {
+  return ['svg.icon', [`use[href=icons.svg#${name}]`]]
+}
+export namespace Icon {
+  // preset icons
+}
+
+async function getBalances (
+  p2wpkh: string,
+  chain = Bitcoin.LiquidTestnet(),
+  asset: string = "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5"
+): Promise<bigint> {
+  let balance = 0n;
+  const utxos = await chain.esplora.getAddressUtxos(p2wpkh);
+  for (const utxo of utxos) if (utxo.asset === asset) balance += BigInt(utxo.value);
+  return balance
+}
+
 export function Platforms (
-  sidebar  = elById("sidebar"),
-  features = elById("features"),
+  sidebar  = Html.id("sidebar"),
+  features = Html.id("features"),
 ) {
-  on(features, "change", App.update);
-  Html.append(features, Html(['p', 'Current and planned platform support:',]));
-  Html.append(features, Html(['div.row.gap', ['ul.features',
-
-    Platforms.Section({
-      open: false,
-      name: 'Bitcoin ecosystem',
-      help: 'https://github.com/hackbg/fadroma/discussions/240',
-      features: [
-        [true, 0, "enable:btc",      "Bitcoin",
-          ["Develop and test with local bitcoind in ", Link(Urls.btcTest, "regtest"), " mode."],
-          ["RPC", Urls.btcRpc]],
-        [true, 0, "enable:elements", "Elements",
-          ["Develop and test with local elementsd in ", Link(Urls.btcTest, "regtest"), " mode."],
-          ["RPC", Urls.btcRpc]],
-        [true, 0, "enable:simf",     "SimplicityHL",
-          ["Compile and run ", Link(Urls.simfRef, "SimplicityHL"), " programs."],
-          ["Language", Urls.simfRef],
-          ["Jets", Urls.simfJets]]
-      ]
-    }),
-
-    Platforms.Section({
-      open: false,
-      name: 'Solana ecosystem',
-      help: 'https://github.com/hackbg/fadroma/discussions/237',
-      features: [
-        [false, 0, "enable:sol", "Solana", "Client for Solana.",
-          ["Web3",   Urls.solanaWeb3],
-          ["Kit",    Urls.solanaKit],
-          ["Codama", Urls.codama]],
-        [false, 1, "enable:sol-prog", "Solana Rust",
-          "Write programs for Solana.",
-          ["Core",   Urls.solanaCrate]],
-        [false, 1, "enable:sol-prog", "Solana Anchor",
-          "Framework for Solana programs.",
-          ["IDL",    Urls.idlGuide],
-          ["Anchor", Urls.anchorCrate]],
-      ]
-    }),
-
-    Platforms.Section({
-      open: false,
-      name: 'Cosmos ecosystem',
-      help: 'https://github.com/hackbg/fadroma/discussions/238',
-      features: [
-        [false, 0, "enable:tm", "Tendermint",
-          "Client for Tendermint and compatibles."],
-        [false, 1, "enable:namada", "Namada",
-          ["Client and decoder for ", Link(Urls.namadaRepo, "Namada"), "."]],
-        [false, 1, "enable:scrt", "Scrt",
-          ["Client for ", Link(Urls.scrtHome, "Secret"), "."]],
-        [false, 1, "enable:cw", "CosmWasm",
-          "Write contracts for the Cosmos ecosystem."],
-      ]
-    }),
-
-  ], ['ul.features', 
-
-    Platforms.Section({
-      open: false,
-      name: 'JS / TS / ECMAScript ecosystem',
-      help: 'https://github.com/hackbg/fadroma/discussions/239',
-      features: [
-        [true, 0, "enable:deno", "Deno",
-          "Run on next-gen TS/JS runtime by default.",
-          ["@std", Urls.denoStd],
-          ["API",  Urls.denoApi]],
-        [true, 0, "enable:node", "Node.js",
-          ["Will use ", Link(Urls.tsxNpm, "tsx"), " to run TypeScript."],
-          ["API", Urls.nodeApi]],
-        [true, 0, "enable:pnpm", "PNPM",
-          ["Recommended package manager."], ["Compare", Urls.pnpmCompare]],
-        [false, 0, "enable:eslint", "ESLint",
-          "Static analyzer.", ["Platforms", Urls.eslintConf]],
-        [false, 0, "enable:vite",
-          "Vite", "Build your front-end in the same repo."]
-      ]
-    }),
-
-    Platforms.Section({
-      open: false,
-      name: 'Rust ecosystem',
-      help: 'https://github.com/hackbg/fadroma/discussions/236',
-      features: [
-        [false, 0, "enable:rust", "Rust",
-          "Different targets may need different toolchains."],
-        [false, 0, "enable:mold", "Mold",
-          "Improves build times."],
-      ]
-    }),
-
-    Platforms.Section({
-      open: false,
-      name: 'DevOps / Unix ecosystem',
-      help: 'https://github.com/hackbg/fadroma/discussions/categories/guides',
-      features: [
-        [true,  0, "enable:git",          "Git",
-          "Automatically init Git repo in new project."],
-        [true,  0, "enable:nix",          "Nix Shell",
-          ["Obtain dependencies from ", Link(Urls.nixPkgs, "nixpkgs")],
-          ["Install", Urls.nixInstall]],
-        [true,  0, "enable:direnv",       "Direnv",
-          ["Automatically load Nix shell when entering project directory."],
-          ["Wiki", Urls.direnvWiki]],
-        [false, 0, "enable:editorconfig", "EditorConfig",
-          "IDE-agnostic settings.",
-          ["Spec", Urls.edConfSpec]],
-      ]
-    }),
-
-    Platforms.Section({
-      open: false,
-      name: 'CI / CD',
-      help: 'https://github.com/hackbg/fadroma/discussions/categories/guides',
-      features: [
-        [false, 0, "enable:gha",          "GHA",
-          "Platforms for GitHub Actions."],
-        [false, 0, "enable:drone",        "Drone",
-          "Platforms for Drone CI."],
-        [false, 0, "enable:woodpecker",   "Woodpecker",
-          "Platforms for Woodpecker CI."],
-      ]
-    }),
-
-  ]]));
+  on(features, "change", Platforms.updateProjectConfiguration);
+  Html.append(features, Platforms.Platforms1());
+  Html.append(features, Platforms.Platforms2());
   return sidebar;
 }
 
 export namespace Platforms {
 
+  export function updateProjectConfiguration (e: InputEvent) {
+    let target = e.target as HTMLElement;
+    do {
+      if (target?.id?.startsWith('enable:')) {
+        console.log(target.id);
+        return;
+      }
+      target = target.parentElement;
+    } while (
+      target && target !== e.currentTarget
+    );
+  }
+
   export function Section ({
-    open = false,
+    open = true,
     name = '',
     help = null as string,
     features = [] as Array<[boolean, number, string, ...unknown[]]>
@@ -1064,6 +833,126 @@ export namespace Platforms {
         ([enabled, n, name, ...rest])=>(((!enabled) ? Feature.Disabled : Feature)(n, name, ...rest))
       )]
     ];
+  }
+
+  export function Platforms1 () {
+    return Html(['ul.features',
+      Platforms.Section({
+        //open: false,
+        name: 'Bitcoin ecosystem',
+        help: 'https://github.com/hackbg/fadroma/discussions/240',
+        features: [
+          [true, 0, "enable:btc",      "Bitcoin",
+            ["Develop and test with local bitcoind in ", Link(Urls.btcTest, "regtest"), " mode."],
+            ["RPC", Urls.btcRpc]],
+          [true, 0, "enable:elements", "Elements",
+            ["Develop and test with local elementsd in ", Link(Urls.btcTest, "regtest"), " mode."],
+            ["RPC", Urls.btcRpc]],
+          [true, 0, "enable:simf",     "SimplicityHL",
+            ["Compile and run ", Link(Urls.simfRef, "SimplicityHL"), " programs."],
+            ["Language", Urls.simfRef],
+            ["Jets", Urls.simfJets]]
+        ]
+      }),
+      Platforms.Section({
+        //open: false,
+        name: 'Solana ecosystem',
+        help: 'https://github.com/hackbg/fadroma/discussions/237',
+        features: [
+          [false, 0, "enable:sol", "Solana", "Client for Solana.",
+            ["Web3",   Urls.solanaWeb3],
+            ["Kit",    Urls.solanaKit],
+            ["Codama", Urls.codama]],
+          [false, 1, "enable:sol-prog", "Solana Rust",
+            "Write programs for Solana.",
+            ["Core",   Urls.solanaCrate]],
+          [false, 1, "enable:sol-prog", "Solana Anchor",
+            "Framework for Solana programs.",
+            ["IDL",    Urls.idlGuide],
+            ["Anchor", Urls.anchorCrate]],
+        ]
+      }),
+      Platforms.Section({
+        //open: false,
+        name: 'Cosmos ecosystem',
+        help: 'https://github.com/hackbg/fadroma/discussions/238',
+        features: [
+          [false, 0, "enable:tm", "Tendermint",
+            "Client for Tendermint and compatibles."],
+          [false, 1, "enable:namada", "Namada",
+            ["Client and decoder for ", Link(Urls.namadaRepo, "Namada"), "."]],
+          [false, 1, "enable:scrt", "Scrt",
+            ["Client for ", Link(Urls.scrtHome, "Secret"), "."]],
+          [false, 1, "enable:cw", "CosmWasm",
+            "Write contracts for the Cosmos ecosystem."],
+        ]
+      }),
+    ])
+  }
+
+  export function Platforms2 () {
+    return Html(['ul.features', 
+      Platforms.Section({
+        //open: false,
+        name: 'DevOps / Unix ecosystem',
+        help: 'https://github.com/hackbg/fadroma/discussions/categories/guides',
+        features: [
+          [true,  0, "enable:git",          "Git",
+            "Automatically init Git repo in new project."],
+          [true,  0, "enable:nix",          "Nix Shell",
+            ["Obtain dependencies from ", Link(Urls.nixPkgs, "nixpkgs")],
+            ["Install", Urls.nixInstall]],
+          [true,  0, "enable:direnv",       "Direnv",
+            ["Automatically load Nix shell when entering project directory."],
+            ["Wiki", Urls.direnvWiki]],
+          [false, 0, "enable:editorconfig", "EditorConfig",
+            "IDE-agnostic settings.",
+            ["Spec", Urls.edConfSpec]],
+        ]
+      }),
+      Platforms.Section({
+        //open: false,
+        name: 'JS / TS / ECMAScript ecosystem',
+        help: 'https://github.com/hackbg/fadroma/discussions/239',
+        features: [
+          [true, 0, "enable:deno", "Deno",
+            "Run on next-gen TS/JS runtime by default.",
+            ["@std", Urls.denoStd],
+            ["API",  Urls.denoApi]],
+          [true, 0, "enable:node", "Node.js",
+            ["Will use ", Link(Urls.tsxNpm, "tsx"), " to run TypeScript."],
+            ["API", Urls.nodeApi]],
+          [true, 0, "enable:pnpm", "PNPM",
+            ["Recommended package manager."], ["Compare", Urls.pnpmCompare]],
+          [false, 0, "enable:eslint", "ESLint",
+            "Static analyzer.", ["Platforms", Urls.eslintConf]],
+          [false, 0, "enable:vite",
+            "Vite", "Build your front-end in the same repo."]
+        ]
+      }),
+      Platforms.Section({
+        //open: false,
+        name: 'Rust ecosystem',
+        help: 'https://github.com/hackbg/fadroma/discussions/236',
+        features: [
+          [false, 0, "enable:mold", "Mold", "Improves build times."],
+          [false, 0, "enable:rust", "Rust", "Different targets may need different toolchains."],
+        ]
+      }),
+      //Platforms.Section({
+        ////open: false,
+        //name: 'CI / CD',
+        //help: 'https://github.com/hackbg/fadroma/discussions/categories/guides',
+        //features: [
+          //[false, 0, "enable:gha",          "GHA",
+            //"Setup for GitHub Actions."],
+          //[false, 0, "enable:drone",        "Drone",
+            //"Setup for Drone CI."],
+          //[false, 0, "enable:woodpecker",   "Woodpecker",
+            //"Setup for Woodpecker CI."],
+        //]
+      //}),
+    ])
   }
 
 }
@@ -1104,7 +993,7 @@ export namespace Feature {
 }
 
 export async function loadDocs (href: string) {
-  const main = elById("main");
+  const main = Html.id("main");
   const resp = await fetch(href);
   const html = await resp.text();
   const sect = new DocumentFragment();
@@ -1153,13 +1042,94 @@ export async function loadDocs (href: string) {
   }
 }
 
+export const checked = (id: string) => !!(Html.id(id) as HTMLInputElement)?.checked;
+
+export const textVal = (id: string) => (Html.id(id) as HTMLInputElement)?.value?.trim();
+
+export const byteVal = (id: string) => (Html.id(id) as HTMLInputElement)?.value?.trim() as unknown as Bytes; // FIXME
+
+export const on = (x: EventTarget, ev: string, cb: Fn) => { x?.addEventListener(ev, cb); return cb; }
+
+/** Displa error thrown by component init in host element. */
+function ErrorBoundary (view: HTMLElement, callback) {
+  try {
+    return callback()
+  } catch (error) {
+    view.style.whiteSpace = 'pre';
+    view.innerText = error.stack;
+    return { view, error }
+  }
+}
+
+function dedent (source: string): string {
+  const lines = source.split('\n');
+  if (lines.length < 2) return source;
+  let indent = 0;
+  for (const char of lines[1]) if (char === ' ') indent++; else break;
+  return [lines[0], ...lines.slice(1).map(line=>line.slice(indent))].join('\n')
+}
+
+export function pinSize <T> (el: HTMLElement, cb: Fn<[number, number], T>) {
+  const { offsetWidth: width, offsetHeight: height } = el;
+  el.style.width  = String(width);
+  el.style.height = String(height);
+  let result: {ok:T}|{error:Error};
+  try {
+    result = { ok: cb(width, height) as T };
+  } catch (e) {
+    result = { error: e };
+  }
+  el.style = '';
+  if ('ok' in result) return result.ok;
+  throw result.error;
+}
+
+export function download (name: string, type: string, ...parts: unknown[]) {
+  const file = new File(parts as BlobPart[], name, { type });
+  const url  = URL.createObjectURL(file);
+  const link = Object.assign(document.createElement('a'), { href: url, download: name });
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+export async function Nav () {
+  on(Html.id("navbar"), "click", navigate);
+  on(document.body, "click", ({ target }) => {
+    while (target !== document.body) {
+      //console.log(...target.classList)
+      if (target.classList.contains('scroll-to')) {
+        const y = target.offsetTop - 100;
+        if (window.scrollY < y) scrollTo(Math.max(0, y));
+        //console.log(target.offsetHeight, target.offsetTop, window.innerHeight, window.scrollY);
+        break;
+      }
+      target = target.parentElement
+    }
+  })
+}
+
+export async function navigate (e: Event) {
+  let target = e.target as HTMLElement;
+  do {
+    if (target.dataset.action) switch (target.dataset.action) {
+      case 'new':  e.preventDefault(); return Editor();
+      case 'load': e.preventDefault(); return Editor.load();
+      case 'save': e.preventDefault(); return Editor.save();
+      case 'docs': e.preventDefault(); return loadDocs("/docs/deno/index.html");
+      default: return;
+    }
+    target = target.parentElement;
+  } while (target && target !== e.currentTarget);
+}
+
 export async function P2P ({
   room      = 'fadroma',
   name      = 'unnamed',
   driver    = new P2P.NatsDriver(),
   receiver  = new Receiver({ driver }),
   sender    = new Sender({ driver }),
-  root      = document.getElementById('demo'),
+  root      = document.getElementById('identities'),
   onConnect = (e: unknown) => { console.debug('connect', e); root.innerText += JSON.stringify([e.name, e.detail]); },
   onDispose = (e: unknown) => { console.debug('dispose', e); root.innerText += JSON.stringify([e.name, e.detail]); },
   onMessage = (e: unknown) => { console.debug('message', e); root.innerText += JSON.stringify([e.name, e.detail]); },
@@ -1303,62 +1273,4 @@ export namespace P2P {
       }
     }
   }
-}
-export const elById  = (id: string) => document.getElementById(id);
-export const checked = (id: string) => !!(elById(id) as HTMLInputElement)?.checked;
-export const textVal = (id: string) => (elById(id) as HTMLInputElement)?.value?.trim();
-export const byteVal = (id: string) => (elById(id) as HTMLInputElement)?.value?.trim() as unknown as Bytes; // FIXME
-export const on = (x: EventTarget, ev: string, cb: Fn) => { x?.addEventListener(ev, cb); return cb; }
-export const Link = (href: string, ...text: unknown[]) => ['a[target=_blank]', { href }, ...text];
-export function pinSize <T> (el: HTMLElement, cb: Fn<[number, number], T>) {
-  const { offsetWidth: width, offsetHeight: height } = el;
-  el.style.width  = String(width);
-  el.style.height = String(height);
-  let result: {ok:T}|{error:Error};
-  try {
-    result = { ok: cb(width, height) as T };
-  } catch (e) {
-    result = { error: e };
-  }
-  el.style = '';
-  if ('ok' in result) return result.ok;
-  throw result.error;
-}
-export function download (name: string, type: string, ...parts: unknown[]) {
-  const file = new File(parts as BlobPart[], name, { type });
-  const url  = URL.createObjectURL(file);
-  const link = Object.assign(document.createElement('a'), { href: url, download: name });
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-export async function Nav () {
-  on(elById("navbar"), "click", navigate);
-  on(document.body, "click", ({ target }) => {
-    while (target !== document.body) {
-      //console.log(...target.classList)
-      if (target.classList.contains('scroll-to')) {
-        const y = target.offsetTop - 100;
-        if (window.scrollY < y) scrollTo(Math.max(0, y));
-        //console.log(target.offsetHeight, target.offsetTop, window.innerHeight, window.scrollY);
-        break;
-      }
-      target = target.parentElement
-    }
-  })
-}
-
-export async function navigate (e: Event) {
-  let target = e.target as HTMLElement;
-  do {
-    if (target.dataset.action) switch (target.dataset.action) {
-      case 'new':  e.preventDefault(); return Editor();
-      case 'load': e.preventDefault(); return Editor.load();
-      case 'save': e.preventDefault(); return Editor.save();
-      case 'docs': e.preventDefault(); return loadDocs("/docs/deno/index.html");
-      default: return;
-    }
-    target = target.parentElement;
-  } while (target && target !== e.currentTarget);
 }

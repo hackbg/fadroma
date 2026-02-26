@@ -153,6 +153,7 @@ namespace Bitcoin {
     export const FAUCET_URL   = 'https://liquidtestnet.com/faucet';
     export const RETURN_TEST  = 'tlq1qq2g07nju42l0nlx0erqa3wsel2l8prnq96rlnhml262mcj7pe8w6ndvvyg237japt83z24m8gu4v3yfhaqvrqxydadc9scsmw';
     export const RETURN_AMP   = 'vjU8JWGnZu6XavzMEbLZ3mGZ3nrPxpwoBNC3brPi7CFm12sb7bHSkB4gz4SGSV9LhBceZVGaF8nsevu6';
+    export const GENESIS      = 'a771da8e52ee6ad581ed1e9a99825e5b3b7992225534eaa2ae23244fe26ab1c1'; // TODO autofetch from block 0
     export const esplora      = Esplora('https://blockstream.info/liquidtestnet/api');
   }
 
@@ -376,7 +377,7 @@ namespace Bitcoin {
   }
 
   export interface Esplora {
-    getBlockTipHeight: Fn
+    getBlockTipHeight: Fn.Returns<Fn.Async<Num>>,
     getBlockTipHash:   Fn
     getTxInfo:         Fn
     getAddressInfo:    Fn

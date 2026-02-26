@@ -4,15 +4,7 @@
     <meta charset="utf8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Fadroma by Hack.bg</title>
-    <link rel="stylesheet" href="css/theme.css" />
-    <link rel="stylesheet" href="css/lib.css" />
-    <link rel="stylesheet" href="css/chain.css" />
-    <link rel="stylesheet" href="css/demo.css" />
-    <link rel="stylesheet" href="css/docs.css" />
-    <link rel="stylesheet" href="css/editor.css" />
-    <link rel="stylesheet" href="css/feature.css" />
-    <link rel="stylesheet" href="css/simf.css" />
-    <link rel="stylesheet" href="css/user.css" />
+    <link rel="stylesheet" href="index.css" />
   </head>
   <body>
     <nav class="banner buttons">
@@ -20,9 +12,7 @@
       <a class="custom work" href="https://hack.bg/contact"><strong>Need custom work with Bitcoin, Ethereum, Solana, Cosmos, or similar?</strong> Hack.bg has got you covered.</a>
     </nav>
     <nav class="header row justify-between">
-      <nav id="brand" class="col">
-        <div class="col"><a class="hackbg subtitle" href="https://hack.bg" style="">dApp workbench by<br><h1>Hack.bg</h1></a></div>
-      </nav>
+      <nav id="brand" class="col"><a class="hackbg subtitle" href="https://hack.bg" style="">dApp workbench by<br><h1>Hack.bg</h1></a></nav>
       <nav class="col buttons" id="buttonbar">
         <script type="module">import load from './loader.ts';load(import('./index.ts'), ({Nav})=>Nav());</script>
         <!--<button data-action="new"  class="rel"><svg class="icon"><use href="icons.svg#document"></use></svg> New</button>-->
@@ -34,33 +24,40 @@
         <!--<a href="/cov/index.html"><svg class="icon"><use href="icons.svg#code"></use></svg> Coverage</a>-->
       </nav>
     </nav>
-    <div id="main" class="rel align-stretch justify-center">
-      <div class="scroll-to col align-center justify-center content hero">
-        <a class="logo" href="https://fadroma.tech" data-action="home"></a>
-        <a class="wordmark" data-action="home" href="https://fadroma.tech"></a>
-        <p class="content"><strong>🤫 Pre-release:</strong> Official package upcoming!</p>
-        <p class="content">Safely enjoy the freshest <strong>dev snapshot</strong> of <strong>Fadroma V3 with SimplicityHL</strong> today:</p>
-        <pre class="sh"># git submodule add https://github.com/hackbg/fadroma
+    <div id="main" class="view-main">
+      <div class="scroll-to content hero">
+        <div class="col gap align-center">
+          <a class="logo" href="https://fadroma.tech" data-action="home"></a>
+          <a class="wordmark" data-action="home" href="https://fadroma.tech"></a>
+          <p><strong>🤫 Pre-release:</strong> Official package upcoming!</p>
+          <p>Safely enjoy the freshest <strong>dev snapshot</strong><br />of <strong>Fadroma V3 with SimplicityHL</strong> today:</p>
+          <pre class="sh"># git submodule add https://github.com/hackbg/fadroma
 # cd fadroma
 # git submodule update --init --recursive</pre>
+          <p>Inquiries welcome at <strong><a href="https://hack.bg/contact">https://hack.bg/contact</a></strong>.</p>
+        </div>
+        <div class="col gap align-start">
+          <div class="features" id="features"></div>
+          <script type="module">import load from './loader.ts';load(import('./index.ts'), ({Platforms})=>Platforms());</script>
+        </div>
       </div>
-      <div class="scroll-to sidebar col gap" id="sidebar">
+      <div id="app" class="scroll-to app">
+        <div id="identities" class="identities">
+          <div class="col">
+            <h2>Chain connectors</h2>
+            <div id="chains" class="view-chains">Loading...</div>
+          </div>
+          <div class="col">
+            <h2>Ephemeral identities</h2>
+            <div id="users" class="view-users col justify-center align-stretch gap">Loading...</div>
+          </div>
+        </div>
         <div class="grow" id="editors">
           <div class="loading">Loading example project...</div>
           <script type="module">import load from './loader.ts';load(import('./index.ts'));</script>
         </div>
       </div>
-      <div id="demo" class="scroll-to col gap demo align-center">
-        <p class="content"><strong>Watch this space:</strong> interactive peer discovery and deal-making in a familiar conversational interface will pop up here.</p>
-        <div id="demousers" class="content row justify-center"></div>
-        <p>Meanwhile, try the example project, and report any issues on our bug tracker!</p>
-        <p>All further inquiries welcome at <strong><a href="https://hack.bg/contact">https://hack.bg/contact</a></strong>.</p>
-      </div>
-      <div class="scroll-to col gap content">
-        <div class="grow col"><br /></div>
-        <div class="features" id="features"></div>
-        <script type="module">import load from './loader.ts';load(import('./index.ts'), ({Platforms})=>Platforms());</script>
-      </div>
+
     </div>
   </body>
 </html>
