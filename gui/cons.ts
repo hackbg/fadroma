@@ -11,7 +11,7 @@ export const Texts = {
     ['p', 'The ', ['strong', 'Simplicity transaction lifecycle'], ' works in two phases: committing funds to a program, and redeeming them.' ],
     ['h3', 'Commitment phase'],
     ['p', 'This is when you write the program, compile it to a P2TR address, and fund that address. Then, the program is considered deployed.'],
-    ['p', 'Try it now with these ', ['strong', 'SimplicityHL programs'], ' on ', ['a', { href: 'https://blockstream.info/liquidtestnet/' }, 'Liquid Testnet, before proceeding to the next step.'], ' ']
+    ['p', 'Try it now with these ', ['strong', 'SimplicityHL programs'], ' on ', ['a', { href: 'https://blockstream.info/liquidtestnet/' }, 'Liquid Testnet'], ', before proceeding to the next step. ']
   ],
   SIMPLICITYHL2: [
     ['h3', 'Redemption phase'],

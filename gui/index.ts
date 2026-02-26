@@ -344,12 +344,14 @@ export namespace Programs {
     }
   }
   function ProgramEditor (id: string, source: string, open = false) {
+    const errors = Html(['pre.compile-errors.collapsible']).firstChild as HTMLElement;
     return Field(id)
       .open(open)
       .content(Field.TextArea(id, SimfTS(source)))
+      .content(errors)
       .sidebar(['div.phase-form',
         SimfDemo.Form('simf-compile', Texts.CompileTitle, Select.Chain(),
-          Select.Program(), Select.Pubkey({ name: 'param::PUB' }).view, Button.Compile().view),
+          Select.Program(), Select.Pubkey({ name: 'param::PUB' }).view, Button.Compile({ errors }).view),
         SimfDemo.Form('simf-commit', Texts.FundTitle, Select.Sender().view,
           Label('Amount:', ['input.balance[type="number"]', { value: '2345' }]),
           Button.Commit().view)])
@@ -527,7 +529,7 @@ export namespace Button {
     chain   = Bitcoin.LiquidTestnet,
     genesis = chain.GENESIS, // TODO autofetch from block 0
     button  = Button('compile', () => compile()),
-    errors  = Html(['pre.compile-errors']).firstChild as HTMLElement,
+    errors  = Html(['pre.compile-errors.collapsible']).firstChild as HTMLElement,
     input   = Html(['input']).firstChild as HTMLInputElement,
     view    = Html(['label.col.gap.align-stretch', ['label.justify-between.gap', ['strong', 'Program address (P2TR):'], input, button], errors]).firstChild,
     compile = async () => {

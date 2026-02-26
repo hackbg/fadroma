@@ -315,7 +315,7 @@ a.help {
   width: 100%;
   display: flex;
   flex-flow: column nowrap;
-  align-items: stretch;
+  align-items: center;
   justify-content: center;
   p {
     font-size: 1.5rem;
@@ -656,7 +656,12 @@ a.help {
   min-width: 30ch;
   height: auto;
   max-width: 500ch;
-  margin: 0 auto;
+  margin: 0.5rem;
+  padding: 1rem;
+  border-radius: 1.33rem;
+  border-top: 1px solid #fffa;
+  border-bottom: 1px solid #000a;
+  box-shadow: 0 0px 6px #0006;
   @media screen and (min-width: 1920px) { 
     flex-flow: row nowrap;
     justify-content: flex-start;
@@ -960,7 +965,8 @@ a.help {
 .field-editor {
   flex-grow: 1;
   display: flex;
-  flex-flow: row nowrap;
+  flex-flow: column nowrap;
+  align-items: stretch;
   textarea { flex-grow: 1 }
 }
 .field-sidebar {
@@ -1022,13 +1028,17 @@ a.help {
 }
 
 pre.compile-errors {
-  max-width:   90ch;
+  border-radius: 3px;
+  width:       100%;
   overflow:    auto;
   font-family: monospace;
-  /*background:  #621a;*/
-  font-size:   1rem;
+  font-size:   1.15rem;
   align-self:  center;
-  background: #8002;
+  background:  linear-gradient(to left, #523, #423, #423 99%, #f00);
+  padding: 0 1rem;
+  color: #eff;
+  margin: 0 -0.5rem;
+  /*background:  #621a;*/
   /*border:      1px solid #f20;*/
 }
 
@@ -1104,6 +1114,7 @@ pre.compile-errors {
   label {
     padding: 0 0.5rem;
     border-left: 1px solid #4448;
+    border-bottom: 1px solid #4448;
     align-self: stretch;
     display: flex;
     flex-flow: column nowrap;
