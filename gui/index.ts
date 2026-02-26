@@ -12,7 +12,7 @@ import Wasm                    from './wasm.ts';
 import type { Bytes, Fn }      from '../library/index.ts';
 import { Arg }                 from '../platform/SimplicityHL/SimplicityHL.ts';
 import { Base16 }              from '../library/Number.ts';
-import { Texts, Urls }         from './cons.ts';
+import { Labels, Texts, Urls } from './cons.ts';
 const chain = Bitcoin.LiquidTestnet(); // Chain handle (initialized once)
 let simf  = null; // WASM handle (initialized once)
 const nonSecret = (n: number) => new Uint8Array(new Array(32).fill(n));
@@ -190,22 +190,18 @@ export function SimfDemo (view = Html.id("editors"), {
   node     = false,
 } = {}) {
   return ErrorBoundary(view, { view: Html.replace(view, Html(
-    ['div.row.grow.gap.justify-between.editors',
+    ['div.row.grow.justify-center.editors',
       ['div.col',
-        Section.Layer(['div', ['h2', 'Now with SimplicityHL Support!'], Texts.Welcome]),
+        Section.Layer(['div', ['h2', 'Now with SimplicityHL Support!'],
+          Texts.Welcome,
+          Texts.Phases,
+          Texts.CommitmentPhase]),
         Programs(
           Programs.P2PK.wrapped(),
           Programs.P2PKH.wrapped(),
           Programs.HodlVault.wrapped()),
-        Section.Layer(['div', ['h2', 'Project configurator'], Texts.DownloadProject]),
-        Project(
-          ES.TestSuite({ deno, node, btc }),
-          ES.DenoJson({ deno }),
-          Nix({ nix, btc, simf, elements }),
-          direnv && Field.Text(".envrc", "use nix"))]],
-    ['div.row.grow.gap.justify-between.editors',
-      ['div.col', ['h2', 'Transaction tester'], Texts.Phases,
-        Section.Phase(Texts.CommitmentPhase, ['div.phase-form',
+      ['div.col', ['h2', 'Transaction tester'],
+        Section.Phase('', ['div.phase-form',
           SimfDemo.Form('simf-compile', Texts.CompileTitle, Select.Chain(),
             Select.Program(), Select.Pubkey({ name: 'param::PUB' }).view, Button.Compile().view),
           SimfDemo.Form('simf-commit', Texts.FundTitle, Select.Sender().view,
@@ -215,7 +211,14 @@ export function SimfDemo (view = Html.id("editors"), {
           SimfDemo.Form('simf-witness', Texts.WitnessTitle, Input.Balance(), Select.Recipient(),
             Label('Amount:', ['input[type="number"]', { value: '1234' }]), Input.SigHash()),
           SimfDemo.Form('simf-redeem', Texts.RedeemTitle, Select.Signer({ name: 'witness::SIG' }).view,
-            Label('TX bytes:', ['input']), Label('Redeem TX:', Button('redeem')))])]])) });
+            Label('TX bytes:', ['input']), Label('Redeem TX:', Button('redeem')))])],
+      Section.Layer(['div', ['h2', 'Project configurator'], Texts.DownloadProject]),
+        Project(
+          ES.TestSuite({ deno, node, btc }),
+          ES.DenoJson({ deno }),
+          Nix({ nix, btc, simf, elements }),
+          direnv && Field.Text(".envrc", "use nix"))],
+      ])) });
 }
 export namespace SimfDemo {
   export function Form (id, name: string|unknown[], ...rest: unknown[]) {
@@ -276,24 +279,9 @@ export namespace SimfDemo {
     }
   }
 }
-export function Program (id: string, ...content: string[]) {
-  return Field(id)
-    .header(Button.Command('play', 'Compile', { onclick: e => Program.recompile(id, e) }))
-    .header(Button.Command('circle-with-plus', 'Define'))
-    .content(Field.TextArea(id, ...content))
-    .content([`div.row#result:${id}`, ['div.grow']])
-    .content([`div.row.simf-result`, ['strong', `P2TR: `],
-      [`div.grow#commit:${id}`, `(not compiled)`],
-      ['a.help', { target: 'blank', title: 'Address of program', href: "#" }, Icon('help')]])
-    .content([`div.row.simf-result`, ['strong.w', `Sighash: `],
-        [`div.grow#cmr:${id}`, `(not generated)`],
-        ['a.help', { target: 'blank', title: 'Witness signing hash', href: "#" }, Icon('help')]])
-    .build();
-}
 export function Programs (...args: unknown[]) {
-  return Section({ className: 'layer programs' },
-    ['p.sidebox.flex.space-between', Texts.Examples],
-    ['div.col.grow.files.gap',...args]); 
+  return Section({ className: 'layer programs col' }, Texts.Examples,
+    ['div.files', ...args]);
 }
 export namespace Programs {
   /** Empty program (always passes). */
@@ -304,14 +292,14 @@ export namespace Programs {
   export namespace AssertFalse { export const source = `fn main () { assert!(false); }` }
   /** Pay to public key: minimal witness program. */
   export namespace P2PK {
-    export const wrapped = () => ES("src/P2PK.simf.ts", SimfTS(source));
+    export const wrapped = () => ProgramEditor("src/P2PK.simf.ts", source);
     export const source = reindent(2, `fn main () {
       jet::bip_0340_verify((param::PUB, jet::sig_all_hash()), witness::SIG);
     }\n`);
   }
   /** Pay to public key: minimal witness program. */
   export namespace P2PKH {
-    export const wrapped = () => ES("src/P2PKH.simf.ts", SimfTS(source));
+    export const wrapped = () => ProgramEditor("src/P2PKH.simf.ts", source);
     export const source = reindent(2, `fn main () {
       let pubkey: Pubkey = witness::PUB;
       let hasher: Ctx8 = jet::sha_256_ctx_8_init();
@@ -323,9 +311,7 @@ export namespace Programs {
   }
   /** Hodl vault: prototype workhorse. */
   export namespace HodlVault {
-    export const wrapped = () => Field("src/HodlVault.simf.ts").open(true)
-      .content(Field.TextArea("src/HodlVault.simf.ts", SimfTS(source)))
-      .build();
+    export const wrapped = () => ProgramEditor("src/HodlVault.simf.ts", source, true);
     export const source = reindent(2, `fn main () {
       let min_height: Height = param::MIN_HEIGHT;
       let target_price: u32 = param::TARGET_PRICE;
@@ -357,6 +343,18 @@ export namespace Programs {
     for (const key of ['commit', 'cmr', 'amr', 'ihr']) {
       document.getElementById(`${key}:${name}`).innerText = result[key];
     }
+  }
+  function ProgramEditor (id: string, source: string, open = false) {
+    return Field(id)
+      .open(open)
+      .content(Field.TextArea(id, SimfTS(source)))
+      .sidebar(['div.phase-form',
+        SimfDemo.Form('simf-compile', Texts.CompileTitle, Select.Chain(),
+          Select.Program(), Select.Pubkey({ name: 'param::PUB' }).view, Button.Compile().view),
+        SimfDemo.Form('simf-commit', Texts.FundTitle, Select.Sender().view,
+          Label('Amount:', ['input.balance[type="number"]', { value: '2345' }]),
+          Button.Commit().view)])
+      .build()
   }
 }
 /** A project repository. */
@@ -508,13 +506,13 @@ function addGit (archive = {}) {
     'logallrefupdates        = true'));
   return archive
 }
-export function Section (...content: unknown[]): HTMLElement {
-  return Html(['section', ...content]).firstChild as HTMLElement 
+export function Section (...content: unknown[]): DocumentFragment {
+  return Html(['section', ...content]) as DocumentFragment;
 }
 export namespace Section {
   export const Layer    = (...args: unknown[]) => Section({ className: 'layer' }, ...args);
-  export const Actions  = (...args: unknown[]) => Section({ className: 'layer actions' }, ...args); 
-  export const Phase    = (...args: unknown[]) => Section({ className: 'phase' }, ...args); 
+  export const Actions  = (...args: unknown[]) => Section({ className: 'layer actions' }, ...args);
+  export const Phase    = (...args: unknown[]) => Section({ className: 'phase' }, ...args);
 }
 export function Label (text: string, ...content: unknown[]): HTMLLabelElement {
   return Html(['label', ['strong', text], ...content]).firstChild as HTMLLabelElement
@@ -523,14 +521,9 @@ export function Link (href: string, ...text: unknown[]) {
   return ['a[target=_blank]', { href }, ...text];
 }
 export function Button (id: keyof typeof Button.Labels, onclick = () => {}): HTMLButtonElement {
-  return Html(['button', Button.Labels[id], { id, onclick }]).firstChild as HTMLButtonElement; // FIXME don't default to DocumentFragment
+  return Html(['button', Labels[id], { id, onclick }]).firstChild as HTMLButtonElement; // FIXME don't default to DocumentFragment
 }
 export namespace Button {
-  export const Labels = {
-    compile: "Compile",
-    commit:  "Commit",
-    redeem:  "Redeem",
-  } as const;
   export function Compile ({
     chain   = Bitcoin.LiquidTestnet,
     genesis = chain.GENESIS, // TODO autofetch from block 0
@@ -585,14 +578,19 @@ export namespace Button {
     return [ 'div.command', icon && Icon(icon), ...content ]
   }
 }
-export function Field (id: string, { open = false, header = [], content = [] } = {}) {
+export function Field (id: string, { open = false, header = [], content = [], sidebar = [] } = {}) {
   return {
     id,
-    open:    bool => Field(id, { open: bool, header, content }),
-    header:  item => Field(id, { open, header: [...header, item], content  }),
-    content: item => Field(id, { open, header, content: [...content, item] }),
+    open:    bool => Field(id, { open: bool, header, content, sidebar }),
+    header:  item => Field(id, { open, header: [...header, item], content, sidebar  }),
+    content: item => Field(id, { open, header, content: [...content, item], sidebar }),
+    sidebar: item => Field(id, { open, header, content, sidebar: [...sidebar, item] }),
     build:   () => Field.Wrapper(id, !open, Field.Handle(id, !open),
-      ['div.flex.col.grow', Field.Header(id, ...header), ...content]),
+      ['div.field-body',
+        Field.Header(id, ...header),
+        ['div.field-content',
+          ['div.field-editor', ...content],
+          ['div.field-sidebar', ...sidebar]]]),
   }
 }
 export namespace Field {
@@ -715,7 +713,9 @@ export namespace Select {
   async function updateSenderBalance ({ select, input }) {
     const pubkey = select.value;
     const sender = usersByPubkey[pubkey];
-    input.value = String(await getBalances(sender.p2wpkh));
+    if (sender) {
+      input.value = String(await getBalances(sender?.p2wpkh));
+    }
   }
   export function Signer ({
     name   = null as string,
@@ -786,7 +786,7 @@ export namespace Platforms {
     features = [] as Array<[boolean, number, string, ...unknown[]]>
   }) {
     return ['details', { open },
-      ['summary', name, (help ? ['a.help', { target: '_blank', href: help }, Icon('github')] : '')],
+      ['summary', name, (help ? ['a.help', { target: '_blank', href: help }, 'Discuss ', Icon('github')] : '')],
       ['ul.features', ...features.map(
         ([enabled, n, name, ...rest])=>(((!enabled) ? Feature.Disabled : Feature)(n, name, ...rest))
       )]
@@ -801,11 +801,11 @@ export namespace Platforms {
         help: 'https://github.com/hackbg/fadroma/discussions/240',
         features: [
           [true, 0, "enable:btc",      "Bitcoin",
-            ["Develop and test with local bitcoind in ", Link(Urls.btcTest, "regtest"), " mode."],
+            ["Develop and test with local bitcoind in ", Link(Urls.btcTest, ['code', "regtest"]), " mode."],
             ["RPC", Urls.btcRpc]],
           [true, 0, "enable:elements", "Elements",
-            ["Develop and test with local elementsd in ", Link(Urls.btcTest, "regtest"), " mode."],
-            ["RPC", Urls.btcRpc]],
+            ["Develop and test with local elementsd in ", ['code', "elementsregtest"], " mode."],
+            ["RPC", Urls.elementsRpc]],
           [true, 0, "enable:simf",     "SimplicityHL",
             ["Compile and run ", Link(Urls.simfRef, "SimplicityHL"), " programs."],
             ["Language", Urls.simfRef],
@@ -817,15 +817,15 @@ export namespace Platforms {
         name: 'Solana ecosystem',
         help: 'https://github.com/hackbg/fadroma/discussions/237',
         features: [
-          [false, 0, "enable:sol", "Solana", "Client for Solana.",
+          [false, 0, "enable:sol", "Solana", "Connect to Solana.",
             ["Web3",   Urls.solanaWeb3],
-            ["Kit",    Urls.solanaKit],
+            ["Kit",    Urls.solanaKit]],
+          [false, 1, "enable:sol-prog", "Solana Programs",
+            "Write Solana programs in Rust.",
+            ["Core",   Urls.solanaCrate],
             ["Codama", Urls.codama]],
-          [false, 1, "enable:sol-prog", "Solana Rust",
-            "Write programs for Solana.",
-            ["Core",   Urls.solanaCrate]],
-          [false, 1, "enable:sol-prog", "Solana Anchor",
-            "Framework for Solana programs.",
+          [false, 1, "enable:sol-idl", "Solana Anchor IDL",
+            "Integrate with Solana Anchor IDL.",
             ["IDL",    Urls.idlGuide],
             ["Anchor", Urls.anchorCrate]],
         ]
@@ -836,7 +836,7 @@ export namespace Platforms {
         help: 'https://github.com/hackbg/fadroma/discussions/238',
         features: [
           [false, 0, "enable:tm", "Tendermint",
-            "Client for Tendermint and compatibles."],
+            "Connect to for Tendermint, CometBFT, and compatibles."],
           [false, 1, "enable:namada", "Namada",
             ["Client and decoder for ", Link(Urls.namadaRepo, "Namada"), "."]],
           [false, 1, "enable:scrt", "Scrt",
@@ -849,7 +849,7 @@ export namespace Platforms {
   }
 
   export function Platforms2 () {
-    return Html(['ul.features', 
+    return Html(['ul.features',
       Platforms.Section({
         //open: false,
         name: 'DevOps / Unix ecosystem',
@@ -924,13 +924,13 @@ export function Feature (
 ) {
   return Html([`li.feature[data-depth=${depth}]`,
     ['div.row.between',
-      [`label`, [`input[type=checkbox][checked=checked]`, { id }], name],
-      Feature.Links(links)],
-    ['p.grow', ...(typeof description === 'object')?description:[description]]
-  ]);
+      ['div.col', [`label`, [`input[type=checkbox][checked=checked]`, { id }], name],
+        ['p.grow', ...(typeof description === 'object')?description:[description]]],
+      Feature.Links(links)]]);
 }
 
 export namespace Feature {
+
   export function Disabled (
     depth:       number,
     id:          string,
@@ -939,14 +939,17 @@ export namespace Feature {
     ...links:   [string, string?][]
   ) {
     return Html([`li.feature.disabled[data-depth=${depth}]`,
-      ['div.row.between', [`label`, `⏳️  ${name}`], Feature.Links(links)],
-      ['p.grow', ...(typeof description === 'object')?description:[description]]]);
+      ['div.row.between',
+        ['div.col', [`label`, [`input[type=checkbox][disabled=disabled]`, { id }], name],
+          ['p.grow', ...(typeof description === 'object')?description:[description]]],
+        Feature.Links(links)]]);
   }
+
   export function Links (
     links: [string, string?][]
   ) {
-    return ['div.row.links', ...links.map(([text, href = '#'])=>
-      ['a.flex[target=_blank]', { href }, Icon("book"), text])]
+    return ['div.links', ...links.map(([text, href = '#'])=>
+      ['a.flex[target=_blank]', { href }, text, Icon("book")])]
   };
 }
 

@@ -4,7 +4,7 @@ export const Texts = {
   CONNECT_ERROR: '◯ Error, reconnecting to ',
 
   Welcome:         ['p', ['strong', 'Fadroma V3'], ' employs WebAssembly to instantly compile, evaluate, and deploy ', ['strong', 'SimplicityHL smart contracts'], ' from modern JavaScript-based environments: browsers, servers, and edge services.'],
-  Examples:        ['div.grow', 'Try these ', ['strong', 'SimplicityHL programs'], ' on ', ['a', { href: 'https://blockstream.info/liquidtestnet/' }, 'Liquid Testnet:'], ' '],
+  Examples:        ['p', 'Try these ', ['strong', 'SimplicityHL programs'], ' on ', ['a', { href: 'https://blockstream.info/liquidtestnet/' }, 'Liquid Testnet:'], ' '],
   Phases:          ['p', 'The ', ['strong', 'Simplicity transaction lifecycle'], ' happens in two phases:' ],
   CommitmentPhase: ['p', ['span', ['strong', Dropcap('A. '), 'Commitment phase'], '. Compile program to P2TR address, and fund it on-chain:']],
   RedemptionPhase: ['p', ['span', ['strong', Dropcap('B. '), 'Redemption phase'], '. Fulfill the program\'s conditions to redeem funds:']],
@@ -21,6 +21,12 @@ export const Texts = {
     //' and ', ['code', 'liquidtestnet'], ' out of the box:'],
 } as const;
 
+export const Labels = { // FIXME merge into Texts
+  compile: "Compile",
+  commit:  "Commit",
+  redeem:  "Redeem",
+} as const;
+
 export const Urls = {
   anchorCrate: "https://docs.rs/anchor-lang/latest/anchor_lang/",
   btcRpc:      "https://en.bitcoin.it/wiki/Original_Bitcoin_client/API_calls_list",
@@ -30,6 +36,7 @@ export const Urls = {
   denoStd:     "https://docs.deno.com/runtime/reference/std/",
   direnvWiki:  "https://github.com/direnv/direnv/wiki",
   edConfSpec:  "https://spec.editorconfig.org/",
+  elementsRpc: "https://elementsproject.org/en/doc/23.2.1/rpc/",
   eslintConf:  "https://eslint.org/docs/latest/use/configure/",
   idlGuide:    "https://solana.com/developers/guides/advanced/idls",
   namadaRepo:  "https://github.com/namada-net/namada",

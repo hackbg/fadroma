@@ -1,5 +1,18 @@
-
-
+//export function Program (id: string, ...content: string[]) {
+  //return Field(id)
+    //.header(Button.Command('play', 'Compile', { onclick: e => Program.recompile(id, e) }))
+    //.header(Button.Command('circle-with-plus', 'Define'))
+    //.content(Field.TextArea(id, ...content))
+    //.content([`div.row#result:${id}`, ['div.grow']])
+    //.content([`div.row.simf-result`, ['strong', `P2TR: `],
+      //[`div.grow#commit:${id}`, `(not compiled)`],
+      //['a.help', { target: 'blank', title: 'Address of program', href: "#" }, Icon('help')]])
+    //.content([`div.row.simf-result`, ['strong.w', `Sighash: `],
+        //[`div.grow#cmr:${id}`, `(not generated)`],
+        //['a.help', { target: 'blank', title: 'Witness signing hash', href: "#" }, Icon('help')]])
+    //.sidebar(['div.col.simf-sidebar', 'Sidebar'])
+    //.build();
+//}
   //export const OracleForm = () => Witness("oracle.wit", 
     //WitnessRow('u32', 'ORACLE_HEIGHT', '1000'),
     //WitnessRow('u32', 'ORACLE_PRICE',  '100000'),
