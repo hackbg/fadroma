@@ -6,20 +6,16 @@ import Fn from './Fn.ts';
 
 /** String, or something with a `toString` method. */
 export type Str = string|{ toString(): string };
-
 /** Concatenate strings. */
 export function Str (...strs: Array<Maybe<Str>|Array<Maybe<Str>>>) {
   return chunks(...strs).join('');
 }
-
 /** Flatten and filter nested arrays of strings. */
 export const chunks = (...strs: Array<Maybe<Str>|Array<Maybe<Str>>>) =>
   strs.flat().filter(Boolean).map(x=>x!.toString());
-
 /** Join nested arrays of strings. */
 export const joined = (joiner: string, ...strs: Array<Maybe<Str>|Array<Maybe<Str>>>) =>
   chunks(...strs).join(joiner);
-
 export const glued  = Fn(joined, '');
 export const spaced = Fn(joined, ' ');
 export const lines  = Fn(joined, '\n');
@@ -175,4 +171,24 @@ export function toString <T> (stringOrToString: (string|((_:T)=>string))) {
     Object.setPrototypeOf(object, mixin);
     return object;
   }
+}
+
+export function reindent (amount: number, source: string): string {
+  return indent(amount, dedent(source))
+}
+export function dedent (source: string): string {
+  const lines = source.split('\n');
+  if (lines.length < 2) return source;
+  let indent = 0;
+  for (const char of lines[1]) if (char === ' ') indent++; else break;
+  return [lines[0], ...lines.slice(1, -1).map(line=>line.slice(indent))].join('\n')
+}
+export function indent (amount: number, source: string): string {
+  const lines = source.split('\n');
+  if (lines.length < 2) return source;
+  const indent = Array(amount).fill(' ').join('');
+  return [lines[0], ...lines.slice(1, -1).map(line=>indent+line)].join('\n')
+}
+export function joinLines (...lines: string[]) {
+  return lines.filter(Boolean).join('\n')+'\n'
 }

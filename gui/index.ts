@@ -5,13 +5,14 @@ import { connect, StringCodec }       from 'npm:nats.ws';
 import { p2wpkh as P2WPKH }           from 'npm:@scure/btc-signer';
 import { pubECDSA }                   from 'npm:@scure/btc-signer/utils.js'; // not already in keypair?
 import { zipSync, strToU8 as zipStr } from 'npm:fflate';
-import Bitcoin            from '../platform/Bitcoin/Bitcoin.ts';
-import Html               from '../library/Html.ts';
-import Wasm               from './wasm.ts';
-import type { Bytes, Fn } from '../library/index.ts';
-import { Arg }            from '../platform/SimplicityHL/SimplicityHL.ts';
-import { Base16 }         from '../library/Number.ts';
-import { Texts, Urls }    from './cons.ts';
+import Bitcoin                 from '../platform/Bitcoin/Bitcoin.ts';
+import Html                    from '../library/Html.ts';
+import { reindent, joinLines } from '../library/String.ts';
+import Wasm                    from './wasm.ts';
+import type { Bytes, Fn }      from '../library/index.ts';
+import { Arg }                 from '../platform/SimplicityHL/SimplicityHL.ts';
+import { Base16 }              from '../library/Number.ts';
+import { Texts, Urls }         from './cons.ts';
 const chain = Bitcoin.LiquidTestnet(); // Chain handle (initialized once)
 let simf  = null; // WASM handle (initialized once)
 const nonSecret = (n: number) => new Uint8Array(new Array(32).fill(n));
@@ -83,10 +84,18 @@ export function ChainList (view = Html.id("chains"), {
     return ChainList.update(state)
   });
 }
+export interface ChainList {
+  view:       HTMLElement
+  statusView: HTMLElement
+  heightView: HTMLElement
+  hashView:   HTMLElement
+  interval:   number
+  nextUpdate: ReturnType<typeof setTimeout>
+}
 export namespace ChainList {
-  export const update = async function updateChainList (state) {
+  export const update = async function updateChainList (state: ChainList) {
     try {
-      state.heightView.innerText = await chain.esplora.getBlockTipHeight()
+      state.heightView.innerText = String(await chain.esplora.getBlockTipHeight());
     } catch (e) {
       console.error(e);
       state.statusView.innerText = Texts.CONNECT_ERROR;
@@ -128,6 +137,7 @@ export function User (name: string, {
   //identity = Html`(section.meta (.col.gap (.row.gap.align-center (strong.name ${name}) (.col.gap p2wpkh (strong ${balance})))))`,
   view     = () => Html(['div.col', ['article.user', identity, output, toolbar]])
 } = {}): User {
+  getBalances(p2wpkh).then(value => balance.innerText = `${value} sats`);
   return { name, signer, pubkey, pubkeyX, p2wpkh, view }
 }
 /** User model. */
@@ -208,6 +218,9 @@ export function SimfDemo (view = Html.id("editors"), {
             Label('TX bytes:', ['input']), Label('Redeem TX:', Button('redeem')))])]])) });
 }
 export namespace SimfDemo {
+  export function Form (id, name: string|unknown[], ...rest: unknown[]) {
+    return [`div.program-form.col.grow#${id}`, ['div.title', name], ...rest];
+  }
   export const init = function initEditors (el: Element) {
     //Html.id('title').focus();
     for (const textarea of el.querySelectorAll('#editor textarea')) initEditor({
@@ -244,8 +257,23 @@ export namespace SimfDemo {
       }
     }
   }
-  export function Form (id, name: string|unknown[], ...rest: unknown[]) {
-    [`div.program-form.col.grow#${id}`, ['div.title', name], ...rest];
+  function monacoOptions (language: string, model: Monaco.editor.ITextModel) {
+    return {
+      language,
+      model,
+      overviewRulerLanes:                         0,
+      automaticLayout:                            true,
+      scrollBeyondLastLine:                       false,
+      minimap:                                    { enabled: false },
+      wordWrap:                                   'on'       as const,
+      wrappingStrategy:                           'advanced' as const,
+      scrollbar:                                  {
+        horizontal:                               'hidden'   as const,
+        vertical:                                 'auto'     as const,
+        alwaysConsumeMouseWheel:                  false,
+        ignoreHorizontalScrollbarInContentHeight: true,
+      },
+    }
   }
 }
 export function Program (id: string, ...content: string[]) {
@@ -276,34 +304,29 @@ export namespace Programs {
   export namespace AssertFalse { export const source = `fn main () { assert!(false); }` }
   /** Pay to public key: minimal witness program. */
   export namespace P2PK {
-    export const wrapped = () => ES("src/P2PK.simf.ts", SimfTS(source,
-      { PK: Arg("Pubkey") }, { "SIG": Arg("Signature") }));
-    export const source = dedent(`fn main () {
-      jet::bip_0340_verify((param::PUB, jet::sig_all_hash()), witness::SIG)
-    }`);
+    export const wrapped = () => ES("src/P2PK.simf.ts", SimfTS(source));
+    export const source = reindent(2, `fn main () {
+      jet::bip_0340_verify((param::PUB, jet::sig_all_hash()), witness::SIG);
+    }\n`);
   }
   /** Pay to public key: minimal witness program. */
   export namespace P2PKH {
-    export const wrapped = () => ES("src/P2PKH.simf.ts", SimfTS(source,
-      { "PKH": Arg("Pubkey") }, { "PUB": Arg("Pubkey"), "SIG": Arg("Signature") }));
-    export const source = dedent(`fn main () {
+    export const wrapped = () => ES("src/P2PKH.simf.ts", SimfTS(source));
+    export const source = reindent(2, `fn main () {
       let pubkey: Pubkey = witness::PUB;
       let hasher: Ctx8 = jet::sha_256_ctx_8_init();
       let hasher: Ctx8 = jet::sha_256_ctx_8_add_32(hasher, pubkey);
       let hash:   u256 = jet::sha_256_ctx_8_finalize(hasher);
       assert!(jet::eq_256(hash, param::PKH));
-      jet::bip_0340_verify((pubkey, jet::sig_all_hash()), witness::SIG)
-    }`);
+      jet::bip_0340_verify((pubkey, jet::sig_all_hash()), witness::SIG);
+    }\n`);
   }
   /** Hodl vault: prototype workhorse. */
   export namespace HodlVault {
-    export const wrapped = () => Field("src/HodlVault.simf.ts")
-      .open(true)
-      .content(Field.TextArea("src/HodlVault.simf.ts", SimfTS(source,
-        { "MIN_HEIGHT":   Arg("u32"), "TARGET_PRICE":  Arg("u32") },
-        { "ORACLE_PRICE": Arg("u32"), "ORACLE_HEIGHT": Arg("u32") })))
+    export const wrapped = () => Field("src/HodlVault.simf.ts").open(true)
+      .content(Field.TextArea("src/HodlVault.simf.ts", SimfTS(source)))
       .build();
-    export const source = dedent(`fn main () {
+    export const source = reindent(2, `fn main () {
       let min_height: Height = param::MIN_HEIGHT;
       let target_price: u32 = param::TARGET_PRICE;
       let oracle_price: u32 = witness::ORACLE_PRICE;
@@ -317,13 +340,12 @@ export namespace Programs {
       let msg: u256 = jet::sha_256_ctx_8_finalize(hasher);
       jet::bip_0340_verify((param::ORACLE, msg), witness::ORACLE);
       jet::bip_0340_verify((param::OWNER, jet::sig_all_hash()), witness:OWNER);
-    }\``);
+    }\n`);
   }
   /** Wrap a SimplicityHL program as a standalone Deno executable. */
-  const SimfTS = (source: string, param = {}, witness = {}) =>
-    `#!/usr/bin/env -S deno run -P default\nimport { SimplicityHL } from 'fadroma';\n`      +
-    `export default await SimplicityHL.Program('${source}', {\n`                                  +
-    `  cli:     import.meta\n})`;
+  const SimfTS = (source: string) =>
+    `#!/usr/bin/env -S deno run -P default\nimport { SimplicityHL } from 'fadroma';\n` +
+    `export default await SimplicityHL.Program(\`${source}\`).cli(import.meta)`;
   /** Recompile currently selected program in response to changes. */
   export const recompile = async function recompileSimplictyHL (name: string, e: Event) {
     simf ??= await import('../platform/SimplicityHL/pkg/fadroma_simf.js')
@@ -340,11 +362,7 @@ export namespace Programs {
 /** A project repository. */
 export function Project (...args: unknown[]) {
   return Section({ className: 'layer project' }, ['div.col.grow.files.gap',
-    Project.Metadata(),
-    Project.Readme(),
-    Field.Text("Justfile", "TODO"),
-    ...args
-  ]);
+    Project.Metadata(), Project.Readme(), Field.Text("Justfile", "TODO"), ...args ]);
 }
 export namespace Project {
   export const Readme = () =>
@@ -372,15 +390,17 @@ export namespace ES {
     deno ? `#!/usr/bin/env -S deno run -I --coverage --allow-env --allow-run --allow-net` :
     node ? `#!/usr/bin/env -S npx tsx` :
     null;
-  export const TestSuite = ({ deno, node, btc } = {}) => ES("test.ts",
+  export const TestSuite = ({ deno = true, node = false, btc = true } = {}) => ES("test.ts",
       ES.HashBang({ deno, node }),
-      ES.Import("@hackbg/fadroma", btc && 'Btc', 'Test'),
+      ES.Import("@hackbg/fadroma", btc && 'Bitcoin', 'Test'),
       `import Program from './index.ts';`,
       `export default Test.suite(import.meta, Btc(`,
       `  Test.the("Build",    Program.build),`,
       `  Test.the("Deposit",  Program.deposit),`,
       `  Test.the("Withdraw", Program.withdraw)));`)
-  export const DenoJson = ({ deno } = {}) => deno && Field.Text('deno.json', '{',
+  export const DenoJson = ({
+    deno = true
+  } = {}) => deno && Field.Text('deno.json', '{',
   '  "permissions": {',
   '    "default": {',
   '      "run":   ["elementsd"],'   ,
@@ -423,39 +443,15 @@ export namespace ES {
     `}`,
   );
 }
-export function Nix ({ nix, btc, simf, elements }) {
+export function Nix ({ nix, elements }) {
   return nix && Field.Text("shell.nix",
     `#!/usr/bin/env nix-shell`,
     `{ pkgs ? import<nixpkgs> {} }: let`,
-    //`  # Build Rust package.`,
-    //`  rs = p: (pkgs.rustPlatform.buildRustPackage p);`,
     `  gh = owner: repo: rev: sha256: pkgs.fetchFromGitHub { inherit owner repo rev sha256; };`,
-    //`  # Build Rust package from GitHub.`,
-    //`  rs-gh = owner: pname: version: sha256: cargoHash: (rs rec {`,
-    //`    inherit pname version cargoHash;`,
-    //`    src = gh owner pname version sha256;`,
-    //`    nativeBuildInputs = [pkgs.pkg-config];`,
-    //`    PKG_CONFIG_PATH = "\${pkgs.openssl.dev}/lib/pkgconfig";`,
-    //`  });`,
     `  override = pkg: attrs: pkg.overrideAttrs (_: attrs);`,
     `in pkgs.mkShell { nativeBuildInputs = [`,
     `  just  # Shell command runner`,
     `  deno  # TypeScript runtime`,
-
-    //...(btc
-      //? [ ``, `  pkgs.bitcoind` ]
-      //: []),
-
-    //...(simf
-      //? [ ``
-        //, `  pkgs.mcpp`
-        //, ``
-        //, `  (rs-gh "starkware-bitcoin" "simply" "3e1d0589"`
-        //, `    "sha256-EKfeEsr/sG/SorT2GK/ovMvI2QaoTMZ1wehbCcSjEmQ="`
-        //, `    "sha256-N2i5IJtKU1iPkpBaX90LgA7gw8B3n+K5hbByJOMRV3o=")`
-        //]
-      //: []),
-
     ...(elements
       ? [ ``
         , `  (override pkgs.elementsd {`
@@ -468,36 +464,14 @@ export function Nix ({ nix, btc, simf, elements }) {
         , `    doCheck = false;`
         , `  })` ]
       : []),
-
     `\n]; }`);
 }
-
-function monacoOptions (language: string, model: Monaco.editor.ITextModel) {
-  return {
-    language,
-    model,
-    overviewRulerLanes:                         0,
-    automaticLayout:                            true,
-    scrollBeyondLastLine:                       false,
-    minimap:                                    { enabled: false },
-    wordWrap:                                   'on'       as const,
-    wrappingStrategy:                           'advanced' as const,
-    scrollbar:                                  {
-      horizontal:                               'hidden'   as const,
-      vertical:                                 'auto'     as const,
-      alwaysConsumeMouseWheel:                  false,
-      ignoreHorizontalScrollbarInContentHeight: true,
-    },
-  }
-}
-
 export function loadRepository ({
   view: _1 = null as DocumentFragment,
   url:  _2 = null as string|URL,
 } = {}) {
   /* TODO */
 }
-
 export function downloadProjectTemplate ({
   title   = textVal('title') || 'simplicityhl-starter-fadroma',
   license = textVal('license'),
@@ -519,7 +493,6 @@ export function downloadProjectTemplate ({
   makeExecutable('test.ts');
   download(`${+new Date()}-${title}.zip`, 'application/zip', zipSync(archive))
 }
-
 function addGit (archive = {}) {
   // Add empty Git repo
   archive['.git/objects']     = { info:  {}, pack: {} };
@@ -535,11 +508,6 @@ function addGit (archive = {}) {
     'logallrefupdates        = true'));
   return archive
 }
-
-function joinLines (...lines: string[]) {
-  return lines.filter(Boolean).join('\n')+'\n'
-}
-
 export function Section (...content: unknown[]): HTMLElement {
   return Html(['section', ...content]).firstChild as HTMLElement 
 }
@@ -548,19 +516,15 @@ export namespace Section {
   export const Actions  = (...args: unknown[]) => Section({ className: 'layer actions' }, ...args); 
   export const Phase    = (...args: unknown[]) => Section({ className: 'phase' }, ...args); 
 }
-
 export function Label (text: string, ...content: unknown[]): HTMLLabelElement {
   return Html(['label', ['strong', text], ...content]).firstChild as HTMLLabelElement
 }
-
 export function Link (href: string, ...text: unknown[]) {
   return ['a[target=_blank]', { href }, ...text];
 }
-
 export function Button (id: keyof typeof Button.Labels, onclick = () => {}): HTMLButtonElement {
   return Html(['button', Button.Labels[id], { id, onclick }]).firstChild as HTMLButtonElement; // FIXME don't default to DocumentFragment
 }
-
 export namespace Button {
   export const Labels = {
     compile: "Compile",
@@ -621,7 +585,6 @@ export namespace Button {
     return [ 'div.command', icon && Icon(icon), ...content ]
   }
 }
-
 export function Field (id: string, { open = false, header = [], content = [] } = {}) {
   return {
     id,
@@ -632,7 +595,6 @@ export function Field (id: string, { open = false, header = [], content = [] } =
       ['div.flex.col.grow', Field.Header(id, ...header), ...content]),
   }
 }
-
 export namespace Field {
   export const Wrapper = (id: string, collapsed: boolean, ...rest: unknown[]) =>
     ([`div.field.file${collapsed?'.collapsed':''}#${id}[data-path=${id}]`, ...rest]);
@@ -690,7 +652,6 @@ export namespace Field {
   export const HexRow = (addr, bytes, chars) => ['div.row.hex-row', addr, bytes, chars];
 
 }
-
 export function Input () { /*TODO*/ }
 export namespace Input {
   export const Title = () =>
@@ -700,7 +661,6 @@ export namespace Input {
   export const SigHash = () =>
     ['label', ['strong', 'Sign hash:'], ['input']]
 }
-
 export function Select () { /* TODO */ }
 export namespace Select {
   export function Chain () {
@@ -777,14 +737,12 @@ export namespace Select {
     ['option', 'GPL 3.0 only'],
     ['option', 'Closed source (inquire)']];
 }
-
 export function Icon (name: string) {
   return ['svg.icon', [`use[href=icons.svg#${name}]`]]
 }
 export namespace Icon {
   // preset icons
 }
-
 async function getBalances (
   p2wpkh: string,
   chain = Bitcoin.LiquidTestnet(),
@@ -1059,14 +1017,6 @@ function ErrorBoundary (view: HTMLElement, callback) {
     view.innerText = error.stack;
     return { view, error }
   }
-}
-
-function dedent (source: string): string {
-  const lines = source.split('\n');
-  if (lines.length < 2) return source;
-  let indent = 0;
-  for (const char of lines[1]) if (char === ' ') indent++; else break;
-  return [lines[0], ...lines.slice(1).map(line=>line.slice(indent))].join('\n')
 }
 
 export function pinSize <T> (el: HTMLElement, cb: Fn<[number, number], T>) {

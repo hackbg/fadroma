@@ -154,6 +154,29 @@ nav {
     backdrop-filter: blur(2px);
   }
 }
+pre.sh {
+  max-width: 80ch;
+  flex-grow: 1;
+  font-size: 1.2rem;
+  color: #ffff;
+  background: #132a;
+  padding: 1rem 1rem;
+  font-family: monospace;
+  margin: 1rem 0;
+}
+textarea {
+  gap:             1rem;
+  font-size:       1.16rem;
+  min-height:      1.25rem;
+  line-height:     1.25;
+  border:          none;
+  box-shadow:      none;
+  background:      none;
+  font-family:     monospace;
+  white-space:     pre;
+  scrollbar-width: initial;
+  &:focus { background: #fff; }
+};
 
 /** Component styles. */
 .icon {
@@ -256,16 +279,6 @@ nav {
     text-shadow: -1px -1px 0 #0004;
     margin: 0.5rem;
     a { color: white }
-  }
-  pre.sh {
-    max-width: 80ch;
-    flex-grow: 1;
-    font-size: 1.2rem;
-    color: #ffff;
-    background: #132a;
-    padding: 1rem 1rem;
-    font-family: monospace;
-    margin: 1rem 0;
   }
 }
 
@@ -577,19 +590,6 @@ nav {
 
     select { padding-left: 0.5rem }
 
-    textarea {
-      gap:             1rem;
-      font-size:       1.25rem;
-      min-height:      1.25rem;
-      line-height:     1.25;
-      border:          none;
-      box-shadow:      none;
-      background:      none;
-      font-family:     monospace;
-      white-space:     pre;
-      scrollbar-width: initial;
-      &:focus { background: #fff; }
-    };
   }
 }
 #app, .app {
@@ -823,7 +823,11 @@ nav {
     background: #ddd;
     padding: 0.33rem;
     border-radius: 3px;
-    .name { font-size: 1.25rem; min-height: 2rem; padding: 0 0.33rem; }
+    .name {
+      font-size: 1.25rem;
+      min-height: 2rem;
+      padding: 0.25rem 0.33rem;
+    }
     &.collapsed { background: linear-gradient(to right, #dddd, #ddda); }
     color: #333;
     &:focus-within {
@@ -966,6 +970,7 @@ pre.compile-errors {
   gap:       0;
   font-size: 1.25rem;
   border:    1px solid #fff4;
+  color: #fff;
   /*margin-bottom: 1rem;*/
   background: #f8f4;
   padding-bottom: 0.5rem;
