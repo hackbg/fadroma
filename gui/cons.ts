@@ -4,7 +4,7 @@ export const Texts = {
   CONNECTED:     '⬤ Connected to ',
   CONNECTING:    '◯ Connecting to ',
   CONNECT_ERROR: '◯ Error, reconnecting to ',
-  SIMPLICITYHL:  [
+  SIMPLICITYHL:  ['div', ['h2', 'Now with SimplicityHL Support!'],
     ['p', ['a', { href: 'https://github.com/hackbg/simf/blob/dev/src/lib.rs' }, ['strong', 'Fadroma V3'], ' uses WebAssembly'],
       ' to instantly compile, evaluate, and deploy ', ['a', { href: 'https://docs.simplicity-lang.org/getting-started/simplicityhl/' }, ['strong', 'SimplicityHL'], ' smart contracts'],
       ' on ', ['a', { href: 'https://liquid.net/'}, 'the ', ['strong', 'Liquid'], ' Network'], '. It works from all modern JavaScript-based environments: browsers, servers, ', ['a', { href: 'https://deno.com/deploy' }, 'edge cloud'], ' — even this webpage!'],
@@ -12,8 +12,7 @@ export const Texts = {
       ' take a SimplicityHL program, provide parameters, compile it to a P2TR address on a given chain, and commit funds to that address. ',
       'During the ', ['strong', 'redemption phase'], ' you compose a transaction that redeems the funds, and provide a matching signature ',
       'that fulfills the conditions of the program.'],
-    ['p', 'Try it now with these ', ['strong', 'SimplicityHL programs'], ' on ', ['a', { href: 'https://blockstream.info/liquidtestnet/' }, 'Liquid Testnet'], ':']
-  ],
+    ['p', 'Try it now with these ', ['strong', 'SimplicityHL programs'], ' on ', ['a', { href: 'https://blockstream.info/liquidtestnet/' }, 'Liquid Testnet'], ':']],
   DownloadProject: ['p', 'Here you can ', ['strong', 'download an example project'], ' containing the example programs and the following support files:'],
   CompileTitle:    ['span', ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, '1. '], 'Compile program'], ' to P2TR address:'],
   FundTitle:       ['span', ['strong', ['span', { style: 'float:left;font-size:1.5rem;padding-right:0.33rem' }, '2. '], 'Send funds'], ' to the program\'s address:'],

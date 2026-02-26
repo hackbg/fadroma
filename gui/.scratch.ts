@@ -1,3 +1,26 @@
+/** Wrap a SimplicityHL program as a standalone Deno executable. */
+//function SimfTS (source: string) {
+  //return `#!/usr/bin/env -S deno run -P default\nimport { SimplicityHL } from 'fadroma';\n` +
+    //`export default await SimplicityHL.Program(\`${source}\`).cli(import.meta)`;
+//}
+  //export const Hex = (id: string, ...content: unknown[]) =>
+    //Html([`div.field.file.hex#${id}`,
+      //['div.handle-v', { onclick: Field.toggle(id) },
+        //['svg.icon.expanded', ['use[href=icons.svg#chevron-down]']],
+        //['div.grow']],
+      //['div.flex.col.grow',
+        //['div.flex.row',
+          //['div.name',     { onclick: Field.toggle(id) }, id],
+          //['div.handle-h', { onclick: Field.toggle(id) }]],
+        //HexRow('00000000 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................'),
+        //HexRow('00000010 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................'),
+        //HexRow('00000020 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................'),
+        //HexRow('00000030 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................')]]);
+
+  //export const HexRow = (addr, bytes, chars) => ['div.row.hex-row', addr, bytes, chars];
+
+//}
+
 //export function Program (id: string, ...content: string[]) {
   //return Field(id)
     //.header(Button.Command('play', 'Compile', { onclick: e => Program.recompile(id, e) }))

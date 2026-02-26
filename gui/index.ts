@@ -40,21 +40,107 @@ export default function App ({
   chainsView.innerHTML = '';
   usersView.innerHTML = '';
   const state = {
-    chainsView: ChainList(chainsView),
-    editorView: SimfDemo(editorView, { nix, btc, elements, direnv, deno, node }),
-    users:      UserList(usersView),
+    chainsView:  ChainList(chainsView),
+    editorView:  Editor(editorView),  // FIXME: must precede UserList to populate pickers
+    users:       UserList(usersView), // FIXME: define users above
+    projectView: Html.append(Html.id('identities'), Project(
+      ES.TestSuite({ deno, node, btc }),
+      ES.DenoJson({ deno }),
+      Nix({ nix, elements }),
+      direnv && Field.Text(".envrc", "use nix")))
   };
-  Html.id('identities').appendChild(Project(
-    ES.TestSuite({ deno, node, btc }),
-    ES.DenoJson({ deno }),
-    Nix({ nix, elements }),
-    direnv && Field.Text(".envrc", "use nix")));
-  setTimeout(()=>SimfDemo.init(editorView), 1);
   return state;
+}
+const Editor = (view: HTMLElement) => {
+  view.innerText = '';
+  setTimeout(initEditors, 1);
+  const header = Layer(Texts.SIMPLICITYHL);
+  const programs = Programs(
+    ExamplePrograms.P2PK.view(),
+    ExamplePrograms.P2PKH.view(),
+    ExamplePrograms.HodlVault.view());
+  const instances = Phase('', Instances());
+  return ErrorBoundary(view, () => Html.append(view, Html(['div.editors', header, programs, instances])));
+  function initEditors () {
+    const textareas = view.querySelectorAll('#editor textarea');
+    for (const textarea of textareas as unknown as HTMLTextAreaElement[]) {
+      initEditor({ textarea: Field.computeHeight(textarea) });
+    }
+  }
+}
+const Layer = (...args: unknown[]) =>
+  Section({ className: 'layer' }, ...args);
+const Phase = (...args: unknown[]) =>
+  Section({ className: 'phase' }, ...args);
+const Programs = (...args: unknown[]) =>
+  Section({ className: 'layer programs col' }, ['div.files', ...args]);
+const Project = (...args: unknown[]) => Section({ className: 'layer project' }, ['div.col.grow.files.gap',
+  ['div', ['h2', 'Project template:'], Texts.DownloadProject],
+  Metadata(), Readme(), Field.Text("Justfile", "TODO"), ...args ]);
+const Readme = () =>
+  ['div.col.gap', Field.Text("README",   "Created at https://fadroma.tech")];
+const Metadata = () =>
+  ['div.row.fields',
+    ['div.field.head.grow', ['div.name.title', 'Title'], InputTitle()],
+    ['div.field.head',      ['div.name', 'Licence'],     Select.License()],
+    ['div.row.fields',      ['div.field.head.grow', ['div.name', 'Download']]]];
+const Instances = () => ['div.row.gap.field.file',
+  ['ul.instances', ['div.empty', ['strong', 'No deployed programs!'], ' Deploy a program using the above form.' ]],
+  ['div.phase-form',
+    ProgramForm('simf-witness', Texts.WitnessTitle, InputBalance(), Select.Recipient(),
+      Label('Amount:', ['input[type="number"]', { value: '1234' }]), InputSigHash()),
+    ProgramForm('simf-redeem', Texts.RedeemTitle, Select.Signer({ name: 'witness::SIG' }).view,
+      Label('TX bytes:', ['input']), Label('Redeem TX:', Button('redeem')))]];
+function initEditor ({
+  textarea = null as  HTMLTextAreaElement & { monaco?: Monaco.editor.ITextModel },
+  content  = textarea.value,
+  language = textarea.dataset.language ??= 'nix',
+  uri      = textarea.dataset.uri ??= `fadroma://${+new Date()}`,
+  model    = textarea.monaco = Monaco.editor.createModel(content, language, Monaco.Uri.parse(uri)),
+  wrapper  = Html.Div('.editor-wrapper'),
+  editor   = Monaco.editor.create(wrapper, monacoOptions(language, model)),
+} = {}) {
+  let ignoreEvent = false;
+  editor.onDidContentSizeChange(updateHeight);
+  updateHeight();
+  textarea.parentElement.appendChild(wrapper);
+  textarea.parentElement.removeChild(textarea);
+  function updateHeight () {
+    if (ignoreEvent) return;
+    const width  = Math.max(300,  wrapper.offsetWidth);
+    const height = Math.min(1000, editor.getContentHeight()) + 1;
+    //wrapper.style.width  = `${width}px`;
+    wrapper.style.height = `${height}px`;
+    try {
+      ignoreEvent = true;
+      //console.log({width, height});
+      editor.layout({ width, height });
+    } finally {
+      ignoreEvent = false;
+    }
+  }
+}
+function monacoOptions (language: string, model: Monaco.editor.ITextModel) {
+  return {
+    language,
+    model,
+    overviewRulerLanes:                         0,
+    automaticLayout:                            true,
+    scrollBeyondLastLine:                       false,
+    minimap:                                    { enabled: false },
+    wordWrap:                                   'on'       as const,
+    wrappingStrategy:                           'advanced' as const,
+    scrollbar:                                  {
+      horizontal:                               'hidden'   as const,
+      vertical:                                 'auto'     as const,
+      alwaysConsumeMouseWheel:                  false,
+      ignoreHorizontalScrollbarInContentHeight: true,
+    },
+  }
 }
 /** Chain connection indicator button. */
 export function ChainList (view = Html.id("chains"), {
-  interval   = 10000,
+  interval = 10000,
 } = {}) {
   const state = { interval, nextUpdate: null, view, heightView: null, statusView: null, hashView: null };
   return ErrorBoundary(view, ()=>{
@@ -86,7 +172,7 @@ export function ChainList (view = Html.id("chains"), {
             ['strong.status', 'SOON']]],
         ['div.chain.disableder.col.gap.grow',
           ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to Tendermint RPC...'],
-            ['strong.status', 'SOON']]]]]).firstChild);
+            ['strong.status', 'SOON']]]]]).firstChild as HTMLElement);
     state.hashView   = state.view.querySelector('.chain.active .hash')   as HTMLDivElement;
     state.heightView = state.view.querySelector('.chain.active .height') as HTMLDivElement;
     state.statusView = state.view.querySelector('.chain.active .status') as HTMLDivElement;
@@ -184,7 +270,7 @@ export namespace User {
     select.innerHTML = '';
     for (const user of users) {
       const label = ` (${user.p2wpkh})`;
-      const value = Base16.encode(user.pubkey);
+      const value = Base16.encode(user.pubkeyX);
       select.appendChild(Html(['option', { value }, ['strong', user.name], label]));
     }
     if (select.onchange) select.onchange(null);
@@ -197,35 +283,105 @@ export async function EditableProgram (name: string, source: string) {
   return { name, source, view }
 }
 function ProgramEditor (id: string, source: string, open = false) {
-  const errors   = Html(['pre.compile-errors.collapsible']).firstChild as HTMLElement;
-  const sender   = Select.Sender();
-  const params   = Object.entries(Wasm.params(source)).map(([name, type])=>{
-    if (type === 'u256') return Select.Pubkey({ name: `Parameter: ${name}` }).view;
-    if (type === 'u32')  return Input.Amount(`Parameter: ${name}`);
-    console.warn('param', name, type);
-  });
-  console.log({params});
+  const errors = Html(['pre.compile-errors.collapsible']).firstChild as HTMLElement;
+  const sender = Select.Sender();
+  const params = Wasm.params(source);
+  const fields = Object.entries(params).map(toField);
   const compiler = Wasm.compiler({ chain: chain.ID, genesis: chain.GENESIS });
-  //onst program = compiler.compile(source, { args });
-  //const params   = [Select.Pubkey({ name: 'Parameter: PUB' }).view];
-  const button   = Button.Compile({ source, compiler, errors }).view
-  const stage1   = SimfDemo.Form('simf-compile', Select.Chain(), ...params, button);
-  const amount   = Label('Amount:', ['input.balance[type="number"]', { value: '2345' }]);
-  const commit   = Button.Commit().view;
-  const stage2   = SimfDemo.Form('simf-commit', sender.select, ['div.row', amount, sender.balance], commit);
+  const button = CompileButton(id, { params, compiler, source, errors });
+  const stage1 = ProgramForm('simf-compile', SelectChain(), ...fields, button);
+  const amount = Label('Commit amount:', ['input.balance[type="number"]', { value: '2345' }]);
+  const commit = CommitButton();
+  const stage2 = ProgramForm('simf-commit',
+    ['label', ['strong', 'Sender:'], sender.select],
+    ['div.row', sender.balance, amount], commit);
   return Field(id)
     .open(open)
-    .content(Field.TextArea(id, source))
+    .content(TextArea(id, source))
     .content(errors)
     .sidebar(['div.phase-form', stage1])
     .sidebar(['div.phase-form', stage2])
     .build()
+
+  function toField ([name, type]) {
+    console.log(name, type);
+    if (type === 'u256') return SelectPubkey(`${id}:${name}`, { name: `Parameter: ${name}` });
+    if (type === 'u32')  return InputAmount(`${id}:${name}`, `Parameter: ${name}`);
+  }
 }
-/** Wrap a SimplicityHL program as a standalone Deno executable. */
-function SimfTS (source: string) {
-  return `#!/usr/bin/env -S deno run -P default\nimport { SimplicityHL } from 'fadroma';\n` +
-    `export default await SimplicityHL.Program(\`${source}\`).cli(import.meta)`;
+export const ProgramForm = (id, ...rest: unknown[]) =>
+  [`div.program-form.col.grow#${id}`, ...rest];
+export const InputAmount = (id: string, name = 'Amount:') =>
+  ['label.gap', ['strong', name], ['input', { id }]];
+export const SelectPubkey = (id: string, {
+  name   = null as string,
+  view   = Html(['div.select-pubkey', { style: 'align-items:stretch' },
+    Label(name, ['select.pick-user']), ['input.pubkey', { id }]]),
+  input  = view.querySelector('input'),
+  select = view.querySelector('select'),
+  update = (state: Select.Pubkey) => { state.input.value = state.select.value; return state },
+}: Partial<Select.Pubkey> = {}): Select.Pubkey => {
+  const state = Object.assign(view, { name, select, input, update });
+  select.onchange = () => { update(state); document.getElementById('compile').click() };
+  return update(state);
 }
+export const CompileButton = (id: string, {
+  source   = null,
+  params   = {},
+  chain    = Bitcoin.LiquidTestnet,
+  genesis  = chain.GENESIS, // TODO autofetch from block 0
+  compiler = Wasm.compiler({ chain: chain.ID, genesis }),
+  button   = Button('compile', () => compile()),
+  errors   = Html(['pre.compile-errors.collapsible']).firstChild as HTMLElement,
+  input    = Html(['input', { placeholder: 'compile to get P2TR' }]).firstChild as HTMLInputElement,
+  view     = Html(['label.col.gap.align-stretch', ['label.justify-between.gap',
+    ['div.row.gap.align-center.justify-between', ['strong', 'Program address (P2TR):'], button], input], errors]).firstChild,
+  compile  = async () => {
+    //const { default: Wasm } = await import('./wasm.ts');
+    errors.innerText = '';
+    errors.style.display = 'none';
+    try {
+      const args = {};
+      for (const [param, type] of Object.entries(params)) {
+        let value = Html.id(`${id}:${param}`)?.value;
+        if (type == 'u256') value = '0x' + value; // FIXME
+        args[param] = { type, value };
+      };
+      console.log({args});
+      const program = compiler.compile(source, { args });
+      const address = program.toJSON().p2tr;
+      input.value = address;
+      const balance = await getBalances(address);
+      console.debug('Balance of', address, 'is', balance);
+      document.querySelector('#simf-commit .balance').value = String(balance)
+    } catch (e) {
+      console.error(e);
+      errors.innerText = e.stack;
+      errors.style.display = 'block';
+    }
+  }
+} = {}) => Object.assign(view, { compile }) as HTMLLabelElement & {
+  compile: typeof compile
+};
+export const CommitButton = ({
+  chain   = Bitcoin.LiquidTestnet,
+  button  = Button('commit', () => commit()),
+  view    = Html(['label', ['strong', 'Commit TX:'], button]).firstChild,
+  genesis = 'a771da8e52ee6ad581ed1e9a99825e5b3b7992225534eaa2ae23244fe26ab1c1',
+  commit  = async () => {
+    //const { default: Wasm } = await import('./wasm.ts');
+    const compiler = Wasm.compiler({ chain: chain.ID, genesis });
+    const program = compiler.compile(`fn main () {}`);
+    const pubkey = document.getElementById('select-sender').value;
+    const sender = usersByPubkey[pubkey];
+    if (!sender) throw new Error(`not our pubkey: ${sender}`);
+    const utxos = await chain().esplora.getAddressUtxos(sender.p2wpkh) as unknown[];
+    if (utxos.length < 1) throw new Error(`fund the address first: ${sender.p2wpkh}`)
+  },
+} = {}) => Object.assign(view, { commit }) as HTMLLabelElement & {
+  commit: typeof commit
+};
+
 export const ExamplePrograms = {
   /** Empty program (always passes). */
   Nop:         await EditableProgram('Nop', `fn main () {}`),
@@ -267,117 +423,9 @@ export const ExamplePrograms = {
     jet::bip_0340_verify((param::OWNER, jet::sig_all_hash()), witness::OWNER);
   }\n`),
 };
-/** SimplicityHL example project and transaction runner. */
-export function SimfDemo (view = Html.id("editors"), {
-  nix      = true,
-  btc      = true,
-  simf     = true,
-  elements = true,
-  direnv   = true,
-  deno     = true,
-  node     = false,
-} = {}) {
-  return ErrorBoundary(view, { view: Html.replace(view, Html(
-    ['div.editors',
-      ['div.col',
-        Section.Layer(['div', ['h2', 'Now with SimplicityHL Support!'], ...Texts.SIMPLICITYHL]),
-        Programs(
-          ExamplePrograms.P2PK.view(),
-          ExamplePrograms.P2PKH.view(),
-          ExamplePrograms.HodlVault.view()),
-        Section.Phase('', SimfDemo.Instances())],
-      ])) });
-}
-export namespace SimfDemo {
-  export function Instances () {
-    return ['div.row.gap.field.file',
-      ['ul.instances', ['div.empty', ['strong', 'No deployed programs!'], ' Deploy a program using the above form.' ]],
-      ['div.phase-form',
-        SimfDemo.Form('simf-witness', Texts.WitnessTitle, Input.Balance(), Select.Recipient(),
-          Label('Amount:', ['input[type="number"]', { value: '1234' }]), Input.SigHash()),
-        SimfDemo.Form('simf-redeem', Texts.RedeemTitle, Select.Signer({ name: 'witness::SIG' }).view,
-          Label('TX bytes:', ['input']), Label('Redeem TX:', Button('redeem')))],
-    ]
-  }
-  export function Form (id, ...rest: unknown[]) {
-    return [`div.program-form.col.grow#${id}`, ...rest];
-  }
-  export const init = function initEditors (el: Element) {
-    //Html.id('title').focus();
-    for (const textarea of el.querySelectorAll('#editor textarea')) initEditor({
-      textarea: textarea as HTMLTextAreaElement
-    });
-  }
-  function initEditor ({
-    textarea = null as  HTMLTextAreaElement & { monaco?: Monaco.editor.ITextModel }
-  } = {}) {
-    Field.computeHeight(textarea);
-    const content  = textarea.value;
-    const language = textarea.dataset.language ??= 'nix';
-    const uri      = textarea.dataset.uri ??= `fadroma://${+new Date()}`;
-    const model    = textarea.monaco = Monaco.editor.createModel(content, language, Monaco.Uri.parse(uri));
-    const wrapper  = Html.Div('.editor-wrapper');
-    const editor   = Monaco.editor.create(wrapper, monacoOptions(language, model));
-    let ignoreEvent = false;
-    editor.onDidContentSizeChange(updateHeight);
-    updateHeight();
-    textarea.parentElement.appendChild(wrapper);
-    textarea.parentElement.removeChild(textarea);
-    function updateHeight () {
-      if (ignoreEvent) return;
-      const width  = Math.max(300,  wrapper.offsetWidth);
-      const height = Math.min(1000, editor.getContentHeight()) + 1;
-      //wrapper.style.width  = `${width}px`;
-      wrapper.style.height = `${height}px`;
-      try {
-        ignoreEvent = true;
-        //console.log({width, height});
-        editor.layout({ width, height });
-      } finally {
-        ignoreEvent = false;
-      }
-    }
-  }
-  function monacoOptions (language: string, model: Monaco.editor.ITextModel) {
-    return {
-      language,
-      model,
-      overviewRulerLanes:                         0,
-      automaticLayout:                            true,
-      scrollBeyondLastLine:                       false,
-      minimap:                                    { enabled: false },
-      wordWrap:                                   'on'       as const,
-      wrappingStrategy:                           'advanced' as const,
-      scrollbar:                                  {
-        horizontal:                               'hidden'   as const,
-        vertical:                                 'auto'     as const,
-        alwaysConsumeMouseWheel:                  false,
-        ignoreHorizontalScrollbarInContentHeight: true,
-      },
-    }
-  }
-}
-export function Programs (...args: unknown[]) {
-  return Section({ className: 'layer programs col' }, ['div.files', ...args]);
-}
-/** A project repository. */
-export function Project (...args: unknown[]) {
-  return Section({ className: 'layer project' }, ['div.col.grow.files.gap',
-    ['div', ['h2', 'Project template:'], Texts.DownloadProject],
-    Project.Metadata(), Project.Readme(), Field.Text("Justfile", "TODO"), ...args ]);
-}
-export namespace Project {
-  export const Readme = () =>
-    ['div.col.gap', Field.Text("README",   "Created at https://fadroma.tech")];
-  export const Metadata = () =>
-    ['div.row.fields',
-      ['div.field.head.grow', ['div.name.title', 'Title'], Input.Title()],
-      ['div.field.head',      ['div.name', 'Licence'],     Select.License()],
-      ['div.row.fields',      ['div.field.head.grow', ['div.name', 'Download']]]];
-}
 /** An ECMAScript (JS/TS) module. */
 export function ES (id: string, ...content: string[]) {
-  return Field(id).content(Field.TextArea(id, ...content)).build()
+  return Field(id).content(TextArea(id, ...content)).build()
 }
 export namespace ES {
   export function Import (mod: string, ...items: (string|false|null)[]) {
@@ -515,70 +563,11 @@ function addGit (archive = {}) {
 export function Section (...content: unknown[]): DocumentFragment {
   return Html(['section', ...content]) as DocumentFragment;
 }
-export namespace Section {
-  export const Layer    = (...args: unknown[]) => Section({ className: 'layer' }, ...args);
-  export const Actions  = (...args: unknown[]) => Section({ className: 'layer actions' }, ...args);
-  export const Phase    = (...args: unknown[]) => Section({ className: 'phase' }, ...args);
-}
 export function Label (text: string, ...content: unknown[]): HTMLLabelElement {
   return Html(['label', ['strong', text], ...content]).firstChild as HTMLLabelElement
 }
 export function Button (id: keyof typeof Button.Labels, onclick = () => {}): HTMLButtonElement {
   return Html(['button', Labels[id], { id, onclick }]).firstChild as HTMLButtonElement; // FIXME don't default to DocumentFragment
-}
-export namespace Button {
-  export function Compile ({
-    source   = null,
-    chain    = Bitcoin.LiquidTestnet,
-    genesis  = chain.GENESIS, // TODO autofetch from block 0
-    compiler = Wasm.compiler({ chain: chain.ID, genesis }),
-    button   = Button('compile', () => compile()),
-    errors   = Html(['pre.compile-errors.collapsible']).firstChild as HTMLElement,
-    input    = Html(['input', { placeholder: 'compile to get P2TR' }]).firstChild as HTMLInputElement,
-    view     = Html(['label.col.gap.align-stretch', button, ['label.justify-between.gap', ['strong', 'Program address (P2TR):'], input], errors]).firstChild,
-    compile  = async () => {
-      //const { default: Wasm } = await import('./wasm.ts');
-      errors.innerText = '';
-      errors.style.display = 'none';
-      try {
-        const pubkeyValue = document.querySelector('#simf-compile .pubkey')?.value;
-        const args        = { PUB: { type: 'Pubkey', value: `${pubkeyValue}` } };
-        console.log({args});
-        const program = compiler.compile(source, { args });
-        const address = program.toJSON().p2tr;
-        input.value = address;
-        const balance = await getBalances(address);
-        console.debug('Balance of', address, 'is', balance);
-        document.querySelector('#simf-witness .balance').value = String(balance)
-      } catch (e) {
-        errors.innerText = e.stack;
-        errors.style.display = 'block';
-      }
-    }
-  } = {}) {
-    return { view, compile }
-  }
-  export function Commit ({
-    chain   = Bitcoin.LiquidTestnet,
-    button  = Button('commit', () => commit()),
-    view    = Html(['label', ['strong', 'Commit TX:'], button]).firstChild,
-    genesis = 'a771da8e52ee6ad581ed1e9a99825e5b3b7992225534eaa2ae23244fe26ab1c1',
-    commit  = async () => {
-      //const { default: Wasm } = await import('./wasm.ts');
-      const compiler = Wasm.compiler({ chain: chain.ID, genesis });
-      const program = compiler.compile(`fn main () {}`);
-      const pubkey = document.getElementById('select-sender').value;
-      const sender = usersByPubkey[pubkey];
-      if (!sender) throw new Error(`not our pubkey: ${sender}`);
-      const utxos = await chain().esplora.getAddressUtxos(sender.p2wpkh) as unknown[];
-      if (utxos.length < 1) throw new Error(`fund the address first: ${sender.p2wpkh}`)
-    },
-  } = {}) {
-    return { view, commit }
-  }
-  export function Command (icon: string|null, ...content: unknown[]) {
-    return [ 'div.command', icon && Icon(icon), ...content ]
-  }
 }
 export function Field (id: string, { open = false, header = [], content = [], sidebar = [] } = {}) {
   return {
@@ -629,45 +618,26 @@ export namespace Field {
   });
   export const computeHeight = (textarea: HTMLTextAreaElement) => {
     textarea.style.height ||= `${1.5*(1+Math.max(2, textarea.value.split('\n').length))}em`;
+    return textarea;
   };
-  export function TextArea (id: string, ...content: string[]) {
-    return [`textarea.collapsible#text:${id}`,
-      {autocomplete: "off", autocorrect: "off", autocapitalize: "off", spellcheck: false},
-      content.filter(x=>typeof x === 'string').join('\n')];
-  }
-  export const Hex = (id: string, ...content: unknown[]) =>
-    Html([`div.field.file.hex#${id}`,
-      ['div.handle-v', { onclick: Field.toggle(id) },
-        ['svg.icon.expanded', ['use[href=icons.svg#chevron-down]']],
-        ['div.grow']],
-      ['div.flex.col.grow',
-        ['div.flex.row',
-          ['div.name',     { onclick: Field.toggle(id) }, id],
-          ['div.handle-h', { onclick: Field.toggle(id) }]],
-        HexRow('00000000 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................'),
-        HexRow('00000010 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................'),
-        HexRow('00000020 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................'),
-        HexRow('00000030 ', '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ', '................')]]);
-
-  export const HexRow = (addr, bytes, chars) => ['div.row.hex-row', addr, bytes, chars];
-
+}
+export function TextArea (id: string, ...content: string[]) {
+  return [`textarea.collapsible#text:${id}`,
+    {autocomplete: "off", autocorrect: "off", autocapitalize: "off", spellcheck: false},
+    content.filter(x=>typeof x === 'string').join('\n')];
 }
 export function Input () { /*TODO*/ }
-export namespace Input {
-  export const Title = () =>
-    ['input#title[type=text]', { placeholder: 'name your project' }];
-  export const Balance = () =>
-    ['label.gap', ['strong', 'Balance:'], ['input.balance', { disabled: true }]]
-  export const SigHash = () =>
-    ['label.gap', ['strong', 'Sign hash:'], ['input']]
-  export const Amount = (name = 'Amount:') =>
-    ['label.gap', ['strong', name], ['input']]
-}
+export const InputTitle = () =>
+  ['input#title[type=text]', { placeholder: 'name your project' }];
+export const InputBalance = () =>
+  ['label.gap', ['strong', 'Balance:'], ['input.balance', { disabled: true }]]
+export const InputSigHash = () =>
+  ['label.gap', ['strong', 'Sign hash:'], ['input']]
 export function Select () { /* TODO */ }
+export function SelectChain () {
+  return ['label.pick-chain', ['strong', 'Chain:'], ['select.pick-chain', ['option', 'liquidtestnet'], ['option', { disabled: true }, 'elementsregtest']]];
+}
 export namespace Select {
-  export function Chain () {
-    return ['label', ['strong', 'Chain:'], ['select.pick-chain', ['option', 'liquidtestnet'], ['option', { disabled: true }, 'elementsregtest']]];
-  }
   export function Recipient () {
     return ['label', ['strong', 'Recipient:'], ['select.pick-user']]
   }
@@ -692,20 +662,9 @@ export namespace Select {
   export interface Sender extends Select.WithInput { balance: HTMLElement }
   export interface Pubkey extends Select.WithInput {}
   export interface Signer extends Select.WithInput {}
-  export function Pubkey ({
-    name = null as string,
-    view = Html(['div.select-pubkey', { style: 'align-items:stretch' }, Label(name, ['select.pick-user']), ['input.pubkey']]),
-    input = view.querySelector('input'),
-    select = view.querySelector('select'),
-    update = (state: Select.Pubkey) => { state.input.value = state.select.value; return state },
-  }: Partial<Select.Pubkey> = {}): Select.Pubkey {
-    const state = { name, view, select, input, update };
-    select.onchange = () => { update(state); document.getElementById('compile').click() };
-    return update(state);
-  }
   export function Sender ({
     name    = 'Sender:',
-    balance = Html(Input.Balance()).firstChild as HTMLElement,
+    balance = Html(InputBalance()).firstChild as HTMLElement,
     view    = Html(['div.col', { style: 'align-items:stretch' }, Label(name, ['select.pick-user']), balance]).firstChild as HTMLElement,
     input   = view.querySelector('input'),
     select  = view.querySelector('select'),
@@ -762,27 +721,20 @@ export async function loadDocs (href: string) {
   docs.querySelectorAll(".namespaceSection").forEach(loadSection);
   main.innerHTML = '';
   main.appendChild(Html(['div.docs', sect]));
-
   function loadSection (section: HTMLElement) {
-    section.querySelectorAll("span.italic")
-      .forEach(hideUndocumented);
-    section.querySelectorAll(".docNodeKindIcon > div[title]")
-      .forEach(setKind);
+    section.querySelectorAll("span.italic").forEach(hideUndocumented);
+    section.querySelectorAll(".docNodeKindIcon > div[title]").forEach(setKind);
     //const prepends = [];
-    //section.querySelectorAll("[data-kind=Namespace]")
-      //.forEach(el=>prepends.push(el));
-    //section.querySelectorAll('[data-kind="FunctionType Alias"]')
-      //.forEach(el=>prepends.push(el));
+    //section.querySelectorAll("[data-kind=Namespace]").forEach(el=>prepends.push(el));
+    //section.querySelectorAll('[data-kind="FunctionType Alias"]').forEach(el=>prepends.push(el));
     //prepends.reverse().forEach(el=>section.prepend(el));
     sect.appendChild(section);
   }
-
   function hideUndocumented (span: HTMLElement) {
     if (span.innerText === "No documentation available") {
       span.innerHTML = '';
     }
   }
-
   function setKind (icon: HTMLDivElement) {
     const kind = icon.title;
     const item = icon.parentElement.parentElement;
@@ -810,13 +762,13 @@ export const textVal = (id: string) => (Html.id(id) as HTMLInputElement)?.value?
 export const byteVal = (id: string) => (Html.id(id) as HTMLInputElement)?.value?.trim() as unknown as Bytes; // FIXME
 
 /** Displa error thrown by component init in host element. */
-function ErrorBoundary (view: HTMLElement, callback) {
+function ErrorBoundary <T, V extends HTMLElement> (view: V, callback: (_: V) => T) {
   try {
-    return callback()
+    return callback(view)
   } catch (error) {
     view.style.whiteSpace = 'pre';
     view.innerText = error.stack;
-    return { view, error }
+    return Object.assign(view, { error });
   }
 }
 

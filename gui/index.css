@@ -665,7 +665,7 @@ textarea {
   align-items: stretch;
   min-width: 30ch;
   height: auto;
-  max-width: 500ch;
+  max-width: 300ch;
   margin: 0.5rem;
   padding: 1rem;
   border-radius: 1.33rem;
@@ -896,7 +896,7 @@ textarea {
     /*min-width: 60ch;*/
     /*max-width: 100ch;*/
     .programs & {
-      min-width: 120ch;
+      min-width: 100ch;
       /*max-width: 200ch;*/
     }
     flex-shrink: 0;
@@ -1032,11 +1032,12 @@ textarea {
 }
 .phase-form {
   color: #fff;
-  .file & { color: #444 }
   max-width: 60ch;
   gap: 0;
   display: flex;
   flex-flow: row wrap;
+  margin-right: 0.5rem;
+  .file & { color: #444 }
 }
 
 pre.compile-errors {
@@ -1134,6 +1135,10 @@ pre.compile-errors {
     flex-flow: column nowrap;
     align-items: stretch;
     justify-content: space-between;
+    &.pick-chain {
+      flex-flow: row wrap;
+      align-items: center;
+    }
     label {
       padding: 0;
       margin: 0;
@@ -1143,7 +1148,7 @@ pre.compile-errors {
       min-width: 12ch;
       display: inline-block;
       margin-right: 0.5rem;
-      padding: 0.5rem 0.5rem 0;
+      padding: 0 0.5rem 0;
     }
   }
   button {
