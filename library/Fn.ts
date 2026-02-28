@@ -267,11 +267,8 @@ namespace Fn {
     *   }
     *
     * */
-  export function Main <M extends Main> (
-    meta: Main.Meta = {},
-    main: Fn<string[], unknown>
-  ) {
-    const [_, argv1, ...args] = process.argv
+  export function Main <M extends Main> (meta: Main.Meta = {}, main: M) {
+    const [_, argv1, ...args] = process.argv;
     if (Main.is(meta || {}, argv1)) setImmediate(async ()=>{
       try {
         await Promise.resolve(main({ args, exit: process.exit }));
