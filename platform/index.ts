@@ -20,7 +20,7 @@
 export { default as Bitcoin } from './Bitcoin/Bitcoin.ts';
 
 // SimplicityHL
-export { default as SimplicityHL } from './SimplicityHL/SimplicityHL.ts';
+export * as SimplicityHL from './SimplicityHL/SimplicityHL.ts';
 
 // TODO: Reenable other platforms:
 //
