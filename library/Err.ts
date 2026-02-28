@@ -1,5 +1,5 @@
 import type { Fn, Str } from '../index.ts';
-import { bold, gray } from './Ansi.ts';
+//import { bold, gray } from './Ansi.ts';
 import process from 'node:process'; // destructuring this import breaks in Vite
 
 export function Err (message: string, ...args: object[]) {
@@ -38,8 +38,9 @@ export function stackTrace (slice = 3, length?: number): string[] {
 export function alignTrace (line: string) {
   line = line.replace('file://'+process.cwd(), '.');
   line = line.replace(process.cwd(), '.');
-  const format = (x: string, i: number) => (i===0)
-    ? bold(gray(2, x.padEnd(36))) : gray(4, x);
+  const format = (x: string, i: number) => (i===0) ? x.padEnd(36) : x;
+  //const format = (x: string, i: number) => (i===0)
+    //? bold(gray(2, x.padEnd(36))) : gray(4, x);
   line = line.split(' (').map(format).join(gray(4, ' ('));
   return line
 }

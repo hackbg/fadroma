@@ -1,6 +1,12 @@
 import process from 'node:process'; // destructuring this import breaks in Vite
-import { setImmediate } from 'node:timers';
-import { fileURLToPath } from 'node:url';
+//import { setImmediate } from 'node:timers';
+const setImmediate = callback => setTimeout(callback, 0);
+//import { fileURLToPath } from 'node:url';
+const fileURLToPath = url => {
+  url = new URL(url);
+  if (url.protocol !== 'file:') throw new Error('not a file URL');
+  return url.pathname;
+}
 
 export default Fn;
 

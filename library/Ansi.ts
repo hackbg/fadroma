@@ -1,8 +1,6 @@
 /** ANSI colors. */
-
-// TODO id -> color registry
+import { env } from 'node:process';
 import type { Str } from '../index.ts';
-import { env } from '../deps.ts';
 
 export const ifColor  = <T>(x: T) => NO_COLOR ? '' : x;
 export const escaped  = <T>(x: T) => `\x1b[${x}`;
@@ -44,4 +42,6 @@ export const GRAY = (depth: number) => [
   '\x1b[38;5;247m',
   '\x1b[38;5;246m',
   '\x1b[38;5;245m',
-][depth]
+][depth];
+
+// TODO id -> color registry
