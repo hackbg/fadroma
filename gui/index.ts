@@ -1,5 +1,5 @@
 import * as Monaco                    from 'npm:monaco-editor';
-import Bitcoin                        from '../platform/Bitcoin/Bitcoin.ts';
+import Bitcoin, { Esplora }           from '../platform/Bitcoin/Bitcoin.ts';
 import Html                           from '../library/Html.ts';
 import Wasm                           from './wasm.ts';
 import scrollTo                       from 'npm:animated-scroll-to';
@@ -19,7 +19,6 @@ type User = ReturnType<typeof User>;
 const chain = Bitcoin.LiquidTestnet(); // Chain handle (initialized once)
 const nonSecret = (n: number) => new Uint8Array(new Array(32).fill(n));
 const usersByName   = {};
-const usersByPubkey = {};
 
 /** Launch the editor and user views. */
 export default function App ({
@@ -79,12 +78,7 @@ const userSelectors = (host = document) =>
   host.querySelectorAll('select.pick-user') as unknown as HTMLSelectElement[];
 
 const addUser = (...[name, options]: Parameters<typeof User>): User => {
-  if (usersByName[name]) throw new Error(`user already exists: ${name}`);
   const user = User(name, options);
-  const pubkey = user.pubkey;
-  if (usersByPubkey[pubkey]) throw new Error(`pubkey already exists: ${name}: ${pubkey}`)
-  usersByName[name] = user;
-  usersByPubkey[pubkey] = user;
   user.balance().then(value => console.debug(user, value));
   return user;
 }
@@ -313,14 +307,16 @@ const ProgramEditor = ({
   users    = [],
   errors   = Html(['pre.compile-errors.collapsible']).firstChild as HTMLElement,
   params   = Wasm.params(source),
-  fields   = Object.entries(params).map(ProgramField({ id, users, kind: 'param::' })),
+  fields   = Object.entries(params).map(ProgramField({ id, users, kind: 'Parameter: ' })),
   compiler = Wasm.compiler({ chain: chain.ID, genesis: chain.GENESIS }),
   button   = CompileButton(id, { params, compiler, source, errors }),
   stage1   = ProgramForm('simf-compile', SelectChain(), ...fields, button),
   amount   = Label('Commit amount:', ['input.balance[type="number"]', { value: '2345' }]),
-  sender   = SelectSender({ users }),
+  sender   = SelectSender({ chain, users }),
   commit   = CommitButton(id, { users, params, compiler, source, errors, sender: sender.select }),
-  stage2   = ProgramForm('simf-commit', ['label', ['strong', 'Sender:'], sender.select], ['div.row', amount, sender.balance], commit),
+  title2   = ['label', ['strong', 'Fund program from:'], sender.select, sender.utxos],
+  //utxos2   = UtxoList({ esplora: chain.esplora }),
+  stage2   = ProgramForm('simf-commit', title2, ['div.row.gap', amount, sender.balance], commit),
 }) => Field(id).open(open).content(TextArea(id, source)).content(errors)
   .sidebar(['div.phase-form', stage1])
   .sidebar(['div.phase-form', stage2])
@@ -338,7 +334,7 @@ const ProgramForm = (id: string, ...rest: unknown[]) =>
   [`div.program-form.col.grow#${id}`, ...rest];
 
 const InputAmount = (id: string, name = 'Amount:') =>
-  ['label.gap', ['strong', name], ['input', { id }]];
+  ['label', ['strong', name], ['input', { id }]];
 
 const SelectPubkey = (id: string, {
   users  = [],
@@ -375,9 +371,11 @@ const SelectPubkeyX = (id: string, {
 } = {}) => update();
 
 const SelectSender = ({
+  chain   = null,
   users   = [],
   name    = 'Sender:',
   balance = InputBalance({ label: ['strong', 'Sender balance:'], p2wpkh: users[0]?.p2wpkh }),
+  utxos   = UtxoList({ esplora: chain.esplora }),
   view    = Html(['div.col.select-sender', Label(name, ['select.pick-user']), balance]),
   input   = view.querySelector('input'),
   select  = Object.assign(view.querySelector('select'), { onchange: () => update() }),
@@ -388,8 +386,11 @@ const SelectSender = ({
     select.value = pubkey;
     const sender = users.find(x=>x.pubkey === pubkey);
     console.log({sender, users, pubkey});
-    if (sender) getBalances(sender.p2wpkh).then(value=>input.value = value);
-    return { name, balance, view, input, select, update };
+    if (sender) Promise.all([
+      getBalances(sender.p2wpkh).then(value=>input.value = value),
+      utxos.load(sender.p2wpkh),
+    ])
+    return { name, balance, view, input, select, utxos, update };
   },
 } = {}) => update();
 
@@ -399,7 +400,7 @@ const InputBalance = ({
   label  = ['strong', 'Balance:'],
   input  = [`input.balance[balance=${p2wpkh}]`, { disabled: true, value }]
 } = {}) => {
-  return Html(['label.gap', label, input]).firstChild;
+  return Html(['label.grow', label, input]).firstChild;
 }
 
 const collectParams = (id: string, params) => {
@@ -418,24 +419,55 @@ const CompileButton = (id: string, {
   chain    = Bitcoin.LiquidTestnet,
   genesis  = chain.GENESIS, // TODO autofetch from block 0
   compiler = Wasm.compiler({ chain: chain.ID, genesis }),
+  balance  = Html(['input[disabled]']).firstChild as HTMLInputElement,
+  utxos    = UtxoList({ esplora: chain.esplora }),
   button   = Button('compile', () => compile()),
   errors   = Html(['pre.compile-errors.collapsible']).firstChild as HTMLElement,
-  input    = Html(['input', { placeholder: 'compile to get P2TR' }]).firstChild as HTMLInputElement,
-  view     = Html(['label.col.gap.align-stretch', ['label.justify-between.gap',
-    ['div.row.gap.align-center.justify-between', ['strong', 'Program address (P2TR):'], button], input], errors]).firstChild,
+  input    = Html(['input', { placeholder: 'provide parameters and compile to get P2TR' }]).firstChild as HTMLInputElement,
+  label    = ['strong', 'Program address (P2TR):'],
+  title    = ['div.row.gap.align-center.justify-between', label, button],
+  view     = Html(['label.col.gap.align-stretch', ['label.align-end', title, input], utxos, errors]).firstChild,
   compile  = () => ErrorBoundaryAsync(errors, async () => {
     //const { default: Wasm } = await import('./wasm.ts');
     errors.innerText = '';
     errors.style.display = 'none';
-    const args    = collectParams(id, params);
-    const program = compiler.compile(source, { args });
-    const address = program.toJSON().p2tr;
-    input.value = address;
-    const balance = await getBalances(address);
-    console.debug('Balance of', address, 'is', balance);
-    document.querySelector('#simf-commit .balance').value = String(balance);
+    const args = collectParams(id, params);
+    const prog = compiler.compile(source, { args });
+    const p2tr = prog.toJSON().p2tr;
+    input.value = p2tr;
+    return await Promise.all([
+      utxos.load(p2tr),
+      getBalances(p2tr).then(value => balance.value = String(value)),
+    ])
   })
 } = {}) => Object.assign(view, { compile }) as HTMLLabelElement & { compile: typeof compile };
+
+const UtxoList = ({
+  esplora,
+  address = null,
+  utxos   = [],
+  view    = Html(['ul.utxos']).firstChild as HTMLElement,
+  state   = () => ({ address, utxos, load }),
+  load    = (addr = address)=> {
+    address = addr;
+    if (!address) return view;
+    console.debug('Loading UTXOs for', address);
+    view.innerText = 'Loading UTXOs...';
+    return Object.assign(ErrorBoundaryAsync(view, initUtxoList), state());
+    async function initUtxoList () {
+      const utxos = await esplora.getAddressUtxos(addr);
+      if (utxos.length === 0) {
+        view.innerText = 'No balance here. Send some funds!';
+      } else {
+        view.innerText = '';
+        for (const utxo of utxos) {
+          Html.append(view, Html(['li','UTXO ', ['strong', String(utxo.value)], ['code', utxo.txid]]));
+        }
+      }
+      return view;
+    }
+  }
+}) => Object.assign(view, state());
 
 const CommitButton = (id: string, {
   users    = [],
@@ -449,14 +481,14 @@ const CommitButton = (id: string, {
   view     = Html(['label', ['strong', 'Commit TX:'], button]).firstChild,
   sender   = null as HTMLInputElement,
   commit   = () => ErrorBoundaryAsync(errors, async () => {
-    const args    = collectParams(id, params);
-    const program = compiler.compile(source, { args });
-    const address = program.toJSON().p2tr;
+    const args = collectParams(id, params);
+    const prog = compiler.compile(source, { args });
+    const addr = prog.toJSON().p2tr;
     const pubkey = sender.value;
     const user = users.find(x=>x.pubkey === pubkey);
     console.log({sender, pubkey, user, users})
     if (!user) throw new Error(`not our pubkey: ${user}`);
-    const utxos = await chain().esplora.getAddressUtxos(user.p2wpkh) as unknown[];
+    const utxos = await chain().esplora.getAddressUtxos(addr) as unknown[];
     if (utxos.length < 1) throw new Error(`fund the address first: ${user.p2wpkh}`)
   }),
 } = {}) => Object.assign(view, { commit }) as HTMLLabelElement & { commit: typeof commit };
