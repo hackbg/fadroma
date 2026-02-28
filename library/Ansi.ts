@@ -1,6 +1,8 @@
 /** ANSI colors. */
-import { env } from 'node:process';
 import type { Str } from '../index.ts';
+
+const { env } = await import('node:process')
+  .catch(e=>{ console.warn(e); return { env: { NO_COLOR: 1 } } });
 
 export const ifColor  = <T>(x: T) => NO_COLOR ? '' : x;
 export const escaped  = <T>(x: T) => `\x1b[${x}`;
