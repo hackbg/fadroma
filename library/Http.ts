@@ -100,8 +100,9 @@ namespace Http {
   export interface Response extends ServerResponse {}
 
   /** Write status code and JSON-serialized data to [Response]. */
-  export function respond (res: Response, code: number, data: unknown) {
-    res.writeHead(code).end(JSON.stringify(data));
+  export function respondJson (res: Response, code: number, data: unknown) {
+    res.writeHead(code, String(code), { 'content-type': 'application/json' });
+    res.end(JSON.stringify(data));
     return res;
   }
 
@@ -209,7 +210,7 @@ namespace Http {
           code = e.http || 500;
           result = { error: e.message };
         }
-        return respond(res, code, result);
+        return respondJson(res, code, result);
       }
     }
   }
