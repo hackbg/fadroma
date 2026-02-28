@@ -691,7 +691,7 @@ textarea {
     gap: 2rem;
     padding: 0 2rem;
     &>.features {
-      max-width: 42rem;
+      /*max-width: 42rem;*/
       gap: 1.33rem;
     }
   }
@@ -1056,7 +1056,11 @@ pre.compile-errors {
   /*border:      1px solid #f20;*/
 }
 
-.select-pubkey {
+.select-pubkey,
+.select-pubkey-hash,
+.select-sender
+{
+  align-items:stretch;
   input.pubkey {
     display: none
   }
@@ -1152,6 +1156,7 @@ pre.compile-errors {
     }
   }
   button {
+    margin-left: 0.5rem;
     border: 1px solid #9f84;
     padding: 0.5rem 1rem;
     flex-grow: 0;
