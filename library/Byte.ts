@@ -14,7 +14,7 @@ export const Bytes = Object.assign(function toBytes <T>(x: T): Uint8Array {
 });
 
 /** Concatenate byte arrays. */
-function byteConcat (chunks: Uint8Array[]): Uint8Array {
+function byteConcat (chunks: Uint8Array[]): Uint8Array<ArrayBuffer> {
   const length = chunks.reduce((l, c)=>l+(c?.length??0), 0);
   const output = new Uint8Array(length || 0);
   let cursor = 0;
