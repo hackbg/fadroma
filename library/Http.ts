@@ -1,6 +1,4 @@
-import type { ClientRequest, ServerResponse } from 'node:http';
-import { Server as HttpServer } from 'node:http';
-import { Buffer } from 'node:buffer';
+import type { ClientRequest, ServerResponse, Server as HttpServer } from 'node:http';
 import { Ports } from './Port.ts';
 import { Log } from './Log.ts';
 import Fn from './Fn.ts';
@@ -83,7 +81,8 @@ namespace Http {
   }
 
   /** Read the body of an incoming [Request]. */
-  export function readBody (req: Http.Request): Promise<string> {
+  export async function readBody (req: Http.Request): Promise<string> {
+    const { Buffer } = await import('node:buffer');
     return new Promise((resolve, reject) => {
       const data = [];
       try {
@@ -177,8 +176,9 @@ namespace Http {
     const { port, hostname = 'localhost' } = l as URL;
     const handler = Http(...routes);
     return Fn.Name(`Listen (${hostname}:${port})`, httpListen, { hostname, port, ...routes });
-    function httpListen <P extends Ports & Log> (context: P = Ports(Log()) as P): Promise<Server> {
+    async function httpListen <P extends Ports & Log> (context: P = Ports(Log()) as P): Promise<Server> {
       const { ports = {}, debug = console.debug } = context;
+      const { Server: HttpServer } = await import('node:http');
       const server = new HttpServer();
       const portState = ports[port] = { url: l, server };
       server.on('request', onRequest);

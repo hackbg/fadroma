@@ -6,7 +6,7 @@ import type { Bytes } from './Byte.ts';
 import type { Versioned } from './Version.ts';
 
 import process from 'node:process'; // destructuring this import breaks in Vite
-import { joinPath, tmpdir, mkdir, rm, mkdtemp, writeFile, resolvePath } from '../deps.ts';
+import { joinPath, mkdir, rm, mkdtemp, writeFile, resolvePath } from '../deps.ts';
 
 import { zipSync, strToU8 as zipStr } from 'npm:fflate';
 import type { Zippable } from 'npm:fflate';
@@ -74,6 +74,7 @@ export function Temp <D extends Dir> (
   const props = { prefix, ops };
   return Fn.Name(`Temp(${prefix})`, inTemporaryDirectory, props);
   async function inTemporaryDirectory (dir: string|D, ...context: unknown[]): Promise<D> {
+    const { tmpdir } = await import('node:os');
     const path = joinPath(tmpdir(), 'fadroma', `${prefix}-${Base16.random(8)}`);
     dir = LocalFS(dir)
     dir = await LocalFS(dir).mkdir(path) as D;

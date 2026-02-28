@@ -1,12 +1,8 @@
 // Node-style builtins:
 import process from 'node:process';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-export { ok, throws, rejects, deepStrictEqual as equal } from 'node:assert';
-export { setImmediate } from 'node:timers';
-export { tmpdir } from 'node:os';
-export { fileURLToPath } from 'node:url';
-export { inspect } from 'node:util';
+//export { setImmediate } from 'node:timers';
+//export { fileURLToPath } from 'node:url';
+//export { inspect } from 'node:util';
 export { spawn as spawnImpl } from 'node:child_process';
 export type { ChildProcess } from 'node:child_process';
 export type { Buffer } from 'node:buffer';
@@ -15,12 +11,17 @@ export const { stdin, stdout, stderr, argv, env, cwd, exit } = process;
 export { process };
 export { realpathSync } from 'node:fs';
 export { mkdir, rm, mkdtemp, writeFile } from 'node:fs/promises';
-export const execImpl = promisify(execFile);
-export { execFile };
 export { dirname
        , join     as joinPath
        , resolve  as resolvePath
        , relative as relativePath } from 'node:path';
+
+//import { fileURLToPath } from 'node:url';
+export const fileURLToPath = url => {
+  url = new URL(url);
+  if (url.protocol !== 'file:') throw new Error('not a file URL');
+  return url.pathname;
+}
 
 // Deno-style builtins:
 export type TcpConn = Deno.TcpConn;

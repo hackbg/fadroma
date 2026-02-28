@@ -1,8 +1,16 @@
-import type { ChildProcess } from '../deps.ts';
-import { execImpl, spawnImpl, inspect, cwd } from '../deps.ts';
+export { inspect } from 'node:util';
+import { spawn as spawnImpl } from 'node:child_process';
+import { execFile, ChildProcess } from 'node:child_process';
+import { promisify } from 'node:util';
 import { Error } from './Err.ts';
 import { Dir } from './Fs.ts';
 import Fn from './Fn.ts';
+
+const { cwd } = await import('node:process')
+  .catch(e=>{ console.warn(e); return { cwd: () => '.' } });
+
+export const execImpl = promisify(execFile);
+export { execFile };
 
 export default Run;
 

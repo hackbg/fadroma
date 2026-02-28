@@ -2,11 +2,11 @@
 import type { Str } from '../index.ts';
 
 const { env } = await import('node:process')
-  .catch(e=>{ console.warn(e); return { env: { NO_COLOR: 1 } } });
+  .catch(e=>{ console.warn(e); return { env: {} } });
 
 export const ifColor  = <T>(x: T) => NO_COLOR ? '' : x;
 export const escaped  = <T>(x: T) => `\x1b[${x}`;
-export const NO_COLOR = env.NO_COLOR === '1'                                                                                                                                                                                   
+export const NO_COLOR = env?.NO_COLOR === '1';
 export const RESET    = escaped('0m'); // `\x1b[0m`
 export const BOLD     = ifColor(escaped('1m'));
 export const DIM      = ifColor(escaped('38;5;245m'));
