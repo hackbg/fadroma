@@ -25,11 +25,12 @@ export const alias = [
   { find: 'npm:p2p',                replacement: 'p2p'                                     },
   //{ find: 'node:process',       replacement: resolve(__dirname, 'stub/stub_process.ts') },
 ];
+export const polyfill = nodePolyfills({ include });
 export default defineConfig({
   root:      'gui',
   publicDir: '../www',
   build:     { outDir: '../.misc/gh-pages' },
   resolve:   { alias },
-  plugins:   [ nodePolyfills({ include }), wasm(), topLevelAwait() ],
+  plugins:   [ polyfill, wasm(), topLevelAwait() ],
   server:    { allowedHosts: ["vite.dev.hack.bg"] }
 });
