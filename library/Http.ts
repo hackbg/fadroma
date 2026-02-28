@@ -98,13 +98,6 @@ namespace Http {
   /** Alias to Node-style HTTP response output. */
   export interface Response extends ServerResponse {}
 
-  /** Write status code and JSON-serialized data to [Response]. */
-  export function respondJson (res: Response, code: number, data: unknown) {
-    res.writeHead(code, String(code), { 'content-type': 'application/json' });
-    res.end(JSON.stringify(data));
-    return res;
-  }
-
   /** A HTTP route handler.
     *
     * - Handlers are tried sequentially, in the order they are added to the listener.
@@ -208,9 +201,13 @@ namespace Http {
           code = 200;
         } catch (e) {
           code = e.http || 500;
-          result = { error: e.message };
+          res.writeHead(code, e.message || String(code), { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ error: e.message, stack: e.stack }));
+          return res;
         }
-        return respondJson(res, code, result);
+        res.writeHead(200, String(code), { 'content-type': 'application/json' });
+        res.end(JSON.stringify(result));
+        return res;
       }
     }
   }
