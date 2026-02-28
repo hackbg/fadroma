@@ -7,8 +7,10 @@ import { Temp } from '../../library/Fs.ts';
 import { Num, Base16 } from '../../library/Number.ts';
 import process from 'node:process';
 export default Bitcoin;
+
 /** A Bitcoin or Elements daemon. */
 type Bitcoin = Run.Daemon & Bitcoin.Connect & { verbose?: boolean };
+
 /** Launch Bitcoin node. */
 async function Bitcoin <T> (options: Partial<Log & Bitcoin.Options> = {}): Promise<Fn.Async<T>> {
   const { daemon = 'elementsd', debug = console.debug } = options;
@@ -19,6 +21,7 @@ async function Bitcoin <T> (options: Partial<Log & Bitcoin.Options> = {}): Promi
   await Port.Wait({ port: rpcport })();
   return Object.assign(btc, Bitcoin.Connect(url));
 }
+
 /** Bitcoin internals. */
 namespace Bitcoin {
   /** Bitcoin daemon options. */
@@ -384,24 +387,43 @@ namespace Bitcoin {
     }
   }
 
-  export interface Esplora {
-    getBlockTipHeight: Fn.Returns<Fn.Async<Num>>,
-    getBlockTipHash:   Fn
-    getTxInfo:         Fn
-    getAddressInfo:    Fn
-    getAddressUtxos:   (address: string) => Promise<Array<{ txid, asset, value }>>
-    postTx:            Fn
+}
+
+/** Handle to Esplora REST API. */
+export interface Esplora {
+  getBlockTipHeight: Fn.Returns<Fn.Async<Num>>,
+  getBlockTipHash:   Fn
+  getTxInfo:         Fn
+  getAddressInfo:    Fn
+  getAddressTxs:     (address: string) => Promise<Array<Esplora.Transaction>>
+  getAddressUtxos:   (address: string) => Promise<Array<Esplora.Utxo>>
+  postTx:            Fn
+}
+
+/** Construct a handle to Esplora REST API. */
+export function Esplora ({ url }: { url: string|URL }): Esplora {
+  return {
+    getBlockTipHeight: () => Http.fetchText(`${url}/blocks/tip/height`),
+    getBlockTipHash:   () => Http.fetchText(`${url}/blocks/tip/hash`),
+    getAddressInfo:    (ad: string) => Http.fetchJson(`${url}/address/${encodeURIComponent(ad)}`),
+    getAddressUtxos:   (ad: string) => Http.fetchJson(`${url}/address/${encodeURIComponent(ad)}/utxo`),
+    getAddressTxs:     (ad: string) => Http.fetchJson(`${url}/address/${encodeURIComponent(ad)}/txs`),
+    getTxInfo:         (id: string) => Http.fetchJson(`${url}/tx/${encodeURIComponent(id)}`),
+    postTx:            (tx) => Http.postBinary(`${url}/tx`, tx),
+  }
+}
+
+export namespace Esplora {
+
+  export interface Transaction {
+    txid:   string;
+    fee:    number;
+    status: { confirmed: boolean; block_height?: number; block_time?: number };
+    vout:   { value: number; scriptpubkey_address?: string }[];
   }
 
-  export function Esplora (url: string|URL): Esplora {
-    return {
-      getBlockTipHeight: () => Http.fetchText(`${url}/blocks/tip/height`),
-      getBlockTipHash:   () => Http.fetchText(`${url}/blocks/tip/hash`),
-      getAddressInfo:  (ad) => Http.fetchJson(`${url}/address/${ad}`),
-      getAddressUtxos: (ad) => Http.fetchJson(`${url}/address/${ad}/utxo`),
-      getTxInfo:       (id) => Http.fetchJson(`${url}/tx/${id}`),
-      postTx:          (tx) => Http.postBinary(`${url}/tx`, tx),
-    }
+  export interface Utxo {
+    txid, asset, value
   }
 
 }
