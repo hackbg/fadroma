@@ -24,7 +24,7 @@ export interface Log {
 
 /** Create logger. */
 export function Log <T extends Log> (
-  context: Partial<T> = {},
+  context: Partial<T> & { [key: string]: unknown } = {},
 ): T {
   context.prefix ??= '';
   context.format ??= (args: unknown[]) =>
