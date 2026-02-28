@@ -155,6 +155,14 @@ namespace Bitcoin {
     export const RETURN_AMP   = 'vjU8JWGnZu6XavzMEbLZ3mGZ3nrPxpwoBNC3brPi7CFm12sb7bHSkB4gz4SGSV9LhBceZVGaF8nsevu6';
     export const GENESIS      = 'a771da8e52ee6ad581ed1e9a99825e5b3b7992225534eaa2ae23244fe26ab1c1'; // TODO autofetch from block 0
     export const esplora      = Esplora('https://blockstream.info/liquidtestnet/api');
+    export async function callFaucet (address: string) {
+      const api= `https://liquidtestnet.com/api/faucet`;
+      const url= `${api}?address=${encodeURIComponent(address)}&action=lbtc`;
+      const data = await Http.fetchJson(url);
+      // Extract the 64-char hex txid embedded in the result string.
+      const txid = (data.result as string | undefined)?.match(/[0-9a-f]{64}/)?.[0] ?? null;
+      return { ...data, txid };
+    }
   }
 
   /** Spawn Elements in `elementsregtest` mode with Simplicity enabled. */
