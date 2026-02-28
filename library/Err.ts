@@ -2,7 +2,7 @@ import type { Fn, Str } from '../index.ts';
 import { bold, gray } from './Ansi.ts';
 import process from 'node:process'; // destructuring this import breaks in Vite
 
-export default function Err (message: string, ...args: object[]) {
+export function Err (message: string, ...args: object[]) {
   return Object.assign(new Error(message), ...args)
 }
 
