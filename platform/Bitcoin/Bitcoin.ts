@@ -423,7 +423,16 @@ export namespace Esplora {
   }
 
   export interface Utxo {
-    txid, asset, value
+    txid:   string
+    vout:   number
+    asset:  string
+    value:  number
+    status: {
+      block_hash:   string
+      block_height: number
+      block_time:   number
+      confirmed:    boolean
+    }
   }
 
 }
