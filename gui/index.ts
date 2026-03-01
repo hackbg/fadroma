@@ -1,17 +1,23 @@
+Error.stackTraceLimit = 100
+
+import { Err }            from '../library/Err.ts';
+import Html               from '../library/Html.ts';
+import type { Bytes, Fn } from '../library/index.ts';
+import { Base16 }         from '../library/Number.ts';
+import { joinLines }      from '../library/String.ts';
+
+import { Transaction, p2wpkh as P2WPKH } from 'npm:@scure/btc-signer';
+import Bitcoin, { Esplora } from '../platform/Bitcoin/Bitcoin.ts';
+
 import * as Monaco                    from 'npm:monaco-editor';
-import Bitcoin, { Esplora }           from '../platform/Bitcoin/Bitcoin.ts';
-import Html                           from '../library/Html.ts';
-import Wasm                           from './wasm.ts';
 import scrollTo                       from 'npm:animated-scroll-to';
-import type { Bytes, Fn }             from '../library/index.ts';
-import { Base16 }                     from '../library/Number.ts';
-import { Labels, Texts, Icon }        from './cons.ts';
 import { Sender, Receiver }           from 'npm:p2p';
 import { connect, StringCodec }       from 'npm:nats.ws';
-import { p2wpkh as P2WPKH }           from 'npm:@scure/btc-signer';
 import { pubECDSA }                   from 'npm:@scure/btc-signer/utils.js'; // not already in keypair?
-import { joinLines }                  from '../library/String.ts';
 import { zipSync, strToU8 as zipStr } from 'npm:fflate';
+
+import Wasm                           from './wasm.ts';
+import { Labels, Texts, Icon }        from './cons.ts';
 
 type App  = ReturnType<typeof App>;
 type User = ReturnType<typeof User>;
@@ -85,36 +91,42 @@ const addUser = (...[name, options]: Parameters<typeof User>): User => {
 
 /** Create and dispay a user card. */
 const User = (name: string, {
-  secret   = new Uint8Array(Array(32).fill(1)),
+  secret   = null,
   signer   = Wasm.keypair(secret),
   pubkey   = pubECDSA(secret),
   pubkeyX  = signer.xOnlyPublicKey(),
+  signTxIn = (tx: Transaction, index: number) => tx.signIdx(secret, index),
   //chain    = { bech32: 'ert', pubKeyHash: 0x6f, scriptHash: 0xc4, wif: 0xef, },
-  p2wpkh   = P2WPKH(pubkey, { bech32: 'tex', blech32: 'tlq', pubKeyHash: 36, scriptHash: 19, wif: 0xef }).address,
+  p2wpkh   = P2WPKH(pubkey, { bech32: 'tex', blech32: 'tlq', pubKeyHash: 36, scriptHash: 19, wif: 0xef }),
   output   = Html(['div.log', 'Enter Bob, Carol.']),
   //p2p      = P2P({ name, root: output }),
   toolbar  = Html(['section.progs', ['button.pill', 'Send'], ['button.pill', 'P2PK'], ['button.pill', 'Vault'], ['button.pill', 'Escrow'], ['input.chat', { placeholder: 'chat' }], ['button.pill', 'Say']]),
-  identity = Html(['section.meta',  ['div.col.gap', ['div.row.gap.align-center', ['strong.name', name], ['div.col.gap', p2wpkh, ['strong', [`span.balance[balance=${p2wpkh}]`, 'Loading balance...']]]]]]),
+  identity = Html(['section.meta',  ['div.col.gap', ['div.row.gap.align-center', ['strong.name', name], ['div.col.gap', p2wpkh, ['strong', [`span.balance[balance=${p2wpkh.address}]`, 'Loading balance...']]]]]]),
   //identity = Html`(section.meta (.col.gap (.row.gap.align-center (strong.name ${name}) (.col.gap p2wpkh (strong ${balance})))))`,
   view     = () => Html(['div.col', ['article.user', identity, output, toolbar]]),
-  balance  = () => getBalances(p2wpkh).then(value => {
-    for (const element of document.querySelectorAll(`span[balance=${p2wpkh}]`) as unknown as HTMLElement[]) {
+  balance  = () => getBalances(p2wpkh.address).then(value => {
+    for (const element of document.querySelectorAll(`span[balance=${p2wpkh.address}]`) as unknown as HTMLElement[]) {
       element.innerText = `${value} sats`;
     }
-    for (const element of document.querySelectorAll(`input[balance=${p2wpkh}]`) as unknown as HTMLInputElement[]) {
+    for (const element of document.querySelectorAll(`input[balance=${p2wpkh.address}]`) as unknown as HTMLInputElement[]) {
       element.value = String(value);
     }
     return value
   })
 } = {}) => ({
-  name, signer, p2wpkh, view, balance,
+  name,
+  signer,
+  p2wpkh,
+  view,
+  balance,
+  signTxIn,
   pubkey:  Base16.encode(pubkey),
   pubkeyX: Base16.encode(pubkeyX)
 } as {
   /** Human-friendly name. */
   name: string
   /** Main address of user. */
-  p2wpkh: string
+  p2wpkh: { address: string, script: Bytes }
   /** Public key of user. */
   pubkey: string
   /** X-Only (tweaked?) public key of user. */
@@ -134,7 +146,7 @@ const initUserPicker = (select: HTMLSelectElement, users: User[]) => {
 };
 
 const usersToOptions = (users = [], value = (user: User) => user.pubkey) => users.map(user=>
-  Html(['option', { value: value(user) }, ['strong', user.name], ` (${user.p2wpkh})`]).firstChild);
+  Html(['option', { value: value(user) }, ['strong', user.name], ` (${user.p2wpkh.address})`]).firstChild);
 
 /** Display error thrown by component init in host element. */
 const ErrorBoundary = <T, V extends HTMLElement> (errorView: V, callback: () => T) => {
@@ -226,11 +238,11 @@ const Editor = (host: HTMLElement, {
   programs  = Section({ className: 'layer programs col' }, examplePrograms({ users })),
   empty     = ['ul.instances', ['div.empty', ['strong', 'No deployed programs!'], ' ', Texts.NO_DEPLOYS]],
   instances = Section({ className: 'phase' }, ['div.row.gap.field.file', empty]),
-  amount    = Label('Amount:', ['input[type="number"]', { value: '1234' }]), // FIXME witness field
+  amount    = Label('Amount:', Input({ type: 'number' }), { value: '1234' }), // FIXME witness field
   sighash   = InputSigHash(), // FIXME generate
   witness   = ProgramForm('simf-witness', Texts.WitnessTitle, InputBalance(), Select.Recipient(), amount, sighash),
   signer    = Select.Signer({ name: 'witness::SIG' }).view,
-  redeemTx  = Label('TX bytes:', ['input'], Label('Redeem TX:', Button('redeem'))),
+  redeemTx  = Label('TX bytes:', Input(), Label('Redeem TX:', Button('redeem'))),
   redeem    = ProgramForm('simf-redeem',  Texts.RedeemTitle, signer, redeemTx),
   consume   = Section({ className: 'phase-form' }, witness, redeem),
 } = {}) => {
@@ -303,24 +315,162 @@ const EditableProgram = async (name: string, source: string) => {
 const ProgramEditor = ({
   id,
   source,
+  esplora  = chain.esplora,
   open     = false,
   users    = [],
   errors   = Html(['pre.compile-errors.collapsible']).firstChild as HTMLElement,
   params   = Wasm.params(source),
   fields   = Object.entries(params).map(ProgramField({ id, users, kind: 'Parameter: ' })),
   compiler = Wasm.compiler({ chain: chain.ID, genesis: chain.GENESIS }),
-  button   = CompileButton(id, { params, compiler, source, errors }),
-  stage1   = ProgramForm('simf-compile', SelectChain(), ...fields, button),
-  amount   = Label('Commit amount:', ['input.balance[type="number"]', { value: '2345' }]),
-  sender   = SelectSender({ chain, users }),
-  commit   = CommitButton(id, { users, params, compiler, source, errors, sender: sender.select }),
-  title2   = ['label', ['strong', 'Fund program from:'], sender.select, sender.utxos],
-  //utxos2   = UtxoList({ esplora: chain.esplora }),
-  stage2   = ProgramForm('simf-commit', title2, ['div.row.gap', amount, sender.balance], commit),
+  address  = InputP2TR(() => preview()),
+  amount   = Input({ className: 'balance', type: 'number', value: '2345' }),
+  inputs   = Html(['ul.inputs']).firstChild,
+  outputs  = Html(['ul.outputs']).firstChild,
+  balance  = InputBalance({ label: ['strong', 'Balance:'], address: users[0]?.p2wpkh.address }),
+  sender   = SelectSender({ balance, chain, users, onchange: () => preview() }),
+  preview  = TxPreview({ users, esplora, inputs, outputs, amount, address, sender }),
+  button   = CompileButton(id, { params, compiler, source, address, errors, preview }),
+  stage1   = ProgramForm('simf-compile', ['h3', 'Step 1. Compile program.'], SelectChain(), ...fields, button),
+  commit   = CommitButton(id, { users, params, compiler, source, errors, preview, amount, sender: sender.select }),
+  title2   = ['label', ['div.row', ['label', ['strong', 'Sender:'], sender.select], balance], sender.utxos],
+  stage2   = ProgramForm('simf-commit', ['h3', 'Step 2. Commit funds to address of program.'], title2, commit),
 }) => Field(id).open(open).content(TextArea(id, source)).content(errors)
   .sidebar(['div.phase-form', stage1])
   .sidebar(['div.phase-form', stage2])
   .build();
+
+const InputP2TR = (onchange?: Fn) =>
+  Input({ onchange, placeholder: 'provide parameters and compile to get P2TR' });
+
+const CommitButton = (id: string, {
+  preview  = null,
+  errors   = null,
+  source   = null,
+  amount   = null,
+  users    = [],
+  params   = {},
+  chain    = Bitcoin.LiquidTestnet,
+  genesis  = chain.GENESIS, // TODO autofetch from block 0
+  compiler = Wasm.compiler({ chain: chain.ID, genesis }),
+  button   = Button('commit', () => commit()),
+  title    = ['label.align-center.row', Label('Commit amount:', amount), button],
+  view     = Html(['label.tx-preview', title, preview.inputs, preview.outputs]).firstChild,
+  sender   = null as HTMLInputElement,
+  init     = () => Object.assign(view, { commit, }),
+  commit   = () => ErrorBoundaryAsync(errors, async () => {
+    const args = collectParams(id, params);
+    const prog = compiler.compile(source, { args });
+    const p2tr = prog.toJSON().p2tr;
+    const user = users.find(x=>x.pubkey === sender.value);
+    if (!user) throw Err(`not our pubkey: ${user}`);
+    const tx = await preview({ user, p2tr });
+  })
+} = {}) => init();
+
+const TxPreview = ({
+  users     = [],
+  esplora   = null,
+  amount    = null,
+  address   = null,
+  inputs    = null,
+  outputs   = null,
+  sender    = null,
+  tx        = new Transaction(),
+  network   = { bech32: 'tex', blech32: 'tlq', pubKeyHash: 36, scriptHash: 19, wif: 0xef },
+  input   = (script: Bytes, txid: string, index: number, value: number) => {
+    tx.addInput({ txid, index, witnessUtxo: { amount: BigInt(value), script } });
+    if (inputs) Html.append(inputs, Html(['li', ['strong', 'TX In: '], ['code', `${txid} # ${index}`]]).firstChild);
+  },
+  output  = (addr: string, value: string|number|bigint) => {
+    tx.addOutputAddress(addr, BigInt(value), network);
+    if (outputs) Html.append(outputs, Html(['li', ['strong', 'TX Out: '], ['code', ['strong', String(value)]], ['code', addr]]).firstChild);
+  },
+  update = async function updateTxPreview ({
+    user  = sender?.select?.value,
+    p2tr  = address?.value,
+    value = amount?.value,
+  } = {}) {
+    if (inputs)  inputs.innerHTML  = '';
+    if (outputs) outputs.innerHTML = '';
+    tx = new Transaction();
+    const { address, script } = (users.find(x=>x.pubkey === user)||{}).p2wpkh;
+    if (address) {
+      const utxos = await esplora.getAddressUtxos(address);
+      if (utxos.length < 1) throw Err(`fund the address first: ${address}`);
+      const utxo = utxos[0];
+      if (p2tr) {
+        input(script, utxo.txid, utxo.vout, value);
+        output(p2tr, value);
+        if (value < utxo.value) output(user.p2wpkh.address, utxo.value - value) // resto
+        if (!user.signTxIn(tx, 0)) throw Err(`failed to sign ${tx.inputs[0]} as ${user.name}`)
+        tx.finalize();
+      }
+    }
+    return tx;
+  }
+}) => {
+  update();
+  return Object.assign(update, { inputs, outputs });
+}
+
+const CompileButton = (id: string, {
+  errors   = null,
+  source   = null,
+  address  = null,
+  preview  = null,
+  params   = {},
+  chain    = Bitcoin.LiquidTestnet,
+  genesis  = chain.GENESIS, // TODO autofetch from block 0
+  compiler = Wasm.compiler({ chain: chain.ID, genesis }),
+  balance  = Input({ disabled: 'disabled' }),
+  utxos    = UtxoList({ esplora: chain.esplora }),
+  button   = Button('compile', () => compile()),
+  label    = ['strong', 'Program address (P2TR):'],
+  title    = ['div.row.gap.align-center.justify-between', label, button],
+  view     = Html(['label.col.gap.align-stretch', ['label.align-end', title, address], utxos, errors]).firstChild,
+  init     = () => Object.assign(view, { compile }),
+  compile  = () => ErrorBoundaryAsync(errors, async () => {
+    //const { default: Wasm } = await import('./wasm.ts');
+    errors.innerText = '';
+    errors.style.display = 'none';
+    const args = collectParams(id, params);
+    const prog = compiler.compile(source, { args });
+    const p2tr = prog.toJSON().p2tr;
+    address.value = p2tr;
+    preview();
+    return await Promise.all([
+      utxos.load(p2tr),
+      getBalances(p2tr).then(value => balance.value = String(value)),
+    ])
+  })
+} = {}) => init();
+
+const SelectSender = ({
+  chain    = null,
+  balance  = null,
+  onchange = () => {},
+  users    = [],
+  name     = 'Sender:',
+  utxos    = UtxoList({ esplora: chain.esplora }),
+  view     = Html(['div.col.select-sender', Label(name, ['select.pick-user']), balance]),
+  input    = view.querySelector('input'),
+  select   = Object.assign(view.querySelector('select'), { onchange: () => update() }),
+  update   = () => {
+    const pubkey = select.value;
+    select.innerHTML = '';
+    for (const option of usersToOptions(users)) select.appendChild(option);
+    select.value = pubkey;
+    const user = users.find(x=>x.pubkey === pubkey);
+    if (user) {
+      Promise.all([
+        getBalances(user.p2wpkh.address).then(value=>input.value = value),
+        utxos.load(user.p2wpkh.address),
+        onchange(),
+      ])
+    }
+    return { name, balance, view, input, select, utxos, update };
+  },
+} = {}) => update();
 
 const ProgramField = ({ users, kind, id }) => ([name, type]) => {
   const label = `${kind}${name} (${type})`;
@@ -334,12 +484,12 @@ const ProgramForm = (id: string, ...rest: unknown[]) =>
   [`div.program-form.col.grow#${id}`, ...rest];
 
 const InputAmount = (id: string, name = 'Amount:') =>
-  ['label', ['strong', name], ['input', { id }]];
+  ['label', ['strong', name], Input({ id })];
 
 const SelectPubkey = (id: string, {
   users  = [],
   name   = 'Pubkey:' as string,
-  view   = Html(['div.select-pubkey', Label(name, ['select.pick-user']), ['input.pubkey', { id }]]),
+  view   = Html(['div.select-pubkey', Label(name, ['select.pick-user']), Input({ id, className: 'pubkey' })]),
   input  = view.querySelector('input'),
   select = Object.assign(view.querySelector('select'), { onchange: () => update() }),
   update = () => {
@@ -370,35 +520,12 @@ const SelectPubkeyX = (id: string, {
   },
 } = {}) => update();
 
-const SelectSender = ({
-  chain   = null,
-  users   = [],
-  name    = 'Sender:',
-  balance = InputBalance({ label: ['strong', 'Sender balance:'], p2wpkh: users[0]?.p2wpkh }),
-  utxos   = UtxoList({ esplora: chain.esplora }),
-  view    = Html(['div.col.select-sender', Label(name, ['select.pick-user']), balance]),
-  input   = view.querySelector('input'),
-  select  = Object.assign(view.querySelector('select'), { onchange: () => update() }),
-  update  = () => {
-    const pubkey = select.value;
-    select.innerHTML = '';
-    for (const option of usersToOptions(users)) select.appendChild(option);
-    select.value = pubkey;
-    const sender = users.find(x=>x.pubkey === pubkey);
-    console.log({sender, users, pubkey});
-    if (sender) Promise.all([
-      getBalances(sender.p2wpkh).then(value=>input.value = value),
-      utxos.load(sender.p2wpkh),
-    ])
-    return { name, balance, view, input, select, utxos, update };
-  },
-} = {}) => update();
 
 const InputBalance = ({
-  p2wpkh = undefined,
-  value  = '',
-  label  = ['strong', 'Balance:'],
-  input  = [`input.balance[balance=${p2wpkh}]`, { disabled: true, value }]
+  address = undefined,
+  value   = '',
+  label   = ['strong', 'Balance:'],
+  input   = [`input.balance[balance=${address}]`, { disabled: true, value }]
 } = {}) => {
   return Html(['label.grow', label, input]).firstChild;
 }
@@ -412,35 +539,6 @@ const collectParams = (id: string, params) => {
   };
   return args;
 }
-
-const CompileButton = (id: string, {
-  source   = null,
-  params   = {},
-  chain    = Bitcoin.LiquidTestnet,
-  genesis  = chain.GENESIS, // TODO autofetch from block 0
-  compiler = Wasm.compiler({ chain: chain.ID, genesis }),
-  balance  = Html(['input[disabled]']).firstChild as HTMLInputElement,
-  utxos    = UtxoList({ esplora: chain.esplora }),
-  button   = Button('compile', () => compile()),
-  errors   = Html(['pre.compile-errors.collapsible']).firstChild as HTMLElement,
-  input    = Html(['input', { placeholder: 'provide parameters and compile to get P2TR' }]).firstChild as HTMLInputElement,
-  label    = ['strong', 'Program address (P2TR):'],
-  title    = ['div.row.gap.align-center.justify-between', label, button],
-  view     = Html(['label.col.gap.align-stretch', ['label.align-end', title, input], utxos, errors]).firstChild,
-  compile  = () => ErrorBoundaryAsync(errors, async () => {
-    //const { default: Wasm } = await import('./wasm.ts');
-    errors.innerText = '';
-    errors.style.display = 'none';
-    const args = collectParams(id, params);
-    const prog = compiler.compile(source, { args });
-    const p2tr = prog.toJSON().p2tr;
-    input.value = p2tr;
-    return await Promise.all([
-      utxos.load(p2tr),
-      getBalances(p2tr).then(value => balance.value = String(value)),
-    ])
-  })
-} = {}) => Object.assign(view, { compile }) as HTMLLabelElement & { compile: typeof compile };
 
 const UtxoList = ({
   esplora,
@@ -456,6 +554,7 @@ const UtxoList = ({
     return Object.assign(ErrorBoundaryAsync(view, initUtxoList), state());
     async function initUtxoList () {
       const utxos = await esplora.getAddressUtxos(addr);
+      console.debug('UTXOS for', address, ...utxos);
       if (utxos.length === 0) {
         view.innerText = 'No balance here. Send some funds!';
       } else {
@@ -468,30 +567,6 @@ const UtxoList = ({
     }
   }
 }) => Object.assign(view, state());
-
-const CommitButton = (id: string, {
-  users    = [],
-  source   = null,
-  errors   = Html(['pre.compile-errors.collapsible']).firstChild as HTMLElement,
-  params   = {},
-  chain    = Bitcoin.LiquidTestnet,
-  genesis  = chain.GENESIS, // TODO autofetch from block 0
-  compiler = Wasm.compiler({ chain: chain.ID, genesis }),
-  button   = Button('commit', () => commit()),
-  view     = Html(['label', ['strong', 'Commit TX:'], button]).firstChild,
-  sender   = null as HTMLInputElement,
-  commit   = () => ErrorBoundaryAsync(errors, async () => {
-    const args = collectParams(id, params);
-    const prog = compiler.compile(source, { args });
-    const addr = prog.toJSON().p2tr;
-    const pubkey = sender.value;
-    const user = users.find(x=>x.pubkey === pubkey);
-    console.log({sender, pubkey, user, users})
-    if (!user) throw new Error(`not our pubkey: ${user}`);
-    const utxos = await chain().esplora.getAddressUtxos(addr) as unknown[];
-    if (utxos.length < 1) throw new Error(`fund the address first: ${user.p2wpkh}`)
-  }),
-} = {}) => Object.assign(view, { commit }) as HTMLLabelElement & { commit: typeof commit };
 
 const examplePrograms = ({ users }) => ['div.files',
   ExamplePrograms.P2PK.view({ users }),
@@ -606,7 +681,8 @@ function TextArea (id: string, ...content: string[]) {
     {autocomplete: "off", autocorrect: "off", autocapitalize: "off", spellcheck: false},
     content.filter(x=>typeof x === 'string').join('\n')];
 }
-function Input () { /*TODO*/ }
+const Input = (...args: unknown[]): HTMLInputElement =>
+  Html(['input', ...args]).firstChild as HTMLInputElement;
 const InputTitle = () =>
   ['input#title[type=text]', { placeholder: 'name your project' }];
 const InputSigHash = () =>
@@ -658,12 +734,12 @@ namespace Select {
     ['option', 'Closed source (inquire)']];
 }
 async function getBalances (
-  p2wpkh: string,
+  address: string,
   chain = Bitcoin.LiquidTestnet(),
   asset: string = "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5"
 ): Promise<bigint> {
   let balance = 0n;
-  const utxos = await chain.esplora.getAddressUtxos(p2wpkh);
+  const utxos = await chain.esplora.getAddressUtxos(address);
   for (const utxo of utxos) if (utxo.asset === asset) balance += BigInt(utxo.value);
   return balance
 }
