@@ -922,6 +922,7 @@ textarea {
     }
 
     textarea {
+      border-radius: 3px;
       margin-bottom: 0;
       padding-left: 0.25rem;
       min-height: 35ch;
@@ -1139,8 +1140,8 @@ pre.compile-errors {
     /*text-align: right !important*/
   /*}*/
   label {
-    border-left: 1px solid #0408;
     border: 1px solid #4448;
+    border-radius: 3px;
     align-self: stretch;
     display: flex;
     flex-flow: column nowrap;
