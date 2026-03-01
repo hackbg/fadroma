@@ -367,6 +367,14 @@ const CommitButton = (id: string, {
   })
 } = {}) => init();
 
+const Utxo = ({ txid, index }) => ['code', `tx ${txid} out ${index}`];
+
+const Address = ({ address }) => ['input[disabled]', { value: address }];
+
+const Txid = ({ txid }) => ['input[disabled]', { value: txid }];
+
+const Amount = ({ value }) => ['input[disabled]', { style: 'width:12ch; flex-grow: 0', value: String(value) }];
+
 const TxPreview = ({
   users     = [],
   esplora   = null,
@@ -375,20 +383,28 @@ const TxPreview = ({
   inputs    = null,
   outputs   = null,
   sender    = null,
-  tx        = new Transaction(),
   network   = { bech32: 'tex', blech32: 'tlq', pubKeyHash: 36, scriptHash: 19, wif: 0xef },
-  input   = (script: Bytes, txid: string, index: number, value: number) => {
+  tx        = new Transaction(),
+  addInput  = (name: string, address: string, script: Bytes, txid: string, index: number, value: string|number|bigint) => {
     tx.addInput({ txid, index, witnessUtxo: { amount: BigInt(value), script } });
-    if (inputs) Html.append(inputs, Html(['li', ['strong', 'TX In: '], ['code', `${txid} # ${index}`]]).firstChild);
+    if (inputs) Html.append(inputs,
+      Html(['li', ['strong', name], Amount({ value }), ' from ', Address({ address })]).firstChild);
   },
-  output  = (addr: string, value: string|number|bigint) => {
-    tx.addOutputAddress(addr, BigInt(value), network);
-    if (outputs) Html.append(outputs, Html(['li', ['strong', 'TX Out: '], ['code', ['strong', String(value)]], ['code', addr]]).firstChild);
+  addOutput = (name: string, address: string, value: string|number|bigint) => {
+    tx.addOutputAddress(address, BigInt(value), network);
+    if (outputs)
+      Html.append(outputs, Html(['li', ['strong', name], Amount({ value }), ' to ', Address({ address })]).firstChild);
+  },
+  addFee    = (name: string, value: string|number|bigint) => {
+    //tx.addOutputAddress(addr, BigInt(value), network);
+    if (outputs)
+      Html.append(outputs, Html(['li', ['strong', name], Amount({ value }), ' to the network ']).firstChild);
   },
   update = async function updateTxPreview ({
     user  = sender?.select?.value,
     p2tr  = address?.value,
     value = amount?.value,
+    fee   = 1000,
   } = {}) {
     if (inputs)  inputs.innerHTML  = '';
     if (outputs) outputs.innerHTML = '';
@@ -399,9 +415,14 @@ const TxPreview = ({
       if (utxos.length < 1) throw Err(`fund the address first: ${address}`);
       const utxo = utxos[0];
       if (p2tr) {
-        input(script, utxo.txid, utxo.vout, value);
-        output(p2tr, value);
-        if (value < utxo.value) output(user.p2wpkh.address, utxo.value - value) // resto
+        const utxoValue   = BigInt(utxo.value);
+        const sendValue   = BigInt(value);
+        const feeValue    = BigInt(fee);
+        const changeValue = utxoValue - (sendValue + feeValue);
+        addInput('Input: ', address, script, utxo.txid, utxo.vout, utxoValue);
+        addOutput('Program: ', p2tr, sendValue);
+        if (changeValue !== 0n) addOutput('Change: ', address, changeValue);
+        addFee('Fee: ', feeValue);
         if (!user.signTxIn(tx, 0)) throw Err(`failed to sign ${tx.inputs[0]} as ${user.name}`)
         tx.finalize();
       }
@@ -560,7 +581,7 @@ const UtxoList = ({
       } else {
         view.innerText = '';
         for (const utxo of utxos) {
-          Html.append(view, Html(['li','UTXO ', ['strong', String(utxo.value)], ['code', utxo.txid]]));
+          Html.append(view, Html(['li', ['strong', 'UTXO '], Amount(utxo), Txid(utxo)]));
         }
       }
       return view;
@@ -684,7 +705,7 @@ function TextArea (id: string, ...content: string[]) {
 const Input = (...args: unknown[]): HTMLInputElement =>
   Html(['input', ...args]).firstChild as HTMLInputElement;
 const InputTitle = () =>
-  ['input#title[type=text]', { placeholder: 'name your project' }];
+  ['input.project-title[type=text]#title', { placeholder: 'name your project' }];
 const InputSigHash = () =>
   ['label.gap', ['strong', 'Sign hash:'], ['input']]
 function Select () { /* TODO */ }

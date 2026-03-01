@@ -1014,37 +1014,27 @@ textarea {
   .file:hover & { background: #fff4 }
   &:focus-within { background: #fff }
 }
-
-#title {
+.project-title {
   font-size: 1.25rem;
   font-weight: 250;
 }
-
 .hex-row {
   font-family: monospace; white-space: pre;
   padding: 0 0.5rem; font-weight: 600
 }
-
-.phase {
-  margin-top: 0;
-  margin-bottom: 1rem;
-  display: flex;
-  flex-flow: column nowrap;
-  gap: 1rem;
-}
 .phase-form {
   color: #fff;
-  max-width: 100ch;
   gap: 0;
   display: flex;
   flex-flow: row wrap;
   margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
   .file & {
     color: #444
   }
   h3 {
     color: #555;
-    margin: 0.5rem;
+    margin: 0.5rem 0.5rem 0;
     font-size: 1.33rem;
     text-shadow: none;
   }
@@ -1119,8 +1109,9 @@ pre.compile-errors {
   /*background: #f8f4;*/
   padding-bottom: 0.5rem;
   border-radius: 3px;
-  width: 64ch;
+  min-width: 65ch;
   input, select, button {
+    border-radius: 3px;
     /*color: #fff;*/
     font-weight: bold;
     text-shadow: 0 1px 0 #0002;
@@ -1136,9 +1127,6 @@ pre.compile-errors {
       outline: none;
     }
   }
-  /*input, select {*/
-    /*text-align: right !important*/
-  /*}*/
   label {
     border: 1px solid #4448;
     border-radius: 3px;
@@ -1227,6 +1215,10 @@ pre.compile-errors {
       min-width: auto;
       padding-left: 0;
       width: 6ch;
+    }
+    input {
+      padding: 0 0.5rem !important;
+      /*text-align: right;*/
     }
   }
 }
