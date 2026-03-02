@@ -318,7 +318,7 @@ function ProgramEditor (id: string, source: string, {
   /** Wrap program form fields into container elemnent: */
   form      = (id: string, ...rest: unknown[]) => [`div.program-form.col.grow#${id}`, ...rest],
   /** Commit amount: up to balance of selected sender. */
-  amount    = InputAmount(() => preview1(), 2468),
+  amount    = InputAmount(() => preview1(), 100),
   /** Commit transaction target: program's P2TR address. */
   address   = InputP2TR(() => preview1()),
   /** Commit transaction funder: user-selectable. */
@@ -367,6 +367,9 @@ function ProgramEditor (id: string, source: string, {
     if (!user) throw Err(`not our pubkey: ${user}`);
     const tx = await preview1({ p2tr });
     console.log({ commit: { tx } });
+    const result = await esplora.postTx(tx);
+    console.log({ result });
+    return result;
   }),
 
   /** Redeem transaction is built here. */
@@ -376,7 +379,7 @@ function ProgramEditor (id: string, source: string, {
   /** Will receive funds from program. Needs to be specified to obtain sighash. */
   receiver  = SelectUserWithBalance(() => preview2(), { chain, users }),
   /** Amount to redeem from program. Needs to be specified to obtain sighash. */
-  redeemed  = InputAmount(()=> preview2(), 1234),
+  redeemed  = InputAmount(()=> preview2(), 50),
   /** Redemption phase (evaluation-time) arguments. */
   witTypes  = wasm.witnessTypes(source),
   /** Redemption phase (evaluation-time) arguments rendered to form fields. */
@@ -431,7 +434,7 @@ const TxPreview = ({
     user  = sender?.select?.value,
     p2tr  = address?.value,
     value = amount?.value,
-    fee   = 2000,
+    fee   = 4000,
   } = {}) {
     if (inputs)  inputs.innerHTML  = '';
     if (outputs) outputs.innerHTML = '';
@@ -449,9 +452,12 @@ const TxPreview = ({
         Html.append(inputs, Html(['li', ['strong', 'Input:'],
           Amount({ value: utxo.value }), ['span', ' from '], Address({ address })]).firstChild);
         for (const output of unsigned.outputs) {
-          const name = (output.script_pubkey == "") ? 'Fee: ' : (output.script_pubkey == script) ? 'Change: ' : 'Commit: ';
-          Html.append(outputs, Html(['li', ['strong', name],
-            Amount({ value: output.amount })]).firstChild)
+          const address = output.script_pubkey;
+          const isFee   = (address === "")
+          const name    = ['strong', isFee ? 'Fee: ' : 'Output: '];
+          const amount  = Amount({ value: output.amount });
+          const target  = isFee ? [] : ['to', Address({ address })];
+          Html.append(outputs, Html(['li', name, amount, ...target]).firstChild)
         }
         const signed = wasm.splitPsbtSigned(foundUser.signer, opts);
         hexedit.innerText = signed;
