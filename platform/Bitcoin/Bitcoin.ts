@@ -394,6 +394,7 @@ export interface Esplora {
   getBlockTipHeight: Fn.Returns<Fn.Async<Num>>,
   getBlockTipHash:   Fn
   getTxInfo:         Fn
+  getTxHex:          Fn
   getAddressInfo:    Fn
   getAddressTxs:     (address: string) => Promise<Array<Esplora.Transaction>>
   getAddressUtxos:   (address: string) => Promise<Array<Esplora.Utxo>>
@@ -409,6 +410,7 @@ export function Esplora ({ url }: { url: string|URL }): Esplora {
     getAddressUtxos:   (ad: string) => Http.fetchJson(`${url}/address/${encodeURIComponent(ad)}/utxo`),
     getAddressTxs:     (ad: string) => Http.fetchJson(`${url}/address/${encodeURIComponent(ad)}/txs`),
     getTxInfo:         (id: string) => Http.fetchJson(`${url}/tx/${encodeURIComponent(id)}`),
+    getTxHex:          (id: string) => Http.fetchText(`${url}/tx/${encodeURIComponent(id)}/hex`),
     postTx:            (tx) => Http.postBinary(`${url}/tx`, tx),
   }
 }
