@@ -1,23 +1,18 @@
 Error.stackTraceLimit = 100
-
-import { Err }            from '../library/Err.ts';
-import Html               from '../library/Html.ts';
-import type { Bytes, Fn } from '../library/index.ts';
-import { Base16 }         from '../library/Number.ts';
-import { joinLines }      from '../library/String.ts';
-
+import { Err }                           from '../library/Err.ts';
+import Html                              from '../library/Html.ts';
+import type { Bytes, Fn }                from '../library/index.ts';
+import { Base16 }                        from '../library/Number.ts';
+import { joinLines }                     from '../library/String.ts';
 import { Transaction, p2wpkh as P2WPKH } from 'npm:@scure/btc-signer';
-import Bitcoin, { Esplora } from '../platform/Bitcoin/Bitcoin.ts';
-
-import * as Monaco                    from 'npm:monaco-editor';
-import scrollTo                       from 'npm:animated-scroll-to';
-import { Sender, Receiver }           from 'npm:p2p';
-import { connect, StringCodec }       from 'npm:nats.ws';
-import { pubECDSA }                   from 'npm:@scure/btc-signer/utils.js'; // not already in keypair?
-import { zipSync, strToU8 as zipStr } from 'npm:fflate';
-
-import Wasm                           from './wasm.ts';
-import { Labels, Texts, Icon }        from './cons.ts';
+import * as Monaco                       from 'npm:monaco-editor';
+import scrollTo                          from 'npm:animated-scroll-to';
+import { pubECDSA }                      from 'npm:@scure/btc-signer/utils.js'; // not already in keypair?
+import { zipSync, strToU8 as zipStr }    from 'npm:fflate';
+import Bitcoin, { Esplora }              from '../platform/Bitcoin/Bitcoin.ts';
+import { Wasm }                          from '../platform/SimplicityHL/SimplicityHL.ts';
+import { Labels, Texts, Icon }           from './cons.ts';
+export const wasm = await Wasm({ wasm: new URL('/wasm/fadroma_simf_bg.wasm', location.href) });
 
 const chain = Bitcoin.LiquidTestnet(); // Chain handle (initialized once) FIXME redundant
 
@@ -104,7 +99,7 @@ export interface User {
   /** X-Only (tweaked?) public key of user. */
   pubkeyX: string
   /** Can sign data with hidden secret key of user. */
-  signer: ReturnType<typeof Wasm.keypair>
+  signer: ReturnType<typeof wasm.keypair>
   /** Render the user card. */
   view (): DocumentFragment
   /** Balance at init. */
@@ -116,7 +111,7 @@ export interface User {
 /** Create and dispay a user card. */
 export function User (name: string, {
   secret   = null,
-  signer   = Wasm.keypair(secret),
+  signer   = wasm.keypair(secret),
   pubkey   = pubECDSA(secret),
   pubkeyX  = signer.xOnlyPublicKey(),
   signTxIn = (tx: Transaction, index: number) => tx.signIdx(secret, index),
@@ -314,7 +309,7 @@ function ProgramEditor (id: string, source: string, {
   users     = null,
   chain     = Bitcoin.LiquidTestnet,
   genesis   = chain.GENESIS, // TODO autofetch from block 0
-  compiler  = Wasm.compiler({ chain: chain.ID, genesis }),
+  compiler  = wasm.compiler({ chain: chain.ID, genesis }),
   esplora   = chain.esplora,
   /** Whether the code editor starts out expanded. */
   open      = false,
@@ -333,7 +328,7 @@ function ProgramEditor (id: string, source: string, {
   /** Title for first half of commitment phase. */
   title1    = ['h3', 'Step 1. Compile program.'],
   /** Commitment phase (compile-time) parameters. */
-  params    = Wasm.paramTypes(source),
+  params    = wasm.paramTypes(source),
   /** Commitment phase (compile-time) parameters rendered to form fields. */
   fields    = Object.entries(params).map(ArgField({ id, users, kind: 'Parameter: ' })),
   /** UTXOs of currently compiled P2TR. */
@@ -371,7 +366,7 @@ function ProgramEditor (id: string, source: string, {
     const user = users.find(x=>x.pubkey === sender.select.value);
     if (!user) throw Err(`not our pubkey: ${user}`);
     const tx = await preview1({ p2tr });
-    console.log({ tx });
+    console.log({ commit: { tx } });
   }),
 
   /** Redeem transaction is built here. */
@@ -383,7 +378,7 @@ function ProgramEditor (id: string, source: string, {
   /** Amount to redeem from program. Needs to be specified to obtain sighash. */
   redeemed  = InputAmount(()=> preview2(), 1234),
   /** Redemption phase (evaluation-time) arguments. */
-  witTypes  = Wasm.witnessTypes(source),
+  witTypes  = wasm.witnessTypes(source),
   /** Redemption phase (evaluation-time) arguments rendered to form fields. */
   witness   = Object.entries(witTypes).map(ArgField({ id, users, kind: 'Witness: ' })),
   /** Derived from PSET a.k.a. PSBT a.k.a. PartiallySignedTransaction */
@@ -408,7 +403,7 @@ function compileProgram (id: string, source: string, {
   compiler, errors, address, instances, preview, params
 }) {
   return ErrorBoundaryAsync(errors, async () => {
-    //const { default: Wasm } = await import('./wasm.ts');
+    //const { default: wasm } = await import('./wasm.ts');
     errors.innerText = '';
     errors.style.display = 'none';
     const args = collectParams(id, params);
@@ -424,88 +419,49 @@ function compileProgram (id: string, source: string, {
 }
 
 const TxPreview = ({
-  users     = [],
-  esplora   = null,
-  amount    = null,
-  address   = null,
-  sender    = null,
-  tx        = new Transaction(),
-  inputs    = Html(['ul.inputs']).firstChild as HTMLElement,
-  outputs   = Html(['ul.outputs']).firstChild as HTMLElement,
-  network   = { bech32: 'tex', blech32: 'tlq', pubKeyHash: 36, scriptHash: 19, wif: 0xef },
-  addInput  = (name: string, address: string, script: Bytes, txid: string, index: number, value: string|number|bigint) => {
-    tx.addInput({ txid, index, witnessUtxo: { amount: BigInt(value), script } });
-    if (inputs) ;
-  },
-  addOutput = (name: string, address: string, value: string|number|bigint) => {
-    tx.addOutputAddress(address, BigInt(value), network);
-    if (outputs)
-      Html.append(outputs, Html(['li', ['strong', name], Amount({ value }), ['span', ' to '], Address({ address })]).firstChild);
-  },
-  addFee    = (name: string, value: string|number|bigint) => {
-    //tx.addOutputAddress(addr, BigInt(value), network);
-    if (outputs)
-      Html.append(outputs, Html(['li', ['strong', name], Amount({ value })]).firstChild);
-  },
-  update = async function updateTxPreview ({
+  users   = [],
+  esplora = null,
+  amount  = null,
+  address = null,
+  sender  = null,
+  hexedit = Html(['div.hex']).firstChild as HTMLElement,
+  inputs  = Html(['ul.inputs']).firstChild as HTMLElement,
+  outputs = Html(['ul.outputs']).firstChild as HTMLElement,
+  update  = async function updateTxPreview ({
     user  = sender?.select?.value,
     p2tr  = address?.value,
     value = amount?.value,
-    fee   = 1000,
+    fee   = 2000,
   } = {}) {
     if (inputs)  inputs.innerHTML  = '';
     if (outputs) outputs.innerHTML = '';
-    tx = new Transaction();
     const foundUser = (users.find(x=>x.pubkey === user)||{});
     if (foundUser) {
-      const { pubkey, signTxIn, p2wpkh: { address, script } } = foundUser;
+      const { p2wpkh: { address, script } } = foundUser;
       const utxos = await esplora.getAddressUtxos(address);
       if (utxos.length < 1) throw Err(`fund the address first: ${address}`);
       const utxo = utxos[0];
       const previous = await esplora.getTxHex(utxo.txid) // PERF: wasm can just take the utxo
       const sender = users.find(x=>x.pubkey === user)?.p2wpkh?.address;
       if (p2tr) {
-        const recipient = p2tr;
-        const amount    = BigInt(value);
-        const fee       = BigInt(2000);
-        const options   = { previous, sender, recipient, amount, fee };
-        const psbt      = Wasm.splitPsbt(options);
-        console.log({ options });
-        console.log({ psbt });
-        //console.log({ tx: Wasm.tx(psbt) });
-        console.log({ pset: Wasm.pset(psbt) });
-        console.log({ tx: Wasm.psetToTx(psbt) });
-        console.log({ signer: foundUser.signer });
-        const signed    = Wasm.splitPsbtSigned(options, foundUser.signer);
-        console.log({signed});
-        //psbt.inputs[0].partial_sigs[pubkey] = foundUser.signer.signEcdsaRaw(
-        //const tx        = Wasm.extractTx(psbt);
-        const xtx = Transaction.fromRaw(Wasm.psetToTx(psbt).bytes);
-        console.log({xtx});
-        Html.append(inputs, Html(['li', ['strong', 'Input:'], Amount({ value: utxo.value }), ['span', ' from '], Address({ address })]).firstChild);
-        for (const output of psbt.outputs) {
+        const opts = { previous, sender, recipient: p2tr, amount: BigInt(value), fee: BigInt(fee) };
+        const unsigned = wasm.splitPsbt(opts);
+        Html.append(inputs, Html(['li', ['strong', 'Input:'],
+          Amount({ value: utxo.value }), ['span', ' from '], Address({ address })]).firstChild);
+        for (const output of unsigned.outputs) {
           const name = (output.script_pubkey == "") ? 'Fee: ' : (output.script_pubkey == script) ? 'Change: ' : 'Commit: ';
-          Html.append(outputs, Html(['li', ['strong', name], Amount({ value: output.amount })]).firstChild)
+          Html.append(outputs, Html(['li', ['strong', name],
+            Amount({ value: output.amount })]).firstChild)
         }
-        //const utxoValue   = BigInt(utxo.value);
-        //const sendValue   = BigInt(value);
-        //const feeValue    = BigInt(fee);
-        //const changeValue = utxoValue - (sendValue + feeValue);
-        //addInput('Input: ', address, script, utxo.txid, utxo.vout, utxoValue);
-        //addOutput('Program: ', p2tr, sendValue);
-        //if (changeValue !== 0n) addOutput('Change: ', address, changeValue);
-        //addFee('Fee: ', feeValue);
-        const tx = Transaction.fromRaw(Wasm.psetToTx(psbt).bytes);
-        if (!signTxIn(tx, 0)) throw Err(`failed to sign ${tx.inputs[0]} as ${user.name}`)
-        tx.finalize();
-        console.log('signed', tx.hex);
-        return tx;
+        const signed = wasm.splitPsbtSigned(foundUser.signer, opts);
+        hexedit.innerText = signed;
+        return signed;
       }
     }
   }
 }) => {
   update();
-  return Object.assign(update, { inputs, outputs });
+  return Object.assign(update, { inputs, outputs, hexedit });
 }
 
 const SelectUserWithBalance = (onchange = () => {}, {
