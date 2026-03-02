@@ -229,8 +229,8 @@ namespace Http {
     return JSON.parse(text)
   }
   /** Fetch textual response of HTTP request and parse it as JSON. */
-  export async function postBinary (url: string|URL, body: unknown) {
-    const result = await fetch(url, { method: 'POST', body: JSON.stringify(body) });
+  export async function postBinary (url: string|URL, body: BodyInit) {
+    const result = await fetch(url, { method: 'POST', body });
     const text = await result.text();
     const code = result.status;
     if (code !== 200) {

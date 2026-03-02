@@ -411,7 +411,7 @@ export function Esplora ({ url }: { url: string|URL }): Esplora {
     getAddressTxs:     (ad: string) => Http.fetchJson(`${url}/address/${encodeURIComponent(ad)}/txs`),
     getTxInfo:         (id: string) => Http.fetchJson(`${url}/tx/${encodeURIComponent(id)}`),
     getTxHex:          (id: string) => Http.fetchText(`${url}/tx/${encodeURIComponent(id)}/hex`),
-    postTx:            (tx) => Http.postBinary(`${url}/tx`, tx),
+    postTx:            (tx: string) => Http.postBinary(`${url}/tx`, tx),
   }
 }
 
