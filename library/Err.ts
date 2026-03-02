@@ -41,7 +41,7 @@ export function alignTrace (line: string) {
   const format = (x: string, i: number) => (i===0) ? x.padEnd(36) : x;
   //const format = (x: string, i: number) => (i===0)
     //? bold(gray(2, x.padEnd(36))) : gray(4, x);
-  line = line.split(' (').map(format).join(gray(4, ' ('));
+  line = line.split(' (').map(format).join(' (');
   return line
 }
 

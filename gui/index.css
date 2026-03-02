@@ -1109,7 +1109,7 @@ pre.compile-errors {
   /*background: #f8f4;*/
   padding-bottom: 0.5rem;
   border-radius: 3px;
-  min-width: 65ch;
+  min-width: 69ch;
   input, select, button {
     border-radius: 3px;
     /*color: #fff;*/
@@ -1142,7 +1142,7 @@ pre.compile-errors {
       background: #fff8;
     }
     &.tx-preview {
-      padding-bottom: 0;
+      /*padding-bottom: 0;*/
       gap: 0;
     }
     &.pick-chain {
@@ -1210,15 +1210,20 @@ pre.compile-errors {
     display: flex;
     flex-flow: row nowrap;
     align-items: center;
-    padding: 0.25rem 0; gap: 1rem;
-    strong {
+    padding: 0.25rem 0;
+    gap: 0.5rem;
+    strong, span {
       min-width: auto;
       padding-left: 0;
       width: 6ch;
+      font-size: 1.125rem;
+    }
+    strong {
+      font-weight: 500;
     }
     input {
       padding: 0 0.5rem !important;
-      /*text-align: right;*/
+      text-align: right;
     }
   }
 }

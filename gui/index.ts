@@ -19,37 +19,44 @@ import { zipSync, strToU8 as zipStr } from 'npm:fflate';
 import Wasm                           from './wasm.ts';
 import { Labels, Texts, Icon }        from './cons.ts';
 
-type App  = ReturnType<typeof App>;
-type User = ReturnType<typeof User>;
+const chain = Bitcoin.LiquidTestnet(); // Chain handle (initialized once) FIXME redundant
 
-const chain = Bitcoin.LiquidTestnet(); // Chain handle (initialized once)
-const nonSecret = (n: number) => new Uint8Array(new Array(32).fill(n));
-const usersByName   = {};
-
-/** Launch the editor and user views. */
+/** Launch the Fadroma IDE in a set of HTML roots.
+ *
+ * @param {object}  options
+ * @param {boolean} options.btc         - Enable Bitcoin integrations.
+ * @param {boolean} options.nix         - Provide Nix shell with project.
+ * @param {boolean} options.direnv      - Auto-activate Nix shell.
+ * @param {boolean} options.elements    - Include elementsd in Nix shell.
+ * @param {boolean} options.node        - Include Node.js packaging.
+ * @param {boolean} options.deno        - Include Deno packaging.
+ * @param {boolean} options.chainsView  - Host element for chains view.
+ * @param {boolean} options.editorView  - Host element for developer view .
+ * @param {boolean} options.usersView   - Host element for user view.
+ * @param {boolean} options.projectView - Host element for project view. */
 export default function App ({
-  /** Integrate with Bitcoin ecosystem */
-  btc      = true,
-  /** Provide Nix shell with project. */
-  nix      = true,
-  /** Auto-activate Nix shell. */
-  direnv   = nix,
-  /** Include Elements in Nix shell. */
-  elements = nix,
-  /** Make the repo a Node.js package. */
-  node     = false,
-  /** Make the repo a Deno environment. */
-  deno     = true,
-  /** Host element for chains view */
-  chainsView = Html.id("chains"),
-  /** Host element for developer view */
-  editorView = Html.id("editors"),
-  /** Host element for user view */
-  usersView  = Html.id("users"),
+  btc         = true,
+  nix         = true,
+  direnv      = nix,
+  elements    = nix,
+  node        = false,
+  deno        = true,
+  chainsView  = Html.id("chains"),
+  editorView  = Html.id("editors"),
+  usersView   = Html.id("users"),
+  projectView = Html.id("identities"), // FIXME descriptive id
+  /** Create user card, retrieving balance. */
+  addUser = (...[name, options]: Parameters<typeof User>): User => {
+    const user = User(name, options);
+    user.balance().then(value => console.debug(user, value));
+    return user;
+  },
   /** Example users. */
-  users = [addUser('Alice', { secret: nonSecret(1) }),
-           addUser('Bob',   { secret: nonSecret(2) }),
-           addUser('Carol', { secret: nonSecret(3) })],
+  users = [
+    addUser('Alice', { secret: nonSecret(1) }),
+    addUser('Bob',   { secret: nonSecret(2) }),
+    addUser('Carol', { secret: nonSecret(3) })
+  ],
 } = {}) {
   chainsView.innerHTML = '';
   usersView.innerHTML = '';
@@ -58,11 +65,17 @@ export default function App ({
       () => Editor(editorView, { users })), // FIXME: must precede Users to populate pickers
     users: ErrorBoundary(usersView, () => {
       for (const user of users) Html.append(usersView, user.view());
-      for (const select of userSelectors()) initUserPicker(select, users);
+      // Retrieve all user selectors, to update them with the latest user list. */
+      const selectors = document.querySelectorAll('select.pick-user');
+      for (const select of selectors as unknown as HTMLSelectElement[]) {
+        select.innerHTML = '';
+        for (const user of usersToOptions(users)) select.appendChild(user);
+        if (select.onchange) select.onchange(null);
+      }
       return Object.assign(usersView, { users })
     }),
-    chainsView:  Chains(chainsView),
-    projectView: Html.append(Html.id('identities'), Section(
+    chainsView: Chains(chainsView),
+    projectView: Html.append(projectView, Section(
       { className: 'layer project' },
       ['div.col.grow.files.gap',
         ['div', ['h2', 'Project template:'], Texts.DownloadProject],
@@ -80,17 +93,28 @@ export default function App ({
   return state;
 }
 
-const userSelectors = (host = document) =>
-  host.querySelectorAll('select.pick-user') as unknown as HTMLSelectElement[];
-
-const addUser = (...[name, options]: Parameters<typeof User>): User => {
-  const user = User(name, options);
-  user.balance().then(value => console.debug(user, value));
-  return user;
-}
+/** User, as represented in the interface. */
+export interface User {
+  /** Human-friendly name. */
+  name: string
+  /** Main address of user. */
+  p2wpkh: { address: string, script: Bytes }
+  /** Public key of user. */
+  pubkey: string
+  /** X-Only (tweaked?) public key of user. */
+  pubkeyX: string
+  /** Can sign data with hidden secret key of user. */
+  signer: ReturnType<typeof Wasm.keypair>
+  /** Render the user card. */
+  view (): DocumentFragment
+  /** Balance at init. */
+  balance (): Promise<bigint>
+  /** Sign a particular input of a transaction. */
+  signTxIn: Fn
+};
 
 /** Create and dispay a user card. */
-const User = (name: string, {
+export function User (name: string, {
   secret   = null,
   signer   = Wasm.keypair(secret),
   pubkey   = pubECDSA(secret),
@@ -113,37 +137,14 @@ const User = (name: string, {
     }
     return value
   })
-} = {}) => ({
-  name,
-  signer,
-  p2wpkh,
-  view,
-  balance,
-  signTxIn,
-  pubkey:  Base16.encode(pubkey),
-  pubkeyX: Base16.encode(pubkeyX)
-} as {
-  /** Human-friendly name. */
-  name: string
-  /** Main address of user. */
-  p2wpkh: { address: string, script: Bytes }
-  /** Public key of user. */
-  pubkey: string
-  /** X-Only (tweaked?) public key of user. */
-  pubkeyX: string
-  /** Can sign data with hidden secret key of user. */
-  signer: ReturnType<typeof Wasm.keypair>
-  /** Render the user card. */
-  view (): DocumentFragment
-  /** Balance at init. */
-  balance (): Promise<bigint>
-});
-
-const initUserPicker = (select: HTMLSelectElement, users: User[]) => {
-  select.innerHTML = '';
-  for (const user of usersToOptions(users)) select.appendChild(user);
-  if (select.onchange) select.onchange(null);
-};
+} = {}): User {
+  return {
+    name, signer, p2wpkh,
+    view, balance, signTxIn,
+    pubkey:  Base16.encode(pubkey),
+    pubkeyX: Base16.encode(pubkeyX)
+  };
+}
 
 const usersToOptions = (users = [], value = (user: User) => user.pubkey) => users.map(user=>
   Html(['option', { value: value(user) }, ['strong', user.name], ` (${user.p2wpkh.address})`]).firstChild);
@@ -235,16 +236,9 @@ const Chains = (view = Html.id("chains"), {
 const Editor = (host: HTMLElement, {
   users     = [],
   header    = Section({ className: 'layer', }, Texts.SIMPLICITYHL),
-  programs  = Section({ className: 'layer programs col' }, examplePrograms({ users })),
+  programs  = Section({ className: 'layer programs col' }, ExamplePrograms({ users })),
   empty     = ['ul.instances', ['div.empty', ['strong', 'No deployed programs!'], ' ', Texts.NO_DEPLOYS]],
   instances = Section({ className: 'phase' }, ['div.row.gap.field.file', empty]),
-  amount    = Label('Amount:', Input({ type: 'number' }), { value: '1234' }), // FIXME witness field
-  sighash   = InputSigHash(), // FIXME generate
-  witness   = ProgramForm('simf-witness', Texts.WitnessTitle, InputBalance(), Select.Recipient(), amount, sighash),
-  signer    = Select.Signer({ name: 'witness::SIG' }).view,
-  redeemTx  = Label('TX bytes:', Input(), Label('Redeem TX:', Button('redeem'))),
-  redeem    = ProgramForm('simf-redeem',  Texts.RedeemTitle, signer, redeemTx),
-  consume   = Section({ className: 'phase-form' }, witness, redeem),
 } = {}) => {
   host.innerText = '';
   setTimeout(function initEditors () {
@@ -307,65 +301,128 @@ function monacoOptions (language: string, model: Monaco.editor.ITextModel) {
 
 const EditableProgram = async (name: string, source: string) => {
   source = source.split('\n').map((line, index)=>(index > 0)?line.slice(2):line).join('\n');
-  const view = ({ users = [], host = document.createElement('div') as HTMLElement } = {}) =>
-    Html.replace(host, Html(ProgramEditor({ id: `src/${name}.simf`, source, open: true, users })));
-  return { name, source, view }
+  return { name, source, view: initEditableProgram }
+  function initEditableProgram ({
+    host = document.createElement('div') as HTMLElement, open = true, users = [],
+  } = {}) {
+    const editor = Html(ProgramEditor(`src/${name}.simf`, source, { users, open }));;
+    return Html.replace(host, editor);
+  }
 };
 
-const ProgramEditor = ({
-  id,
-  source,
-  esplora  = chain.esplora,
-  open     = false,
-  users    = [],
-  errors   = Html(['pre.compile-errors.collapsible']).firstChild as HTMLElement,
-  params   = Wasm.params(source),
-  fields   = Object.entries(params).map(ProgramField({ id, users, kind: 'Parameter: ' })),
-  compiler = Wasm.compiler({ chain: chain.ID, genesis: chain.GENESIS }),
-  address  = InputP2TR(() => preview()),
-  amount   = Input({ className: 'balance', type: 'number', value: '2345' }),
-  inputs   = Html(['ul.inputs']).firstChild,
-  outputs  = Html(['ul.outputs']).firstChild,
-  balance  = InputBalance({ label: ['strong', 'Balance:'], address: users[0]?.p2wpkh.address }),
-  sender   = SelectSender({ balance, chain, users, onchange: () => preview() }),
-  preview  = TxPreview({ users, esplora, inputs, outputs, amount, address, sender }),
-  button   = CompileButton(id, { params, compiler, source, address, errors, preview }),
-  stage1   = ProgramForm('simf-compile', ['h3', 'Step 1. Compile program.'], SelectChain(), ...fields, button),
-  commit   = CommitButton(id, { users, params, compiler, source, errors, preview, amount, sender: sender.select }),
-  title2   = ['label', ['div.row', ['label', ['strong', 'Sender:'], sender.select], balance], sender.utxos],
-  stage2   = ProgramForm('simf-commit', ['h3', 'Step 2. Commit funds to address of program.'], title2, commit),
-}) => Field(id).open(open).content(TextArea(id, source)).content(errors)
-  .sidebar(['div.phase-form', stage1])
-  .sidebar(['div.phase-form', stage2])
-  .build();
+function ProgramEditor (id: string, source: string, {
+  users     = null,
+  chain     = Bitcoin.LiquidTestnet,
+  genesis   = chain.GENESIS, // TODO autofetch from block 0
+  compiler  = Wasm.compiler({ chain: chain.ID, genesis }),
+  esplora   = chain.esplora,
+  /** Whether the code editor starts out expanded. */
+  open      = false,
+  /** Error messages are displayed here. */
+  errors    = Html(['pre.compile-errors.collapsible']).firstChild as HTMLElement,
+  /** Wrap program form fields into container elemnent: */
+  form      = (id: string, ...rest: unknown[]) => [`div.program-form.col.grow#${id}`, ...rest],
+  /** Commit amount: up to balance of selected sender. */
+  amount    = InputAmount(() => preview1(), 2468),
+  /** Commit transaction target: program's P2TR address. */
+  address   = InputP2TR(() => preview1()),
+  /** Commit transaction sender: user-selectable. */
+  sender    = SelectUserWithBalance(() => preview1(), { chain, users }),
+  /** Commit transaction preview. */
+  preview1  = TxPreview({ users, esplora, amount, address, sender }),
+  /** Title for first half of commitment phase. */
+  title1    = ['h3', 'Step 1. Compile program.'],
+  /** Commitment phase (compile-time) parameters. */
+  params    = Wasm.paramTypes(source),
+  /** Commitment phase (compile-time) parameters rendered to form fields. */
+  fields    = Object.entries(params).map(ArgField({ id, users, kind: 'Parameter: ' })),
+  instances = UtxoList({ esplora: chain.esplora }),
+  compile   = () => ErrorBoundaryAsync(errors, async () => {
+    //const { default: Wasm } = await import('./wasm.ts');
+    errors.innerText = '';
+    errors.style.display = 'none';
+    const args = collectParams(id, params);
+    const prog = compiler.compile(source, { args });
+    const p2tr = prog.toJSON().p2tr;
+    address.value = p2tr;
+    preview1();
+    return await Promise.all([
+      instances.load(p2tr),
+      //getBalances(p2tr).then(value => balance.value = String(value)),
+    ])
+  }),
+  stage1    = form('simf-compile', title1,
+    SelectChain(),
+    ['label', ...fields],
+    ['label.col.gap.align-stretch',
+      ['label.align-end',
+        ['div.row.gap.align-center.justify-between',
+          ['div.col.grow', ['strong', 'Program address (P2TR):'], address],
+          Button('compile', () => compile())]],
+      instances,
+      errors]),
+  /** Title for second half of commitment phase. */
+  title2    = ['h3', 'Step 2. Commit funds to address of program.'],
+  deployer  = ['label', ['div.row', ['label', ['strong', 'Sender:'], sender.select], sender.balance] /*, sender.utxos*/],
+  stage2    = form('simf-commit', title2, deployer, ['label.tx-preview',
+    ['label.align-center.row', Label('Commit amount:', amount),
+    Button('commit', () => commit())],
+    preview1.inputs, preview1.outputs]),
+  commit    = () => ErrorBoundaryAsync(errors, async () => {
+    const args = collectParams(id, params);
+    const prog = compiler.compile(source, { args });
+    const p2tr = prog.toJSON().p2tr;
+    const user = users.find(x=>x.pubkey === sender.select.value);
+    if (!user) throw Err(`not our pubkey: ${user}`);
+    const tx = await preview1({ p2tr });
+    console.log({ tx });
+  }),
+
+  /** Redeem transaction is built here. */
+  preview2  = TxPreview({ users, esplora, amount, address, sender }),
+  /** Title for first half of redemption phase. */
+  title3    = ['h3', 'Step 3. Specify transaction and sign witness data to redeem funds.'],
+  /** Will receive funds from program. Needs to be specified to obtain sighash. */
+  receiver  = SelectUserWithBalance(() => preview2(), { chain, users }),
+  /** Amount to redeem from program. Needs to be specified to obtain sighash. */
+  redeemed  = InputAmount(()=> preview2(), 1234),
+  /** Redemption phase (evaluation-time) arguments. */
+  witTypes  = Wasm.witnessTypes(source),
+  /** Redemption phase (evaluation-time) arguments rendered to form fields. */
+  witness   = Object.entries(witTypes).map(ArgField({ id, users, kind: 'Witness: ' })),
+  /** Derived from PSET a.k.a. PSBT a.k.a. PartiallySignedTransaction */
+  sighash   = ['input', { placeholder: 'specify transaction to get its SIGHASH_ALL' }],
+  stage3    = form('simf-commit', title3,
+    ['label.row', ['div.col', ['strong', 'Receiver:'], receiver.select]],
+    ['label', ['strong', 'Sighash:'], sighash],
+    ['label.gap', ...witness],
+    ['label.row',
+      ['div.col', ['strong', 'Redeem amount:'], redeemed],
+      Button('redeem', () => {})]),
+
+} = {}) {
+  return Field(id).open(open).content(TextArea(id, source)).content(errors)
+    .sidebar(['div.phase-form', stage1])
+    .sidebar(['div.phase-form', stage2])
+    .sidebar(['div.phase-form', stage3])
+    .build();
+}
+
+const CompileSimf = (id: string, {
+  errors    = null,
+  source    = null,
+  address   = null,
+  preview   = null,
+  params    = null,
+  compiler  = null,
+  //balance  = Input({ disabled: 'disabled' }),
+} = {}) => init();
 
 const InputP2TR = (onchange?: Fn) =>
   Input({ onchange, placeholder: 'provide parameters and compile to get P2TR' });
 
-const CommitButton = (id: string, {
-  preview  = null,
-  errors   = null,
-  source   = null,
-  amount   = null,
-  users    = [],
-  params   = {},
-  chain    = Bitcoin.LiquidTestnet,
-  genesis  = chain.GENESIS, // TODO autofetch from block 0
-  compiler = Wasm.compiler({ chain: chain.ID, genesis }),
-  button   = Button('commit', () => commit()),
-  title    = ['label.align-center.row', Label('Commit amount:', amount), button],
-  view     = Html(['label.tx-preview', title, preview.inputs, preview.outputs]).firstChild,
-  sender   = null as HTMLInputElement,
-  init     = () => Object.assign(view, { commit, }),
-  commit   = () => ErrorBoundaryAsync(errors, async () => {
-    const args = collectParams(id, params);
-    const prog = compiler.compile(source, { args });
-    const p2tr = prog.toJSON().p2tr;
-    const user = users.find(x=>x.pubkey === sender.value);
-    if (!user) throw Err(`not our pubkey: ${user}`);
-    const tx = await preview({ user, p2tr });
-  })
-} = {}) => init();
+const InputAmount = (onchange?: Fn, value?: number) =>
+  Input({ className: 'balance', type: 'number', value, onchange });
 
 const Utxo = ({ txid, index }) => ['code', `tx ${txid} out ${index}`];
 
@@ -380,25 +437,25 @@ const TxPreview = ({
   esplora   = null,
   amount    = null,
   address   = null,
-  inputs    = null,
-  outputs   = null,
   sender    = null,
-  network   = { bech32: 'tex', blech32: 'tlq', pubKeyHash: 36, scriptHash: 19, wif: 0xef },
   tx        = new Transaction(),
+  inputs    = Html(['ul.inputs']).firstChild,
+  outputs   = Html(['ul.outputs']).firstChild,
+  network   = { bech32: 'tex', blech32: 'tlq', pubKeyHash: 36, scriptHash: 19, wif: 0xef },
   addInput  = (name: string, address: string, script: Bytes, txid: string, index: number, value: string|number|bigint) => {
     tx.addInput({ txid, index, witnessUtxo: { amount: BigInt(value), script } });
     if (inputs) Html.append(inputs,
-      Html(['li', ['strong', name], Amount({ value }), ' from ', Address({ address })]).firstChild);
+      Html(['li', ['strong', name], Amount({ value }), ['span', ' from '], Address({ address })]).firstChild);
   },
   addOutput = (name: string, address: string, value: string|number|bigint) => {
     tx.addOutputAddress(address, BigInt(value), network);
     if (outputs)
-      Html.append(outputs, Html(['li', ['strong', name], Amount({ value }), ' to ', Address({ address })]).firstChild);
+      Html.append(outputs, Html(['li', ['strong', name], Amount({ value }), ['span', ' to '], Address({ address })]).firstChild);
   },
   addFee    = (name: string, value: string|number|bigint) => {
     //tx.addOutputAddress(addr, BigInt(value), network);
     if (outputs)
-      Html.append(outputs, Html(['li', ['strong', name], Amount({ value }), ' to the network ']).firstChild);
+      Html.append(outputs, Html(['li', ['strong', name], Amount({ value })]).firstChild);
   },
   update = async function updateTxPreview ({
     user  = sender?.select?.value,
@@ -409,7 +466,7 @@ const TxPreview = ({
     if (inputs)  inputs.innerHTML  = '';
     if (outputs) outputs.innerHTML = '';
     tx = new Transaction();
-    const { address, script } = (users.find(x=>x.pubkey === user)||{}).p2wpkh;
+    const { signTxIn, p2wpkh: { address, script } } = (users.find(x=>x.pubkey === user)||{});
     if (address) {
       const utxos = await esplora.getAddressUtxos(address);
       if (utxos.length < 1) throw Err(`fund the address first: ${address}`);
@@ -423,60 +480,27 @@ const TxPreview = ({
         addOutput('Program: ', p2tr, sendValue);
         if (changeValue !== 0n) addOutput('Change: ', address, changeValue);
         addFee('Fee: ', feeValue);
-        if (!user.signTxIn(tx, 0)) throw Err(`failed to sign ${tx.inputs[0]} as ${user.name}`)
+        if (!signTxIn(tx, 0)) throw Err(`failed to sign ${tx.inputs[0]} as ${user.name}`)
         tx.finalize();
+        return tx;
       }
     }
-    return tx;
   }
 }) => {
   update();
   return Object.assign(update, { inputs, outputs });
 }
 
-const CompileButton = (id: string, {
-  errors   = null,
-  source   = null,
-  address  = null,
-  preview  = null,
-  params   = {},
-  chain    = Bitcoin.LiquidTestnet,
-  genesis  = chain.GENESIS, // TODO autofetch from block 0
-  compiler = Wasm.compiler({ chain: chain.ID, genesis }),
-  balance  = Input({ disabled: 'disabled' }),
-  utxos    = UtxoList({ esplora: chain.esplora }),
-  button   = Button('compile', () => compile()),
-  label    = ['strong', 'Program address (P2TR):'],
-  title    = ['div.row.gap.align-center.justify-between', label, button],
-  view     = Html(['label.col.gap.align-stretch', ['label.align-end', title, address], utxos, errors]).firstChild,
-  init     = () => Object.assign(view, { compile }),
-  compile  = () => ErrorBoundaryAsync(errors, async () => {
-    //const { default: Wasm } = await import('./wasm.ts');
-    errors.innerText = '';
-    errors.style.display = 'none';
-    const args = collectParams(id, params);
-    const prog = compiler.compile(source, { args });
-    const p2tr = prog.toJSON().p2tr;
-    address.value = p2tr;
-    preview();
-    return await Promise.all([
-      utxos.load(p2tr),
-      getBalances(p2tr).then(value => balance.value = String(value)),
-    ])
-  })
-} = {}) => init();
-
-const SelectSender = ({
-  chain    = null,
-  balance  = null,
-  onchange = () => {},
-  users    = [],
-  name     = 'Sender:',
-  utxos    = UtxoList({ esplora: chain.esplora }),
-  view     = Html(['div.col.select-sender', Label(name, ['select.pick-user']), balance]),
-  input    = view.querySelector('input'),
-  select   = Object.assign(view.querySelector('select'), { onchange: () => update() }),
-  update   = () => {
+const SelectUserWithBalance = (onchange = () => {}, {
+  chain   = null,
+  users   = [],
+  balance = InputBalance({ label: ['strong', 'Balance:'], address: users[0]?.p2wpkh.address }),
+  name    = 'Sender:',
+  utxos   = UtxoList({ esplora: chain.esplora }),
+  select  = SelectUser(() => update()),
+  view    = Html(['div.col.select-sender', Label(name, select), balance]),
+  input   = view.querySelector('input'),
+  update  = () => {
     const pubkey = select.value;
     select.innerHTML = '';
     for (const option of usersToOptions(users)) select.appendChild(option);
@@ -493,18 +517,20 @@ const SelectSender = ({
   },
 } = {}) => update();
 
-const ProgramField = ({ users, kind, id }) => ([name, type]) => {
+const SelectUser = (onchange?: Fn) => Object.assign(Html(['select.pick-user']).firstChild as HTMLSelectElement, {
+  onchange
+});
+
+const ArgField = ({ users, kind, id }) => ([name, type]) => {
   const label = `${kind}${name} (${type})`;
   console.log(label);
   if (type === 'u256') return SelectPubkeyX(`${id}:${name}`, { users, name: label }).view;
-  if (type === 'u32')  return InputAmount(`${id}:${name}`, label);
+  if (type === 'u32') return InputU32(`${id}:${name}`, label);
+  if (type === '[u8; 64]')  return InputU32(`${id}:${name}`, label); // FIXME signature
   console.warn(label);
 };
 
-const ProgramForm = (id: string, ...rest: unknown[]) =>
-  [`div.program-form.col.grow#${id}`, ...rest];
-
-const InputAmount = (id: string, name = 'Amount:') =>
+const InputU32 = (id: string, name = 'Amount:') =>
   ['label', ['strong', name], Input({ id })];
 
 const SelectPubkey = (id: string, {
@@ -540,7 +566,6 @@ const SelectPubkeyX = (id: string, {
     return { name, view, input, select, update };
   },
 } = {}) => update();
-
 
 const InputBalance = ({
   address = undefined,
@@ -589,35 +614,29 @@ const UtxoList = ({
   }
 }) => Object.assign(view, state());
 
-const examplePrograms = ({ users }) => ['div.files',
+const ExamplePrograms = Object.assign(({ users }) => ['div.files',
   ExamplePrograms.P2PK.view({ users }),
   ExamplePrograms.P2PKH.view({ users }),
   ExamplePrograms.HodlVault.view({ users })
-];
-
-const ExamplePrograms = {
+], {
   /** Empty program (always passes). */
-  Nop:         await EditableProgram('Nop', `fn main () {}`),
+  Nop:         await EditableProgram('Nop',         `fn main () {}`),
   /** Asserts truth (always passes but has different address from [Nop]). */
-  AssertTrue:  await EditableProgram('AssertTrue', `fn main () {
-    assert!(true);
-  }`),
+  AssertTrue:  await EditableProgram('AssertTrue',  `fn main () { assert!(true); }`),
   /** Asserts falsity (always fails). */
-  AssertFalse: await EditableProgram('AssertFalse', `fn main () {
-    assert!(false);
-  }`),
+  AssertFalse: await EditableProgram('AssertFalse', `fn main () { assert!(false); }`),
   /** Pay to public key: minimal witness program. */
   P2PK:        await EditableProgram('P2PK', `fn main () {
-    jet::bip_0340_verify((param::PUB, jet::sig_all_hash()), witness::SIG);
+    jet::bip_0340_verify((param::AUTHORITY, jet::sig_all_hash()), witness::SIGNATURE);
   }`),
   /** Pay to public key: minimal witness program. */
   P2PKH:       await EditableProgram('P2PKH', `fn main () {
-    let pubkey: Pubkey = witness::PUB;
+    let pubkey: Pubkey = witness::AUTHORITY;
     let hasher: Ctx8 = jet::sha_256_ctx_8_init();
     let hasher: Ctx8 = jet::sha_256_ctx_8_add_32(hasher, pubkey);
     let hash:   u256 = jet::sha_256_ctx_8_finalize(hasher);
-    assert!(jet::eq_256(hash, param::PKH));
-    jet::bip_0340_verify((pubkey, jet::sig_all_hash()), witness::SIG);
+    assert!(jet::eq_256(hash, param::HASH));
+    jet::bip_0340_verify((pubkey, jet::sig_all_hash()), witness::SIGNATURE);
   }\n`),
   /** Hodl vault: prototype workhorse. */
   HodlVault:   await EditableProgram('HodlVault', `fn main () {
@@ -635,16 +654,20 @@ const ExamplePrograms = {
     jet::bip_0340_verify((param::ORACLE, msg), witness::ORACLE);
     jet::bip_0340_verify((param::OWNER, jet::sig_all_hash()), witness::OWNER);
   }\n`),
-};
+});
+
 function Section (...content: unknown[]): DocumentFragment {
   return Html(['section', ...content]) as DocumentFragment;
 }
+
 function Label (text: string, ...content: unknown[]): HTMLLabelElement {
   return Html(['label', ['strong', text], ...content]).firstChild as HTMLLabelElement
 }
+
 function Button (id: keyof typeof Button.Labels, onclick = () => {}): HTMLButtonElement {
   return Html(['button', Labels[id], { id, onclick }]).firstChild as HTMLButtonElement; // FIXME don't default to DocumentFragment
 }
+
 function Field (id: string, { open = false, header = [], content = [], sidebar = [] } = {}) {
   return {
     id,
@@ -660,6 +683,7 @@ function Field (id: string, { open = false, header = [], content = [], sidebar =
           ['div.field-sidebar', ...sidebar]]]),
   }
 }
+
 namespace Field {
   export const Wrapper = (id: string, collapsed: boolean, ...rest: unknown[]) =>
     ([`div.field.file${collapsed?'.collapsed':''}#${id}[data-path=${id}]`, ...rest]);
@@ -697,34 +721,24 @@ namespace Field {
     return textarea;
   };
 }
+
 function TextArea (id: string, ...content: string[]) {
   return [`textarea.collapsible#text:${id}`,
     {autocomplete: "off", autocorrect: "off", autocapitalize: "off", spellcheck: false},
     content.filter(x=>typeof x === 'string').join('\n')];
 }
-const Input = (...args: unknown[]): HTMLInputElement =>
-  Html(['input', ...args]).firstChild as HTMLInputElement;
-const InputTitle = () =>
-  ['input.project-title[type=text]#title', { placeholder: 'name your project' }];
-const InputSigHash = () =>
-  ['label.gap', ['strong', 'Sign hash:'], ['input']]
+
+const Input = (...args: unknown[]): HTMLInputElement => Html(['input', ...args]).firstChild as HTMLInputElement;
+const InputTitle = () => ['input.project-title[type=text]#title', { placeholder: 'name your project' }];
+const InputSigHash = () => ['label.gap', ['strong', 'Sign hash:'], ['input']]
+
 function Select () { /* TODO */ }
+
 function SelectChain () {
   return ['label.pick-chain', ['strong', 'Chain:'], ['select.pick-chain', ['option', 'liquidtestnet'], ['option', { disabled: true }, 'elementsregtest']]];
 }
+
 namespace Select {
-  export function Recipient () {
-    return ['label', ['strong', 'Recipient:'], ['select.pick-user']]
-  }
-  export function Program ({
-    view = Html(['label', ['strong', 'Program:'], ['select.pick-program',
-      ['option', 'Nop'], ['option', 'AssertTrue'], ['option', 'AssertFalse'],
-      ['option', {'selected': true}, 'P2PK'], ['option', 'P2PKH'], ['option', 'HodlVault']]]).firstChild
-  } = {}) {
-    const select = view.querySelector('select');
-    select.onchange = () => document.getElementById('compile')?.click();
-    return view
-  }
   export interface Update {
     update (_: Partial<this>): this
   }
@@ -737,6 +751,18 @@ namespace Select {
   export interface Sender extends Select.WithInput { balance: HTMLElement }
   export interface Pubkey extends Select.WithInput {}
   export interface Signer extends Select.WithInput {}
+  export function Recipient () {
+    return ['label', ['strong', 'Recipient:'], ['select.pick-user']]
+  }
+  export function Program ({
+    view = Html(['label', ['strong', 'Program:'], ['select.pick-program',
+      ['option', 'Nop'], ['option', 'AssertTrue'], ['option', 'AssertFalse'],
+      ['option', {'selected': true}, 'P2PK'], ['option', 'P2PKH'], ['option', 'HodlVault']]]).firstChild
+  } = {}) {
+    const select = view.querySelector('select');
+    select.onchange = () => document.getElementById('compile')?.click();
+    return view
+  }
   export function Signer ({
     name   = null as string,
     update = (state: Select.Pubkey) => { console.error('Select.Signer: provide sighash first!'); return state },
@@ -754,6 +780,7 @@ namespace Select {
     ['option', 'GPL 3.0 only'],
     ['option', 'Closed source (inquire)']];
 }
+
 async function getBalances (
   address: string,
   chain = Bitcoin.LiquidTestnet(),
@@ -769,6 +796,7 @@ async function getBalances (
 function ES (id: string, ...content: string[]) {
   return Field(id).content(TextArea(id, ...content)).build()
 }
+
 namespace ES {
   export function Import (mod: string, ...items: (string|false|null)[]) {
     items = items.filter(x=>(typeof x === 'string'))
@@ -835,6 +863,7 @@ namespace ES {
     `}`,
   );
 }
+
 function Nix ({ nix, elements }) {
   return nix && Field.Text("shell.nix",
     `#!/usr/bin/env nix-shell`,
@@ -860,33 +889,7 @@ function Nix ({ nix, elements }) {
       : []),
     `\n]; }`);
 }
-function loadRepository ({
-  view: _1 = null as DocumentFragment,
-  url:  _2 = null as string|URL,
-} = {}) {
-  /* TODO */
-}
-function downloadProjectTemplate ({
-  title   = textVal('title') || 'simplicityhl-starter-fadroma',
-  license = textVal('license'),
-  archive = {},
-  initGit = true,
-  initNix = true, // FIXME
-}) {
-  // Collect values of editors
-  for (const el of Html.id("editors").querySelectorAll('[data-path]') as unknown as HTMLElement[]) {
-    archive[el.dataset.path] = zipStr(el.querySelector('textarea')?.value);
-  };
-  // Set attributes of files
-  const makeExecutable = (x: string) => {
-    if (archive[x]) archive[x] = [archive[x], { os: 3, attrs: 0o755 << 16 }];
-  };
-  if (initGit) addGit(archive)
-  if (initNix) makeExecutable('shell.nix');
-  makeExecutable('index.ts');
-  makeExecutable('test.ts');
-  download(`${+new Date()}-${title}.zip`, 'application/zip', zipSync(archive))
-}
+
 function addGit (archive = {}) {
   // Add empty Git repo
   archive['.git/objects']     = { info:  {}, pack: {} };
@@ -947,11 +950,8 @@ async function loadDocs (href: string) {
 }
 
 const checked = (id: string) => !!(Html.id(id) as HTMLInputElement)?.checked;
-
 const textVal = (id: string) => (Html.id(id) as HTMLInputElement)?.value?.trim();
-
 const byteVal = (id: string) => (Html.id(id) as HTMLInputElement)?.value?.trim() as unknown as Bytes; // FIXME
-
 
 function pinSize <T> (el: HTMLElement, cb: Fn<[number, number], T>) {
   const { offsetWidth: width, offsetHeight: height } = el;
@@ -977,184 +977,30 @@ function download (name: string, type: string, ...parts: unknown[]) {
   document.body.removeChild(link);
 }
 
-export async function Nav () {
-  Html.on(Html.id("navbar"), "click", navigate);
-  Html.on(document.body, "click", ({ target }) => {
-    while (target !== document.body) {
-      //console.log(...target.classList)
-      if (target.classList.contains('scroll-to')) {
-        const y = target.offsetTop - 100;
-        if (window.scrollY < y) scrollTo(Math.max(0, y));
-        //console.log(target.offsetHeight, target.offsetTop, window.innerHeight, window.scrollY);
-        break;
-      }
-      target = target.parentElement
-    }
-  })
+function downloadProjectTemplate ({
+  title   = textVal('title') || 'simplicityhl-starter-fadroma',
+  license = textVal('license'),
+  archive = {},
+  initGit = true,
+  initNix = true, // FIXME
+}) {
+  // Collect values of editors
+  for (const el of Html.id("editors").querySelectorAll('[data-path]') as unknown as HTMLElement[]) {
+    archive[el.dataset.path] = zipStr(el.querySelector('textarea')?.value);
+  };
+  // Set attributes of files
+  const makeExecutable = (x: string) => {
+    if (archive[x]) archive[x] = [archive[x], { os: 3, attrs: 0o755 << 16 }];
+  };
+  if (initGit) addGit(archive)
+  if (initNix) makeExecutable('shell.nix');
+  makeExecutable('index.ts');
+  makeExecutable('test.ts');
+  download(`${+new Date()}-${title}.zip`, 'application/zip', zipSync(archive))
 }
 
-async function navigate (e: Event) {
-  let target = e.target as HTMLElement;
-  do {
-    if (target.dataset.action) switch (target.dataset.action) {
-      case 'new':  e.preventDefault(); return Editor();
-      case 'load': e.preventDefault(); return Editor.load();
-      case 'save': e.preventDefault(); return Editor.save();
-      case 'docs': e.preventDefault(); return loadDocs("/docs/deno/index.html");
-      default: return;
-    }
-    target = target.parentElement;
-  } while (target && target !== e.currentTarget);
-}
-
-async function P2P ({
-  room      = 'fadroma',
-  name      = 'unnamed',
-  driver    = new P2P.NatsDriver(),
-  receiver  = new Receiver({ driver }),
-  sender    = new Sender({ driver }),
-  root      = document.getElementById('identities'),
-  onConnect = (e: unknown) => { console.debug('connect', e); root.innerText += JSON.stringify([e.name, e.detail]); },
-  onDispose = (e: unknown) => { console.debug('dispose', e); root.innerText += JSON.stringify([e.name, e.detail]); },
-  onMessage = (e: unknown) => { console.debug('message', e); root.innerText += JSON.stringify([e.name, e.detail]); },
-  onStream  = (e: unknown) => { console.log('stream', e); },
-} = {}): Promise<P2P> {
-  await driver.open(room);
-  receiver.start({ room });
-  receiver.addEventListener('stream',  onStream);
-  receiver.addEventListener('connect', onConnect);
-  receiver.addEventListener('dispose', onDispose);
-  receiver.addEventListener('channel:message', onMessage);
-  sender.start({ room, channels: { chat: { ordered: true }, }, metadata: { pid: `${+ new Date()}`, nickname: name }, });
-  const context = { room, driver, receiver, sender, send };
-  return context;
-  function send (message: unknown) {
-    console.log('send', name, message, sender.connections);
-    sender.connections.forEach((conn) => {
-      console.log('send', name, message, conn);
-      const channel = conn.channels.get('chat');
-      if (channel && channel.readyState === 'open') {
-        channel.send({ name, message });
-      }
-    });
-  }
-}
-
-interface P2P {
-  room:     string,
-  driver:   P2P.NatsDriver,
-  receiver: Receiver,
-  sender:   Sender,
-}
-
-namespace P2P {
-  // https://github.com/meefik/p2p/blob/59db42553fe46b24c07821ef8e4f184e4eb41427/LICENSE
-
-  const sc = StringCodec();
-
-  const sha256 = async (msg) => {
-    const data = new TextEncoder().encode(msg);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hashBuffer))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-  };
-
-  const createEncryptionKey = async (secret) => {
-    const secretHash = await crypto.subtle.digest(
-      'SHA-256',
-      new TextEncoder().encode(secret),
-    );
-    return await crypto.subtle.importKey(
-      'raw',
-      secretHash,
-      { name: 'AES-GCM' },
-      false,
-      ['encrypt', 'decrypt'],
-    );
-  };
-
-  const encrypt = async (payload, cryptoKey) => {
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const ciphertext = new Uint8Array(
-      await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, cryptoKey, payload),
-    );
-    const data = new Uint8Array(iv.byteLength + ciphertext.byteLength);
-    data.set(iv, 0);
-    data.set(ciphertext, iv.byteLength);
-    return data;
-  };
-
-  const decrypt = async (data, cryptoKey) => {
-    const iv = data.slice(0, 12);
-    const ct = data.slice(12);
-    const payload = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, cryptoKey, ct);
-    return payload;
-  };
-
-  export class NatsDriver extends Map {
-    cryptoKey
-    servers
-    nc
-    constructor({ servers = undefined } = {}) {
-      super();
-      this.servers = servers || ['wss://demo.nats.io:8443'];
-    }
-
-    async open(secret) {
-      this.nc = await connect({ servers: this.servers, noEcho: true });
-      if (secret) {
-        this.cryptoKey = await createEncryptionKey(secret);
-      }
-    }
-
-    async close() {
-      await this.nc.drain();
-    }
-
-    async on(namespace, handler) {
-      const ns = await sha256(namespace.join(':'));
-      const sub = this.nc.subscribe(ns, {
-        callback: async (err, msg) => {
-          if (err) {
-            console.error(err);
-            return;
-          }
-          let data = msg.data;
-          if (this.cryptoKey) {
-            data = await decrypt(data, this.cryptoKey);
-          }
-          const payload = JSON.parse(sc.decode(data));
-          handler(payload);
-        },
-      });
-      if (!this.has(ns)) {
-        this.set(ns, new Map());
-      }
-      this.get(ns).set(handler, sub);
-    }
-
-    async off(namespace, handler) {
-      const ns = await sha256(namespace.join(':'));
-      const sub = this.get(ns)?.get(handler);
-      if (sub) {
-        sub.unsubscribe();
-        this.get(ns).delete(handler);
-      }
-      if (!this.get(ns)?.size) {
-        this.delete(ns);
-      }
-    }
-
-    async emit(namespace, message) {
-      const ns = await sha256(namespace.join(':'));
-      if (this.nc) {
-        let data = sc.encode(JSON.stringify(message));
-        if (this.cryptoKey) {
-          data = await encrypt(data, this.cryptoKey);
-        }
-        this.nc.publish(ns, data);
-      }
-    }
-  }
+/** INSECURE, TESTING/EXAMPLE USE ONLY: Generate private keys that are all 1s, all 2s... */
+function nonSecret (n: number) {
+  console.warn('INSECURE, TESTING/DEMO ONLY: Using non-private key.')
+  return new Uint8Array(new Array(32).fill(n));
 }
