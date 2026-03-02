@@ -326,7 +326,7 @@ function ProgramEditor (id: string, source: string, {
   amount    = InputAmount(() => preview1(), 2468),
   /** Commit transaction target: program's P2TR address. */
   address   = InputP2TR(() => preview1()),
-  /** Commit transaction sender: user-selectable. */
+  /** Commit transaction funder: user-selectable. */
   sender    = SelectUserWithBalance(() => preview1(), { chain, users }),
   /** Commit transaction preview. */
   preview1  = TxPreview({ users, esplora, amount, address, sender }),
@@ -336,38 +336,34 @@ function ProgramEditor (id: string, source: string, {
   params    = Wasm.paramTypes(source),
   /** Commitment phase (compile-time) parameters rendered to form fields. */
   fields    = Object.entries(params).map(ArgField({ id, users, kind: 'Parameter: ' })),
+  /** UTXOs of currently compiled P2TR. */
   instances = UtxoList({ esplora: chain.esplora }),
-  compile   = () => ErrorBoundaryAsync(errors, async () => {
-    //const { default: Wasm } = await import('./wasm.ts');
-    errors.innerText = '';
-    errors.style.display = 'none';
-    const args = collectParams(id, params);
-    const prog = compiler.compile(source, { args });
-    const p2tr = prog.toJSON().p2tr;
-    address.value = p2tr;
-    preview1();
-    return await Promise.all([
-      instances.load(p2tr),
-      //getBalances(p2tr).then(value => balance.value = String(value)),
-    ])
+  /** Try to compile the program, showing any errors to the user. */
+  compile   = () => compileProgram(id, source, {
+    compiler, errors, address, instances, params, preview: preview1
   }),
+  /** Compile form. */
   stage1    = form('simf-compile', title1,
     SelectChain(),
     ['label', ...fields],
-    ['label.col.gap.align-stretch',
+    ['label.col.align-stretch',
       ['label.align-end',
-        ['div.row.gap.align-center.justify-between',
+        ['div.row.gap.align-stretch.justify-between',
           ['div.col.grow', ['strong', 'Program address (P2TR):'], address],
           Button('compile', () => compile())]],
       instances,
       errors]),
   /** Title for second half of commitment phase. */
   title2    = ['h3', 'Step 2. Commit funds to address of program.'],
-  deployer  = ['label', ['div.row', ['label', ['strong', 'Sender:'], sender.select], sender.balance] /*, sender.utxos*/],
-  stage2    = form('simf-commit', title2, deployer, ['label.tx-preview',
-    ['label.align-center.row', Label('Commit amount:', amount),
-    Button('commit', () => commit())],
-    preview1.inputs, preview1.outputs]),
+  /** Commit form. */
+  stage2    = form('simf-commit', title2,
+    ['label',
+      ['div.row', ['label', ['strong', 'Sender:'], sender.select], sender.balance]/*, sender.utxos*/],
+    ['label.tx-preview',
+      ['label.align-stretch.row', Label('Commit amount:', amount), Button('commit', () => commit())],
+      preview1.inputs,
+      preview1.outputs]),
+  /** Perform the transaction which sends funds to the program. */
   commit    = () => ErrorBoundaryAsync(errors, async () => {
     const args = collectParams(id, params);
     const prog = compiler.compile(source, { args });
@@ -408,29 +404,24 @@ function ProgramEditor (id: string, source: string, {
     .build();
 }
 
-const CompileSimf = (id: string, {
-  errors    = null,
-  source    = null,
-  address   = null,
-  preview   = null,
-  params    = null,
-  compiler  = null,
-  //balance  = Input({ disabled: 'disabled' }),
-} = {}) => init();
-
-const InputP2TR = (onchange?: Fn) =>
-  Input({ onchange, placeholder: 'provide parameters and compile to get P2TR' });
-
-const InputAmount = (onchange?: Fn, value?: number) =>
-  Input({ className: 'balance', type: 'number', value, onchange });
-
-const Utxo = ({ txid, index }) => ['code', `tx ${txid} out ${index}`];
-
-const Address = ({ address }) => ['input[disabled]', { value: address }];
-
-const Txid = ({ txid }) => ['input[disabled]', { value: txid }];
-
-const Amount = ({ value }) => ['input[disabled]', { style: 'width:12ch; flex-grow: 0', value: String(value) }];
+function compileProgram (id: string, source: string, {
+  compiler, errors, address, instances, preview, params
+}) {
+  return ErrorBoundaryAsync(errors, async () => {
+    //const { default: Wasm } = await import('./wasm.ts');
+    errors.innerText = '';
+    errors.style.display = 'none';
+    const args = collectParams(id, params);
+    const prog = compiler.compile(source, { args });
+    const p2tr = prog.toJSON().p2tr;
+    address.value = p2tr;
+    preview();
+    return await Promise.all([
+      instances.load(p2tr),
+      //getBalances(p2tr).then(value => balance.value = String(value)),
+    ])
+  })
+}
 
 const TxPreview = ({
   users     = [],
@@ -439,13 +430,12 @@ const TxPreview = ({
   address   = null,
   sender    = null,
   tx        = new Transaction(),
-  inputs    = Html(['ul.inputs']).firstChild,
-  outputs   = Html(['ul.outputs']).firstChild,
+  inputs    = Html(['ul.inputs']).firstChild as HTMLElement,
+  outputs   = Html(['ul.outputs']).firstChild as HTMLElement,
   network   = { bech32: 'tex', blech32: 'tlq', pubKeyHash: 36, scriptHash: 19, wif: 0xef },
   addInput  = (name: string, address: string, script: Bytes, txid: string, index: number, value: string|number|bigint) => {
     tx.addInput({ txid, index, witnessUtxo: { amount: BigInt(value), script } });
-    if (inputs) Html.append(inputs,
-      Html(['li', ['strong', name], Amount({ value }), ['span', ' from '], Address({ address })]).firstChild);
+    if (inputs) ;
   },
   addOutput = (name: string, address: string, value: string|number|bigint) => {
     tx.addOutputAddress(address, BigInt(value), network);
@@ -466,22 +456,49 @@ const TxPreview = ({
     if (inputs)  inputs.innerHTML  = '';
     if (outputs) outputs.innerHTML = '';
     tx = new Transaction();
-    const { signTxIn, p2wpkh: { address, script } } = (users.find(x=>x.pubkey === user)||{});
-    if (address) {
+    const foundUser = (users.find(x=>x.pubkey === user)||{});
+    if (foundUser) {
+      const { pubkey, signTxIn, p2wpkh: { address, script } } = foundUser;
       const utxos = await esplora.getAddressUtxos(address);
       if (utxos.length < 1) throw Err(`fund the address first: ${address}`);
       const utxo = utxos[0];
+      const previous = await esplora.getTxHex(utxo.txid) // PERF: wasm can just take the utxo
+      const sender = users.find(x=>x.pubkey === user)?.p2wpkh?.address;
       if (p2tr) {
-        const utxoValue   = BigInt(utxo.value);
-        const sendValue   = BigInt(value);
-        const feeValue    = BigInt(fee);
-        const changeValue = utxoValue - (sendValue + feeValue);
-        addInput('Input: ', address, script, utxo.txid, utxo.vout, utxoValue);
-        addOutput('Program: ', p2tr, sendValue);
-        if (changeValue !== 0n) addOutput('Change: ', address, changeValue);
-        addFee('Fee: ', feeValue);
+        const recipient = p2tr;
+        const amount    = BigInt(value);
+        const fee       = BigInt(2000);
+        const options   = { previous, sender, recipient, amount, fee };
+        const psbt      = Wasm.splitPsbt(options);
+        console.log({ options });
+        console.log({ psbt });
+        //console.log({ tx: Wasm.tx(psbt) });
+        console.log({ pset: Wasm.pset(psbt) });
+        console.log({ tx: Wasm.psetToTx(psbt) });
+        console.log({ signer: foundUser.signer });
+        const signed    = Wasm.splitPsbtSigned(options, foundUser.signer);
+        console.log({signed});
+        //psbt.inputs[0].partial_sigs[pubkey] = foundUser.signer.signEcdsaRaw(
+        //const tx        = Wasm.extractTx(psbt);
+        const xtx = Transaction.fromRaw(Wasm.psetToTx(psbt).bytes);
+        console.log({xtx});
+        Html.append(inputs, Html(['li', ['strong', 'Input:'], Amount({ value: utxo.value }), ['span', ' from '], Address({ address })]).firstChild);
+        for (const output of psbt.outputs) {
+          const name = (output.script_pubkey == "") ? 'Fee: ' : (output.script_pubkey == script) ? 'Change: ' : 'Commit: ';
+          Html.append(outputs, Html(['li', ['strong', name], Amount({ value: output.amount })]).firstChild)
+        }
+        //const utxoValue   = BigInt(utxo.value);
+        //const sendValue   = BigInt(value);
+        //const feeValue    = BigInt(fee);
+        //const changeValue = utxoValue - (sendValue + feeValue);
+        //addInput('Input: ', address, script, utxo.txid, utxo.vout, utxoValue);
+        //addOutput('Program: ', p2tr, sendValue);
+        //if (changeValue !== 0n) addOutput('Change: ', address, changeValue);
+        //addFee('Fee: ', feeValue);
+        const tx = Transaction.fromRaw(Wasm.psetToTx(psbt).bytes);
         if (!signTxIn(tx, 0)) throw Err(`failed to sign ${tx.inputs[0]} as ${user.name}`)
         tx.finalize();
+        console.log('signed', tx.hex);
         return tx;
       }
     }
@@ -585,6 +602,20 @@ const collectParams = (id: string, params) => {
   };
   return args;
 }
+
+const InputP2TR = (onchange?: Fn) =>
+  Input({ onchange, placeholder: 'provide parameters and compile to get P2TR' });
+
+const InputAmount = (onchange?: Fn, value?: number) =>
+  Input({ className: 'balance', type: 'number', value, onchange });
+
+const Utxo = ({ txid, index }) => ['code', `tx ${txid} out ${index}`];
+
+const Address = ({ address }) => ['input[disabled]', { value: address }];
+
+const Txid = ({ txid }) => ['input[disabled]', { value: txid }];
+
+const Amount = ({ value }) => ['input[disabled]', { style: 'width:12ch; flex-grow: 0', value: String(value) }];
 
 const UtxoList = ({
   esplora,
