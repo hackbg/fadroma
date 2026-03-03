@@ -468,7 +468,7 @@ function UtxoList (onchange = () => {}, {
   address  = null,
   utxos    = [],
   view     = Html(['ul.utxos']).firstChild as HTMLElement,
-  selected = () => [...view.querySelectorAll('input[type=checkbox]')].filter(x=>x.checked),
+  selected = () => Array.from(view.querySelectorAll('input[type=checkbox]')).filter(x=>x.checked).map(x=>x.utxo),
   state    = () => ({ address, utxos, load, selected }),
   load     = (addr = address)=> {
     address = addr;
@@ -492,9 +492,17 @@ function UtxoList (onchange = () => {}, {
   return Object.assign(view, state());
 }
 
-const UtxoListItem = (onchange: Fn, utxo: Utxo) => Html(['li', ['label.row.grow',
-  Checkbox(onchange, { style: 'flex-grow: 0', id: `${utxo.txid}-${utxo.vout}` }), ['strong', 'UTXO '],
-  Amount(utxo), Txid(utxo), ['span.vout', '#', String(utxo.vout)]]]);
+const UtxoListItem = (onchange: Fn, utxo: Utxo, {
+  enable = Checkbox(onchange, { id: `${utxo.txid}-${utxo.vout}`, utxo }),
+  amount = Amount(utxo),
+  txid   = Txid(utxo),
+  vout   = ['span.vout', '#', String(utxo.vout)],
+  label  = ['label.row', { style: 'flex-grow: 0' }, enable, ['strong', 'UTXO ']],
+  view   = ['li', label, amount, txid, vout],
+} = {}) => {
+  const el = Html(view).firstChild as HTMLElement;
+  return el;
+}
 
 const Address = ({ address }) => ['input[disabled]', { value: address }];
 
@@ -502,7 +510,8 @@ const Txid = ({ txid }) => ['input[disabled]', { value: txid }];
 
 const Amount = ({ value }) => ['input[disabled]', { style: 'width:12ch; flex-grow: 0', value: String(value) }];
 
-const Checkbox = (onchange = () => {}, ...args) => ['input[type=checkbox]', { onchange }, ...args];
+const Checkbox = (onchange = () => {}, ...args: unknown[]) =>
+  Html(['input[type=checkbox]', { onchange }, ...args]).firstChild as HTMLInputElement;
 
 const TxPreview = ({
   users   = [],
@@ -514,7 +523,7 @@ const TxPreview = ({
   inputs  = Html(['ul.inputs']).firstChild as HTMLElement,
   outputs = Html(['ul.outputs']).firstChild as HTMLElement,
   update  = async function updateTxPreview ({
-    utxos = [],
+    //utxos = [],
     user  = sender?.select?.value,
     p2tr  = address?.value,
     value = amount?.value,
@@ -524,8 +533,10 @@ const TxPreview = ({
     if (outputs) outputs.innerHTML = '';
     const { signer, p2wpkh: { address } } = users.find(x=>x.pubkey === user) || { p2wpkh: {} };
     if (signer) {
-      utxos ||= sender.utxos.selected() || await esplora.getAddressUtxos(sender);
-      console.log({utxos});
+      const utxos = sender.utxos.selected();
+      if (utxos.length < 1) throw Err(`no UTXOs selected`);
+      //utxos ||= sender.utxos.selected() || await esplora.getAddressUtxos(user);
+      console.log(sender.utxos, {utxos});
       const balance = sumUtxos(utxos);
       if (balance < 5760n) throw Err(`${sender} needs at least 5760sat to broadcast tx`);
       const utxo = utxos[0];
