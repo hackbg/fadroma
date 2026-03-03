@@ -325,14 +325,14 @@ function ProgramEditor (id: string, source: string, {
   sender    = SelectUserWithBalance(() => preview1(), { chain, users }),
   /** Commit transaction preview. */
   preview1  = TxPreview({ users, esplora, amount, address, sender }),
+  /** UTXOs of currently compiled P2TR. */
+  instances = UtxoList(() => preview1(), { esplora: chain.esplora }),
   /** Title for first half of commitment phase. */
   title1    = ['h3', 'Step 1. Compile program.'],
   /** Commitment phase (compile-time) parameters. */
   params    = wasm.paramTypes(source),
   /** Commitment phase (compile-time) parameters rendered to form fields. */
   fields    = Object.entries(params).map(ArgField({ id, users, kind: 'Parameter: ' })),
-  /** UTXOs of currently compiled P2TR. */
-  instances = UtxoList({ esplora: chain.esplora }),
   /** Try to compile the program, showing any errors to the user. */
   compile   = () => compileProgram(id, source, {
     compiler, errors, address, instances, params, preview: preview1
@@ -353,25 +353,15 @@ function ProgramEditor (id: string, source: string, {
   /** Commit form. */
   stage2    = form('simf-commit', title2,
     ['label',
-      ['div.row', ['label', ['strong', 'Sender:'], sender.select], sender.balance]/*, sender.utxos*/],
+      ['div.row', ['label', ['strong', 'Sender:'], sender.select], sender.balance], sender.utxos],
     ['label.tx-preview',
       ['label.align-stretch.row', Label('Commit amount:', amount), Button('commit', () => commit())],
       preview1.inputs,
       preview1.outputs]),
-  /** Perform the transaction which sends funds to the program. */
-  commit    = () => ErrorBoundaryAsync(errors, async () => {
-    const args = collectParams(id, params);
-    const prog = compiler.compile(source, { args });
-    const p2tr = prog.toJSON().p2tr;
-    const user = users.find(x=>x.pubkey === sender.select.value);
-    if (!user) throw Err(`not our pubkey: ${user}`);
-    const tx = await preview1({ p2tr });
-    console.log({ commit: { tx } });
-    const result = await esplora.postTx(tx);
-    console.log({ result });
-    return result;
+  /** Sign and broadcast commit transaction from form values. */
+  commit    = () => commitProgram(id, source, {
+    errors, params, compiler, users, sender, esplora, preview: preview1
   }),
-
   /** Redeem transaction is built here. */
   preview2  = TxPreview({ users, esplora, amount, address, sender }),
   /** Title for first half of redemption phase. */
@@ -402,6 +392,41 @@ function ProgramEditor (id: string, source: string, {
     .build();
 }
 
+function SelectUserWithBalance (onchange = () => {}, {
+  chain   = null,
+  users   = [],
+  balance = InputBalance({ label: ['strong', 'Balance:'], address: users[0]?.p2wpkh.address }),
+  name    = 'Sender:',
+  utxos   = UtxoList(onchange, { esplora: chain.esplora }),
+  select  = SelectUser(() => update()),
+  view    = Html(['div.col.select-sender', Label(name, select), balance]),
+  input   = view.querySelector('input'),
+  state   = () => ({ name, balance, view, input, select, utxos, update }),
+  update  = () => {
+    const pubkey = select.value;
+    select.innerHTML = '';
+    for (const option of usersToOptions(users)) select.appendChild(option);
+    select.value = pubkey;
+    const user = users.find(x=>x.pubkey === pubkey);
+    if (user) {
+      Promise.all([
+        getBalances(user.p2wpkh.address).then(value=>input.value = value),
+        utxos.load(user.p2wpkh.address),
+        onchange(),
+      ]).catch(console.error);
+    }
+    return state();
+  },
+} = {}) {
+  return update();
+}
+
+function SelectUser (onchange?: Fn) {
+  return Object.assign(Html(['select.pick-user']).firstChild as HTMLSelectElement, {
+    onchange
+  });
+}
+
 function compileProgram (id: string, source: string, {
   compiler, errors, address, instances, preview, params
 }) {
@@ -421,16 +446,75 @@ function compileProgram (id: string, source: string, {
   })
 }
 
+function commitProgram (id: string, source: string, {
+  errors, params, compiler, users, sender, preview, esplora
+}) {
+  return ErrorBoundaryAsync(errors, async () => {
+    const args = collectParams(id, params);
+    const prog = compiler.compile(source, { args });
+    const p2tr = prog.toJSON().p2tr;
+    const user = users.find((x: User)=>x.pubkey === sender.select.value);
+    if (!user) throw Err(`not our pubkey: ${user}`);
+    const tx = await preview({ p2tr });
+    console.log({ commit: { tx } });
+    const result = await esplora.postTx(tx);
+    console.log({ result });
+    return result;
+  })
+}
+
+function UtxoList (onchange = () => {}, {
+  esplora,
+  address  = null,
+  utxos    = [],
+  view     = Html(['ul.utxos']).firstChild as HTMLElement,
+  selected = () => [...view.querySelectorAll('input[type=checkbox]')].filter(x=>x.checked),
+  state    = () => ({ address, utxos, load, selected }),
+  load     = (addr = address)=> {
+    address = addr;
+    if (!address) return view;
+    console.debug('Loading UTXOs for', address);
+    view.innerText = 'Loading UTXOs...';
+    return Object.assign(ErrorBoundaryAsync(view, initUtxoList), state());
+    async function initUtxoList () {
+      const utxos = await esplora.getAddressUtxos(addr);
+      console.debug('UTXOS for', address, ...utxos);
+      if (utxos.length === 0) {
+        view.innerText = 'No balance here. Send some funds!';
+      } else {
+        view.innerText = '';
+        for (const utxo of utxos) Html.append(view, UtxoListItem(onchange, utxo));
+      }
+      return view;
+    }
+  }
+} = {}) {
+  return Object.assign(view, state());
+}
+
+const UtxoListItem = (onchange: Fn, utxo: Utxo) => Html(['li', ['label.row.grow',
+  Checkbox(onchange, { style: 'flex-grow: 0', id: `${utxo.txid}-${utxo.vout}` }), ['strong', 'UTXO '],
+  Amount(utxo), Txid(utxo), ['span.vout', '#', String(utxo.vout)]]]);
+
+const Address = ({ address }) => ['input[disabled]', { value: address }];
+
+const Txid = ({ txid }) => ['input[disabled]', { value: txid }];
+
+const Amount = ({ value }) => ['input[disabled]', { style: 'width:12ch; flex-grow: 0', value: String(value) }];
+
+const Checkbox = (onchange = () => {}, ...args) => ['input[type=checkbox]', { onchange }, ...args];
+
 const TxPreview = ({
   users   = [],
   esplora = null,
   amount  = null,
   address = null,
-  sender  = null,
+  sender  = { select: { value: null }, utxos: { selected: () => [] } },
   hexedit = Html(['div.hex']).firstChild as HTMLElement,
   inputs  = Html(['ul.inputs']).firstChild as HTMLElement,
   outputs = Html(['ul.outputs']).firstChild as HTMLElement,
   update  = async function updateTxPreview ({
+    utxos = [],
     user  = sender?.select?.value,
     p2tr  = address?.value,
     value = amount?.value,
@@ -438,28 +522,27 @@ const TxPreview = ({
   } = {}) {
     if (inputs)  inputs.innerHTML  = '';
     if (outputs) outputs.innerHTML = '';
-    const foundUser = (users.find(x=>x.pubkey === user)||{});
-    if (foundUser) {
-      const { p2wpkh: { address, script } } = foundUser;
-      const utxos = await esplora.getAddressUtxos(address);
-      if (utxos.length < 1) throw Err(`fund the address first: ${address}`);
+    const { signer, p2wpkh: { address } } = users.find(x=>x.pubkey === user) || { p2wpkh: {} };
+    if (signer) {
+      utxos ||= sender.utxos.selected() || await esplora.getAddressUtxos(sender);
+      console.log({utxos});
+      const balance = sumUtxos(utxos);
+      if (balance < 5760n) throw Err(`${sender} needs at least 5760sat to broadcast tx`);
       const utxo = utxos[0];
-      const previous = await esplora.getTxHex(utxo.txid) // PERF: wasm can just take the utxo
-      const sender = users.find(x=>x.pubkey === user)?.p2wpkh?.address;
+      const previous = await esplora.getTxHex(utxo.txid); // PERF: wasm can just take the utxo
       if (p2tr) {
         const opts = { previous, sender, recipient: p2tr, amount: BigInt(value), fee: BigInt(fee) };
         const unsigned = wasm.splitPsbt(opts);
         Html.append(inputs, Html(['li', ['strong', 'Input:'],
           Amount({ value: utxo.value }), ['span', ' from '], Address({ address })]).firstChild);
         for (const output of unsigned.outputs) {
-          const address = output.script_pubkey;
-          const isFee   = (address === "")
+          const isFee   = (output.script_pubkey === "")
           const name    = ['strong', isFee ? 'Fee: ' : 'Output: '];
           const amount  = Amount({ value: output.amount });
-          const target  = isFee ? [] : ['to', Address({ address })];
+          const target  = isFee ? [] : ['to', Address({ address: output.script_pubkey })];
           Html.append(outputs, Html(['li', name, amount, ...target]).firstChild)
         }
-        const signed = wasm.splitPsbtSigned(foundUser.signer, opts);
+        const signed = wasm.splitPsbtSigned(signer, opts);
         hexedit.innerText = signed;
         return signed;
       }
@@ -469,36 +552,6 @@ const TxPreview = ({
   update();
   return Object.assign(update, { inputs, outputs, hexedit });
 }
-
-const SelectUserWithBalance = (onchange = () => {}, {
-  chain   = null,
-  users   = [],
-  balance = InputBalance({ label: ['strong', 'Balance:'], address: users[0]?.p2wpkh.address }),
-  name    = 'Sender:',
-  utxos   = UtxoList({ esplora: chain.esplora }),
-  select  = SelectUser(() => update()),
-  view    = Html(['div.col.select-sender', Label(name, select), balance]),
-  input   = view.querySelector('input'),
-  update  = () => {
-    const pubkey = select.value;
-    select.innerHTML = '';
-    for (const option of usersToOptions(users)) select.appendChild(option);
-    select.value = pubkey;
-    const user = users.find(x=>x.pubkey === pubkey);
-    if (user) {
-      Promise.all([
-        getBalances(user.p2wpkh.address).then(value=>input.value = value),
-        utxos.load(user.p2wpkh.address),
-        onchange(),
-      ])
-    }
-    return { name, balance, view, input, select, utxos, update };
-  },
-} = {}) => update();
-
-const SelectUser = (onchange?: Fn) => Object.assign(Html(['select.pick-user']).firstChild as HTMLSelectElement, {
-  onchange
-});
 
 const ArgField = ({ users, kind, id }) => ([name, type]) => {
   const label = `${kind}${name} (${type})`;
@@ -570,42 +623,6 @@ const InputP2TR = (onchange?: Fn) =>
 
 const InputAmount = (onchange?: Fn, value?: number) =>
   Input({ className: 'balance', type: 'number', value, onchange });
-
-const Utxo = ({ txid, index }) => ['code', `tx ${txid} out ${index}`];
-
-const Address = ({ address }) => ['input[disabled]', { value: address }];
-
-const Txid = ({ txid }) => ['input[disabled]', { value: txid }];
-
-const Amount = ({ value }) => ['input[disabled]', { style: 'width:12ch; flex-grow: 0', value: String(value) }];
-
-const UtxoList = ({
-  esplora,
-  address = null,
-  utxos   = [],
-  view    = Html(['ul.utxos']).firstChild as HTMLElement,
-  state   = () => ({ address, utxos, load }),
-  load    = (addr = address)=> {
-    address = addr;
-    if (!address) return view;
-    console.debug('Loading UTXOs for', address);
-    view.innerText = 'Loading UTXOs...';
-    return Object.assign(ErrorBoundaryAsync(view, initUtxoList), state());
-    async function initUtxoList () {
-      const utxos = await esplora.getAddressUtxos(addr);
-      console.debug('UTXOS for', address, ...utxos);
-      if (utxos.length === 0) {
-        view.innerText = 'No balance here. Send some funds!';
-      } else {
-        view.innerText = '';
-        for (const utxo of utxos) {
-          Html.append(view, Html(['li', ['strong', 'UTXO '], Amount(utxo), Txid(utxo)]));
-        }
-      }
-      return view;
-    }
-  }
-}) => Object.assign(view, state());
 
 const ExamplePrograms = Object.assign(({ users }) => ['div.files',
   ExamplePrograms.P2PK.view({ users }),
@@ -779,8 +796,14 @@ async function getBalances (
   chain = Bitcoin.LiquidTestnet(),
   asset: string = "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5"
 ): Promise<bigint> {
+  return sumUtxos(await chain.esplora.getAddressUtxos(address), asset);
+}
+
+function sumUtxos (
+  utxos: { asset: string, value: number }[],
+  asset: string = "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5"
+) {
   let balance = 0n;
-  const utxos = await chain.esplora.getAddressUtxos(address);
   for (const utxo of utxos) if (utxo.asset === asset) balance += BigInt(utxo.value);
   return balance
 }
