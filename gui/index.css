@@ -203,7 +203,7 @@ textarea {
   scrollbar-width: initial;
   &:focus { background: #fff; }
   .programs & { min-width: 80ch; }
-};
+}
 
 /** Component styles. */
 .icon {

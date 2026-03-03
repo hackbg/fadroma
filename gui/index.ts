@@ -10,8 +10,8 @@ import scrollTo                          from 'npm:animated-scroll-to';
 import { pubECDSA }                      from 'npm:@scure/btc-signer/utils.js'; // not already in keypair?
 import { zipSync, strToU8 as zipStr }    from 'npm:fflate';
 import Bitcoin, { Esplora }              from '../platform/Bitcoin/Bitcoin.ts';
-import { Wasm }                          from '../platform/SimplicityHL/SimplicityHL.ts';
-import type { ArgTypes }                 from '../platform/SimplicityHL/SimplicityHL.ts';
+import { Wasm }                          from '../platform/SimplicityHL/src/sdk.ts';
+import type { ArgTypes }                 from '../platform/SimplicityHL/src/sdk.ts';
 import { Labels, Texts, Icon }           from './cons.ts';
 export const wasm = await Wasm({ wasm: new URL('/wasm/fadroma_simf_bg.wasm', location.href) });
 
@@ -530,7 +530,7 @@ const TxPreview = ({
     user  = sender?.select?.value,
     p2tr  = address?.value,
     value = amount?.value,
-    fee   = 4000,
+    fee   = 12000,
   } = {}) {
     if (inputs)  inputs.innerHTML  = '';
     if (outputs) outputs.innerHTML = '';
@@ -554,9 +554,9 @@ const TxPreview = ({
           amount:    BigInt(value),
           fee:       BigInt(fee),
         });
-        const unsigned = wasm.splitPsbtMulti(opts());
-        console.log(unsigned);
-        //for (const input of utxos) {
+        const unsigned = wasm.splitInspect(opts());
+        //console.log(unsigned);
+        //for (const input of unsigned.inputs) {
           //Html.append(inputs, Html(['li', ['strong', 'Input:'],
             //Amount({ value: input.value }), ['span', ' from '], Address({ address })]).firstChild);
         //}
@@ -567,9 +567,10 @@ const TxPreview = ({
           //const target  = isFee ? [] : ['to', Address({ address: output.script_pubkey })];
           //Html.append(outputs, Html(['li', name, amount, ...target]).firstChild)
         //}
-        const signed = wasm.splitPsbtMultiSigned(signer, opts());
+        const signed = wasm.splitSigned(signer, opts());
         //console.log(wasm.decodeHex(signed));
         hexedit.innerText = signed;
+        console.log({unsigned});
         return signed;
       } else {
         console.warn('not compiled');
