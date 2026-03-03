@@ -1100,16 +1100,11 @@ pre.compile-errors {
   }
 }
 .program-form {
-  padding:   1px;
-  gap:       0.5rem;
-  font-size: 1.25rem;
-  /*background: rgb(221, 221, 221);*/
-  /*color: #fff;*/
-  /*margin-bottom: 1rem;*/
-  /*background: #f8f4;*/
-  padding-bottom: 0.5rem;
+  padding:       1px;
+  gap:           0.5rem;
+  font-size:     1.25rem;
   border-radius: 3px;
-  min-width: 69ch;
+  min-width:     69ch;
   input, select, button {
     border-radius: 3px;
     /*color: #fff;*/

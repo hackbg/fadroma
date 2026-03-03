@@ -11,6 +11,7 @@ import { pubECDSA }                      from 'npm:@scure/btc-signer/utils.js'; 
 import { zipSync, strToU8 as zipStr }    from 'npm:fflate';
 import Bitcoin, { Esplora }              from '../platform/Bitcoin/Bitcoin.ts';
 import { Wasm }                          from '../platform/SimplicityHL/SimplicityHL.ts';
+import type { ArgTypes }                 from '../platform/SimplicityHL/SimplicityHL.ts';
 import { Labels, Texts, Icon }           from './cons.ts';
 export const wasm = await Wasm({ wasm: new URL('/wasm/fadroma_simf_bg.wasm', location.href) });
 
@@ -464,11 +465,11 @@ function commitProgram (id: string, source: string, {
 }
 
 function UtxoList (onchange = () => {}, {
-  esplora,
+  esplora  = null,
   address  = null,
   utxos    = [],
   view     = Html(['ul.utxos']).firstChild as HTMLElement,
-  selected = () => Array.from(view.querySelectorAll('input[type=checkbox]')).filter(x=>x.checked).map(x=>x.utxo),
+  selected = () => selectedUtxos(view),
   state    = () => ({ address, utxos, load, selected }),
   load     = (addr = address)=> {
     address = addr;
@@ -492,7 +493,7 @@ function UtxoList (onchange = () => {}, {
   return Object.assign(view, state());
 }
 
-const UtxoListItem = (onchange: Fn, utxo: Utxo, {
+const UtxoListItem = (onchange: Fn, utxo: Esplora.Utxo, {
   enable = Checkbox(onchange, { id: `${utxo.txid}-${utxo.vout}`, utxo }),
   amount = Amount(utxo),
   txid   = Txid(utxo),
@@ -503,6 +504,10 @@ const UtxoListItem = (onchange: Fn, utxo: Utxo, {
   const el = Html(view).firstChild as HTMLElement;
   return el;
 }
+
+const selectedUtxos = (view: HTMLElement) =>
+  (Array.from(view.querySelectorAll('input[type=checkbox]')) as HTMLInputElement[])
+    .filter(x=>x.checked).map(x=>((x as unknown as { utxo: Esplora.Utxo }).utxo));
 
 const Address = ({ address }) => ['input[disabled]', { value: address }];
 
@@ -534,18 +539,31 @@ const TxPreview = ({
     const { signer, p2wpkh: { address } } = users.find(x=>x.pubkey === user) || { p2wpkh: {} };
     if (signer) {
       const utxos = sender.utxos.selected();
-      if (utxos.length < 1) throw Err(`no UTXOs selected`);
-      //utxos ||= sender.utxos.selected() || await esplora.getAddressUtxos(user);
-      console.log(sender.utxos, {utxos});
+      if (utxos.length < 1) {
+        throw Err(`no UTXOs selected`);
+      }
       const balance = sumUtxos(utxos);
-      if (balance < 5760n) throw Err(`${sender} needs at least 5760sat to broadcast tx`);
-      const utxo = utxos[0];
-      const previous = await esplora.getTxHex(utxo.txid); // PERF: wasm can just take the utxo
+      console.log({utxos, balance, p2tr});
+      if (balance < 5760n) {
+        throw Err(`${sender} needs at least 5760sat to broadcast tx`);
+      }
       if (p2tr) {
-        const opts = { previous, sender, recipient: p2tr, amount: BigInt(value), fee: BigInt(fee) };
-        const unsigned = wasm.splitPsbt(opts);
-        Html.append(inputs, Html(['li', ['strong', 'Input:'],
-          Amount({ value: utxo.value }), ['span', ' from '], Address({ address })]).firstChild);
+        const asset = utxos[0].asset;
+        const opts = {
+          asset,
+          utxos:     utxos.map(utxo => Object.assign(utxo, { recipient: address })),
+          sender:    address,
+          recipient: p2tr,
+          amount:    BigInt(value),
+          fee:       BigInt(fee),
+        };
+        console.log(opts);
+        const unsigned = wasm.splitPsbtMulti(opts);
+        console.log(unsigned);
+        for (const input of unsigned.inputs) {
+          Html.append(inputs, Html(['li', ['strong', 'Input:'],
+            Amount({ value: input.value }), ['span', ' from '], Address({ address })]).firstChild);
+        }
         for (const output of unsigned.outputs) {
           const isFee   = (output.script_pubkey === "")
           const name    = ['strong', isFee ? 'Fee: ' : 'Output: '];
@@ -553,9 +571,11 @@ const TxPreview = ({
           const target  = isFee ? [] : ['to', Address({ address: output.script_pubkey })];
           Html.append(outputs, Html(['li', name, amount, ...target]).firstChild)
         }
-        const signed = wasm.splitPsbtSigned(signer, opts);
+        const signed = wasm.splitPsbtMultiSigned(signer, opts);
         hexedit.innerText = signed;
         return signed;
+      } else {
+        console.warn('not compiled');
       }
     }
   }
@@ -619,11 +639,11 @@ const InputBalance = ({
   return Html(['label.grow', label, input]).firstChild;
 }
 
-const collectParams = (id: string, params) => {
+const collectParams = (id: string, params: ArgTypes) => {
   const args = {}
   for (const [param, type] of Object.entries(params)) {
     let value = (Html.id(`${id}:${param}`) as HTMLInputElement)?.value;
-    if (type == 'u256') value = '0x' + value; // FIXME
+    if (type as string === 'u256') value = '0x' + value; // FIXME
     args[param] = { type, value };
   };
   return args;
@@ -815,7 +835,13 @@ function sumUtxos (
   asset: string = "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5"
 ) {
   let balance = 0n;
-  for (const utxo of utxos) if (utxo.asset === asset) balance += BigInt(utxo.value);
+  for (const utxo of utxos) {
+    if (utxo.asset === asset) {
+      balance += BigInt(utxo.value);
+    } else {
+      console.warn('skipping', utxo);
+    }
+  }
   return balance
 }
 

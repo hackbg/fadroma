@@ -239,6 +239,7 @@ namespace Bitcoin {
     getreceivedbyaddress:         Fn,
     getwalletinfo:                Fn.Returns<Promise<{ balance: Record<string, number> }>>,
     importaddress:                Fn.Takes<[string, string?, boolean?, boolean?]>,
+    listunspent:                  Fn,
     rescanblockchain:             Fn.Takes<[Num?, Num?]>,
     sendtoaddress:                Fn,
     sendrawtransaction:           Fn,
@@ -256,6 +257,7 @@ namespace Bitcoin {
     };
     return {
       createwallet:                 callRpc('createwallet'),
+      createpsbt:                   callRpc('createpsbt'),
       decoderawtransaction:         callRpc('decoderawtransaction'),
       decodescript:                 callRpc('decodescript'),
       generatetoaddress:            callRpc('generatetoaddress'),
@@ -266,6 +268,7 @@ namespace Bitcoin {
       getreceivedbyaddress:         callRpc('getreceivedbyaddress'),
       getwalletinfo:                callRpc('getwalletinfo'),
       importaddress:                callRpc('importaddress'),
+      listunspent:                  callRpc('listunspent'),
       rescanblockchain:             callRpc('rescanblockchain'),
       sendtoaddress:                callRpc('sendtoaddress'),
       sendrawtransaction:           callRpc('sendrawtransaction'),
@@ -389,18 +392,6 @@ namespace Bitcoin {
 
 }
 
-/** Handle to Esplora REST API. */
-export interface Esplora {
-  getBlockTipHeight: Fn.Returns<Fn.Async<Num>>,
-  getBlockTipHash:   Fn
-  getTxInfo:         Fn
-  getTxHex:          Fn
-  getAddressInfo:    Fn
-  getAddressTxs:     (address: string) => Promise<Array<Esplora.Transaction>>
-  getAddressUtxos:   (address: string) => Promise<Array<Esplora.Utxo>>
-  postTx:            Fn
-}
-
 /** Construct a handle to Esplora REST API. */
 export function Esplora ({ url }: { url: string|URL }): Esplora {
   return {
@@ -413,6 +404,18 @@ export function Esplora ({ url }: { url: string|URL }): Esplora {
     getTxHex:          (id: string) => Http.fetchText(`${url}/tx/${encodeURIComponent(id)}/hex`),
     postTx:            (tx: string) => Http.postBinary(`${url}/tx`, tx),
   }
+}
+
+/** Handle to Esplora REST API. */
+export interface Esplora {
+  getBlockTipHeight: Fn.Returns<Fn.Async<Num>>,
+  getBlockTipHash:   Fn
+  getTxInfo:         Fn
+  getTxHex:          Fn
+  getAddressInfo:    Fn
+  getAddressTxs:     (address: string) => Promise<Array<Esplora.Transaction>>
+  getAddressUtxos:   (address: string) => Promise<Array<Esplora.Utxo>>
+  postTx:            Fn
 }
 
 export namespace Esplora {
