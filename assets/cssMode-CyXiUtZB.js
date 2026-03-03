@@ -1,0 +1,117 @@
+import { c as h, l as s, __tla as __tla_0 } from "./index-GVCbR69S.js";
+import { C as c, H as u, D as p, a as m, R as f, b as _, c as w, d as k, F as v, e as D, S as P, f as R, g as I, __tla as __tla_1 } from "./lspLanguageFeatures-pjXiw4kj.js";
+import { h as T, i as x, j, t as M, k as O, __tla as __tla_2 } from "./lspLanguageFeatures-pjXiw4kj.js";
+import "./index-DsRfobeB.js";
+import "./cons-C8nhYyWL.js";
+import { __tla as __tla_3 } from "./index-BTPAJTuf.js";
+import "./index-CtQ99MjB.js";
+let A, H;
+let __tla = Promise.all([
+  (() => {
+    try {
+      return __tla_0;
+    } catch {
+    }
+  })(),
+  (() => {
+    try {
+      return __tla_1;
+    } catch {
+    }
+  })(),
+  (() => {
+    try {
+      return __tla_2;
+    } catch {
+    }
+  })(),
+  (() => {
+    try {
+      return __tla_3;
+    } catch {
+    }
+  })()
+]).then(async () => {
+  const C = 120 * 1e3;
+  A = class {
+    constructor(n) {
+      this._defaults = n, this._worker = null, this._client = null, this._idleCheckInterval = window.setInterval(() => this._checkIfIdle(), 30 * 1e3), this._lastUsedTime = 0, this._configChangeListener = this._defaults.onDidChange(() => this._stopWorker());
+    }
+    _stopWorker() {
+      this._worker && (this._worker.dispose(), this._worker = null), this._client = null;
+    }
+    dispose() {
+      clearInterval(this._idleCheckInterval), this._configChangeListener.dispose(), this._stopWorker();
+    }
+    _checkIfIdle() {
+      if (!this._worker) return;
+      Date.now() - this._lastUsedTime > C && this._stopWorker();
+    }
+    _getClient() {
+      return this._lastUsedTime = Date.now(), this._client || (this._worker = h({
+        moduleId: "vs/language/css/cssWorker",
+        createWorker: () => new Worker(new URL("/assets/css.worker-BXp376GE.js", import.meta.url), {
+          type: "module"
+        }),
+        label: this._defaults.languageId,
+        createData: {
+          options: this._defaults.options,
+          languageId: this._defaults.languageId
+        }
+      }), this._client = this._worker.getProxy()), this._client;
+    }
+    getLanguageServiceWorker(...n) {
+      let e;
+      return this._getClient().then((a) => {
+        e = a;
+      }).then((a) => {
+        if (this._worker) return this._worker.withSyncedResources(n);
+      }).then((a) => e);
+    }
+  };
+  H = function(o) {
+    const n = [], e = [], a = new A(o);
+    n.push(a);
+    const r = (...t) => a.getLanguageServiceWorker(...t);
+    function l() {
+      const { languageId: t, modeConfiguration: i } = o;
+      g(e), i.completionItems && e.push(s.registerCompletionItemProvider(t, new c(r, [
+        "/",
+        "-",
+        ":"
+      ]))), i.hovers && e.push(s.registerHoverProvider(t, new u(r))), i.documentHighlights && e.push(s.registerDocumentHighlightProvider(t, new p(r))), i.definitions && e.push(s.registerDefinitionProvider(t, new m(r))), i.references && e.push(s.registerReferenceProvider(t, new f(r))), i.documentSymbols && e.push(s.registerDocumentSymbolProvider(t, new _(r))), i.rename && e.push(s.registerRenameProvider(t, new w(r))), i.colors && e.push(s.registerColorProvider(t, new k(r))), i.foldingRanges && e.push(s.registerFoldingRangeProvider(t, new v(r))), i.diagnostics && e.push(new D(t, r, o.onDidChange)), i.selectionRanges && e.push(s.registerSelectionRangeProvider(t, new P(r))), i.documentFormattingEdits && e.push(s.registerDocumentFormattingEditProvider(t, new R(r))), i.documentRangeFormattingEdits && e.push(s.registerDocumentRangeFormattingEditProvider(t, new I(r)));
+    }
+    return l(), n.push(d(e)), d(n);
+  };
+  function d(o) {
+    return {
+      dispose: () => g(o)
+    };
+  }
+  function g(o) {
+    for (; o.length; ) o.pop().dispose();
+  }
+});
+export {
+  c as CompletionAdapter,
+  m as DefinitionAdapter,
+  D as DiagnosticsAdapter,
+  k as DocumentColorAdapter,
+  R as DocumentFormattingEditProvider,
+  p as DocumentHighlightAdapter,
+  T as DocumentLinkAdapter,
+  I as DocumentRangeFormattingEditProvider,
+  _ as DocumentSymbolAdapter,
+  v as FoldingRangeAdapter,
+  u as HoverAdapter,
+  f as ReferenceAdapter,
+  w as RenameAdapter,
+  P as SelectionRangeAdapter,
+  A as WorkerManager,
+  __tla,
+  x as fromPosition,
+  j as fromRange,
+  H as setupMode,
+  M as toRange,
+  O as toTextEdit
+};
