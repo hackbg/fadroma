@@ -54,12 +54,12 @@ export default function App ({
     addUser('Carol', { secret: nonSecret(3) })
   ],
 } = {}) {
-  chainsView.innerHTML = '';
-  usersView.innerHTML = '';
-  const state = {
+  return {
+
     editorView: ErrorBoundary(editorView,
       () => Editor(editorView, { users })), // FIXME: must precede Users to populate pickers
-    users: ErrorBoundary(usersView, () => {
+
+    users: ErrorBoundary(Html.clear(usersView), () => {
       for (const user of users) Html.append(usersView, user.view());
       // Retrieve all user selectors, to update them with the latest user list. */
       const selectors = document.querySelectorAll('select.pick-user');
@@ -70,7 +70,9 @@ export default function App ({
       }
       return Object.assign(usersView, { users })
     }),
-    chainsView: Chains(chainsView),
+
+    chainsView: Chains(Html.clear(chainsView)),
+
     projectView: Html.append(projectView, Section(
       { className: 'layer project' },
       ['div.col.grow.files.gap',
@@ -85,8 +87,9 @@ export default function App ({
           ES.DenoJson({ deno }),
           Nix({ nix, elements }),
           direnv && Field.Text(".envrc", "use nix")]))
+
   };
-  return state;
+
 }
 
 /** User, as represented in the interface. */
@@ -268,7 +271,6 @@ const initEditor = ({
     wrapper.style.height = `${height}px`;
     try {
       ignoreEvent = true;
-      //console.log({width, height});
       editor.layout({ width, height });
     } finally {
       ignoreEvent = false;
@@ -457,9 +459,7 @@ function commitProgram (id: string, source: string, {
     const user = users.find((x: User)=>x.pubkey === sender.select.value);
     if (!user) throw Err(`not our pubkey: ${user}`);
     const tx = await preview({ p2tr });
-    console.log({ commit: { tx } });
     const result = await esplora.postTx(tx);
-    console.log({ result });
     return result;
   })
 }
@@ -469,17 +469,15 @@ function UtxoList (onchange = () => {}, {
   address  = null,
   utxos    = [],
   view     = Html(['ul.utxos']).firstChild as HTMLElement,
-  selected = () => selectedUtxos(view),
+  selected = () => JSON.parse(JSON.stringify(selectedUtxos(view))),
   state    = () => ({ address, utxos, load, selected }),
   load     = (addr = address)=> {
     address = addr;
     if (!address) return view;
-    console.debug('Loading UTXOs for', address);
     view.innerText = 'Loading UTXOs...';
     return Object.assign(ErrorBoundaryAsync(view, initUtxoList), state());
     async function initUtxoList () {
       const utxos = await esplora.getAddressUtxos(addr);
-      console.debug('UTXOS for', address, ...utxos);
       if (utxos.length === 0) {
         view.innerText = 'No balance here. Send some funds!';
       } else {
@@ -543,35 +541,34 @@ const TxPreview = ({
         throw Err(`no UTXOs selected`);
       }
       const balance = sumUtxos(utxos);
-      console.log({utxos, balance, p2tr});
       if (balance < 5760n) {
         throw Err(`${sender} needs at least 5760sat to broadcast tx`);
       }
       if (p2tr) {
         const asset = utxos[0].asset;
-        const opts = {
+        const opts = () => ({
           asset,
-          utxos:     utxos.map(utxo => Object.assign(utxo, { recipient: address })),
+          utxos:     utxos.map(utxo => ({ ...utxo, recipient: address, value: BigInt(utxo.value) })),
           sender:    address,
           recipient: p2tr,
           amount:    BigInt(value),
           fee:       BigInt(fee),
-        };
-        console.log(opts);
-        const unsigned = wasm.splitPsbtMulti(opts);
+        });
+        const unsigned = wasm.splitPsbtMulti(opts());
         console.log(unsigned);
-        for (const input of unsigned.inputs) {
-          Html.append(inputs, Html(['li', ['strong', 'Input:'],
-            Amount({ value: input.value }), ['span', ' from '], Address({ address })]).firstChild);
-        }
-        for (const output of unsigned.outputs) {
-          const isFee   = (output.script_pubkey === "")
-          const name    = ['strong', isFee ? 'Fee: ' : 'Output: '];
-          const amount  = Amount({ value: output.amount });
-          const target  = isFee ? [] : ['to', Address({ address: output.script_pubkey })];
-          Html.append(outputs, Html(['li', name, amount, ...target]).firstChild)
-        }
-        const signed = wasm.splitPsbtMultiSigned(signer, opts);
+        //for (const input of utxos) {
+          //Html.append(inputs, Html(['li', ['strong', 'Input:'],
+            //Amount({ value: input.value }), ['span', ' from '], Address({ address })]).firstChild);
+        //}
+        //for (const output of unsigned.outputs) {
+          //const isFee   = (output.script_pubkey === "")
+          //const name    = ['strong', isFee ? 'Fee: ' : 'Output: '];
+          //const amount  = Amount({ value: output.amount });
+          //const target  = isFee ? [] : ['to', Address({ address: output.script_pubkey })];
+          //Html.append(outputs, Html(['li', name, amount, ...target]).firstChild)
+        //}
+        const signed = wasm.splitPsbtMultiSigned(signer, opts());
+        //console.log(wasm.decodeHex(signed));
         hexedit.innerText = signed;
         return signed;
       } else {

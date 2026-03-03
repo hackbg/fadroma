@@ -16,6 +16,10 @@ namespace Html {
   export function id <T extends HTMLElement> (id: string): T {
     return document.getElementById(id) as T
   }
+  export function clear <T extends HTMLElement> (el: T): T {
+    el.innerHTML = '';
+    return el
+  }
   export function on (x: EventTarget, ev: string, cb: Fn) {
     x?.addEventListener(ev, cb);
     return cb;
