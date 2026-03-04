@@ -182,7 +182,7 @@ const Chains = (view = Html.id("chains"), {
     ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to ', name],
       ['strong.status', 'SOON']]],
 
-  disableder = (name: string) => ['div.chain.disableder.col.gap',
+  disableder = (name: string) => ['div.chain.disableder.col.gap.grow',
     ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to ', name],
       ['strong.status', 'SOON']]],
 
@@ -194,12 +194,12 @@ const Chains = (view = Html.id("chains"), {
 } = {}) => ErrorBoundary(view, ()=>{
 
   Html.replace(view, state.view = Html(['div.col.gap',
-    disabled('Bitcoin Mainnet'),
-    disabled('Bitcoin Testnet'),
-    disabled('Bitcoin regtest...'),
     disabled('Liquid Mainnet'),
     selected('Liquid Testnet'),
     disabled('Liquid elementsregtest...'),
+    disabled('Bitcoin Mainnet'),
+    disabled('Bitcoin Testnet'),
+    disabled('Bitcoin regtest...'),
     ['div.row.gap', disableder('Solana RPC...'), disableder('Tendermint RPC...')]
   ]).firstChild as HTMLElement);
 

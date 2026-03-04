@@ -78,11 +78,9 @@ a {
 h1 {
   color: #aaa;
   margin: 0;
-  font-size: 1.66rem;
   font-weight: normal;
 }
 h2 {
-  font-size: 1.75rem;
   margin: 2rem 0.5rem 1.5rem;
   color: #fff;
   text-shadow: 1px 1px 1px #0004;
@@ -95,16 +93,15 @@ h2 {
   .app &:after {
      content: ' ';
      display: inline-block;
-     border-top: 1px solid #fff8;
+     background: linear-gradient(to right, #fff4, #fff1);
+     height: 1px;
      flex-grow: 1;
   }
 }
 h3 {
-  font-size: 1.66rem;
   color: #fff;
   text-shadow: 1px 1px 1px #0004;
   .chain &.name {
-    font-size: 1.25rem;
     margin: 0.166rem 0;
   }
   .app & {
@@ -125,7 +122,6 @@ input, select {
   &, textarea {
     border:     1px solid #8884;
     box-shadow: 3px 3px 6px #8882;
-    font-size:   1rem;
     padding:     0.33rem 0.5rem;
     line-height: 1.33rem;
   }
@@ -157,7 +153,7 @@ code {
   font-family: monospace;
   border-radius: 4px;
   padding: 0 4px;
-  font-size: 0.75em;
+  /*font-size: 0.75em;*/
 }
 button {
   &.pill {
@@ -165,7 +161,6 @@ button {
     color: #fff;
     border: 1px solid #fffa;
     padding: 0.33rem 0.5rem;
-    font-size: 1rem;
     border-radius: 2rem;
     opacity: 0.8;
     &:hover { opacity: 1 }
@@ -192,12 +187,11 @@ nav {
   }
 }
 pre.sh {
-  border-radius: 3px;
+  border-radi1s: 3px;
   border: 1px solid #dfda;
   box-shadow: 0 3px 2px #0001;
   max-width: 80ch;
   flex-grow: 1;
-  font-size: 1.2rem;
   color: #ffff;
   background: #132a;
   padding: 1rem 1rem;
@@ -242,7 +236,8 @@ textarea {
   color: #fff;
   svg { fill: #fff }
 }
-a.help, .links a {
+a.help,
+.links a {
   display: flex;
   flex-flow: row nowrap;
   gap: 0.5rem;
@@ -305,7 +300,6 @@ a.help {
   align-items: center;
   background: none;
   border: none;
-  border-radius: 3px;
   margin-left: -0.5rem;
   padding-left: 0.5rem;
   padding-right: 0;
@@ -336,8 +330,9 @@ a.help {
   flex-flow:   column nowrap;
   align-items: center;
   justify-content: center;
+  border:          1px solid rgba(221, 255, 221, 0.667);
+  border-radius:   1rem;
   p {
-    font-size: 1.5rem;
     color: white;
     text-shadow: -1px -1px 0 #0004;
     margin: 0.5rem;
@@ -389,7 +384,6 @@ a.help {
 }
 .hackbg {
   /*background: linear-gradient(to bottom, rgba(144, 19, 254, 1), rgba(144, 19, 254, 0));*/
-  font-size: 1.2rem;
   letter-spacing: 0;
   font-weight: normal;
   padding: 0.66rem 1rem;
@@ -404,10 +398,13 @@ a.help {
     font-weight: 800;
   }
 }
-.work {
-  text-align: center;
+a.custom.work {
+  width: 60ch;
+  display: block;
   text-decoration: underline !important;
   padding: 1rem !important;
+  margin: 0 auto;
+  line-height: 1.5;
   /*margin: 0 1rem !important;*/
 }
 
@@ -438,7 +435,6 @@ a.help {
   a, button {
     color: #fff;
     text-decoration: none;
-    font-size: 1.25rem;
     font-weight: bold;
     background: none;
     border: none;
@@ -461,7 +457,6 @@ a.help {
       width: 2rem;
       height: 2rem;
       box-sizing: content-box;
-      border-radius: 1rem;
     }
   }
 }
@@ -469,51 +464,44 @@ a.help {
 /** Domain styles. */
 .chain {
   background: #0003;
-  border-radius: 3px;
   color: white;
   padding: 0.5rem 1rem;
-  font-size: 1.25rem;
   border-top: 1px solid #fff4;
   &.disabled { opacity: 0.66 }
   &.disableder { opacity: 0.33 }
 }
 .connections {
+  align-items:     stretch;
+  align-self:      stretch;
+  color:           #fff;
+  display:         flex;
+  flex-flow:       row wrap;
+  flex-grow:       1;
+  font-size:       15px;
+  gap:             1.5rem;
   justify-content: center;
-  align-items: stretch;
-  align-self: stretch;
-  background-size: 100%;
-  background: radial-gradient(at bottom right, #fff2, #fff0), radial-gradient(at top left, #3544, #3542), #3541;
-  border-bottom: 1px solid #fff3;
-  border-top: 1px solid #0002;
-  box-shadow: 0 0 1rem 1rem #0001 inset;
-  color: #fff;
-  display: flex;
-  flex-flow: row wrap;
-  flex-grow: 1;
-  font-size: 15px;
-  gap: 2rem;
-  padding: 0 1.5rem 2rem 1rem;
-  /*& > * { flex-grow: 1 }*/
-  strong, .address { color: #fff }
+  padding:         0 1.5rem 2rem;
+  strong, .address {
+    color: #fff
+  }
 }
-.view-chains, .view-users { display: flex; align-items: center; justify-content: center }
+.view-chains,
+.view-users {
+  display: flex; align-items: center; justify-content: center
+}
 .user {
   flex-grow: 1;
   color: #ffff;
-  background: linear-gradient(to bottom, #bbb4 50%, #4544);
+  background: #0001;
   box-shadow: -3px -2px 6px #0102, 1px 2px 6px #4042;
   padding: 0.66rem 0.45rem;
-  border-top: 1px solid #fff4;
-  border-left: 1px solid #fff4;
-  border-right: 1px solid #0404;
+  border: 1px solid #fff4;
   line-height: 1;
-  border-radius: 1rem;
   display: flex;
   flex-flow: column nowrap;
   align-items: stretch;
   gap: 1rem;
   margin-bottom: 0.5rem;
-  font-size: 1.33rem;
   & > section {
     display: flex;
     flex-flow: row nowrap;
@@ -539,7 +527,6 @@ a.help {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1.25rem;
   }
   .log {
     border-radius: 0.5rem;
@@ -569,27 +556,27 @@ a.help {
 }
 .editors {
   align-items:      stretch;
-  background:       linear-gradient(to right, #0214, #1322);
+  /*background:       linear-gradient(to right, #0214, #1322);*/
   display:          flex;
   flex-flow:        column nowrap;
   gap:              2rem;
   justify-content: stretch;
   padding:          0 2rem 2rem;
+  box-shadow: 3px 3px 6px #0002;
 }
 .view-editors {
   align-items:     center;
-  background-size: 100%;
-  border-bottom:   1px solid #fff3;
-  border-top:      1px solid #0002;
-  box-shadow:      0 0 1rem 1rem #0001 inset;
   color:           #fff;
   display:         flex;
   flex-flow:       column nowrap;
-  font-size:       1.5rem;
   gap:             1px;
   justify-content: center;
   min-height:      36rem;
   position:        relative;
+  background:      radial-gradient(at top,          #0001, #0002),
+                   radial-gradient(at bottom right, #fff2, #fff0),
+                   radial-gradient(at top left,     #3544, #3542),
+                   #3541;
 
   .loading {
     color: #fff;
@@ -598,18 +585,17 @@ a.help {
   }
 
   .editors {
-    background: #0002;
+    /*background: #0002;*/
     border:     none;
     display:    flex;
     flex-flow:  column;
-    font-size:  1rem;
     gap:        1px;
     padding:    0 1.5rem;
     select {
       padding-left: 0.25rem
     }
     & > .box {
-      background: linear-gradient(to right, #d8d8d8, #c8c8c8);
+      /*background: linear-gradient(to right, #d8d8d8, #c8c8c8);*/
       margin-right: 0.5rem;
       border-top: none;
     }
@@ -645,22 +631,14 @@ textarea {
 
 .app {
   align-items:   stretch;
-  border-bottom: 1px solid #000a;
-  border-radius: 1.33rem;
-  border-top:    1px solid #fffa;
-  box-shadow:    0 0px 6px #0006;
   display:       flex;
+  border:        none;
   flex-flow:     row wrap;
   height:        auto;
   margin:        0 1.5rem;
   max-width:     300ch;
   min-width:     30ch;
-  padding:       0;
-  padding:       1.5rem;
-  background:    radial-gradient(at top,          #0001, #0002),
-                 radial-gradient(at bottom right, #fff2, #fff0),
-                 radial-gradient(at top left,     #3544, #3542),
-                 #3541;
+  overflow:      hidden;
 }
 
 .features {
@@ -680,8 +658,6 @@ textarea {
       gap: 1.33rem;
     }
   }
-
-  &, p { font-size: 1.33rem }
 
   details & {
     margin: 0 -0.5rem;
@@ -739,7 +715,6 @@ textarea {
   }
 
   .links {
-    font-size: 1.25rem;
     margin-top: 0.25rem;
     margin-left: 0.75rem;
     display: flex;
@@ -776,7 +751,6 @@ textarea {
     margin-top: 0 !important;
     margin-bottom: 0.33rem !important;
     margin-left: 1.5rem !important;
-    font-size: 1.25rem !important
   }
 }
 
@@ -801,7 +775,6 @@ textarea {
 
 .editor-wrapper {
   margin:        0 0 0.5rem -1.5rem;
-  border-radius: 0.125rem;
   background:    #fff4;
   .collapsed & {
     min-height: 0;
@@ -825,6 +798,31 @@ textarea {
     display: none;
     visibility: hidden;
   }
+  .field-body {
+    display: flex;
+    flex-flow: column nowrap;
+    flex-grow: 1;
+    align-items: stretch;
+  }
+  .field-editor {
+    flex-grow: 1;
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: stretch;
+    textarea { flex-grow: 1 }
+  }
+  .field-sidebar {
+    .collapsed & {
+      display: none;
+      visibility: hidden;
+    }
+  }
+  .field-content {
+    gap:         1.5rem;
+    display:     flex;
+    flex-flow:   row nowrap;
+    align-items: stretch;
+  }
   .name {
     user-select:    none;
     padding:        0 0.33rem;
@@ -841,22 +839,8 @@ textarea {
       flex-flow:      row nowrap;
     }
   }
-  .command {
-    display: flex;
-    flex-flow: row nowrap;
-    align-items: center;
-    user-select: none;
-    padding: .25rem .5rem .25rem .125rem;
-    gap: .125rem;
-    border-left: 1px solid #fff;
-    border-right: 1px solid #0002;
-    box-shadow: 0 1px 0 white inset, 0 -1px 0 #0002 inset;
-    &:hover { text-decoration: underline; background: #fff3; }
-    .icon { margin: 0.25rem 0.125rem 0.25rem 0.25rem };
-  }
   &.head {
     color: #fff;
-    font-size: 1.33rem;
     .name {
       color: #fff;
       margin: 0 0.5rem 0 0;
@@ -866,9 +850,8 @@ textarea {
     input, select {
       color: #fff !important;
       flex-grow: 1;
-      font-size: 1.33rem;
       background: linear-gradient(to right, #0002, #0000);
-      &::placeholder { color: #fffa; font-size: 1.33rem; }
+      &::placeholder { color: #fffa; }
       &:hover, &:focus, &:active, &:focus-visible {
         background: linear-gradient(to right, #0004, #0000) !important;
         outline: none;
@@ -894,7 +877,6 @@ textarea {
     padding: 0.33rem;
     border-radius: 3px;
     .name {
-      font-size: 1.25rem;
       min-height: 2rem;
       padding: 0.25rem 0.33rem;
     }
@@ -907,6 +889,7 @@ textarea {
     }
 
     textarea {
+      font-size: 1rem;
       border-radius: 3px;
       margin-bottom: 0;
       padding-left: 0.25rem;
@@ -958,31 +941,6 @@ textarea {
     }
   }
 }
-.field-body {
-  display: flex;
-  flex-flow: column nowrap;
-  flex-grow: 1;
-  align-items: stretch;
-}
-.field-editor {
-  flex-grow: 1;
-  display: flex;
-  flex-flow: column nowrap;
-  align-items: stretch;
-  textarea { flex-grow: 1 }
-}
-.field-sidebar {
-  .collapsed & {
-    display: none;
-    visibility: hidden;
-  }
-}
-.field-content {
-  gap: 1rem;
-  display: flex;
-  flex-flow: row nowrap;
-  align-items: stretch;
-}
 .files {
   display: flex;
   flex-flow: column nowrap;
@@ -1002,7 +960,6 @@ textarea {
   &:focus-within { background: #fff }
 }
 .project-title {
-  font-size: 1.25rem;
   font-weight: 250;
 }
 .hex-row {
@@ -1015,13 +972,15 @@ textarea {
   display:       flex;
   flex-flow:     row wrap;
   margin-bottom: 1.5rem;
+  &:last-child { 
+    margin-bottom: 0;
+  }
   .file & {
     color: #444;
   }
   h3 {
     color:       #555;
     display:     block;
-    font-size:   1.33rem;
     font-weight: normal;
     gap:         0;
     margin:      0.5rem 0.5rem 0;
@@ -1031,7 +990,6 @@ textarea {
 
 pre.compile-errors {
   white-space: pre-wrap;
-  border-radius: 3px;
   overflow:    auto;
   font-family: monospace;
   font-size:   1.15rem;
@@ -1056,7 +1014,8 @@ pre.compile-errors {
 }
 
 .witness {
-  display: flex; flex-flow: row nowrap; margin-bottom: 1px;
+  display: flex;
+  flex-flow: row nowrap; margin-bottom: 1px;
   select {
     width: 4rem;
   }
@@ -1075,14 +1034,12 @@ pre.compile-errors {
   margin: 0;
   p {
     margin-top: 0 !important; margin-bottom: 1rem !important; line-height: 1.5;
-    &.smol { font-size: 1.33rem; margin-bottom: 0rem !important; }
+    &.smol { margin-bottom: 0rem !important; }
   }
 }
 .program-form {
   padding:       1px;
   gap:           0.5rem;
-  font-size:     1.25rem;
-  border-radius: 3px;
   min-width:     69ch;
   input, select, button {
     border-radius: 3px;
@@ -1151,13 +1108,11 @@ pre.compile-errors {
   }
   p { padding: 0; margin: 0 0 0.5rem 0 !important }
   .title {
-    font-size: 1.33rem;
     padding: 1px 0.5rem; margin-bottom: 0.5rem;
   }
 }
 .instances {
   border: 1px solid #0008;
-  border-radius: 3px;
   display: flex;
   flex-flow: column nowrap;
   align-items: center;
@@ -1167,8 +1122,7 @@ pre.compile-errors {
   margin: 0 0.5rem 0.166rem;
   padding: 0.5rem;
   .empty {
-    align-self: center; justify-self: center; color: #555; background: #0001; padding: 1rem;
-    font-size: 1.5rem;
+    align-self: center; justify-self: center; color: #555; background: #0001; padding: 1.5rem;
   }
 
 }
@@ -1177,7 +1131,6 @@ pre.compile-errors {
 .outputs {
   margin: 0;
   padding: 0rem 0.5rem;
-  font-size: 1.25rem;
   display: flex;
   flex-flow: column nowrap;
   li {
@@ -1190,7 +1143,6 @@ pre.compile-errors {
       min-width: auto;
       padding-left: 0;
       width: 6ch;
-      font-size: 1.125rem;
     }
     strong {
       font-weight: 500;
@@ -1280,6 +1232,64 @@ pre.compile-errors {
 
 /** Aspect classes. */
 
+input,
+select,
+textarea,
+button.pill,
+.view-editors .editors,
+.size-1 { font-size: 1rem !important; }
+
+.utxos li strong,
+.utxos li span,
+.inputs li strong,
+.inputs li span,
+.outputs li strong,
+.outputs li span,
+.size-1-15 { font-size: 1.15rem !important; }
+
+.hackbg,
+pre.sh,
+.size-1-20 { font-size: 1.20rem !important; }
+
+.chain h3.name,
+.chain,
+.user .name,
+.field.file .name,
+.feature .links,
+.feature p,
+.utxos,
+.inputs,
+.outputs,
+.buttons a,
+.buttons button,
+.project-title,
+.program-form,
+.size-1-25 { font-size: 1.25rem !important; }
+
+.user,
+.program-form .title,
+.features,
+.features p,
+.field .head,
+.field .head input,
+.field .head input::placeholder,
+.field .head select::placeholder,
+.layer p.smol,
+.phase-form h3,
+.size-1-33 { font-size: 1.33rem !important; }
+
+.view-main p,
+.view-editors,
+.instances .empty,
+.size-1-50 { font-size: 1.50rem !important; }
+
+h1,
+h3,
+.size-1-66 { font-size: 1.66rem !important; }
+
+h2,
+.size-1-75 { font-size: 1.75rem; }
+
 body,
 nav.header,
 pre.compile-errors,
@@ -1289,6 +1299,17 @@ pre.compile-errors,
 .view-main,
 .fullwidth {
   width: 100%
+}
+
+.handle-v,
+.chain,
+pre.compile-errors,
+.program-form,
+.instances,
+.user,
+.editor-wrapper,
+.rounded {
+  border-radius: 3px;
 }
 
 /** Media queries. */
@@ -1304,7 +1325,8 @@ pre.compile-errors,
   }
 }
 @media screen and (max-width: 1600px) {
-  .field-content {
+  html { font-size: 1.66vw }
+  .field .field-content {
     flex-flow: column;
     align-items: stretch;
   }
@@ -1335,11 +1357,18 @@ pre.compile-errors,
     margin: 0;
     padding: 0;
   }
+  .field.file textarea {
+    font-size: 1.25rem !important
+  }
 }
 @media screen and (max-width: 1280px) {
+  html { font-size: 1.75vw }
   .layer {
     flex-flow: column;
     align-items: stretch;
     gap: 0;
   }
+}
+@media screen and (max-width: 960px) {
+  html { font-size: 2vw }
 }
