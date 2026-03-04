@@ -14,6 +14,7 @@ import { Wasm }                          from '../platform/SimplicityHL/src/sdk.
 import type { ArgTypes }                 from '../platform/SimplicityHL/src/sdk.ts';
 import { Labels, Texts, Icon }           from './cons.ts';
 export const wasm = await Wasm({ wasm: new URL('/wasm/fadroma_simf_bg.wasm', location.href) });
+console.log({wasm});
 
 const chain = Bitcoin.LiquidTestnet(); // Chain handle (initialized once) FIXME redundant
 
@@ -40,7 +41,7 @@ export default function App ({
   chainsView  = Html.id("chains"),
   editorView  = Html.id("editors"),
   usersView   = Html.id("users"),
-  projectView = Html.id("identities"), // FIXME descriptive id
+  projectView = Html.id("connections"), // FIXME descriptive id
   /** Create user card, retrieving balance. */
   addUser = (...[name, options]: Parameters<typeof User>): User => {
     const user = User(name, options);
@@ -331,7 +332,7 @@ function ProgramEditor (id: string, source: string, {
   /** UTXOs of currently compiled P2TR. */
   instances = UtxoList(() => preview1(), { esplora: chain.esplora }),
   /** Title for first half of commitment phase. */
-  title1    = ['h3', 'Step 1. Compile program.'],
+  title1    = ['h3', ['strong', 'Step 1.'], ' Compile program.'],
   /** Commitment phase (compile-time) parameters. */
   params    = wasm.paramTypes(source),
   /** Commitment phase (compile-time) parameters rendered to form fields. */
@@ -347,12 +348,12 @@ function ProgramEditor (id: string, source: string, {
     ['label.col.align-stretch',
       ['label.align-end',
         ['div.row.gap.align-stretch.justify-between',
-          ['div.col.grow', ['strong', 'Program address (P2TR):'], address],
+          ['label.col.grow', ['strong', 'Program address (P2TR):'], address],
           Button('compile', () => compile())]],
       instances,
       errors]),
   /** Title for second half of commitment phase. */
-  title2    = ['h3', 'Step 2. Commit funds to address of program.'],
+  title2    = ['h3', ['strong', 'Step 2.'], ' Commit funds to address of program.'],
   /** Commit form. */
   stage2    = form('simf-commit', title2,
     ['label',
@@ -368,7 +369,7 @@ function ProgramEditor (id: string, source: string, {
   /** Redeem transaction is built here. */
   preview2  = TxPreview({ users, esplora, amount, address, sender }),
   /** Title for first half of redemption phase. */
-  title3    = ['h3', 'Step 3. Specify transaction and sign witness data to redeem funds.'],
+  title3    = ['h3', ['strong', 'Step 3.'], ' Specify transaction and sign witness data to redeem funds.'],
   /** Will receive funds from program. Needs to be specified to obtain sighash. */
   receiver  = SelectUserWithBalance(() => preview2(), { chain, users }),
   /** Amount to redeem from program. Needs to be specified to obtain sighash. */
@@ -479,7 +480,7 @@ function UtxoList (onchange = () => {}, {
     async function initUtxoList () {
       const utxos = await esplora.getAddressUtxos(addr);
       if (utxos.length === 0) {
-        view.innerText = 'No balance here. Send some funds!';
+        view.innerText = 'No balance here yet. Send some funds!';
       } else {
         view.innerText = '';
         for (const utxo of utxos) Html.append(view, UtxoListItem(onchange, utxo));
@@ -727,7 +728,7 @@ namespace Field {
   export const Wrapper = (id: string, collapsed: boolean, ...rest: unknown[]) =>
     ([`div.field.file${collapsed?'.collapsed':''}#${id}[data-path=${id}]`, ...rest]);
   export const Handle = (id: string, collapsed: boolean) =>
-    (['div.handle-v', Field.toggle(id), Field.Icon(collapsed), ['div.grow']]);
+    (['button.handle-v', Field.toggle(id), Field.Icon(collapsed), ['div.grow']]);
   export const Icon = (collapsed: boolean) =>
     (['svg.icon', [`use[href=${'icons.svg#'+(collapsed?'chevron-right':'chevron-down')}]`]]);
   export const Header = (id: string, ...header: unknown[]) =>
@@ -774,7 +775,11 @@ const InputSigHash = () => ['label.gap', ['strong', 'Sign hash:'], ['input']]
 function Select () { /* TODO */ }
 
 function SelectChain () {
-  return ['label.pick-chain', ['strong', 'Chain:'], ['select.pick-chain', ['option', 'liquidtestnet'], ['option', { disabled: true }, 'elementsregtest']]];
+  return ['label.pick-chain', ['strong', 'Chain:'], ['select.pick-chain',
+    ['option', { disabled: true }, 'liquid1'],
+    ['option', { selected: true }, 'liquidtestnet'],
+    ['option', { disabled: true }, 'elementsregtest'],
+  ]];
 }
 
 namespace Select {

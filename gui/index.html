@@ -18,14 +18,18 @@
         <!--<button data-action="new"  class="rel"><svg class="icon"><use href="icons.svg#document"></use></svg> New</button>-->
         <!--<button style="opacity:0.5" data-action="load" class="rel"><svg class="icon"><use href="icons.svg#upload"></use></svg> Load</button>-->
         <!--<button data-action="save" class="rel"><svg class="icon"><use href="icons.svg#download"></use></svg> Save</button>-->
-        <a href="https://github.com/hackbg/fadroma"><svg class="icon"><use href="icons.svg#github"></use></svg> GitHub</a>
+        <div class="row">
+          <a href="#connections">Chains</a>
+          <a href="#wallets">Wallets</a>
+          <a href="https://github.com/hackbg/fadroma"><svg class="icon"><use href="icons.svg#github"></use></svg> GitHub</a>
+        </div>
         <!--<a data-action="docs" href="/docs/deno/index.html"><svg class="icon"><use href="icons.svg#book"></use></svg> Docs</a>-->
         <!--<a style="opacity:0.5" data-action="test" href="#"><svg class="icon"><use href="icons.svg#doc"></use></svg> Test</a>-->
         <!--<a href="/cov/index.html"><svg class="icon"><use href="icons.svg#code"></use></svg> Coverage</a>-->
       </nav>
     </nav>
     <div id="main" class="view-main">
-      <div class="scroll-to content hero">
+      <div id="brand-card" class="scroll-to hero">
         <div class="col gap align-center">
           <a class="logo" href="https://fadroma.tech" data-action="home"></a>
           <a class="wordmark" data-action="home" href="https://fadroma.tech"></a>
@@ -36,26 +40,26 @@
 # git submodule update --init --recursive</pre>
           <p>Inquiries welcome at <strong><a href="https://hack.bg/contact">https://hack.bg/contact</a></strong>.</p>
         </div>
-        <div class="col gap align-start">
-          <div class="features" id="features"></div>
-          <script type="module">import load from './loader.ts';load(import('./cons.ts'), ({Platforms})=>Platforms());</script>
-        </div>
       </div>
       <div id="app" class="scroll-to app">
-        <div id="identities" class="identities">
+        <div class="view-editors" id="editors">
+          <div class="loading">Loading example project...</div>
+          <script type="module">import load from './loader.ts';load(import('./index.ts'));</script>
+        </div>
+        <div id="connections" class="connections">
           <div class="col">
             <h2>Chain connection status:</h2>
             <div id="chains" class="view-chains">Loading...</div>
           </div>
-          <div class="col">
+          <div id="wallets" class="col">
             <h2>Identity status:</h2>
             <div id="users" class="view-users col justify-center align-stretch gap">Loading...</div>
           </div>
         </div>
-        <div class="grow" id="editors">
-          <div class="loading">Loading example project...</div>
-          <script type="module">import load from './loader.ts';load(import('./index.ts'));</script>
-        </div>
+      </div>
+      <div class="scroll-to hero col gap align-start">
+        <div class="features" id="features"></div>
+        <script type="module">import load from './loader.ts';load(import('./cons.ts'), ({Platforms})=>Platforms());</script>
       </div>
 
     </div>
