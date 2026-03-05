@@ -102,8 +102,32 @@ namespace Html {
     return el;
   }
 
-};
+  /** Display error thrown by component init in host element. */
+  export function catcher <T, V extends HTMLElement> (
+    errorView: V, callback: () => T
+  ) {
+    try {
+      return callback()
+    } catch (error) {
+      console.error(error);
+      errorView.style.whiteSpace = 'pre';
+      errorView.innerText = error.stack;
+    }
+  }
 
+  /** Display error thrown by async component init in host element. */
+  export async function catcherAsync <T, V extends HTMLElement> (
+    errorView: V, callback: () => Promise<T>
+  ) {
+    try {
+      return await callback()
+    } catch (error) {
+      console.error(error);
+      errorView.style.whiteSpace = 'pre';
+      errorView.innerText = error.stack;
+    }
+  }
+};
 export function Div (spec: string, ...args: unknown[]) {
   return Html([`div${spec}`, ...args]).firstChild as HTMLDivElement
 }
