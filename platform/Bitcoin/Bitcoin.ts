@@ -1,3 +1,5 @@
+import type { pubECDSA } from 'npm:@scure/btc-signer/utils.js';
+import { p2wpkh } from 'npm:@scure/btc-signer';
 import { Num, Fn, Obj, Run, Spawn, Log, Port, Temp, Http } from '../../library/index.ts';
 /** 1 BTC = 100000000sat. https://bitcoin.org/bitcoin.pdf */
 export const BITCOIN = 100000000n;
@@ -157,6 +159,7 @@ export namespace LiquidTestnet {
   export const REST_URL     = null;
   export const ESPLORA_URL  = 'https://blockstream.info/liquidtestnet/api';
   export const NETWORK      = { bech32: 'tex', blech32: 'tlq', pubKeyHash: 36, scriptHash: 19, wif: 0xef };
+  export const P2WPKH       = (x: ReturnType<typeof pubECDSA>) => p2wpkh(x, NETWORK);
   export const FAUCET_URL   = 'https://liquidtestnet.com/faucet';
   export const HRP_BECH32   = 'tex';
   export const HRP_BLECH32  = 'tlq';
@@ -232,7 +235,8 @@ export namespace ElementsRegtest {
   export const ID              = 'elementsregtest';
   export const HRP_BECH32      = 'ert';
   export const HRP_BLECH32     = 'el';
-  export const NETWORK         = { bech32: HRP_BECH32, pubKeyhash: 0x6f, scripthash: 0xc4, wif: 0xef, };
+  export const NETWORK         = { bech32: HRP_BECH32, pubKeyHash: 0x6f, scriptHash: 0xc4, wif: 0xef, };
+  export const P2WPKH          = (x: ReturnType<typeof pubECDSA>) => p2wpkh(x, NETWORK);
   export const PREFIX_P2PKH    = 235;
   export const PREFIX_P2SH     = 75;
   export const PREFIX_BLIND    = 4;
