@@ -29,7 +29,7 @@ export const polyfill = nodePolyfills({ include });
 export default defineConfig({
   root:      'gui',
   publicDir: '../www',
-  build:     { outDir: '../.misc/gh-pages' },
+  build:     { outDir: 'dist' },
   resolve:   { alias },
   plugins:   [ polyfill, wasm(), topLevelAwait() ],
   server:    { allowedHosts: ["vite.dev.hack.bg"] }
