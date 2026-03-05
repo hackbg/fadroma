@@ -1,11 +1,12 @@
 import Fn from '../../library/Fn.ts';
-import Run from '../../library/Run.ts';
 import Http from '../../library/Http.ts';
+import { Run, Spawn } from '../../library/Run.ts';
 import { Log } from '../../library/Log.ts';
 import { Port } from '../../library/Port.ts';
 import { Temp } from '../../library/Fs.ts';
 import { Num, Base16 } from '../../library/Number.ts';
 import process from 'node:process';
+
 export default Bitcoin;
 
 /** A Bitcoin or Elements daemon. */
@@ -15,7 +16,7 @@ type Bitcoin = Run.Daemon & Bitcoin.Connect & { verbose?: boolean };
 async function Bitcoin <T> (options: Partial<Log & Bitcoin.Options> = {}): Promise<Fn.Async<T>> {
   const { daemon = 'elementsd', debug = console.debug } = options;
   const { url, rpcport, args } = await Bitcoin.Options(options);
-  const spawn = Run.Spawn(daemon, ...args.filter(Boolean));
+  const spawn = Spawn(daemon, ...args.filter(Boolean));
   debug('Spawning:', [spawn.daemon, ...spawn.options].join(' '));
   const btc = await spawn();
   await Port.Wait({ port: rpcport })();
@@ -324,8 +325,7 @@ namespace Bitcoin {
   export function CreateWallet (name: string, cb?: Fn) {
     return Fn.Name(`Create test wallet ${name}`, async (context: Bitcoin) => {
       await context.rpc.createwallet(name);
-      cb && await cb(await context.rpc.getwalletinfo());
-      return context
+      return withWalletInfo(context, cb);
     })
   };
 
@@ -333,28 +333,18 @@ namespace Bitcoin {
   export function Rescan (cb?: Fn) {
     return Fn.Name(`Rescan`, async (context: Bitcoin) => {
       await context.rpc.rescanblockchain();
-      await cb(await context.rpc.getwalletinfo());
-      return context
+      return withWalletInfo(context, cb);
     })
   };
 
-  /** Define daemon verbosity. */
-  export function Verbose (
-    enabled?: boolean, stdout = process.stderr, stderr = process.stderr
-  ) {
-    return Fn.Name(`Verbose: ${enabled}`, (context: Bitcoin) => {
-      context.verbose = enabled;
-      if (enabled) {
-        context.stdout.pipe(stdout);
-        context.stderr.pipe(stderr);
-      }
-      return context
-    })
-  };
+  async function withWalletInfo (context: Bitcoin, cb?: Fn) {
+    if (cb) await cb(await context.rpc.getwalletinfo());
+    return context
+  }
 
   /** The [Sign]er is an optionally-[Async]hronous function
     * that takes bytes and returns signed hex + complete flag + errors. */
-  export interface Sign extends Fn<[Uint8Array], Fn.Async<Sign.Result>> {}
+  export type Sign = Fn<[Uint8Array], Fn.Async<Sign.Result>>;
 
   /** Signer internals. */
   export namespace Sign {
