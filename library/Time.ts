@@ -24,3 +24,5 @@ export const interval = (msec: number, ...steps: Fn.Step[]) =>
   Fn.Name(null, async function interval (..._: unknown[]) {
     return setInterval(() => { Fn.Pipe(...steps)(performance.now()); }, msec);
   }, { msec });
+
+export const sleep = (msec = 0) => new Promise(resolve=>setTimeout(resolve, msec));
