@@ -1,5 +1,4 @@
 import { ok, equal, throws, rejects } from 'node:assert';
-import { stdout, argv } from 'node:process';
 import { setImmediate } from 'node:timers';
 import { inspect } from 'node:util';
 import type { Prototype } from './index.ts';
@@ -10,6 +9,8 @@ import { Error, withInfiniteStack, alignTrace } from './Err.ts';
 import { spaced, lines, toString } from './String.ts';
 import { merged } from './Obj.ts';
 import { msec } from './Time.ts';
+const { stdout, argv } = await import('node:process')
+  .catch(e=>{ console.error(e); return { stdout: {}, argv: [] } });
 
 export default Test;
 /** Define a test case. */

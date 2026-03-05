@@ -1,4 +1,5 @@
-import { stdin, stdout } from 'node:process';
+const { stdout, stdin } = await import('node:process')
+  .catch(e=>{ console.error(e); return { stdout: {}, stdin: {} } });
 import type { Timed } from '../index.ts';
 export default Tui;
 /** Launch a terminal user interface. */
