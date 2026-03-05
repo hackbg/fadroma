@@ -129,20 +129,34 @@ namespace Html {
   }
 };
 export function Div (spec: string, ...args: unknown[]) {
-  return Html([`div${spec}`, ...args]).firstChild as HTMLDivElement
+  return Html.el([`div${spec}`, ...args]) as HTMLDivElement;
 }
 export function Section (...content: unknown[]) {
-  return Html(['section', ...content]).firstChild as HTMLElement;
+  return Html.el(['section', ...content]) as HTMLElement;
 }
 export function Label (...content: unknown[]) {
-  return Html(['label', ...content]).firstChild as HTMLLabelElement
+  return Html.el(['label', ...content]) as HTMLLabelElement;
 }
 export function Input (...args: unknown[]) {
-  return Html(['input', ...args]).firstChild as HTMLInputElement;
+  return Html.el(['input', ...args]) as HTMLInputElement;
+}
+export namespace Input {
+  export function Text (...args: unknown[]) {
+    return Html.el(['input[type=text]', ...args]) as HTMLInputElement;
+  }
+  export function Number (...args: unknown[]) {
+    return Html.el(['input[type=number]', ...args]) as HTMLInputElement;
+  }
+  export function Check (...args: unknown[]) {
+    return Html.el(['input[type=checkbox]', ...args]) as HTMLInputElement;
+  }
+}
+export function Select (...args: unknown[]) {
+  return Html.el(['select', ...args]) as HTMLSelectElement;
 }
 export function Button (onclick = null, ...content: unknown[]) {
-  return Html(['button', { onclick }, ...content]).firstChild as HTMLButtonElement; // FIXME don't default to DocumentFragment
+  return Html.el(['button', { onclick }, ...content]) as HTMLButtonElement; // FIXME don't default to DocumentFragment
 }
 export function Option (value?: unknown, ...content: unknown[]) {
-  return Html(['option', { value }, ...content]).firstChild as HTMLOptionElement
+  return Html.el(['option', { value }, ...content]) as HTMLOptionElement;
 }
