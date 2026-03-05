@@ -6,6 +6,11 @@ export function Err (message: string, ...args: object[]) {
   return Object.assign(new Error(message), ...args)
 }
 
+/** Placeholder meant to throw if evaluated. */
+export function required <T>(...info: string[]): T {
+  throw new Error('missing: ' + info.join(' '));
+}
+
 export function formatError (e: Error, name?: Str) {
   const [head, ...tail] = (e?.stack||'').split('\n');
   const stack = tail.map(x=>x
@@ -17,6 +22,7 @@ export function formatError (e: Error, name?: Str) {
   e.stack = [head, name, ...stack].filter(Boolean).join('\n');
   return e;
 }
+
 /** Set `Error.stackTraceLimit` to `Infinity`,
   * run a function, then restore its previous value. */
 export async function withInfiniteStack <F extends Fn> (
