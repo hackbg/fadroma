@@ -144,21 +144,36 @@ namespace Test {
     if (steps.length === 0) return todo(name);
     const substeps: Step<T>[] = steps.map(Step);
     return Fn.Name(name, testStep, { steps });
+
+    // The returned function `testStep` executes the test steps
+    // defined to the parent function `the`.
     async function testStep (last: unknown, context: T): Promise<void> {
+
       let state: State = null, threw: Error, returned = last;
-      if (substeps.length === 0)
+      if (substeps.length === 0) {
+        // Zero steps run in order.
         context.todo({ index: 1, name, t0: performance.now() });
-      if (substeps.length === 1)
-        await runStep(Fn.Name(substeps[0].name||name, substeps[0]));
-      for (let index = 1; index <= substeps.length; index++) { 
-        const step = substeps[index - 1];
-        const stepName = substepName(name, step as { name?: string });
-        await Fn.Name(stepName, runStep)(step, index);
+      } else if (substeps.length === 1) {
+        // One step runs like this:
+        const step = substeps[0];
+        const stepName = step.name||name;
+        await runStep(Fn.Name(stepName, step));
+      } else {
+        // Multiple steps run sequentially; names
+        // are prefixed with name of parent step.
+        for (let index = 0; index < substeps.length; index++) {
+          const step = substeps[index];
+          const stepName = substepName(name, step as { name?: string });
+          const namedRun = Fn.Name(stepName, runStep);
+          await namedRun(step, index + 1);
+        }
       }
+
       async function runStep (step: Step<T>, index = 1) {
         const t0 = context.begin(index, step);
         try {
-          returned = await step(returned, context);
+          // UNSAFE? Returning undefined defaults to result of previous step.
+          returned = await step(returned, context) ?? returned;
           state ||= 'pass';
         } catch (error) {
           threw ||= Fn.Step(step, error);
@@ -170,6 +185,7 @@ namespace Test {
           context.end(index, step, t0, t1, state, returned, threw);
         }
       }
+
     }
   }
 
