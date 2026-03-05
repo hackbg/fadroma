@@ -48,7 +48,6 @@ html {
   background-color: #65b34c;
   background-size:  cover;
   box-shadow:       0.5rem 0.5rem 1rem #0001 inset;
-  min-height:       100%;
   margin:           0;
   padding:          0;
   font-size:        14px;
@@ -99,7 +98,6 @@ h2 {
   }
 }
 h3 {
-  color: #fff;
   text-shadow: 1px 1px 1px #0004;
   .chain &.name {
     margin: 0.166rem 0;
@@ -125,7 +123,9 @@ input, select {
     padding:     0.33rem 0.5rem;
     line-height: 1.33rem;
   }
-  &, label { &:hover { background: #fff8 }; };
+  &, label {
+    &:hover { background: #fff1 };
+  };
   /*&::placeholder { text-decoration: underline; };*/
   &:focus::placeholder { text-decoration: none; }
 }
@@ -172,7 +172,7 @@ nav {
     top: 0;
     left: 0;
     right: 0;
-    padding: 0.5rem 1rem;
+    padding: 0 1rem 0.5rem;
     z-index: 10000000;
     display: flex;
     justify-content: space-between;
@@ -263,11 +263,11 @@ a.help {
   font-weight: semibold;
 }
 .hero {
-  padding: 4.5rem 2rem 1.5rem;
+  padding: 1rem;
   gap: 2rem !important;
   display: flex;
-  flex-flow: row wrap;
-  align-items: flex-start;
+  flex-flow: column;
+  align-items: center;
   justify-content: center;
 }
 .collapsible {
@@ -432,6 +432,7 @@ a.custom.work {
 }
 
 .buttons {
+  align-self: flex-start;
   a, button {
     color: #fff;
     text-decoration: none;
@@ -515,7 +516,7 @@ a.custom.work {
     background: #fff1;
     border-bottom: 1px solid #fff8;
     &::placeholder {
-      color: #fffa;
+      opacity: 0.8;
       text-decoration: none
     }
   }
@@ -554,16 +555,7 @@ a.custom.work {
     margin: 0 -0.25rem;
   }
 }
-.editors {
-  align-items:      stretch;
-  /*background:       linear-gradient(to right, #0214, #1322);*/
-  display:          flex;
-  flex-flow:        column nowrap;
-  gap:              2rem;
-  justify-content: stretch;
-  padding:          0 2rem 2rem;
-  box-shadow: 3px 3px 6px #0002;
-}
+
 .view-editors {
   align-items:     center;
   color:           #fff;
@@ -585,12 +577,17 @@ a.custom.work {
   }
 
   .editors {
-    /*background: #0002;*/
-    border:     none;
-    display:    flex;
-    flex-flow:  column;
-    gap:        1px;
-    padding:    0 1.5rem;
+    align-items:      stretch;
+    display:          flex;
+    flex-flow:        column nowrap;
+    gap:              2rem;
+    justify-content:  stretch;
+    box-shadow:       3px 3px 6px #0002;
+    border:           none;
+    display:          flex;
+    flex-flow:        column;
+    gap:              1px;
+    padding:          0 1.5rem 1.5rem;
     select {
       padding-left: 0.25rem
     }
@@ -609,7 +606,7 @@ a.custom.work {
           color:      #fff !important;
           outline:    none;
           &::placeholder {
-            color: #fa0f;
+            /*color: #fa0f;*/
             text-shadow: 1px 1px 0 #000;
           }
         }
@@ -630,15 +627,19 @@ textarea {
 }
 
 .app {
-  align-items:   stretch;
-  display:       flex;
-  border:        none;
-  flex-flow:     row wrap;
-  height:        auto;
-  margin:        0 1.5rem;
-  max-width:     300ch;
-  min-width:     30ch;
-  overflow:      hidden;
+  align-items: stretch;
+  align-self:  stretch;
+  background:  radial-gradient(at top left, #ffffff10, #ffffff00 50%), linear-gradient(to bottom, #00000008, #00000004), #00000002;
+  border:      1px solid #ffffff10;
+  box-shadow:  0 0 3px #00000011 inset;
+  display:     flex;
+  flex-flow:   column;
+  flex-grow:   1;
+  height:      auto;
+  max-width:   300ch;
+  min-width:   30ch;
+  overflow:    hidden;
+  padding:     0;
 }
 
 .features {
@@ -820,14 +821,13 @@ textarea {
   .field-content {
     gap:         1.5rem;
     display:     flex;
-    flex-flow:   row nowrap;
+    flex-flow:   column;
     align-items: stretch;
   }
   .name {
     user-select:    none;
     padding:        0 0.33rem;
     text-transform: none;
-    color:          #000;
     font-weight:    bold;
     font-weight:    550;
     letter-spacing: 0.05rem;
@@ -846,12 +846,14 @@ textarea {
       margin: 0 0.5rem 0 0;
       &.title { font-weight: bold }
     }
-    &:focus-within { background: linear-gradient(to right, #0006, #0004);  }
+    &:focus-within {
+      background: linear-gradient(to right, #0006, #0004);
+    }
     input, select {
       color: #fff !important;
       flex-grow: 1;
       background: linear-gradient(to right, #0002, #0000);
-      &::placeholder { color: #fffa; }
+      &::placeholder { opacity: 0.8; }
       &:hover, &:focus, &:active, &:focus-visible {
         background: linear-gradient(to right, #0004, #0000) !important;
         outline: none;
@@ -967,7 +969,7 @@ textarea {
   padding: 0 0.5rem; font-weight: 600
 }
 .phase-form {
-  color:         #fff;
+  /*color:         #fff;*/
   gap:           0;
   display:       flex;
   flex-flow:     row wrap;
@@ -975,11 +977,8 @@ textarea {
   &:last-child { 
     margin-bottom: 0;
   }
-  .file & {
-    color: #444;
-  }
   h3 {
-    color:       #555;
+    opacity:     0.75;
     display:     block;
     font-weight: normal;
     gap:         0;
@@ -1032,6 +1031,9 @@ pre.compile-errors {
   gap: 0.5rem;
   padding: 0;
   margin: 0;
+  &.textbox {
+    padding: 0 2rem 0.5rem;
+  }
   p {
     margin-top: 0 !important; margin-bottom: 1rem !important; line-height: 1.5;
     &.smol { margin-bottom: 0rem !important; }
@@ -1301,6 +1303,18 @@ pre.compile-errors,
   width: 100%
 }
 
+html,
+.fullheight {
+  height: 100%
+}
+
+html,
+body,
+.view-main,
+.min-fullheight {
+  min-height: 100%
+}
+
 .handle-v,
 .chain,
 pre.compile-errors,
@@ -1315,13 +1329,18 @@ pre.compile-errors,
 /** Media queries. */
 
 @media screen and (min-width: 1920px) {
-  .connections {
-    flex-flow: column nowrap;
+  .app, .connections {
     justify-content: flex-start;
   }
-  .app {
+  .connections {
+    flex-flow: column nowrap;
+  }
+  .view-main {
     flex-flow: row nowrap;
-    justify-content: flex-start;
+    align-items: flex-start;
+  }
+  .hero {
+    padding: 1rem 0
   }
 }
 @media screen and (max-width: 1600px) {
@@ -1329,6 +1348,11 @@ pre.compile-errors,
   .field .field-content {
     flex-flow: column;
     align-items: stretch;
+  }
+}
+@media screen and (min-width: 1660px) {
+  .field.file textarea {
+    font-size: 1.25rem !important
   }
 }
 @media screen and (max-width: 1440px) {
@@ -1341,34 +1365,17 @@ pre.compile-errors,
       max-height: 100%;
     }
   }
-  #app {
-    max-width: auto;
-    > .row {
-      flex-flow: column
-    }
+  #app > .row {
+    flex-flow: column
   }
 }
-@media screen and (min-width: 1441px) {
-  #app, .view-editors {
-    height: 100%;
+@media screen and (max-width: 960px) {
+  html {
+    font-size: 1.75vw
   }
-  #navbar {
-    flex-shrink: 0;
-    margin: 0;
-    padding: 0;
-  }
-  .field.file textarea {
-    font-size: 1.25rem !important
-  }
-}
-@media screen and (max-width: 1280px) {
-  html { font-size: 1.75vw }
   .layer {
     flex-flow: column;
     align-items: stretch;
     gap: 0;
   }
-}
-@media screen and (max-width: 960px) {
-  html { font-size: 2vw }
 }

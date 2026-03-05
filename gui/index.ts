@@ -235,7 +235,7 @@ const Chains = (view = Html.id("chains"), {
 
 const Editor = (host: HTMLElement, {
   users     = [],
-  header    = Section({ className: 'layer', }, Texts.SIMPLICITYHL),
+  header    = Section({ className: 'layer textbox', }, Texts.SIMPLICITYHL),
   programs  = Section({ className: 'layer programs col' }, ExamplePrograms({ users })),
   empty     = ['ul.instances', ['div.empty', ['strong', 'No deployed programs!'], ' ', Texts.NO_DEPLOYS]],
   instances = Section({ className: 'phase' }, ['div.row.gap.field.file', empty]),
