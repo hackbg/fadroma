@@ -33,7 +33,7 @@ export const Base64 = {
   decode: base64.decode
 } as Base<64>;
 
-// BASE58
+// TODO: BASE58
 
 export const Base16 = {
   __base: 16,
@@ -48,7 +48,7 @@ export const toHex = (d: string|number|bigint, pad = 2) => {
   while (hex.length < pad) hex = "0" + hex
   return hex
 }
-
+/** Number with no zeros. Useful property is no leading zeros. */
 export const Base9 = {
   digits: "123456789",
   randomDigit: (): string =>
@@ -56,21 +56,20 @@ export const Base9 = {
   random: (length = 12): string =>
     Array.from({ length }).map(() =>Base9.randomDigit()).join("")
 };
+/** Random string of digits from 1-9. Can be used as
+  * unique ID in both numeric and string types. */
 export const randomId = (length): number =>
   parseInt(Base9.random(length), 10);
-
-export const pickRandom = <T>(set: Set<T>): T =>
-  [...set][Math.floor(Math.random()*set.size)];
-
 /** Generate Uint8Array of given length. */
 export const randomBytes = (n: number = 16) =>
   (webcrypto as any).getRandomValues(new Uint8Array(n));
-
 /** Generate random valid bech32 address.
   * Default length is 32 bytes (canonical addr in Cosmos) */
 export const randomBech32  = (prefix = 'hackbg', n = 32) =>
   bech32.encode(prefix, bech32.toWords(randomBytes(n)))
-
 /** Generate random valid bech32m address. */
 export const randomBech32m = (prefix = 'hackbg', n = 32) =>
   bech32m.encode(prefix, bech32m.toWords(randomBytes(n)))
+/** A random element of a set. */
+export const randomPick = <T>(set: Set<T>): T =>
+  [...set][Math.floor(Math.random()*set.size)];
