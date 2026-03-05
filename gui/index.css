@@ -45,23 +45,20 @@
 
 /** Page styles. */
 html {
-  background-color: #65b34c;
-  background-size:  cover;
-  box-shadow:       0.5rem 0.5rem 1rem #0001 inset;
-  margin:           0;
-  padding:          0;
-  font-size:        14px;
-  background-image: radial-gradient(at left, #0000, #2311),
-                    linear-gradient(to top, #65b34c, #77b377),
-                    radial-gradient(circle at top, #ddd8, #7778),
-                    url('bg.svg');
+  box-shadow: 0.5rem 0.5rem 1rem #0001 inset;
+  margin:     0;
+  padding:    0;
+  font-size:  14px;
 }
 
 body {
-  color:      #444;
-  gap:        1rem;
-  margin:     0 auto;
-  overflow-x: hidden;
+  color:            #444;
+  gap:              1rem;
+  margin:           0 auto;
+  overflow-x:       hidden;
+  background-size:  cover;
+  background-color: #65b34c;
+  background-image: url('bg.svg');
 }
 
 /** Element styles. */
@@ -320,18 +317,21 @@ a.help {
 
 /** FIXME: Remove #id-based styles. */
 .view-main {
-  position:    relative;
-  background:  radial-gradient(at top, #fff1, #fff0), radial-gradient(at top, #fff1 50%, #fff0), linear-gradient(to bottom right, #0402, #0204);
-  gap:         1;
-  margin:      0 auto 4rem;
-  min-width:   50rem;
-  overflow:    visible;
-  display:     flex;
-  flex-flow:   column nowrap;
-  align-items: center;
-  justify-content: center;
-  border:          1px solid rgba(221, 255, 221, 0.667);
+  align-items:     center;
   border-radius:   1rem;
+  border:          1px solid rgba(221, 255, 221, 0.667);
+  display:         flex;
+  flex-flow:       column nowrap;
+  gap:             1;
+  justify-content: center;
+  margin:          0 auto 4rem;
+  min-width:       50rem;
+  overflow:        visible;
+  position:        relative;
+  background:      radial-gradient(at top, #ffffff1c 70%, #fff0), radial-gradient(at top, #fff1 50%, #fff0), linear-gradient(to bottom right, #0402, #0204),
+                   radial-gradient(at left, #0000, #2311),
+                   radial-gradient(at bottom, #65b34c, #77b377),
+                   radial-gradient(circle at top, #ddd8, #7778);
   p {
     color: white;
     text-shadow: -1px -1px 0 #0004;
