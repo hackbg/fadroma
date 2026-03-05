@@ -1,5 +1,10 @@
 import Fn from './Fn.ts';
 
+/** Like Object.assign, but async - because it first awaits any promises in the arglist. */
+export async function Obj (...args: Fn.Async<object>[]): Promise<object> {
+  return Object.assign(...await Promise.all(args.map((x: Fn.Async<object>)=>Promise.resolve(x))))
+}
+
 /** Slice off the 1st arg of every function */
 export type ToApi<I> = {
   [f in keyof I]: I[f] extends (...args: infer _I) => infer _O ? Method<I[f]> : I[f]
