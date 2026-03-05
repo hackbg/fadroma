@@ -174,9 +174,12 @@ export namespace LiquidTestnet {
     RETURN_AMP:  'vjU8JWGnZu6XavzMEbLZ3mGZ3nrPxpwoBNC3brPi7CFm12sb7bHSkB4gz4SGSV9LhBceZVGaF8nsevu6',
   };
   export async function callFaucet (address: string) {
-    const api= `https://liquidtestnet.com/api/faucet`;
-    const url= `${api}?address=${encodeURIComponent(address)}&action=lbtc`;
-    const data = await Http.fetchJson(url);
+    const api = `https://liquidtestnet.com/api/faucet`;
+    const url = `${api}?address=${encodeURIComponent(address)}&action=lbtc`;
+    const res = await fetch(url);
+    const { ok, status } = res;
+    if (!ok) throw new Error(`faucet failed (${status}): ${address}`)
+    const data = await res.json();
     // Extract the 64-char hex txid embedded in the result string.
     const txid = (data.result as string | undefined)?.match(/[0-9a-f]{64}/)?.[0] ?? null;
     return { ...data, txid };
