@@ -406,9 +406,11 @@ namespace Test {
       }
     }
     for (const name of categories) {
+      const count = context[name].count;
+      if (count < 1) continue;
       const category = context[name];
       const { icon, color, label } = category;
-      line = line + spaced(` ${icon}`, color(`${context[name].count} ${label}`), '');
+      line = line + spaced(` ${icon}`, color(`${count} ${label}`), '');
     }
     details.push(line);
     return details;
