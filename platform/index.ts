@@ -17,7 +17,7 @@
 **/
 
 // Bitcoin, Elements
-export { default as Bitcoin } from './Bitcoin/Bitcoin.ts';
+export * from './Bitcoin/Bitcoin.ts';
 
 // SimplicityHL
 export * as SimplicityHL from './SimplicityHL/src/sdk.ts';
