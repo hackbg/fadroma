@@ -156,6 +156,7 @@ export namespace LiquidTestnet {
   export const RPC_URL      = null;
   export const REST_URL     = null;
   export const ESPLORA_URL  = 'https://blockstream.info/liquidtestnet/api';
+  export const NETWORK      = { bech32: 'tex', blech32: 'tlq', pubKeyHash: 36, scriptHash: 19, wif: 0xef };
   export const FAUCET_URL   = 'https://liquidtestnet.com/faucet';
   export const HRP_BECH32   = 'tex';
   export const HRP_BLECH32  = 'tlq';
