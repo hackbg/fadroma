@@ -113,14 +113,6 @@ namespace Btc {
     ];
     return { url, rpcport, args }
   }
-
-  export interface Vout {
-    value: number,
-    scriptPubKey: {
-      type:    string,
-      address: string
-    }
-  };
   // Helper for boolean arguments
   const bool = (x: unknown) => x ? '1' : '0';
   // Helper for temporary directories
@@ -266,6 +258,7 @@ export interface Esplora {
   getAddressUtxos:   (address: string) => Promise<Array<Esplora.Utxo>>
   postTx:            Fn
 }
+
 /** Construct a handle to Esplora REST API. */
 export function Esplora ({ url }: { url: string|URL }): Esplora {
   return {
@@ -281,25 +274,56 @@ export function Esplora ({ url }: { url: string|URL }): Esplora {
     postTx:            (tx: string) => Http.postBinary(`${url}/tx`, tx),
   }
 }
+
 export namespace Esplora {
   /** Transaction fetched from Esplora. */
   export interface Transaction {
-    txid:   string;
-    fee:    number;
-    status: { confirmed: boolean; block_height?: number; block_time?: number };
-    vout:   { value: number; scriptpubkey_address?: string }[];
+    txid:            string;
+    version:         number;
+    locktime:        number;
+    fee:             number;
+    size:            number;
+    weight:          number;
+    discount_vsize:  number;
+    discount_weight: number;
+    vout:            Vout[];
+    status: {
+      confirmed:     boolean;
+      block_height?: number;
+      block_time?:   number;
+    };
+  }
+  export interface Vin {
+    txid:          string;
+    vout:          number;
+    prevout:       Vout;
+    scriptsig:     string;
+    scriptsig_asm: string;
+    witness:       string[];
+    is_coinbase:   boolean;
+    sequence:      number;
+    is_pegin:      boolean;
+  }
+  export interface Vout {
+    value:                number;
+    scriptpubkey:         string;
+    scriptpubkey_asm:     string;
+    scriptpubkey_type:    string;
+    scriptpubkey_address: string;
+    valuecommitment:      string;
+    assetcommitment:      string;
   }
   /** Unspent transaction output fetched from Esplora. */
   export interface Utxo {
-    txid:   string
-    vout:   number
-    asset:  string
-    value:  number
+    txid:   string;
+    vout:   number;
+    asset:  string;
+    value:  number;
     status: {
-      block_hash:   string
-      block_height: number
-      block_time:   number
-      confirmed:    boolean
+      block_hash:   string;
+      block_height: number;
+      block_time:   number;
+      confirmed:    boolean;
     }
   }
 }
@@ -381,23 +405,18 @@ export namespace BtcRpc {
 export interface BtcRest {
   chaininfo: Fn,
   block:     Fn,
-  tx:        Fn<[string, "json"?], Promise<{
-    hex:       string,
-    txid:      string,
-    blockhash: string,
-    vout:      Btc.Vout[]
-  }>>,
+  tx:        Fn<[string, "json"?], Promise<BtcRest.Tx>>,
 }
 
 /** Bitcoin node's optional REST API. */
-export function BtcRest (url: string): Rest {
+export function BtcRest (url: string): BtcRest {
   return {
     async chaininfo (format = "json") {
       let data = await Http.fetchText(`${url}/rest/chaininfo.${format}`);
       if (format === 'json') data = JSON.parse(data);
       return data;
     },
-    async block (hash, format = "json") {
+    async block (hash: string, format = "json") {
       let data = await Http.fetchText(`${url}/rest/block/${hash}.${format}`);
       if (format === 'json') data = JSON.parse(data);
       return data;
@@ -405,7 +424,23 @@ export function BtcRest (url: string): Rest {
     async tx (hash: string, format = "json" as const) {
       let data = await Http.fetchText(`${url}/rest/tx/${hash}.${format}`);
       if (format === 'json') data = JSON.parse(data);
-      return data;
+      return data as unknown as BtcRest.Tx;
     },
+  }
+}
+
+export namespace BtcRest {
+  export interface Tx {
+    hex:       string,
+    txid:      string,
+    blockhash: string,
+    vout:      Vout[]
+  }
+  export interface Vout {
+    value: number,
+    scriptPubKey: {
+      type:    string,
+      address: string
+    }
   }
 }
