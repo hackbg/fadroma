@@ -44,7 +44,7 @@ export namespace LiquidTestnet {
   export const PREFIX_P2SH  = 19;
   export const PREFIX_BLIND = 23;
   export function P2WPKH (ecdsaPubkey: Uint8Array) {
-    const network = { bech32: HRP_BLECH32, pubKeyHash: PREFIX_P2PKH, scriptHash: PREFIX_P2SH, wif: 0xef }
+    const network = { bech32: 'tex', blech32: 'tlq', pubKeyHash: 36, scriptHash: 19, wif: 0xef };
     return p2wpkh(ecdsaPubkey, network);
   }
   /** Liquid Testnet: Known asset IDs. */
