@@ -6,8 +6,9 @@ export default Esplora;
 interface Esplora {
   url: string|URL,
 
-  getBlockTipHeight: Fn.Returns<Fn.Async<Num>>,
+  getBlockTipHeight: Fn.Returns<Fn.Async<Num>>
   getBlockTipHash:   Fn
+  getMempoolTxids:   Fn
   getTxInfo:         Fn
   getTxHex:          Fn
   getAddressInfo:    Fn
@@ -23,6 +24,7 @@ function Esplora ({ url }: { url: string|URL }): Esplora {
 
     getBlockTipHeight: () => Http.fetchText(`${url}/blocks/tip/height`),
     getBlockTipHash:   () => Http.fetchText(`${url}/blocks/tip/hash`),
+    getMempoolTxids:   () => Http.fetchText(`${url}/mempool/txids`),
     getAddressInfo:    (ad: string) => Http.fetchJson(`${url}/address/${encodeURIComponent(ad)}`),
     getAddressUtxos:   (ad: string) => Http.fetchJson(`${url}/address/${encodeURIComponent(ad)}/utxo`),
     getAddressTxs:     (ad: string) => Http.fetchJson(`${url}/address/${encodeURIComponent(ad)}/txs`),
