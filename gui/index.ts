@@ -1,7 +1,9 @@
-Error.stackTraceLimit = 100
+import type { Bytes, Fn } from '../library/index.ts';
+import type { ArgTypes } from '../platform/SimplicityHL/src/sdk.ts';
+Error.stackTraceLimit = 100;
+import Html, { Div, Input, Section, Option, Select } from '../library/Html.ts';
+import { Button, Labeled, Texts, Icon }  from './cons.ts';
 import { Err }                           from '../library/Err.ts';
-import Html                              from '../library/Html.ts';
-import type { Bytes, Fn }                from '../library/index.ts';
 import { Base16 }                        from '../library/Number.ts';
 import { joinLines }                     from '../library/String.ts';
 import { Transaction, p2wpkh as P2WPKH } from 'npm:@scure/btc-signer';
@@ -9,88 +11,43 @@ import * as Monaco                       from 'npm:monaco-editor';
 import scrollTo                          from 'npm:animated-scroll-to';
 import { pubECDSA }                      from 'npm:@scure/btc-signer/utils.js'; // not already in keypair?
 import { zipSync, strToU8 as zipStr }    from 'npm:fflate';
-import Bitcoin, { Esplora }              from '../platform/Bitcoin/Bitcoin.ts';
+import { Esplora, LiquidTestnet }        from '../platform/Bitcoin/Bitcoin.ts';
 import { Wasm }                          from '../platform/SimplicityHL/src/sdk.ts';
-import type { ArgTypes }                 from '../platform/SimplicityHL/src/sdk.ts';
-import { Labels, Texts, Icon }           from './cons.ts';
 export const wasm = await Wasm({ wasm: new URL('/wasm/fadroma_simf_bg.wasm', location.href) });
-console.log({wasm});
 
-const chain = Bitcoin.LiquidTestnet(); // Chain handle (initialized once) FIXME redundant
+/** Launch the Fadroma IDE in a set of HTML DOM root elements. */
+export default ({
+  /** Currently selected chain connector. */
+  chain = LiquidTestnet(),
+  /** Host element for chains view. */
+  chainsView = Html.id("chains"),
+  /** Host element for developer view. */
+  editorView = Html.id("editors"),
+  /** Host element for user view. */
+  usersView  = Html.id("users"),
+  /** Encapsulated ephemeral identities. */
+  users      = [ User('Alice', { secret: nonSecret(1) }),
+                 User('Bob',   { secret: nonSecret(2) }),
+                 User('Carol', { secret: nonSecret(3) }) ],
+} = {}) => ({
+  editorView: Editor(editorView, { chain, users }), // FIXME: must precede Users to populate pickers
+  usersView:  Users(usersView, { users }),
+  chainsView: Chains(Html.clear(chainsView), { chain }),
+});
 
-/** Launch the Fadroma IDE in a set of HTML roots.
- *
- * @param {object}  options
- * @param {boolean} options.btc         - Enable Bitcoin integrations.
- * @param {boolean} options.nix         - Provide Nix shell with project.
- * @param {boolean} options.direnv      - Auto-activate Nix shell.
- * @param {boolean} options.elements    - Include elementsd in Nix shell.
- * @param {boolean} options.node        - Include Node.js packaging.
- * @param {boolean} options.deno        - Include Deno packaging.
- * @param {boolean} options.chainsView  - Host element for chains view.
- * @param {boolean} options.editorView  - Host element for developer view .
- * @param {boolean} options.usersView   - Host element for user view.
- * @param {boolean} options.projectView - Host element for project view. */
-export default function App ({
-  btc         = true,
-  nix         = true,
-  direnv      = nix,
-  elements    = nix,
-  node        = false,
-  deno        = true,
-  chainsView  = Html.id("chains"),
-  editorView  = Html.id("editors"),
-  usersView   = Html.id("users"),
-  projectView = Html.id("connections"), // FIXME descriptive id
-  /** Create user card, retrieving balance. */
-  addUser = (...[name, options]: Parameters<typeof User>): User => {
-    const user = User(name, options);
-    user.balance().then(value => console.debug(user, value));
-    return user;
-  },
-  /** Example users. */
-  users = [
-    addUser('Alice', { secret: nonSecret(1) }),
-    addUser('Bob',   { secret: nonSecret(2) }),
-    addUser('Carol', { secret: nonSecret(3) })
-  ],
-} = {}) {
-  return {
-
-    editorView: ErrorBoundary(editorView,
-      () => Editor(editorView, { users })), // FIXME: must precede Users to populate pickers
-
-    users: ErrorBoundary(Html.clear(usersView), () => {
-      for (const user of users) Html.append(usersView, user.view());
-      // Retrieve all user selectors, to update them with the latest user list. */
-      const selectors = document.querySelectorAll('select.pick-user');
-      for (const select of selectors as unknown as HTMLSelectElement[]) {
-        select.innerHTML = '';
-        for (const user of usersToOptions(users)) select.appendChild(user);
-        if (select.onchange) select.onchange(null);
-      }
-      return Object.assign(usersView, { users })
-    }),
-
-    chainsView: Chains(Html.clear(chainsView)),
-
-    projectView: Html.append(projectView, Section(
-      { className: 'layer project' },
-      ['div.col.grow.files.gap',
-        ['div', ['h2', 'Project template:'], Texts.DownloadProject],
-        ['div.row.fields',
-          ['div.field.head.grow', ['div.name.title', 'Title'], InputTitle()],
-          ['div.field.head', ['div.name', 'Licence'], Select.License()],
-          ['div.row.fields', ['div.field.head.grow', ['div.name', 'Download']]]],
-        ['div.col.gap', Field.Text("README", Texts.README)],
-        Field.Text("Justfile", "TODO"),
-          ES.TestSuite({ deno, node, btc }),
-          ES.DenoJson({ deno }),
-          Nix({ nix, elements }),
-          direnv && Field.Text(".envrc", "use nix")]))
-
-  };
-
+function Users (usersView: HTMLElement, { users }) {
+  return Html.catcher(usersView, () => {
+    Html.clear(usersView);
+    for (const user of users) Html.append(usersView, user.view());
+    // Retrieve all user selectors, to update them with the latest user list. */
+    const selectors = document.querySelectorAll('select.pick-user');
+    for (const select of selectors as unknown as HTMLSelectElement[]) {
+      select.innerHTML = '';
+      for (const user of usersToOptions(users)) select.appendChild(user);
+      if (select.onchange) select.onchange(null);
+    }
+    return Object.assign(usersView, { users })
+  })
 }
 
 /** User, as represented in the interface. */
@@ -122,12 +79,12 @@ export function User (name: string, {
   signTxIn = (tx: Transaction, index: number) => tx.signIdx(secret, index),
   //chain    = { bech32: 'ert', pubKeyHash: 0x6f, scriptHash: 0xc4, wif: 0xef, },
   p2wpkh   = P2WPKH(pubkey, { bech32: 'tex', blech32: 'tlq', pubKeyHash: 36, scriptHash: 19, wif: 0xef }),
-  output   = Html(['div.log', 'Enter Bob, Carol.']),
+  output   = Html.el(['div.log', 'Enter Bob, Carol.']),
   //p2p      = P2P({ name, root: output }),
-  toolbar  = Html(['section.progs', ['button.pill', 'Send'], ['button.pill', 'P2PK'], ['button.pill', 'Vault'], ['button.pill', 'Escrow'], ['input.chat', { placeholder: 'chat' }], ['button.pill', 'Say']]),
-  identity = Html(['section.meta',  ['div.col.gap', ['div.row.gap.align-center', ['strong.name', name], ['div.col.gap', p2wpkh, ['strong', [`span.balance[balance=${p2wpkh.address}]`, 'Loading balance...']]]]]]),
+  toolbar  = Html.el(['section.progs', ['button.pill', 'Send'], ['button.pill', 'P2PK'], ['button.pill', 'Vault'], ['button.pill', 'Escrow'], ['input.chat', { placeholder: 'chat' }], ['button.pill', 'Say']]),
+  identity = Html.el(['section.meta',  ['div.col.gap', ['div.row.gap.align-center', ['strong.name', name], ['div.col.gap', p2wpkh, ['strong', [`span.balance[balance=${p2wpkh.address}]`, 'Loading balance...']]]]]]),
   //identity = Html`(section.meta (.col.gap (.row.gap.align-center (strong.name ${name}) (.col.gap p2wpkh (strong ${balance})))))`,
-  view     = () => Html(['div.col', ['article.user', identity, output, toolbar]]),
+  view     = () => Html.el(['div.col', ['article.user', identity, output, toolbar]]),
   balance  = () => getBalances(p2wpkh.address).then(value => {
     for (const element of document.querySelectorAll(`span[balance=${p2wpkh.address}]`) as unknown as HTMLElement[]) {
       element.innerText = `${value} sats`;
@@ -138,87 +95,42 @@ export function User (name: string, {
     return value
   })
 } = {}): User {
-  return {
+  const state = {
     name, signer, p2wpkh,
     view, balance, signTxIn,
     pubkey:  Base16.encode(pubkey),
     pubkeyX: Base16.encode(pubkeyX)
   };
+  balance().then(value => console.debug(state, value));
+  return state;
 }
 
 const usersToOptions = (users = [], value = (user: User) => user.pubkey) => users.map(user=>
-  Html(['option', { value: value(user) }, ['strong', user.name], ` (${user.p2wpkh.address})`]).firstChild);
-
-/** Display error thrown by component init in host element. */
-const ErrorBoundary = <T, V extends HTMLElement> (errorView: V, callback: () => T) => {
-  try {
-    return callback()
-  } catch (error) {
-    console.error(error);
-    errorView.style.whiteSpace = 'pre';
-    errorView.innerText = error.stack;
-  }
-}
-
-/** Display error thrown by async component init in host element. */
-const ErrorBoundaryAsync = async <T, V extends HTMLElement> (errorView: V, callback: () => Promise<T>) => {
-  try {
-    return await callback()
-  } catch (error) {
-    console.error(error);
-    errorView.style.whiteSpace = 'pre';
-    errorView.innerText = error.stack;
-  }
-}
+  Option(value(user), ['strong', user.name], ` (${user.p2wpkh.address})`));
 
 /** Chain connection indicator button. */
 const Chains = (view = Html.id("chains"), {
-
-  interval = 10000,
-
-  state = { interval, nextUpdate: null, view, heightView: null, statusView: null, hashView: null },
-
-  disabled = (name: string) => ['div.chain.disabled.col.gap',
+  chain      = null,
+  interval   = 10000,
+  state      = { interval, nextUpdate: null, view, heightView: null, statusView: null, hashView: null },
+  disabled   = (name: string) => ['div.chain.disabled.col.gap',
     ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to ', name],
       ['strong.status', 'SOON']]],
-
   disableder = (name: string) => ['div.chain.disableder.col.gap.grow',
     ['div.row.gap.align-center.justify-between', ['h3.name', 'Connect to ', name],
       ['strong.status', 'SOON']]],
-
-  selected = (name: string) => ['div.chain.active.col.gap',
+  selected  = (name: string) => ['div.chain.active.col.gap',
     ['div.row.gap.align-center.justify-start',
       ['strong.status', chain ? Texts.CONNECTING : Texts.CONNECTED],
       ['h3.name', name], ['div.grow'], ['div.row.gap', ['div', 'Height: '], ['strong.height']]]],
-
-} = {}) => ErrorBoundary(view, ()=>{
-
-  Html.replace(view, state.view = Html(['div.col.gap',
-    disabled('Liquid Mainnet'),
-    selected('Liquid Testnet'),
-    disabled('Liquid elementsregtest...'),
-    disabled('Bitcoin Mainnet'),
-    disabled('Bitcoin Testnet'),
-    disabled('Bitcoin regtest...'),
-    ['div.row.gap', disableder('Solana RPC...'), disableder('Tendermint RPC...')]
-  ]).firstChild as HTMLElement);
-
-  state.hashView = state.view.querySelector('.chain.active .hash') as HTMLDivElement;
-  state.heightView = state.view.querySelector('.chain.active .height') as HTMLDivElement;
-  state.statusView = state.view.querySelector('.chain.active .status') as HTMLDivElement;
-  state.statusView.style.color = '#af8';
-  state.statusView.innerText = Texts.CONNECTED;
-
-  return updateChains(state)
-
-  async function updateChains (state: {
+  update = async (state: {
     view:       Node
     statusView: HTMLElement
     heightView: HTMLElement
     hashView:   HTMLElement
     interval:   number
     nextUpdate: ReturnType<typeof setTimeout>
-  }) {
+  }) => {
     try {
       state.heightView.innerText = String(await chain.esplora.getBlockTipHeight());
     } catch (e) {
@@ -226,29 +138,63 @@ const Chains = (view = Html.id("chains"), {
       state.statusView.innerText = Texts.CONNECT_ERROR;
       state.statusView.style.color = '#f84';
     } finally {
-      state.nextUpdate = setTimeout(()=>updateChains(state), state.interval);
+      state.nextUpdate = setTimeout(()=>update(state), state.interval);
     }
     return state
   }
-
+} = {}) => Html.catcher(view, ()=>{
+  Html.replace(view, state.view = Html.el(['div.col.gap',
+    disabled('Liquid Mainnet'),
+    selected('Liquid Testnet'),
+    disabled('Liquid elementsregtest...'),
+    disabled('Bitcoin Mainnet'),
+    disabled('Bitcoin Testnet'),
+    disabled('Bitcoin regtest...'),
+    ['div.row.gap', disableder('Solana RPC...'), disableder('Tendermint RPC...')]
+  ]));
+  state.hashView = state.view.querySelector('.chain.active .hash') as HTMLDivElement;
+  state.heightView = state.view.querySelector('.chain.active .height') as HTMLDivElement;
+  state.statusView = state.view.querySelector('.chain.active .status') as HTMLDivElement;
+  state.statusView.style.color = '#af8';
+  state.statusView.innerText = Texts.CONNECTED;
+  return update(state)
 });
 
 const Editor = (host: HTMLElement, {
-  users     = [],
-  header    = Section({ className: 'layer textbox', }, Texts.SIMPLICITYHL),
-  programs  = Section({ className: 'layer programs col' }, ExamplePrograms({ users })),
-  empty     = ['ul.instances', ['div.empty', ['strong', 'No deployed programs!'], ' ', Texts.NO_DEPLOYS]],
-  instances = Section({ className: 'phase' }, ['div.row.gap.field.file', empty]),
-} = {}) => {
+  chain    = null,
+  users    = [],
+  header   = Section({ className: 'layer row', }, ['div.textbox', Texts.SIMPLICITYHL]),
+  programs = Section({ className: 'layer programs col' }, ExamplePrograms({ chain, users })),
+
+  // REFAC: wrap these as ProjectOptions or such
+  btc      = true,
+  nix      = true,
+  direnv   = nix,
+  elements = nix,
+  node     = false,
+  deno     = true,
+} = {}) => Html.catcher(host, () => {
   host.innerText = '';
-  setTimeout(function initEditors () {
-    const textareas = host.querySelectorAll('#editor textarea');
-    for (const textarea of textareas as unknown as HTMLTextAreaElement[]) {
-      initEditor({ textarea: Field.computeHeight(textarea) });
-    }
-  }, 1);
-  return Html.append(host, Html(['div.editors', header, programs, instances]));
-}
+  const textareas = programs.querySelectorAll('#editor textarea');
+  for (const textarea of textareas as unknown as HTMLTextAreaElement[]) {
+    initEditor({ textarea: Field.computeHeight(textarea) });
+  }
+  Html.append(host, Html.el(['div.editors', header, programs]));
+  Html.append(host, Section({ className: 'layer project' },
+    ['div.col.grow.files.gap',
+      ['div', ['h2', 'Project template:'], Texts.DownloadProject],
+      ['div.row.fields',
+        ['div.field.head.grow', ['div.name.title', 'Title'], InputTitle()],
+        ['div.field.head', ['div.name', 'Licence'], SelectLicense()],
+        ['div.row.fields', ['div.field.head.grow', ['div.name', 'Download']]]],
+      ['div.col.gap', Field.Text("README", Texts.README)],
+      Field.Text("Justfile", "TODO"),
+        ES.TestSuite({ deno, node, btc }),
+        ES.DenoJson({ deno }),
+        nix && Nix({ elements }),
+        direnv && Field.Text(".envrc", "use nix")]));
+  return host;
+});
 
 const initEditor = ({
   textarea = null as  HTMLTextAreaElement & { monaco?: Monaco.editor.ITextModel },
@@ -256,7 +202,7 @@ const initEditor = ({
   language = textarea.dataset.language ??= 'nix',
   uri      = textarea.dataset.uri ??= `fadroma://${+new Date()}`,
   model    = textarea.monaco = Monaco.editor.createModel(content, language, Monaco.Uri.parse(uri)),
-  wrapper  = Html.Div('.editor-wrapper'),
+  wrapper  = Div('.editor-wrapper'),
   editor   = Monaco.editor.create(wrapper, monacoOptions(language, model)),
 } = {}) => {
   let ignoreEvent = false;
@@ -298,112 +244,140 @@ function monacoOptions (language: string, model: Monaco.editor.ITextModel) {
   }
 }
 
-const EditableProgram = async (name: string, source: string) => {
-  source = source.split('\n').map((line, index)=>(index > 0)?line.slice(2):line).join('\n');
-  return { name, source, view: initEditableProgram }
-  function initEditableProgram ({
-    host = document.createElement('div') as HTMLElement, open = true, users = [],
-  } = {}) {
-    const editor = Html(ProgramEditor(`src/${name}.simf`, source, { users, open }));;
-    return Html.replace(host, editor);
+async function EditableProgram (name: string, source: string, {
+  view = ({
+    chain  = null,
+    host   = document.createElement('div') as HTMLElement, open = true, users = [],
+    editor = ProgramEditor(`src/${name}.simf`, source, { chain, users, open })
+  } = {}) => {
+    return Html.replace(host, Html(editor));
   }
-};
+} = {}) {
+  source = source.split('\n').map((line, index)=>(index > 0)?line.slice(2):line).join('\n');
+  return { name, source, view }
+}
 
 function ProgramEditor (id: string, source: string, {
   users     = null,
-  chain     = Bitcoin.LiquidTestnet,
-  genesis   = chain.GENESIS, // TODO autofetch from block 0
+  chain     = null,
+  genesis   = chain?.GENESIS, // TODO autofetch from block 0
   compiler  = wasm.compiler({ chain: chain.ID, genesis }),
+  /** Testnet RPC proxy. */
   esplora   = chain.esplora,
   /** Whether the code editor starts out expanded. */
   open      = false,
   /** Error messages are displayed here. */
-  errors    = Html(['pre.compile-errors.collapsible']).firstChild as HTMLElement,
-  /** Wrap program form fields into container elemnent: */
-  form      = (id: string, ...rest: unknown[]) => [`div.program-form.col.grow#${id}`, ...rest],
+  errors    = Html.el(['pre.compile-errors.collapsible']) as HTMLElement,
   /** Commit amount: up to balance of selected sender. */
-  amount    = InputAmount(() => preview1(), 100),
+  amount    = InputAmount(() => preview(), 5000),
+  /** Commit amount: up to balance of selected sender. */
+  fee       = InputAmount(() => preview(), 10000),
   /** Commit transaction target: program's P2TR address. */
-  address   = InputP2TR(() => preview1()),
+  address   = InputP2TR(() => preview()),
   /** Commit transaction funder: user-selectable. */
-  sender    = SelectUserWithBalance(() => preview1(), { chain, users }),
+  sender    = SelectUserWithBalance(() => preview(), { chain, users }),
   /** Commit transaction preview. */
-  preview1  = TxPreview({ users, esplora, amount, address, sender }),
-  /** UTXOs of currently compiled P2TR. */
-  instances = UtxoList(() => preview1(), { esplora: chain.esplora }),
-  /** Title for first half of commitment phase. */
-  title1    = ['h3', ['strong', 'Step 1.'], ' Compile program.'],
+  preview   = TxPreview({ users, amount, fee, address, sender }),
+  /** Compile form. */
+  stage1    = CompileForm(id, source, { esplora, address, errors, compiler, users, preview }),
+  /** Commit form. */
+  stage2    = CommitForm(id, source, { esplora, users, compiler, errors, sender, amount, fee, preview }),
+  /** Stage 3. Populate witnesses. */
+  stage3    = RedeemForm(id, source, { chain, users, amount, address, sender }),
+} = {}) {
+  return Field(id).open(open).content(TextArea(id, source)).content(errors)
+    .sidebar(stage1).sidebar(stage2).sidebar(stage3).build();
+}
+
+function CompileForm (id: string, source: string, {
+  esplora, users, compiler, errors, address, preview,
   /** Commitment phase (compile-time) parameters. */
   params    = wasm.paramTypes(source),
   /** Commitment phase (compile-time) parameters rendered to form fields. */
   fields    = Object.entries(params).map(ArgField({ id, users, kind: 'Parameter: ' })),
-  /** Try to compile the program, showing any errors to the user. */
-  compile   = () => compileProgram(id, source, {
-    compiler, errors, address, instances, params, preview: preview1
+  /** Try to compile the program, displaying any errors to the user. */
+  compile   = () => compileProgram(id, source, { compiler, errors, address, instances, params, preview }),
+  /** UTXOs of currently compiled P2TR. */
+  instances = UtxoList(() => preview(), {
+    esplora,
+    notLoaded: 'Program commitment instances will appear here in the form of the P2TR\'s UTXOs.',
+    noResults: 'The program\'s address contains no funds. You can send it some below.',
   }),
-  /** Compile form. */
-  stage1    = form('simf-compile', title1,
-    SelectChain(),
-    ['label', ...fields],
-    ['label.col.align-stretch',
-      ['label.align-end',
-        ['div.row.gap.align-stretch.justify-between',
-          ['label.col.grow', ['strong', 'Program address (P2TR):'], address],
-          Button('compile', () => compile())]],
-      instances,
-      errors]),
-  /** Title for second half of commitment phase. */
-  title2    = ['h3', ['strong', 'Step 2.'], ' Commit funds to address of program.'],
-  /** Commit form. */
-  stage2    = form('simf-commit', title2,
-    ['label',
-      ['div.row', ['label', ['strong', 'Sender:'], sender.select], sender.balance], sender.utxos],
-    ['label.tx-preview',
-      ['label.align-stretch.row', Label('Commit amount:', amount), Button('commit', () => commit())],
-      preview1.inputs,
-      preview1.outputs]),
-  /** Sign and broadcast commit transaction from form values. */
-  commit    = () => commitProgram(id, source, {
-    errors, params, compiler, users, sender, esplora, preview: preview1
-  }),
-  /** Redeem transaction is built here. */
-  preview2  = TxPreview({ users, esplora, amount, address, sender }),
-  /** Title for first half of redemption phase. */
-  title3    = ['h3', ['strong', 'Step 3.'], ' Specify transaction and sign witness data to redeem funds.'],
-  /** Will receive funds from program. Needs to be specified to obtain sighash. */
-  receiver  = SelectUserWithBalance(() => preview2(), { chain, users }),
-  /** Amount to redeem from program. Needs to be specified to obtain sighash. */
-  redeemed  = InputAmount(()=> preview2(), 50),
-  /** Redemption phase (evaluation-time) arguments. */
-  witTypes  = wasm.witnessTypes(source),
-  /** Redemption phase (evaluation-time) arguments rendered to form fields. */
-  witness   = Object.entries(witTypes).map(ArgField({ id, users, kind: 'Witness: ' })),
-  /** Derived from PSET a.k.a. PSBT a.k.a. PartiallySignedTransaction */
-  sighash   = ['input', { placeholder: 'specify transaction to get its SIGHASH_ALL' }],
-  stage3    = form('simf-commit', title3,
-    ['label.row', ['div.col', ['strong', 'Receiver:'], receiver.select]],
-    ['label', ['strong', 'Sighash:'], sighash],
-    ['label.gap', ...witness],
+}) {
+  return ProgramForm('simplicityhl-compile',
+    ['h3', ['strong', 'Step 1.'], ' Compile the source for the selected chain with your chosen parameters.'],
     ['label.row',
-      ['div.col', ['strong', 'Redeem amount:'], redeemed],
-      Button('redeem', () => {})]),
+      ['label.pick-chain', ['strong', 'Chain:'], ['select.pick-chain',
+        ['option', { disabled: true }, 'liquid1'],
+        ['option', { selected: true }, 'liquidtestnet'],
+        ['option', { disabled: true }, 'elementsregtest']]],
+      ['label.grow', ['div.row.align-stretch.justify-between',
+        ['label.col.grow', ['strong', 'Compiled P2TR address of program:'], address],
+        Button('compile', () => compile())]]],
+    ['label', ...fields],
+    ['label.col.align-stretch.noborder', instances, errors])
+}
 
-} = {}) {
-  return Field(id).open(open).content(TextArea(id, source)).content(errors)
-    .sidebar(['div.phase-form', stage1])
-    .sidebar(['div.phase-form', stage2])
-    .sidebar(['div.phase-form', stage3])
-    .build();
+function CommitForm (id: string, source: string, {
+  esplora, users, compiler, errors, sender, amount, fee, preview,
+  /** Commitment phase (compile-time) parameters. */
+  params = wasm.paramTypes(source),
+  /** Sign and broadcast commit transaction from form values. */
+  commit = () => commitProgram(id, source, { errors, params, compiler, users, sender, esplora, preview }),
+}) {
+  return ProgramForm('simplicityhl-commit',
+    ['h3', ['strong', 'Step 2.'], ' Commit funds to the program\'s address.'],
+    ['label.row',
+      Labeled('Sender:', sender.select), sender.balance,
+      Labeled('Amount:', amount), Labeled('Fee:', fee),
+      Button('commit', () => commit())],
+    ['label.tx-preview',
+      sender.utxos,
+      preview.inputs,
+      preview.outputs])
+}
+
+function RedeemForm (id: string, source: string, {
+  chain, users, address, sender,
+  /** Redemption phase (evaluation-time) arguments. */
+  witTypes = wasm.witnessTypes(source),
+  /** Will receive funds from program. Needs to be specified to obtain sighash. */
+  receiver = SelectUserWithBalance(() => preview(), { chain, users }),
+  /** Redeem amount: up to balance of selected program. */
+  amount   = InputAmount(() => preview(), 5000),
+  /** Redeem amount: up to balance of selected program. */
+  fee      = InputAmount(() => preview(), 10000),
+  /** Redemption phase (evaluation-time) arguments rendered to form fields. */
+  witness  = Object.entries(witTypes).map(ArgField({ id, users, kind: 'Witness: ' })),
+  /** Derived from PSET a.k.a. PSBT a.k.a. PartiallySignedTransaction */
+  sighash  = ['input', { placeholder: 'specify transaction to get its SIGHASH_ALL' }],
+  /** Redeem transaction is built here. */
+  preview  = TxPreview({ users, amount, fee, address, sender }),
+}) {
+  return ProgramForm('simplicityhl-redeem',
+    ['h3', ['strong', 'Step 3.'], ' Specify redeem transaction and sign witness data to transfer funds out of the program.'],
+    ['label.row',
+      Labeled('Receiver:', receiver.select),
+      receiver.balance,
+      Labeled('Amount:', amount),
+      Labeled('Fee:', fee),
+      Button('redeem', () => {})],
+    Labeled('Sighash', sighash), ['label.gap', ...witness])
+}
+
+function ProgramForm (id: string, ...rest: unknown[]) {
+  return [`div.program-form.col.grow#${id}`, ...rest]
 }
 
 function SelectUserWithBalance (onchange = () => {}, {
   chain   = null,
+  esplora = chain?.esplora,
   users   = [],
   balance = InputBalance({ label: ['strong', 'Balance:'], address: users[0]?.p2wpkh.address }),
   name    = 'Sender:',
-  utxos   = UtxoList(onchange, { esplora: chain.esplora }),
+  utxos   = UtxoList(onchange, { esplora }),
   select  = SelectUser(() => update()),
-  view    = Html(['div.col.select-sender', Label(name, select), balance]),
+  view    = Html.el(['div.col.select-sender', Labeled(name, select), balance]),
   input   = view.querySelector('input'),
   state   = () => ({ name, balance, view, input, select, utxos, update }),
   update  = () => {
@@ -426,7 +400,7 @@ function SelectUserWithBalance (onchange = () => {}, {
 }
 
 function SelectUser (onchange?: Fn) {
-  return Object.assign(Html(['select.pick-user']).firstChild as HTMLSelectElement, {
+  return Object.assign(Html.el(['select.pick-user']) as HTMLSelectElement, {
     onchange
   });
 }
@@ -434,7 +408,7 @@ function SelectUser (onchange?: Fn) {
 function compileProgram (id: string, source: string, {
   compiler, errors, address, instances, preview, params
 }) {
-  return ErrorBoundaryAsync(errors, async () => {
+  return Html.catcherAsync(errors, async () => {
     //const { default: wasm } = await import('./wasm.ts');
     errors.innerText = '';
     errors.style.display = 'none';
@@ -453,7 +427,7 @@ function compileProgram (id: string, source: string, {
 function commitProgram (id: string, source: string, {
   errors, params, compiler, users, sender, preview, esplora
 }) {
-  return ErrorBoundaryAsync(errors, async () => {
+  return Html.catcherAsync(errors, async () => {
     const args = collectParams(id, params);
     const prog = compiler.compile(source, { args });
     const p2tr = prog.toJSON().p2tr;
@@ -465,22 +439,28 @@ function commitProgram (id: string, source: string, {
   })
 }
 
+const selectedUtxos = (view: HTMLElement) =>
+  (Array.from(view.querySelectorAll('input[type=checkbox]')) as HTMLInputElement[])
+    .filter(x=>x.checked).map(x=>((x as unknown as { utxo: Esplora.Utxo }).utxo));
+
 function UtxoList (onchange = () => {}, {
-  esplora  = null,
-  address  = null,
-  utxos    = [],
-  view     = Html(['ul.utxos']).firstChild as HTMLElement,
-  selected = () => JSON.parse(JSON.stringify(selectedUtxos(view))),
-  state    = () => ({ address, utxos, load, selected }),
-  load     = (addr = address)=> {
+  esplora    = null,
+  address    = null,
+  utxos      = [],
+  notLoaded  = '',
+  noResults  = 'No balance here yet. Send some funds!',
+  view       = Html.el(['ul.utxos', notLoaded]) as HTMLElement,
+  selected   = () => JSON.parse(JSON.stringify(selectedUtxos(view))),
+  state      = () => ({ address, utxos, load, selected }),
+  load       = (addr = address)=> {
     address = addr;
     if (!address) return view;
     view.innerText = 'Loading UTXOs...';
-    return Object.assign(ErrorBoundaryAsync(view, initUtxoList), state());
+    return Object.assign(Html.catcherAsync(view, initUtxoList), state());
     async function initUtxoList () {
       const utxos = await esplora.getAddressUtxos(addr);
       if (utxos.length === 0) {
-        view.innerText = 'No balance here yet. Send some funds!';
+        view.innerText = noResults;
       } else {
         view.innerText = '';
         for (const utxo of utxos) Html.append(view, UtxoListItem(onchange, utxo));
@@ -489,6 +469,7 @@ function UtxoList (onchange = () => {}, {
     }
   }
 } = {}) {
+  console.log({view});
   return Object.assign(view, state());
 }
 
@@ -497,86 +478,64 @@ const UtxoListItem = (onchange: Fn, utxo: Esplora.Utxo, {
   amount = Amount(utxo),
   txid   = Txid(utxo),
   vout   = ['span.vout', '#', String(utxo.vout)],
-  label  = ['label.row', { style: 'flex-grow: 0' }, enable, ['strong', 'UTXO ']],
+  label  = ['label.row', { style: 'flex-grow: 0; align-items: center' }, enable, ['strong', 'UTXO ']],
   view   = ['li', label, amount, txid, vout],
 } = {}) => {
-  const el = Html(view).firstChild as HTMLElement;
+  const el = Html.el(view) as HTMLElement;
   return el;
 }
 
-const selectedUtxos = (view: HTMLElement) =>
-  (Array.from(view.querySelectorAll('input[type=checkbox]')) as HTMLInputElement[])
-    .filter(x=>x.checked).map(x=>((x as unknown as { utxo: Esplora.Utxo }).utxo));
-
-const Address = ({ address }) => ['input[disabled]', { value: address }];
-
-const Txid = ({ txid }) => ['input[disabled]', { value: txid }];
-
-const Amount = ({ value }) => ['input[disabled]', { style: 'width:12ch; flex-grow: 0', value: String(value) }];
-
-const Checkbox = (onchange = () => {}, ...args: unknown[]) =>
-  Html(['input[type=checkbox]', { onchange }, ...args]).firstChild as HTMLInputElement;
-
 const TxPreview = ({
   users   = [],
-  esplora = null,
   amount  = null,
   address = null,
+  fee     = null,
   sender  = { select: { value: null }, utxos: { selected: () => [] } },
-  hexedit = Html(['div.hex']).firstChild as HTMLElement,
-  inputs  = Html(['ul.inputs']).firstChild as HTMLElement,
-  outputs = Html(['ul.outputs']).firstChild as HTMLElement,
+  inputs  = Html.el(['ul.inputs']),
+  outputs = Html.el(['ul.outputs']),
+  hexedit = Html.el(['div.hex']), // TODO
+  /** Show the transaction's inputs and outputs. */
+  display = (signed: {
+    hex:     string,
+    inputs:  { value }[],
+    outputs: { script_pubkey, amount }[],
+  }) => { 
+    hexedit.innerText = signed.hex;
+    Html.append(Html.clear(inputs), ...signed.inputs.map((input, index)=>{
+      const title = ['strong', `TX Input ${index}:`];
+      const value = Amount({ value: input.value });
+      const from = Address({ address: address.value });
+      return Html.el(['li', title, value, ['span', ' from '], from]);
+    }));
+    Html.append(Html.clear(outputs), ...signed.outputs.map(({ script_pubkey, amount: value })=>{
+      const isFee = (script_pubkey === "");
+      const target = isFee ? [] : ['to', Address({ address: script_pubkey })];
+      const name = ['strong', isFee ? 'Fee: ' : 'Output: '];
+      return Html.el(['li', name, Amount({ value }), ...target]).firstChild;
+    }));
+    return signed;
+  },
   update  = async function updateTxPreview ({
-    //utxos = [],
     user  = sender?.select?.value,
     p2tr  = address?.value,
     value = amount?.value,
-    fee   = 12000,
+    cost  = fee?.value,
   } = {}) {
-    if (inputs)  inputs.innerHTML  = '';
-    if (outputs) outputs.innerHTML = '';
     const { signer, p2wpkh: { address } } = users.find(x=>x.pubkey === user) || { p2wpkh: {} };
-    if (signer) {
-      const utxos = sender.utxos.selected();
-      if (utxos.length < 1) {
-        throw Err(`no UTXOs selected`);
-      }
-      const balance = sumUtxos(utxos);
-      if (balance < 5760n) {
-        throw Err(`${sender} needs at least 5760sat to broadcast tx`);
-      }
-      if (p2tr) {
-        const asset = utxos[0].asset;
-        const opts = () => ({
-          asset,
-          utxos:     utxos.map(utxo => ({ ...utxo, recipient: address, value: BigInt(utxo.value) })),
-          sender:    address,
-          recipient: p2tr,
-          amount:    BigInt(value),
-          fee:       BigInt(fee),
-        });
-        const unsigned = wasm.splitInspect(opts());
-        //console.log(unsigned);
-        //for (const input of unsigned.inputs) {
-          //Html.append(inputs, Html(['li', ['strong', 'Input:'],
-            //Amount({ value: input.value }), ['span', ' from '], Address({ address })]).firstChild);
-        //}
-        //for (const output of unsigned.outputs) {
-          //const isFee   = (output.script_pubkey === "")
-          //const name    = ['strong', isFee ? 'Fee: ' : 'Output: '];
-          //const amount  = Amount({ value: output.amount });
-          //const target  = isFee ? [] : ['to', Address({ address: output.script_pubkey })];
-          //Html.append(outputs, Html(['li', name, amount, ...target]).firstChild)
-        //}
-        const signed = wasm.splitSigned(signer, opts());
-        //console.log(wasm.decodeHex(signed));
-        hexedit.innerText = signed;
-        console.log({unsigned});
-        return signed;
-      } else {
-        console.warn('not compiled');
-      }
-    }
+    if (!signer) return console.warn('Select signer to preview transaction')
+    const utxos = sender.utxos.selected();
+    if (utxos.length < 1) throw Err(`No UTXOs selected.`);
+    const balance = sumUtxos(utxos);
+    if (balance < amount + cost) throw Err(`Insufficient balance.`);
+    if (!p2tr) return console.warn('P2TR not selected. Compile the program')
+    return display(wasm.sendSigned(signer, {
+      asset:     utxos[0].asset,
+      utxos:     utxos.map(utxo => ({ ...utxo, recipient: address, value: BigInt(utxo.value) })),
+      sender:    address,
+      recipient: p2tr,
+      amount:    BigInt(value),
+      fee:       BigInt(cost),
+    }));
   }
 }) => {
   update();
@@ -598,7 +557,7 @@ const InputU32 = (id: string, name = 'Amount:') =>
 const SelectPubkey = (id: string, {
   users  = [],
   name   = 'Pubkey:' as string,
-  view   = Html(['div.select-pubkey', Label(name, ['select.pick-user']), Input({ id, className: 'pubkey' })]),
+  view   = Html.el(['div.select-pubkey', Labeled(name, ['select.pick-user']), Input({ id, className: 'pubkey' })]),
   input  = view.querySelector('input'),
   select = Object.assign(view.querySelector('select'), { onchange: () => update() }),
   update = () => {
@@ -615,7 +574,7 @@ const SelectPubkey = (id: string, {
 const SelectPubkeyX = (id: string, {
   users  = [],
   name   = 'Pubkey:' as string,
-  view   = Html(['div.select-pubkey', Label(name, ['select.pick-user']), ['input.pubkey', { id }]]),
+  view   = Html.el(['div.select-pubkey', Labeled(name, ['select.pick-user']), ['input.pubkey', { id }]]),
   input  = view.querySelector('input'),
   select = Object.assign(view.querySelector('select'), { onchange: () => update() }),
   update = () => {
@@ -635,7 +594,7 @@ const InputBalance = ({
   label   = ['strong', 'Balance:'],
   input   = [`input.balance[balance=${address}]`, { disabled: true, value }]
 } = {}) => {
-  return Html(['label.grow', label, input]).firstChild;
+  return Html.el(['label.grow', label, input]);
 }
 
 const collectParams = (id: string, params: ArgTypes) => {
@@ -648,16 +607,17 @@ const collectParams = (id: string, params: ArgTypes) => {
   return args;
 }
 
-const InputP2TR = (onchange?: Fn) =>
-  Input({ onchange, placeholder: 'provide parameters and compile to get P2TR' });
+const Address     = ({ address }) => Input({ disabled: true, value: address });
+const Txid        = ({ txid })    => Input({ disabled: true, value: txid });
+const Amount      = ({ value })   => Input({ disabled: true, value: String(value), style: 'width:12ch; flex-grow: 0', });
+const Checkbox    = (onchange = () => {}, ...args: unknown[]) => Input.Check({ onchange }, ...args);
+const InputP2TR   = (onchange?: Fn) => Input({ onchange, placeholder: 'provide parameters and compile to get P2TR' });
+const InputAmount = (onchange?: Fn, value?: number) => Input({ className: 'balance', type: 'number', value, onchange });
 
-const InputAmount = (onchange?: Fn, value?: number) =>
-  Input({ className: 'balance', type: 'number', value, onchange });
-
-const ExamplePrograms = Object.assign(({ users }) => ['div.files',
-  ExamplePrograms.P2PK.view({ users }),
-  ExamplePrograms.P2PKH.view({ users }),
-  ExamplePrograms.HodlVault.view({ users })
+const ExamplePrograms = Object.assign(({ chain, users }) => ['div.files',
+  ExamplePrograms.P2PK.view({ chain, users }),
+  ExamplePrograms.P2PKH.view({ chain, users }),
+  ExamplePrograms.HodlVault.view({ chain, users })
 ], {
   /** Empty program (always passes). */
   Nop:         await EditableProgram('Nop',         `fn main () {}`),
@@ -696,18 +656,6 @@ const ExamplePrograms = Object.assign(({ users }) => ['div.files',
   }\n`),
 });
 
-function Section (...content: unknown[]): DocumentFragment {
-  return Html(['section', ...content]) as DocumentFragment;
-}
-
-function Label (text: string, ...content: unknown[]): HTMLLabelElement {
-  return Html(['label', ['strong', text], ...content]).firstChild as HTMLLabelElement
-}
-
-function Button (id: keyof typeof Button.Labels, onclick = () => {}): HTMLButtonElement {
-  return Html(['button', Labels[id], { id, onclick }]).firstChild as HTMLButtonElement; // FIXME don't default to DocumentFragment
-}
-
 function Field (id: string, { open = false, header = [], content = [], sidebar = [] } = {}) {
   return {
     id,
@@ -741,7 +689,6 @@ namespace Field {
   export const toggle = (id: string) => ({
     onclick: () => {
       const el = Html.id(id);
-      console.log({id, el});
       const icon = el.querySelector('.icon') as SVGUseElement;
       el.classList.toggle('collapsed');
       if (el.classList.contains('collapsed')) {
@@ -761,78 +708,28 @@ namespace Field {
     return textarea;
   };
 }
-
 function TextArea (id: string, ...content: string[]) {
   return [`textarea.collapsible#text:${id}`,
     {autocomplete: "off", autocorrect: "off", autocapitalize: "off", spellcheck: false},
     content.filter(x=>typeof x === 'string').join('\n')];
 }
-
-const Input = (...args: unknown[]): HTMLInputElement => Html(['input', ...args]).firstChild as HTMLInputElement;
-const InputTitle = () => ['input.project-title[type=text]#title', { placeholder: 'name your project' }];
-const InputSigHash = () => ['label.gap', ['strong', 'Sign hash:'], ['input']]
-
-function Select () { /* TODO */ }
-
-function SelectChain () {
-  return ['label.pick-chain', ['strong', 'Chain:'], ['select.pick-chain',
-    ['option', { disabled: true }, 'liquid1'],
-    ['option', { selected: true }, 'liquidtestnet'],
-    ['option', { disabled: true }, 'elementsregtest'],
-  ]];
+function InputTitle () {
+  return Input.Text({ className: 'project-title', id: 'title', placeholder: 'name your project' });
 }
-
-namespace Select {
-  export interface Update {
-    update (_: Partial<this>): this
-  }
-  export interface WithInput extends Update {
-    name:   string,
-    view:   DocumentFragment,
-    select: HTMLSelectElement,
-    input:  HTMLInputElement,
-  }
-  export interface Sender extends Select.WithInput { balance: HTMLElement }
-  export interface Pubkey extends Select.WithInput {}
-  export interface Signer extends Select.WithInput {}
-  export function Recipient () {
-    return ['label', ['strong', 'Recipient:'], ['select.pick-user']]
-  }
-  export function Program ({
-    view = Html(['label', ['strong', 'Program:'], ['select.pick-program',
-      ['option', 'Nop'], ['option', 'AssertTrue'], ['option', 'AssertFalse'],
-      ['option', {'selected': true}, 'P2PK'], ['option', 'P2PKH'], ['option', 'HodlVault']]]).firstChild
-  } = {}) {
-    const select = view.querySelector('select');
-    select.onchange = () => document.getElementById('compile')?.click();
-    return view
-  }
-  export function Signer ({
-    name   = null as string,
-    update = (state: Select.Pubkey) => { console.error('Select.Signer: provide sighash first!'); return state },
-    view   = Html(['label', ['em', name], ['div.col.gap', ['select.pick-user'], ['input.signed']]]),
-    select = Object.assign(view.querySelector('select'), { onchange: update }),
-    input  = view.querySelector('input')
-  }: Partial<Select.Signer> = {}) {
-    return update({ name, view, select, input, update });
-  }
-  export const License = () => [
-    'select#licence', // Free software licensing helps the software stay free.
-    ['option', 'AGPL 3.0 or later'],
-    ['option', 'AGPL 3.0 only'],
-    ['option', 'GPL 3.0 or later'],
-    ['option', 'GPL 3.0 only'],
-    ['option', 'Closed source (inquire)']];
+function SelectLicense () {
+  // Free software licensing: it helps the software stay free.
+  return Select({ className: 'pick-license', id: 'license' },
+    ['option', 'AGPL 3.0 or later'], ['option', 'AGPL 3.0 only'],
+    ['option', 'GPL 3.0 or later'], ['option', 'GPL 3.0 only'],
+    ['option', 'Closed source (inquire)']);
 }
-
 async function getBalances (
   address: string,
-  chain = Bitcoin.LiquidTestnet(),
+  chain = LiquidTestnet(),
   asset: string = "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5"
 ): Promise<bigint> {
   return sumUtxos(await chain.esplora.getAddressUtxos(address), asset);
 }
-
 function sumUtxos (
   utxos: { asset: string, value: number }[],
   asset: string = "38fca2d939696061a8f76d4e6b5eecd54e3b4221c846f24a6b279e79952850a5"
@@ -847,12 +744,10 @@ function sumUtxos (
   }
   return balance
 }
-
 /** An ECMAScript (JS/TS) module. */
 function ES (id: string, ...content: string[]) {
   return Field(id).content(TextArea(id, ...content)).build()
 }
-
 namespace ES {
   export function Import (mod: string, ...items: (string|false|null)[]) {
     items = items.filter(x=>(typeof x === 'string'))
@@ -919,9 +814,8 @@ namespace ES {
     `}`,
   );
 }
-
-function Nix ({ nix, elements }) {
-  return nix && Field.Text("shell.nix",
+function Nix ({ elements }) {
+  return Field.Text("shell.nix",
     `#!/usr/bin/env nix-shell`,
     `{ pkgs ? import<nixpkgs> {} }: let`,
     `  gh = owner: repo: rev: sha256:`,
@@ -945,23 +839,6 @@ function Nix ({ nix, elements }) {
       : []),
     `\n]; }`);
 }
-
-function addGit (archive = {}) {
-  // Add empty Git repo
-  archive['.git/objects']     = { info:  {}, pack: {} };
-  archive['.git/refs']        = { heads: {}, tags: {} };
-  archive['.git/HEAD']        = zipStr('ref: refs/heads/main');
-  archive['.git/description'] = zipStr('Created at https://fadroma.tech');
-  archive['.gitignore']       = zipStr(joinLines('.direnv', 'coverage', 'node_modules', 'target'));
-  archive['.git/config']      = zipStr(joinLines(
-    '[core]',
-    'repositoryformatversion = 0',
-    'filemode                = true',
-    'bare                    = false',
-    'logallrefupdates        = true'));
-  return archive
-}
-
 async function loadDocs (href: string) {
   const main = Html.id("main");
   const resp = await fetch(href);
@@ -1004,11 +881,9 @@ async function loadDocs (href: string) {
     }
   }
 }
-
 const checked = (id: string) => !!(Html.id(id) as HTMLInputElement)?.checked;
 const textVal = (id: string) => (Html.id(id) as HTMLInputElement)?.value?.trim();
 const byteVal = (id: string) => (Html.id(id) as HTMLInputElement)?.value?.trim() as unknown as Bytes; // FIXME
-
 function pinSize <T> (el: HTMLElement, cb: Fn<[number, number], T>) {
   const { offsetWidth: width, offsetHeight: height } = el;
   el.style.width  = String(width);
@@ -1023,7 +898,6 @@ function pinSize <T> (el: HTMLElement, cb: Fn<[number, number], T>) {
   if ('ok' in result) return result.ok;
   throw result.error;
 }
-
 function download (name: string, type: string, ...parts: unknown[]) {
   const file = new File(parts as BlobPart[], name, { type });
   const url  = URL.createObjectURL(file);
@@ -1032,7 +906,6 @@ function download (name: string, type: string, ...parts: unknown[]) {
   link.click();
   document.body.removeChild(link);
 }
-
 function downloadProjectTemplate ({
   title   = textVal('title') || 'simplicityhl-starter-fadroma',
   license = textVal('license'),
@@ -1054,9 +927,23 @@ function downloadProjectTemplate ({
   makeExecutable('test.ts');
   download(`${+new Date()}-${title}.zip`, 'application/zip', zipSync(archive))
 }
-
+/** Add Git repo to project files. */
+function addGit (archive = {}) {
+  return Object.assign(archive, {
+    '.git/objects':     { info:  {}, pack: {} },
+    '.git/refs':        { heads: {}, tags: {} },
+    '.git/HEAD':        zipStr('ref: refs/heads/main'),
+    '.git/description': zipStr('Created at https://fadroma.tech'),
+    '.gitignore':       zipStr(joinLines('.direnv', 'coverage', 'node_modules', 'target')),
+    '.git/config':      zipStr(joinLines('[core]',
+      'repositoryformatversion = 0',
+      'filemode                = true',
+      'bare                    = false',
+      'logallrefupdates        = true')),
+  })
+}
 /** INSECURE, TESTING/EXAMPLE USE ONLY: Generate private keys that are all 1s, all 2s... */
 function nonSecret (n: number) {
-  console.warn('INSECURE, TESTING/DEMO ONLY: Using non-private key.')
+  console.warn(`INSECURE, TESTING/EXAMPLE ONLY: Using non-private key №${n}`)
   return new Uint8Array(new Array(32).fill(n));
 }

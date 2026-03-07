@@ -1,4 +1,12 @@
-import Html from '../library/Html.ts';
+import Html, { Label, Button as BaseButton } from '../library/Html.ts';
+
+export function Labeled (text: string, ...content: unknown[]) {
+  return Label(['strong', text], ...content)
+}
+
+export function Button (id: keyof typeof Labels, onclick = () => {}) {
+  return BaseButton(onclick, { id }, Labels[id])
+}
 
 export const Texts = {
   CONNECTED:     '⬤ Connected to ',
@@ -235,7 +243,7 @@ export function Feature (
 ) {
   return Html([`li.feature[data-depth=${depth}]`,
     ['div.row.between',
-      ['div.col', [`label`, [`input[type=checkbox][checked=checked]`, { id }], name],
+      ['div.col', [`label`, '⭐ ', name],
         ['p.grow', ...(typeof description === 'object')?description:[description]]],
       Feature.Links(links)]]);
 }
