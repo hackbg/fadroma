@@ -11,14 +11,14 @@ import * as Monaco                       from 'npm:monaco-editor';
 import scrollTo                          from 'npm:animated-scroll-to';
 import { pubECDSA }                      from 'npm:@scure/btc-signer/utils.js'; // not already in keypair?
 import { zipSync, strToU8 as zipStr }    from 'npm:fflate';
-import { Esplora, LiquidTestnet }        from '../platform/Bitcoin/Bitcoin.ts';
+import { Esplora, LiquidTestnet }        from '../platform/Bitcoin/index.ts';
 import { Wasm }                          from '../platform/SimplicityHL/src/sdk.ts';
 export const wasm = await Wasm({ wasm: new URL('/wasm/fadroma_simf_bg.wasm', location.href) });
 
 /** Launch the Fadroma IDE in a set of HTML DOM root elements. */
 export default ({
   /** Currently selected chain connector. */
-  chain = LiquidTestnet(),
+  chain = Object.assign(LiquidTestnet(), { ID: 'liquidtestnet' /*FIXME*/ }),
   /** Host element for chains view. */
   chainsView = Html.id("chains"),
   /** Host element for developer view. */
@@ -260,8 +260,8 @@ async function EditableProgram (name: string, source: string, {
 function ProgramEditor (id: string, source: string, {
   users     = null,
   chain     = null,
-  genesis   = chain?.GENESIS, // TODO autofetch from block 0
-  compiler  = wasm.compiler({ chain: chain.ID, genesis }),
+  genesis   = chain?.GENESIS || 'a771da8e52ee6ad581ed1e9a99825e5b3b7992225534eaa2ae23244fe26ab1c1', // TODO autofetch from block 0
+  compiler  = wasm.compiler({ chain: 'liquidtestnet' /*FIXME*/, genesis }),
   /** Testnet RPC proxy. */
   esplora   = chain.esplora,
   /** Whether the code editor starts out expanded. */
