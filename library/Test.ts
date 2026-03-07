@@ -145,11 +145,10 @@ namespace Test {
     if (steps.length === 0) return todo(name);
     const substeps: Step<T>[] = steps.map(Step);
     return Fn.Name(name, testStep, { steps });
-
-    // The returned function `testStep` executes the test steps
-    // defined to the parent function `the`.
+    // The returned function `testStep` executes the
+    // test steps passed to the parent function `the`.
     async function testStep (last: unknown, context: T): Promise<void> {
-
+      // TODO: Generalize this over Fn.Pipe to permit custom step contexts.
       let state: State = null, threw: Error, returned = last;
       if (substeps.length === 0) {
         // Zero steps run in order.

@@ -1,53 +1,82 @@
 import { Socket } from 'node:net';
 import Fn from './Fn.ts';
 import { Error } from './Err.ts';
-
+import type { Log } from './Log.ts';
 /** Keep track of port assignments. */
 export interface Ports<T = unknown> { ports: Record<number, T> };
-/** Add ports to context. */
-export function Ports (context = {}, ...fns: Fn[]) { return Fn.Pipe(...fns)({ ports: {}, ...context }) }
-/** Run a service and wait for it to provide a port. */
+/** Run a bunch of functions in a context containing a port registry. */
+export function Ports (context = {}, ...fns: Fn[]) {
+  return Fn.Pipe(...fns)({ ports: {}, ...context })
+}
+/** Run something at a given port. Currently not terribly useful. */
 export function Port <T> (port: number, ...steps: Fn.Step<T>[]) {
-  return Fn.Name(`Port(${port})`, async function bindPort (context = { ports: {} }) {
-    context.ports[port] = await Fn.Pipe(...steps)(context);
+  return Fn.Name(`Port(${port})`, async function bindPort (context?: Ports<T>) {
+    context ??= { ports: {} };
+    context.ports ??= {};
+    context.ports[port] = await Fn.Pipe(...steps)(context) as T;
     return context;
   }, { port, steps })
 }
+/** Port-related internals. */
 export namespace Port {
+  /** Wait for port to open. */
+  export const wait = (opts: string|number|Wait) => Wait(
+    ((typeof opts === 'string') || (typeof opts === 'number')) ? { port: opts } : opts
+  )();
+
+  /** Port wait options. */
+  export interface Wait extends Log {
+    port:     number|string,
+    host:     string,
+    retries:  number,
+    interval: number,
+  };
+
   /** Return function that will wait for given port to open. */
-  export const Wait = function portWait <T> ({
-    port,
-    host     = '127.0.0.1',
-    retries  = 30,
-    interval = 1000
-  }) {
+  export function Wait <T> ({
+    info = console.info, debug = ()=>{}, port, host, retries, interval
+  }: Partial<Wait>) {
+    host     ??= '127.0.0.1'
+    retries  ??= 30
+    interval ??= 1000
     return Fn.Name(`TCP(Wait for ${host}:${port})`, async function waitForPort (context?: T) {
+      // Count time from here
+      const t0 = + new Date();
+      // Retry until depleted
       while (retries-- > 0) {
         try {
-          const socket = new Socket();
-          await new Promise((resolve, reject)=>{
-            socket.on('connect', ok);
-            socket.on('error', fail);
-            function ok () {
-              socket.off('error', fail);
-              resolve(null);
-            }
-            async function fail (e: unknown) {
-              socket.off('connect', ok);
-              console.debug(`Waiting for ${host}:${port} (${retries} retries left...)`)
-              await new Promise(resolve=>setTimeout(resolve, interval));
-              reject(e);
-            }
-            socket.connect(port, host);
-          });
+          const socket = await open()
           socket.destroy();
+          // We're in, let's go
           return context
-        } catch (e) {
-          //console.error(e.message);
+        } catch (e: unknown) {
+          debug('Connection failure, retrying:', e); // Just retry any connection failure
           await new Promise(resolve=>setTimeout(resolve, interval));
         }
       }
-      throw new Error(`${port}: timed out`)
+      // Report failure
+      const t1 = + new Date() - t0;
+      throw new Error(`${host}:${port}: did not open in ${(t1/1000).toFixed(3)}s`)
+      // Actual connect procedure. Maybe make this pluggable?
+      async function open () {
+        const socket = new Socket();
+        await new Promise((resolve, reject)=>{
+          socket.on('connect', ok);
+          socket.on('error', fail);
+          function ok () {
+            socket.off('error', fail);
+            resolve(null);
+          }
+          async function fail (e: unknown) {
+            socket.off('connect', ok);
+            info(`Waiting for ${host}:${port} (${retries} retries left...)`)
+            await new Promise(resolve=>setTimeout(resolve, interval));
+            reject(e);
+          }
+          socket.connect(port, host);
+        });
+        return socket;
+      }
     }, { port });
   };
 }
