@@ -212,6 +212,14 @@ namespace Http {
     }
   }
 
+  export async function postJsonRpcV1_0 (
+    url: string|URL, id: number, method: string, ...params: unknown[]
+  ) {
+    const { result, error } = await fetchJson(url, 'POST', { jsonrpc: "1.0", id, method, params });
+    if (error) throw new Error(`JSONRPC: ${error}`);
+    return result;
+  }
+
   /** Fetch textual response of HTTP request. */
   export async function fetchText (url: string|URL, method = 'GET', body?: BodyInit) {
     const result = await fetch(url, { method, body: JSON.stringify(body) });
