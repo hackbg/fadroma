@@ -17,7 +17,7 @@
 **/
 
 // Bitcoin, Elements
-export * from './Bitcoin/Bitcoin.ts';
+export * from './Bitcoin/index.ts';
 
 // SimplicityHL
 export * as SimplicityHL from './SimplicityHL/src/sdk.ts';
