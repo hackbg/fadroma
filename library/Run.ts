@@ -55,9 +55,12 @@ export namespace Run {
       return context
     }, { parts });
   }
-  /** Terminate a process .*/
+  /** Return a function that calls a [Daemon]'s [kill] method. .*/
   export function Kill (code = 9) {
-    return Fn.Name('Kill process', (context: Daemon) => context.kill(code))
+    return Fn.Name('Kill process', (context: Daemon & { debug?: Fn }) => {
+      if (context.debug) context.debug(`Killing process ${context.pid??'???'} with code ${code}`)
+      context.kill(code)
+    })
   }
   /** Pipe a child process's stdout/stderr. */
   export function Verbose (enabled?: boolean, stdout = process.stderr, stderr = process.stderr) {
