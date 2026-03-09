@@ -28,7 +28,7 @@ export namespace Liquid1 {
 
 /** Connect to Liquid testnet. */
 export function LiquidTestnet (options = { esplora: LiquidTestnet.ESPLORA_URL }) {
-  return Obj(Btc(options), LiquidTestnet);
+  return Obj(Btc(options), { ...LiquidTestnet });
 }
 
 export namespace LiquidTestnet {

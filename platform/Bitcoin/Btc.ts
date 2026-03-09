@@ -20,7 +20,7 @@ function BtcConnect <T extends BtcConnect> (options?: string|BtcConnect.Options)
   if (typeof options === 'string') options = { rpc: options, rest: options };
   // No partially mutable bindings in JS :(
   const { rpc, rest, esplora, ...context } = options || {};
-  // Initialize the API callers that constitute the chain connection
+  // Initialize the API callers that constitute the chain connection.
   return {
     ...context,
     rpc:     (typeof rpc     === 'string') ? BtcRpc(rpc)               : rpc,
