@@ -1,8 +1,9 @@
 import Fn from './Fn.ts';
+import Async from './Async.ts';
 
 /** Like Object.assign, but async - because it first awaits any promises in the arglist. */
-export async function Obj (...args: Fn.Async<object>[]): Promise<object> {
-  return Object.assign(...await Promise.all(args.map((x: Fn.Async<object>)=>Promise.resolve(x))))
+export async function Obj (...args: Async<object>[]): Promise<object> {
+  return Object.assign(...await Promise.all(args.map((x: Async<object>)=>Promise.resolve(x))))
 }
 
 /** Slice off the 1st arg of every function */
@@ -85,7 +86,7 @@ export const when = (condition: boolean, ...fns: Fn.Step<unknown>[]) =>
 
 /** Specify a ternary condition. */
 export const either = <C> (
-  condition:  boolean|((_: C)=>Fn.Async<boolean>),
+  condition:  boolean|((_: C)=>Async<boolean>),
   whenTrue:   Fn.Takes<[C]>,
   whenFalse?: Fn.Takes<[C]>
 ) => Object.assign(async function branch (state: C) {

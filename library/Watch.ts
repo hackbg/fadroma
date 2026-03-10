@@ -1,17 +1,18 @@
+import Fn from './Fn.ts';
+import Main from './Main.ts';
 import { cwd, stdout, stderr } from 'node:process'
 import { stripVTControlCharacters } from 'node:util'
-import Fn from './Fn.ts';
 import { msec } from './Time.ts';
 import { bold, blue, orange, gray, yellow } from './Ansi.ts';
-import { wordWrap } from './String.ts';
+import { wordWrap } from './Str.ts';
 import type { ChildProcess } from '../deps.ts';
 import { resolvePath, realpathSync, watchFs, execImpl, execFile } from '../deps.ts';
 
 /** Entrypoint that reruns on file change. */
 export const entrypoint = function watchEntrypoint (
-  meta: Fn.Main.Meta, mode: Fn<[string, string[]]>, ...options: unknown[]
+  meta: Main.Meta, mode: Fn<[string, string[]]>, ...options: unknown[]
 ) {
-  return Fn.Main(meta, Fn(watch, mode, options||[]))
+  return Main(meta, Fn(watch, mode, options||[]))
 };
 
 const toRealPath = (x: string) => {

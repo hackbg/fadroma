@@ -1,5 +1,5 @@
 /** ANSI colors. */
-import type { Str } from '../index.ts';
+import type Str from '../index.ts';
 
 const { env } = await import('node:process')
   .catch(e=>{ console.warn(e); return { env: {} } });

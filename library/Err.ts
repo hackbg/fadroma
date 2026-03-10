@@ -1,4 +1,6 @@
-import type { Fn, Str } from '../index.ts';
+import type Fn from './Fn.ts';
+import type Str from './Str.ts';
+
 //import { bold, gray } from './Ansi.ts';
 import process from 'node:process'; // destructuring this import breaks in Vite
 

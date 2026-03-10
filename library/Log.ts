@@ -1,7 +1,7 @@
 import type Fn from './Fn.ts';
 import { env, stdout, stderr, process, getCreateLogUpdate } from '../deps.ts';
 import { inspect } from 'node:util'
-import { joined } from './String.ts';
+import { joined } from './Str.ts';
 import { stackTrace } from './Err.ts';
 import * as Ansi from './Ansi.ts';
 

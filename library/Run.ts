@@ -1,4 +1,5 @@
 import Fn from './Fn.ts';
+import Async from './Async.ts';
 import { Dir } from './Fs.ts';
 import { required } from './Err.ts';
 import type { ChildProcess } from 'node:child_process';
@@ -17,7 +18,7 @@ export type Step = Fn.Step<Ran>;
 /** Command environment. */
 export type Env = Record<string, string>;
 /** Command invocation that is meant to return a result. */
-export type Exec = Fn<[Partial<Dir & { exec?: typeof execImpl }>], Fn.Async<Ran>>;
+export type Exec = Fn<[Partial<Dir & { exec?: typeof execImpl }>], Async<Ran>>;
 /** Command invocation that is meant to spawn a [Daemon]. */
 export type Spawn = Fn<[Partial<Dir & { spawn?: typeof spawnImpl }>], Daemon>;
 /** A process or service that runs in the background until killed. */

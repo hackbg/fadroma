@@ -1,14 +1,19 @@
+import Fn    from './Fn.ts'
+import Async from './Async.ts'
+import Main  from './Main.ts'
+
+import type { Prototype } from './Obj.ts';
+import { merged } from './Obj.ts';
+import { Log, traceConsole } from './Log.ts';
+import * as Ansi from './Ansi.ts';
+import { Error, withInfiniteStack, alignTrace } from './Err.ts';
+import { spaced, lines, toString } from './Str.ts';
+import { msec } from './Time.ts';
+
 import { ok, equal, throws, rejects } from 'node:assert';
 import { setImmediate } from 'node:timers';
 import { inspect } from 'node:util';
-import type { Prototype } from './index.ts';
-import { Log, traceConsole } from './Log.ts';
-import Fn from './Fn.ts'
-import * as Ansi from './Ansi.ts';
-import { Error, withInfiniteStack, alignTrace } from './Err.ts';
-import { spaced, lines, toString } from './String.ts';
-import { merged } from './Obj.ts';
-import { msec } from './Time.ts';
+
 const { stdout, argv } = await import('node:process')
   .catch(e=>{ console.error(e); return { stdout: {}, argv: [] } });
 
@@ -16,7 +21,7 @@ export default Test;
 /** Define a test case. */
 function Test (name: string, ...steps: (Test.Step|string)[]): Test.Step;
 /** Define the root test case. */
-function Test (meta: Fn.Main.Meta, name: string, ...steps: (Test.Step|string)[]): Test.Step;
+function Test (meta: Main.Meta, name: string, ...steps: (Test.Step|string)[]): Test.Step;
 /** Define a test case. */
 function Test (...args: unknown[]): Test.Step {
   // If passed an object as 1st argument, consider that
@@ -37,7 +42,7 @@ namespace Test {
   /** A test step takes two arguments: the result of the previous test step,
     * and a mutable test context; and returns a result. */
   export type Step <C extends Context = Context, A = unknown, B = A> =
-    Fn.Reflects & ((_: A, __?: C) => Fn.Async<B>) & { skip?: boolean };
+    Fn.Reflects & ((_: A, __?: C) => Async<B>) & { skip?: boolean };
   /** Test stack and context. Passed to eacgh step as second argument. */
   export type Context    = Log & Test.Stack & Test.Result & Test.Options & Test.Categories;
   /** Test options. */
@@ -88,9 +93,9 @@ namespace Test {
     *         })));
     *
     **/
-  export function Suite (meta: Fn.Main.Meta, name: string, ...steps: (Step|string)[]) {
+  export function Suite (meta: Main.Meta, name: string, ...steps: (Step|string)[]) {
     const suite = the(name, ...steps);
-    const enter = Fn.Main.is(meta, argv[1]);
+    const enter = Main.is(meta, argv[1]);
     if (enter) setImmediate(async function runTestSuite () {
       const args = argv.slice(2);
       traceConsole();

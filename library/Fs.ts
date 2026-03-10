@@ -1,7 +1,8 @@
 import Fn from './Fn.ts';
+import Async from './Async.ts';
 import { Log } from './Log.ts';
-import { Base16 } from './Number.ts';
-import { chunked } from './String.ts';
+import { Base16 } from './Num.ts';
+import { chunked } from './Str.ts';
 import type { Bytes } from './Byte.ts';
 import type { Versioned } from './Version.ts';
 
@@ -61,7 +62,7 @@ export const Dir: {
 export namespace Dir {
   /** A function that created an entry in a directory. */
   export type Entry<D extends Dir = Dir, U extends unknown[] = unknown[]> =
-    Fn<[D, ...U], Fn.Async<D>>;
+    Fn<[D, ...U], Async<D>>;
 }
 
 /** Specify a temporary directory, optionally running some ops in it.
@@ -107,7 +108,7 @@ export function Txt <T = string|number|object|null> (
 export const textFormat =
   <T = string|number|object|null> (format: Fn.Returns<string>) =>
     (path: string, value?: T|T[]|Fn.Step<T>, ...steps: Array<T|Fn.Step<T>>) =>
-      Txt(path, value, ...steps, format as (_:T)=>Fn.Async<T>);
+      Txt(path, value, ...steps, format as (_:T)=>Async<T>);
 
 /** Specify a binary data file. */
 export function Bin (
