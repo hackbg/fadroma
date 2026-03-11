@@ -33,7 +33,7 @@ function Btc <T extends Btc> (options?: string|Btc.Options): T {
   // Initialize the API callers that constitute the chain connection.
   const chain = {
     // Allow these methods to be overridden:
-    broadcast, getUtxos, getUtxo, getBlockHash, rescan, getTxInfo,
+    broadcast, getUtxos, getUtxo, getBlockHash, rescan, getTxInfo, getBalance,
     // User-passed config:
     ...context,
     // Non-negotiable (FIXME move typeof checks in individual constructors, enabling passthru)
@@ -91,7 +91,11 @@ function Btc <T extends Btc> (options?: string|Btc.Options): T {
     }
   }
 
-  async function getUtxos (address: string) {
+  async function getUtxos (
+    address: string,
+    minconf = 0,
+    maxconf = 9999999,
+  ) {
     if (chain.rpc) {
       return await chain.rpc.listunspent(0, 9999999, [address]); // TODO filter
     } else if (chain.esplora) {
@@ -114,6 +118,21 @@ function Btc <T extends Btc> (options?: string|Btc.Options): T {
       return { asset, txid, vout, address, amount: BigInt(value) };
     } else {
       throw new Error('need { rpc } or { esplora } to find unspent output');
+    }
+  }
+
+  async function getBalance (address: string, minconf = 0) {
+    if (chain.rpc) {
+      await chain.rpc.importaddress(address);
+      await chain.rpc.rescanblockchain();
+      return await chain.rpc.getreceivedbyaddress(address, minconf);
+    } else if (chain.esplora) {
+      const balance = {};
+      for (const utxo of await getUtxos(address, minconf)) {
+        balance[utxo.asset] ??= 0;
+        balance[utxo.asset] += utxo.amount;
+      }
+      return balance;
     }
   }
 }
