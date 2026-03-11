@@ -1,40 +1,151 @@
-import type { Log } from '../../library/index.ts';
+import type { P2WPKH } from 'npm:@scure/btc-signer';
+import type { Log, Num } from '../../library/index.ts';
+import { Obj, sleep } from '../../library/index.ts';
 import BtcRpc  from './BtcRpc.ts';
 import BtcRest from './BtcRest.ts';
 import Esplora from './Esplora.ts';
-
 /** Merged export. */
-export default BtcConnect;
-
+export default Btc;
 /** A Bitcoin or Elements connection. */
-interface BtcConnect extends Log {
-  url?:     string,
-  rpc?:     BtcRpc,
-  rest?:    BtcRest,
-  esplora?: Esplora,
+interface Btc extends Log {
+  ID:           "mainnet"|"testnet"|"regtest"|"liquid1"|"liquidtestnet"|"elementsregtest",
+  ASSETS:       Record<string, string>,
+  P2WPKH:       (ecdsaPubkey: Uint8Array) => ReturnType<typeof P2WPKH>,
+  broadcast:    (hex: string)     => Promise<string>,
+  getBlockHash: (height: Num)     => Promise<string>,
+  getTxInfo:    (txid: string)    => Promise<Btc.Tx>,
+  getUtxo:      (address: string) => Promise<Btc.Utxo>,
+  getUtxos:     (address: string) => Promise<Btc.Utxo[]>,
+  rescan:       () => Promise<void>,
+  esplora?:     Esplora,
+  rest?:        BtcRest,
+  rpc?:         BtcRpc,
 };
-
 /** Connect to Bitcoin via RPC, REST, and/or Esplora. */
-function BtcConnect <T extends BtcConnect> (options?: string|BtcConnect.Options): T {
+function Btc <T extends Btc> (options?: string|Btc.Options): T {
   // Support connecting from string (url)
   if (typeof options === 'string') options = { rpc: options, rest: options };
+  // Maybe this is the way for contextual logging?
+  const warn  = options.warn  || console.warn;
+  const debug = options.debug || console.debug;
   // No partially mutable bindings in JS :(
   const { rpc, rest, esplora, ...context } = options || {};
   // Initialize the API callers that constitute the chain connection.
-  return {
+  const chain = {
+    // Allow these methods to be overridden:
+    broadcast, getUtxos, getUtxo, getBlockHash, rescan, getTxInfo,
+    // User-passed config:
     ...context,
-    rpc:     (typeof rpc     === 'string') ? BtcRpc(rpc)               : rpc,
+    // Non-negotiable (FIXME move typeof checks in individual constructors, enabling passthru)
+    esplora: (typeof esplora === 'string') ? Esplora({ url: esplora }) : esplora,
     rest:    (typeof rest    === 'string') ? BtcRest(rest)             : rest,
-    esplora: (typeof esplora === 'string') ? Esplora({ url: esplora }) : esplora
-  } as T;
-}
+    rpc:     (typeof rpc     === 'string') ? BtcRpc(rpc)               : rpc,
+  };
+  // FIXME why does it need a typecast?
+  return chain as unknown as T;
 
+  async function getBlockHash (height: Num = 0) {
+    if (chain.rpc) {
+      return chain.rpc.getblockhash(height)
+    } else if (chain.esplora) {
+      return chain.esplora.getBlockHash(Number(height))
+    } else {
+      throw new Error('need { rpc } or { esplora } to find block hash');
+    }
+  }
+
+  async function broadcast (hex: string) {
+    if (chain.rpc) {
+      return await chain.rpc.sendrawtransaction(hex);
+    } else if (chain.esplora) {
+      return await chain.esplora.postTx(hex);
+    } else {
+      throw new Error('need { rpc } or { esplora } to broadcast tx');
+    }
+  }
+
+  async function rescan (...importAddress: string[]) {
+    if (chain.rpc) {
+      for (const address of importAddress) await chain.rpc.importaddress(address);
+      await chain.rpc.rescanblockchain();
+    } else {
+      warn('rescan has no effect without { rpc }')
+    }
+  }
+
+  async function getTxInfo (txid: string) {
+    if (chain.rest) {
+      return await chain.rest.tx(txid);
+    } else if (chain.esplora) {
+      while (true) {
+        const mempool = await chain.esplora.getMempoolTxids().then(JSON.parse);
+        if (mempool.includes(txid)) {
+          debug('TX still in mempool:', txid);
+          await sleep(1000);
+        } else {
+          return chain.esplora.getTxInfo(txid);
+        }
+      }
+    } else {
+      throw new Error('need { rest } or { esplora } to query tx info')
+    }
+  }
+
+  async function getUtxos (address: string) {
+    if (chain.rpc) {
+      return await chain.rpc.listunspent(0, 9999999, [address]); // TODO filter
+    } else if (chain.esplora) {
+      return await chain.esplora.getAddressUtxos(address);
+    } else {
+      throw new Error('need { rpc } or { esplora } to find unspent output');
+    }
+  }
+
+  async function getUtxo (address: string) {
+    if (chain.rpc) {
+      const unspent = await chain.rpc.listunspent(0, 9999999, [address]); // TODO filter
+      if (!unspent[0]) throw new Error(`no UTXOs for ${address}`);
+      const { txid, vout, amount, asset } = unspent[0];
+      return { asset, txid, vout, address, amount };
+    } else if (chain.esplora) {
+      const unspent = await chain.esplora.getAddressUtxos(address);
+      if (!unspent[0]) throw new Error(`no UTXOs for ${address}`)
+      const { txid, vout, value, asset } = unspent[0];
+      return { asset, txid, vout, address, amount: BigInt(value) };
+    } else {
+      throw new Error('need { rpc } or { esplora } to find unspent output');
+    }
+  }
+}
 /** Bitcoin internals. */
-namespace BtcConnect {
+namespace Btc {
   /** Bitcoin connection options. */
-  export type Options = Partial<Log> & {
+  export interface Options extends Partial<Log> {
     rpc?:     string|BtcRpc,
     rest?:    string|BtcRest,
     esplora?: string|Esplora,
   };
+  /** Connect to Bitcoin mainnet. */
+  export function Mainnet (options?: Btc.Options) { return Obj(Btc(options), { ...Mainnet }); }
+  /** Mainnet specifics. */
+  export namespace Mainnet { export const ID = 'mainnet'; /* TODO */ }
+  /** Connect to Bitcoin testnet. */
+  export function Testnet (options?: Btc.Options) { return Obj(Btc(options), { ...Testnet }); }
+  /** Testnet specifics. */
+  export namespace Testnet { export const ID = 'testnet'; /* TODO */ }
+
+  export interface Utxo {
+    asset:   string,
+    txid:    string,
+    vout:    Num,
+    amount:  Num,
+    address: string,
+  };
+
+  export interface Tx {
+    txid: string,
+    hex:  string,
+    vin:  unknown[],
+    vout: unknown[],
+  }
 }

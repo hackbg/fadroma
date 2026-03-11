@@ -1,7 +1,6 @@
 import type { pubECDSA } from 'npm:@scure/btc-signer/utils.js';
 import { p2wpkh } from 'npm:@scure/btc-signer';
-import { Obj } from '../../library/Obj.ts';
-
+import { Obj } from '../../library/index.ts';
 import Btc from './Btc.ts';
 
 /** Connect to Liquid mainnet. */

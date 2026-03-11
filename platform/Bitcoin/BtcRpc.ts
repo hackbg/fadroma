@@ -1,3 +1,4 @@
+import type Btc from './Btc.ts';
 import { Num, Fn, Http } from '../../library/index.ts';
 
 export default BtcRpc;
@@ -79,4 +80,18 @@ namespace BtcRpc {
       return context
     })
   };
+  /** Send funds using RPC from loaded wallet to address.
+    * If no `to` addres is provided, a random one is generated.
+    * If a number from 1 to 255 is passed as address, a non-secret testing key is used. */
+  export function SendFromWallet (amount: string|number|bigint, to: string) {
+    const id = (typeof to === 'number')?`NPK#${to}`:to;
+    return Fn.Name(`Wallet sends ${amount} to ${id}`, async (context: Btc & {
+      txid?: string, tx?: Btc.Tx
+    }) => {
+      context.txid = await context.rpc.sendtoaddress(to, String(100000)) as string;
+      context.tx = await context.rest.tx(context.txid) as Btc.Tx;
+      await context.rpc.importaddress(to);
+      await context.rpc.rescanblockchain();
+    });
+  }
 }
