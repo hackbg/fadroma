@@ -14,6 +14,7 @@ interface Btc extends Log {
   broadcast:    (hex: string)     => Promise<string>,
   getBlockHash: (height: Num)     => Promise<string>,
   getTxInfo:    (txid: string)    => Promise<Btc.Tx>,
+  waitForTx:    (txid: string)    => Promise<Btc.Tx>,
   getUtxo:      (address: string, finder?: Fn<[Btc.Utxo], boolean>) => Promise<Btc.Utxo>,
   getUtxos:     (address: string) => Promise<Btc.Utxo[]>,
   rescan:       () => Promise<void>,
@@ -33,7 +34,7 @@ function Btc <T extends Btc> (options?: string|Btc.Options): T {
   // Initialize the API callers that constitute the chain connection.
   const chain = {
     // Allow these methods to be overridden:
-    broadcast, getUtxos, getUtxo, getBlockHash, rescan, getTxInfo, getBalance,
+    broadcast, getBalance, getUtxos, getUtxo, getBlockHash, rescan, getTxInfo, waitForTx,
     // User-passed config:
     ...context,
     // Non-negotiable (FIXME move typeof checks in individual constructors, enabling passthru)
@@ -89,6 +90,19 @@ function Btc <T extends Btc> (options?: string|Btc.Options): T {
     } else {
       throw new Error('need { rest } or { esplora } to query tx info')
     }
+  }
+
+  async function waitForTx (txid: string, debug = console.debug) {
+    let retries = 30;
+    while (retries > 0) try {
+      return getTxInfo(txid);
+    } catch (e) {
+      retries--;
+      debug(e);
+      debug('Waiting for tx', txid);
+      await sleep(1000);
+    }
+    throw new Error(`tx not found: ${txid}`)
   }
 
   async function getUtxos (

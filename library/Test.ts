@@ -111,8 +111,6 @@ namespace Test {
       }
     }
     async function watchTestSuite () {
-      console.debug({suite});
-      console.debug({meta, name, main, args, enter});
       const { watch, runTest } = await import('./Watch.ts');
       await watch(runTest, []);
     }
