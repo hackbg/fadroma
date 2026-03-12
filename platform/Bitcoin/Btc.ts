@@ -95,7 +95,7 @@ function Btc <T extends Btc> (options?: string|Btc.Options): T {
   async function waitForTx (txid: string, debug = console.debug) {
     let retries = 30;
     while (retries > 0) try {
-      return getTxInfo(txid);
+      return await getTxInfo(txid);
     } catch (e) {
       retries--;
       debug(e);
@@ -111,7 +111,10 @@ function Btc <T extends Btc> (options?: string|Btc.Options): T {
     maxconf = 9999999,
   ): Promise<Btc.Utxo[]> {
     if (chain.rpc) {
-      return await chain.rpc.listunspent(minconf, maxconf, [address]); // TODO filter
+      return (await chain.rpc.listunspent(minconf, maxconf, [address])).map(utxo=>Object.assign(utxo, {
+        value:  utxo.amount,
+        amount: BigInt(utxo.amount * 1e8),
+      }));
     } else if (chain.esplora) {
       return (await chain.esplora.getAddressUtxos(address)).map(utxo=>{
         const { txid, vout, value, asset } = utxo;
