@@ -25,7 +25,7 @@ function Esplora ({ url }: { url: string|URL }): Esplora {
 
     getBlockTipHeight: () => Http.fetchText(`${url}/blocks/tip/height`),
     getBlockTipHash:   () => Http.fetchText(`${url}/blocks/tip/hash`),
-    getBlockHash:      (height: number = 0) => Http.fetchJson(`${url}/block-height/${encodeURIComponent(height)}`),
+    getBlockHash:      (height: number = 0) => Http.fetchText(`${url}/block-height/${encodeURIComponent(height)}`),
     getMempoolTxids:   () => Http.fetchText(`${url}/mempool/txids`),
     getAddressInfo:    (ad: string) => Http.fetchJson(`${url}/address/${encodeURIComponent(ad)}`),
     getAddressUtxos:   (ad: string) => Http.fetchJson(`${url}/address/${encodeURIComponent(ad)}/utxo`),
