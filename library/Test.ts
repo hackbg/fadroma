@@ -167,19 +167,19 @@ namespace Test {
         // One step runs like this:
         const step = substeps[0];
         const stepName = step.name||name;
-        await runStep(Fn.Name(stepName, step));
+        await runTestStep(Fn.Name(stepName, step));
       } else {
         // Multiple steps run sequentially; names
         // are prefixed with name of parent step.
         for (let index = 0; index < substeps.length; index++) {
           const step = substeps[index];
           const stepName = substepName(name, step as { name?: string });
-          const namedRun = Fn.Name(stepName, runStep);
+          const namedRun = Fn.Name(stepName, runTestStep);
           await namedRun(step, index + 1);
         }
       }
 
-      async function runStep (step: Step<T>, index = 1) {
+      async function runTestStep (step: Step<T>, index = 1) {
         const t0 = context.begin(index, step);
         try {
           // UNSAFE? Returning undefined defaults to result of previous step.

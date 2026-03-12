@@ -38,18 +38,19 @@ export async function watch (mode: Fn<[string, string[]]>, options: unknown[]) {
   for await (const event of watchFs(".")) await update(event);
   // main update function
   async function update ({
-    force = false, kind = null, paths = [],
+    force  = false,
+    kind   = null,
+    paths  = [],
     filter = (x: string = '') => !(
-      (!x)||
-      (x.length===0)||
-      x.endsWith('~')||
-      x.includes('/.git/')||
-      x.includes('/toolbox/')||
-      x.includes('/coverage/')||
+      (!x)                     ||
+      (x.length===0)           ||
+      x.endsWith('~')          ||
+      x.includes('/.git/')     ||
+      x.includes('/toolbox/')  ||
+      x.includes('/coverage/') ||
       x.includes('/.deno.lock')||
-      x.includes('/.direnv/')||
-      x.includes('/node_modules/.deno')
-    ),
+      x.includes('/.direnv/')  ||
+      x.includes('/node_modules/.deno')),
   } = {}) {
     
     // non-forced updates go through the debounce
