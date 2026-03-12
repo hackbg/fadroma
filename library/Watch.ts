@@ -1,12 +1,14 @@
 import Fn from './Fn.ts';
 import Main from './Main.ts';
-import { cwd, stdout, stderr } from 'node:process'
-import { stripVTControlCharacters } from 'node:util'
 import { msec } from './Time.ts';
 import { bold, blue, orange, gray, yellow } from './Ansi.ts';
 import { wordWrap } from './Str.ts';
-import type { ChildProcess } from '../deps.ts';
-import { resolvePath, realpathSync, watchFs, execImpl, execFile } from '../deps.ts';
+
+import { resolvePath, realpathSync, watchFs } from '../deps.ts';
+import type { ChildProcess } from 'node:child_process';
+import { execFile } from 'node:child_process';
+import { cwd, stdout, stderr } from 'node:process'
+import { stripVTControlCharacters } from 'node:util'
 
 /** Entrypoint that reruns on file change. */
 export const entrypoint = function watchEntrypoint (

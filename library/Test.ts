@@ -11,7 +11,6 @@ import { spaced, lines, toString } from './Str.ts';
 import { msec } from './Time.ts';
 
 import { ok, equal, throws, rejects } from 'node:assert';
-import { setImmediate } from 'node:timers';
 import { inspect } from 'node:util';
 
 const { stdout, argv } = await import('node:process')
@@ -20,9 +19,9 @@ const { stdout, argv } = await import('node:process')
 export default Test;
 /** Define a test case. */
 function Test (name: string, ...steps: (Test.Step|string)[]): Test.Step;
-/** Define the root test case. */
+/** Define the root test case and entrypoint of a test module. */
 function Test (meta: Main.Meta, name: string, ...steps: (Test.Step|string)[]): Test.Step;
-/** Define a test case. */
+/** Define a test case or test entrypoint, depending on arguments. */
 function Test (...args: unknown[]): Test.Step {
   // If passed an object as 1st argument, consider that
   // to be the import.meta descriptor, and return a root
@@ -95,9 +94,12 @@ namespace Test {
     **/
   export function Suite (meta: Main.Meta, name: string, ...steps: (Step|string)[]) {
     const suite = the(name, ...steps);
-    const enter = Main.is(meta, argv[1]);
-    if (enter) setImmediate(async function runTestSuite () {
-      const args = argv.slice(2);
+    const main = argv[1];
+    const args = argv.slice(2).map(x=>String(x).trim());
+    const enter = Main.is(meta, main);
+    if (enter) setTimeout((args.includes('--watch')) ? watchTestSuite : runTestSuite, 0);
+    return suite as Step;
+    async function runTestSuite () {
       traceConsole();
       const context = await Test.Context({ args });
       try {
@@ -107,8 +109,13 @@ namespace Test {
         // Print test report.
         stdout.write('\n' + lines(Report({ context })) + '\n');
       }
-    });
-    return suite as Step;
+    }
+    async function watchTestSuite () {
+      console.debug({suite});
+      console.debug({meta, name, main, args, enter});
+      const { watch, runTest } = await import('./Watch.ts');
+      await watch(runTest, []);
+    }
   };
 
   /** Test case. Consists of name and zero or more test steps.
@@ -138,15 +145,13 @@ namespace Test {
     *     export default suite(import.meta, 'Test suite', test2);
     *
     **/
-  export function the <T extends Context, U> (
-    name: string|null, step0?: Fn<unknown[], U>, step1?: Fn<[U, T], unknown>, ...steps: unknown[]
-  ): Step<T, void>;
-  export function the <T extends Context> (
-    name: string|null, ...steps: (Step<T>|string)[]
-  ): Step<T, void>;
-  export function the <T extends Context> (
-    name: string|null, ...steps: (Step<T>|string)[]
-  ): Step<T, void> {
+  export function the <T extends Context, U>
+    (name: string|null, step0?: Fn<unknown[], U>, step1?: Fn<[U, T], unknown>, ...steps: unknown[]):
+      Step<T, void>;
+  export function the <T extends Context>
+    (name: string|null, ...steps: (Step<T>|string)[]):
+      Step<T, void>
+  {
     if (steps.length === 0) return todo(name);
     const substeps: Step<T>[] = steps.map(Step);
     return Fn.Name(name, testStep, { steps });
