@@ -50,6 +50,11 @@ namespace Html {
     return el;
   }
 
+  export function remove (el: Node) {
+    if (el.parentElement) el.parentElement.removeChild(el);
+    return el;
+  }
+
   export function add (frag: DocumentFragment, arg: unknown) {
     const el = Html.el(arg);
     if (el) frag.appendChild(el);

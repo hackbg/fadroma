@@ -30,9 +30,58 @@ export default ({
                  User('Bob',   { secret: nonSecret(2) }),
                  User('Carol', { secret: nonSecret(3) }) ],
 } = {}) => ({
-  editorView: Editor(editorView, { chain, users }), // FIXME: must precede Users to populate pickers
+  editorView: Editors(editorView, { chain, users }), // FIXME: must precede Users to populate pickers
   usersView:  Users(usersView, { users }),
   chainsView: Chains(Html.clear(chainsView), { chain }),
+});
+
+const Editors = (host: HTMLElement, {
+  chain    = null,
+  users    = [],
+  tabs     = document.querySelector('ul.tabs'),
+  pages    = document.querySelector('.tab-pages'),
+  project  = document.querySelector('#project'),
+  //programs = [>Section({ className: 'layer programs col' }, */ExamplePrograms({ chain, users }) /*)<],
+  // REFAC: wrap these as ProjectOptions or such
+  btc      = true,
+  nix      = true,
+  direnv   = nix,
+  elements = nix,
+  node     = false,
+  deno     = true,
+} = {}) => Html.catcher(host, () => {
+  Html.remove(host.querySelector('script'));
+  Html.remove(host.querySelector('.loading'));
+  let delay = 0;
+  for (const program of [
+    ExamplePrograms.P2PK.view({ chain, users }),
+    ExamplePrograms.P2PKH.view({ chain, users }),
+    ExamplePrograms.HodlVault.view({ chain, users })
+  ]) {
+    setTimeout(()=>Html.append(tabs, Html.el(['li.tab', program.querySelector('.field-header')])), delay);
+    delay += 20;
+    setTimeout(()=>Html.append(pages, Html.el(['li.tab-page', program.querySelector('.field-content')])), delay);
+    delay += 20;
+  }
+  //const textareas = programs.querySelectorAll('#editor textarea');
+  //for (const textarea of textareas as unknown as HTMLTextAreaElement[]) {
+    //initEditor({ textarea: Field.computeHeight(textarea) });
+  //}
+  //Html.append(host, Html.el(['div.editors', programs]));
+  Html.append(project, Section({ className: 'layer project' },
+    ['div.col.grow.files.gap',
+      ['div', ['h2', 'Project template:'], Texts.DownloadProject],
+      ['div.row.fields',
+        ['div.field.head.grow', ['div.name.title', 'Title'], InputTitle()],
+        ['div.field.head', ['div.name', 'Licence'], SelectLicense()],
+        ['div.row.fields', ['div.field.head.grow', ['div.name', 'Download']]]],
+      ['div.col.gap', Field.Text("README", Texts.README)],
+      Field.Text("Justfile", "TODO"),
+        ES.TestSuite({ deno, node, btc }),
+        ES.DenoJson({ deno }),
+        nix && Nix({ elements }),
+        direnv && Field.Text(".envrc", "use nix")]));
+  return host;
 });
 
 function Users (usersView: HTMLElement, { users }) {
@@ -160,40 +209,46 @@ const Chains = (view = Html.id("chains"), {
   return update(state)
 });
 
-const Editor = (host: HTMLElement, {
-  chain    = null,
-  users    = [],
-  header   = Section({ className: 'layer row', }, ['div.textbox', Texts.SIMPLICITYHL]),
-  programs = Section({ className: 'layer programs col' }, ExamplePrograms({ chain, users })),
-
-  // REFAC: wrap these as ProjectOptions or such
-  btc      = true,
-  nix      = true,
-  direnv   = nix,
-  elements = nix,
-  node     = false,
-  deno     = true,
-} = {}) => Html.catcher(host, () => {
-  host.innerText = '';
-  const textareas = programs.querySelectorAll('#editor textarea');
-  for (const textarea of textareas as unknown as HTMLTextAreaElement[]) {
-    initEditor({ textarea: Field.computeHeight(textarea) });
-  }
-  Html.append(host, Html.el(['div.editors', header, programs]));
-  Html.append(host, Section({ className: 'layer project' },
-    ['div.col.grow.files.gap',
-      ['div', ['h2', 'Project template:'], Texts.DownloadProject],
-      ['div.row.fields',
-        ['div.field.head.grow', ['div.name.title', 'Title'], InputTitle()],
-        ['div.field.head', ['div.name', 'Licence'], SelectLicense()],
-        ['div.row.fields', ['div.field.head.grow', ['div.name', 'Download']]]],
-      ['div.col.gap', Field.Text("README", Texts.README)],
-      Field.Text("Justfile", "TODO"),
-        ES.TestSuite({ deno, node, btc }),
-        ES.DenoJson({ deno }),
-        nix && Nix({ elements }),
-        direnv && Field.Text(".envrc", "use nix")]));
-  return host;
+const ExamplePrograms = Object.assign(({ chain, users }) => ['div.files',
+  ExamplePrograms.P2PK.view({ chain, users }),
+  ExamplePrograms.P2PKH.view({ chain, users }),
+  ExamplePrograms.HodlVault.view({ chain, users })
+], {
+  /** Empty program (always passes). */
+  Nop:         await EditableProgram('Nop',         `fn main () {}`),
+  /** Asserts truth (always passes but has different address from [Nop]). */
+  AssertTrue:  await EditableProgram('AssertTrue',  `fn main () { assert!(true); }`),
+  /** Asserts falsity (always fails). */
+  AssertFalse: await EditableProgram('AssertFalse', `fn main () { assert!(false); }`),
+  /** Pay to public key: minimal witness program. */
+  P2PK:        await EditableProgram('P2PK', `fn main () {
+    jet::bip_0340_verify((param::AUTHORITY, jet::sig_all_hash()), witness::SIGNATURE);
+  }`),
+  /** Pay to public key: minimal witness program. */
+  P2PKH:       await EditableProgram('P2PKH', `fn main () {
+    let pubkey: Pubkey = witness::AUTHORITY;
+    let hasher: Ctx8 = jet::sha_256_ctx_8_init();
+    let hasher: Ctx8 = jet::sha_256_ctx_8_add_32(hasher, pubkey);
+    let hash:   u256 = jet::sha_256_ctx_8_finalize(hasher);
+    assert!(jet::eq_256(hash, param::HASH));
+    jet::bip_0340_verify((pubkey, jet::sig_all_hash()), witness::SIGNATURE);
+  }\n`),
+  /** Hodl vault: prototype workhorse. */
+  HodlVault:   await EditableProgram('HodlVault', `fn main () {
+    let min_height: Height = param::MIN_HEIGHT;
+    let target_price: u32 = param::TARGET_PRICE;
+    let oracle_price: u32 = witness::ORACLE_PRICE;
+    let oracle_height: Height = witness::ORACLE_HEIGHT;
+    jet::check_lock_height(oracle_height);
+    assert!(jet::le_32(min_height, oracle_height));
+    assert!(jet::le_32(target_price, oracle_price));
+    let hasher: Ctx8 = jet::sha_256_ctx_8_init();
+    let hasher: Ctx8 = jet::sha_256_ctx_8_add_4(hasher, oracle_height);
+    let hasher: Ctx8 = jet::sha_256_ctx_8_add_4(hasher, oracle_price);
+    let msg: u256 = jet::sha_256_ctx_8_finalize(hasher);
+    jet::bip_0340_verify((param::ORACLE, msg), witness::ORACLE);
+    jet::bip_0340_verify((param::OWNER, jet::sig_all_hash()), witness::OWNER);
+  }\n`),
 });
 
 const initEditor = ({
@@ -614,47 +669,6 @@ const Checkbox    = (onchange = () => {}, ...args: unknown[]) => Input.Check({ o
 const InputP2TR   = (onchange?: Fn) => Input({ onchange, placeholder: 'provide parameters and compile to get P2TR' });
 const InputAmount = (onchange?: Fn, value?: number) => Input({ className: 'balance', type: 'number', value, onchange });
 
-const ExamplePrograms = Object.assign(({ chain, users }) => ['div.files',
-  ExamplePrograms.P2PK.view({ chain, users }),
-  ExamplePrograms.P2PKH.view({ chain, users }),
-  ExamplePrograms.HodlVault.view({ chain, users })
-], {
-  /** Empty program (always passes). */
-  Nop:         await EditableProgram('Nop',         `fn main () {}`),
-  /** Asserts truth (always passes but has different address from [Nop]). */
-  AssertTrue:  await EditableProgram('AssertTrue',  `fn main () { assert!(true); }`),
-  /** Asserts falsity (always fails). */
-  AssertFalse: await EditableProgram('AssertFalse', `fn main () { assert!(false); }`),
-  /** Pay to public key: minimal witness program. */
-  P2PK:        await EditableProgram('P2PK', `fn main () {
-    jet::bip_0340_verify((param::AUTHORITY, jet::sig_all_hash()), witness::SIGNATURE);
-  }`),
-  /** Pay to public key: minimal witness program. */
-  P2PKH:       await EditableProgram('P2PKH', `fn main () {
-    let pubkey: Pubkey = witness::AUTHORITY;
-    let hasher: Ctx8 = jet::sha_256_ctx_8_init();
-    let hasher: Ctx8 = jet::sha_256_ctx_8_add_32(hasher, pubkey);
-    let hash:   u256 = jet::sha_256_ctx_8_finalize(hasher);
-    assert!(jet::eq_256(hash, param::HASH));
-    jet::bip_0340_verify((pubkey, jet::sig_all_hash()), witness::SIGNATURE);
-  }\n`),
-  /** Hodl vault: prototype workhorse. */
-  HodlVault:   await EditableProgram('HodlVault', `fn main () {
-    let min_height: Height = param::MIN_HEIGHT;
-    let target_price: u32 = param::TARGET_PRICE;
-    let oracle_price: u32 = witness::ORACLE_PRICE;
-    let oracle_height: Height = witness::ORACLE_HEIGHT;
-    jet::check_lock_height(oracle_height);
-    assert!(jet::le_32(min_height, oracle_height));
-    assert!(jet::le_32(target_price, oracle_price));
-    let hasher: Ctx8 = jet::sha_256_ctx_8_init();
-    let hasher: Ctx8 = jet::sha_256_ctx_8_add_4(hasher, oracle_height);
-    let hasher: Ctx8 = jet::sha_256_ctx_8_add_4(hasher, oracle_price);
-    let msg: u256 = jet::sha_256_ctx_8_finalize(hasher);
-    jet::bip_0340_verify((param::ORACLE, msg), witness::ORACLE);
-    jet::bip_0340_verify((param::OWNER, jet::sig_all_hash()), witness::OWNER);
-  }\n`),
-});
 
 function Field (id: string, { open = false, header = [], content = [], sidebar = [] } = {}) {
   return {
@@ -680,7 +694,7 @@ namespace Field {
   export const Icon = (collapsed: boolean) =>
     (['svg.icon', [`use[href=${'icons.svg#'+(collapsed?'chevron-right':'chevron-down')}]`]]);
   export const Header = (id: string, ...header: unknown[]) =>
-    (['div.flex.row.align-center',
+    (['div.field-header.flex.row.align-center',
       ['div.name', Field.toggle(id), id],
       ['div.handle-h', Field.toggle(id)],
       ...header]);

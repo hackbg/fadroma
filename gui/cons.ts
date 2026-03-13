@@ -12,15 +12,6 @@ export const Texts = {
   CONNECTED:     '⬤ Connected to ',
   CONNECTING:    '◯ Connecting to ',
   CONNECT_ERROR: '◯ Error, reconnecting to ',
-  SIMPLICITYHL:  ['div', ['h2', 'Now with SimplicityHL Support!'],
-    ['p', ['a', { href: 'https://github.com/hackbg/simf/blob/dev/src/lib.rs' }, ['strong', 'Fadroma V3'], ' uses WebAssembly'],
-      ' to instantly compile, evaluate, and deploy ', ['a', { href: 'https://docs.simplicity-lang.org/getting-started/simplicityhl/' }, ['strong', 'SimplicityHL'], ' smart contracts'],
-      ' on ', ['a', { href: 'https://liquid.net/'}, 'the ', ['strong', 'Liquid'], ' Network'], '. It works from all modern JavaScript-based environments: browsers, servers, ', ['a', { href: 'https://deno.com/deploy' }, 'edge cloud'], ' — even this webpage!'],
-    ['p', 'The ', ['strong', 'Simplicity transaction lifecycle'], ' works in two phases. During the ', ['strong', 'commitment phase'], ' you ',
-      ' take a SimplicityHL program, provide parameters, compile it to a P2TR address on a given chain, and commit funds to that address. ',
-      'During the ', ['strong', 'redemption phase'], ' you compose a transaction that redeems the funds, and provide a matching signature ',
-      'that fulfills the conditions of the program.'],
-    ['p', 'Try it now with these ', ['strong', 'SimplicityHL programs'], ' on ', ['a', { href: 'https://blockstream.info/liquidtestnet/' }, 'Liquid Testnet'], ':']],
   README:          'Created at https://fadroma.tech',
   NO_DEPLOYS:      'Deploy a program first, using the above form.',
   DownloadProject: ['p', 'Here you can ', ['strong', 'download an example project'], ' containing the example programs and the following support files:'],
@@ -76,8 +67,98 @@ function Dropcap (...content) {
 export function Platforms (
   sidebar  = Html.id("sidebar"),
   features = Html.id("features"),
+  timeline = Html.id("timeline"),
 ) {
   Html.on(features, "change", Platforms.updateProjectConfiguration);
+  Html.append(timeline, Html.el(['section.layer.col.align-stretch.gap',
+
+    ['div.textbox',
+      ['div',
+        ['div.row.justify-between',
+          ['h2', '2026: SimplicityHL Support!'],
+          ['a.help', { target: '_blank', href: 'https://github.com/hackbg/fadroma/discussions/240' }, 'Discuss ', Icon('github')]],
+        ['p', ['a', { href: 'https://github.com/hackbg/simf/blob/dev/src/lib.rs' }, ['strong', 'Fadroma V3'], ' uses WebAssembly'],
+          ' to instantly compile, evaluate, and deploy ', ['a', { href: 'https://docs.simplicity-lang.org/getting-started/simplicityhl/' }, 'Bitcoin-based ', ['strong', 'SimplicityHL'], ' smart contracts'],
+          ' on ', ['a', { href: 'https://liquid.net/'}, 'the ', ['strong', 'Liquid'], ' Network'], '.'],
+        ['p', 'It works from all modern JavaScript-based environments: browsers, servers, ', ['a', { href: 'https://deno.com/deploy' }, 'edge cloud'], ' — even this webpage!']],
+      Platforms.Section({
+        features: [
+          [true, 0, "enable:simf", "SimplicityHL",
+            ["Compile and run ", Link(Urls.simfRef, "SimplicityHL"), " programs."],
+            ["Language", Urls.simfRef],
+            ["Jets", Urls.simfJets]],
+          [true, 0, "enable:elements", "Elements",
+            ["Isomorphic TS client to ", ["code", "elementsd"], "RPC/REST and/or Esplora backends lets you develop and test with", ['code', "liquidtestnet"], ' and/or ', ['code', "elementsregtest"], "."],
+            ["RPC", Urls.elementsRpc]],
+          [true,  0, "enable:nix", "Nix Shell + Direnv",
+            ["Fadroma projects can now automatically obtain certain platform dependencies from ", Link(Urls.nixPkgs, "nixpkgs")],
+            ["Install Nix", Urls.nixInstall], ["Direnv Wiki", Urls.direnvWiki]],
+          //[false, 0, "enable:mold", "Rust + wasm-pack + Mold", "Fast builds to WebAssembly."],
+          //[false, 0, "enable:btc",      "Bitcoin",
+            //["Develop and test with local bitcoind in ", Link(Urls.btcTest, ['code', "regtest"]), " mode."],
+            //["RPC", Urls.btcRpc]],
+        ]
+      }),
+      ['p', 'Try it now with the ', ['strong', 'SimplicityHL example programs'], ' on ', ['a', { href: 'https://blockstream.info/liquidtestnet/' }, 'Liquid Testnet'], ':']],
+
+    ['div.textbox', ['div', ['div.row.justify-between',
+      ['h2', '2025: Solana! Deno. Test DSL.'],
+      ['a.help', { target: '_blank', href: 'https://github.com/hackbg/fadroma/discussions/237' }, 'Discuss ', Icon('github')]],
+      Platforms.Section({
+        features: [
+          [true, 0, "enable:deno", "Deno",
+            "Run on next-gen TS/JS runtime by default.",
+            ["@std", Urls.denoStd],
+            ["API",  Urls.denoApi]],
+          [false, 0, "enable:sol", "Solana", "Connect to Solana.",
+            ["Web3",   Urls.solanaWeb3],
+            ["Kit",    Urls.solanaKit]],
+          [false, 1, "enable:sol-prog", "Solana Programs",
+            "Write Solana programs in Rust.",
+            ["Core",   Urls.solanaCrate],
+            ["Codama", Urls.codama]],
+          [false, 1, "enable:sol-idl", "Solana Anchor IDL",
+            "Integrate with Solana Anchor IDL.",
+            ["IDL",    Urls.idlGuide],
+            ["Anchor", Urls.anchorCrate]],
+        ]
+      }),
+    ]],
+
+    ['div.textbox', ['div', ['div.row.justify-between', ['h2', '2024: WASM! Namada IBC.']],
+      Platforms.Section({
+        //open: false,
+        name: 'Cosmos ecosystem',
+        help: 'https://github.com/hackbg/fadroma/discussions/238',
+        features: [
+          [false, 0, "enable:tm", "Tendermint", "Connect to for Tendermint, CometBFT, and compatibles."],
+          [false, 1, "enable:namada", "Namada", ["Client and decoder for ", Link(Urls.namadaRepo, "Namada"), "."]],
+        ]
+      }),
+    ]],
+
+    ['div.textbox', ['div', ['div.row.justify-between', ['h2', '2023: AwesomeWASM Berlin! OKP4.' ]],
+      Platforms.Section({
+        features: [
+          [false, 0, "enable:tm", "Tendermint", "Generalized connector for Tendermint, CometBFT, and compatibles."],
+          [false, 1, "enable:okp4", "OKP4", "Implement support for an innovative CosmWasm-based chain."]
+        ],
+      })]],
+
+    ['div.textbox', ['div', ['div.row.justify-between', ['h2', '2021-2022: CosmWASM! Secret Network.' ]]],
+      Platforms.Section({
+        features: [
+          [false, 0, "enable:tm", "Tendermint",
+            "Connect to for Tendermint, CometBFT, and compatibles."],
+          [false, 1, "enable:scrt", "Scrt",
+            ["Client and deployment orchestrator for ", Link(Urls.scrtHome, "Secret"), "."]],
+          [false, 1, "enable:cw", "CosmWasm",
+            "Write contracts for the Cosmos ecosystem."],
+        ]
+      })],
+
+
+  ]));
   Html.append(features, Platforms.Platforms1());
   Html.append(features, Platforms.Platforms2());
   return sidebar;
@@ -114,56 +195,6 @@ export namespace Platforms {
 
   export function Platforms1 () {
     return Html(['ul.features',
-      Platforms.Section({
-        //open: false,
-        name: 'Bitcoin ecosystem',
-        help: 'https://github.com/hackbg/fadroma/discussions/240',
-        features: [
-          [true, 0, "enable:btc",      "Bitcoin",
-            ["Develop and test with local bitcoind in ", Link(Urls.btcTest, ['code', "regtest"]), " mode."],
-            ["RPC", Urls.btcRpc]],
-          [true, 0, "enable:elements", "Elements",
-            ["Develop and test with local elementsd in ", ['code', "elementsregtest"], " mode."],
-            ["RPC", Urls.elementsRpc]],
-          [true, 0, "enable:simf",     "SimplicityHL",
-            ["Compile and run ", Link(Urls.simfRef, "SimplicityHL"), " programs."],
-            ["Language", Urls.simfRef],
-            ["Jets", Urls.simfJets]]
-        ]
-      }),
-      Platforms.Section({
-        //open: false,
-        name: 'Solana ecosystem',
-        help: 'https://github.com/hackbg/fadroma/discussions/237',
-        features: [
-          [false, 0, "enable:sol", "Solana", "Connect to Solana.",
-            ["Web3",   Urls.solanaWeb3],
-            ["Kit",    Urls.solanaKit]],
-          [false, 1, "enable:sol-prog", "Solana Programs",
-            "Write Solana programs in Rust.",
-            ["Core",   Urls.solanaCrate],
-            ["Codama", Urls.codama]],
-          [false, 1, "enable:sol-idl", "Solana Anchor IDL",
-            "Integrate with Solana Anchor IDL.",
-            ["IDL",    Urls.idlGuide],
-            ["Anchor", Urls.anchorCrate]],
-        ]
-      }),
-      Platforms.Section({
-        //open: false,
-        name: 'Cosmos ecosystem',
-        help: 'https://github.com/hackbg/fadroma/discussions/238',
-        features: [
-          [false, 0, "enable:tm", "Tendermint",
-            "Connect to for Tendermint, CometBFT, and compatibles."],
-          [false, 1, "enable:namada", "Namada",
-            ["Client and decoder for ", Link(Urls.namadaRepo, "Namada"), "."]],
-          [false, 1, "enable:scrt", "Scrt",
-            ["Client for ", Link(Urls.scrtHome, "Secret"), "."]],
-          [false, 1, "enable:cw", "CosmWasm",
-            "Write contracts for the Cosmos ecosystem."],
-        ]
-      }),
     ])
   }
 
@@ -176,12 +207,6 @@ export namespace Platforms {
         features: [
           [true,  0, "enable:git",          "Git",
             "Automatically init Git repo in new project."],
-          [true,  0, "enable:nix",          "Nix Shell",
-            ["Obtain dependencies from ", Link(Urls.nixPkgs, "nixpkgs")],
-            ["Install", Urls.nixInstall]],
-          [true,  0, "enable:direnv",       "Direnv",
-            ["Automatically load Nix shell when entering project directory."],
-            ["Wiki", Urls.direnvWiki]],
           [false, 0, "enable:editorconfig", "EditorConfig",
             "IDE-agnostic settings.",
             ["Spec", Urls.edConfSpec]],
@@ -192,10 +217,6 @@ export namespace Platforms {
         name: 'JS / TS / ECMAScript ecosystem',
         help: 'https://github.com/hackbg/fadroma/discussions/239',
         features: [
-          [true, 0, "enable:deno", "Deno",
-            "Run on next-gen TS/JS runtime by default.",
-            ["@std", Urls.denoStd],
-            ["API",  Urls.denoApi]],
           [true, 0, "enable:node", "Node.js",
             ["Will use ", Link(Urls.tsxNpm, "tsx"), " to run TypeScript."],
             ["API", Urls.nodeApi]],
@@ -212,7 +233,6 @@ export namespace Platforms {
         name: 'Rust ecosystem',
         help: 'https://github.com/hackbg/fadroma/discussions/236',
         features: [
-          [false, 0, "enable:mold", "Mold", "Improves build times."],
           [false, 0, "enable:rust", "Rust", "Different targets may need different toolchains."],
         ]
       }),
@@ -281,3 +301,7 @@ export function Icon (name: string) {
 export namespace Icon {
   // preset icons
 }
+        //['p', 'The ', ['strong', 'Simplicity transaction lifecycle'], ' works in two phases. During the ', ['strong', 'commitment phase'], ' you ',
+          //' take a SimplicityHL program, provide parameters, compile it to a P2TR address on a given chain, and commit funds to that address. ',
+          //'During the ', ['strong', 'redemption phase'], ' you compose a transaction that redeems the funds, and provide a matching signature ',
+          //'that fulfills the conditions of the program.'],
