@@ -70,7 +70,8 @@ const Editors = (host: HTMLElement, {
   //Html.append(host, Html.el(['div.editors', programs]));
   Html.append(project, Section({ className: 'layer project' },
     ['div.col.grow.files.gap',
-      ['div', ['h2', 'Project template:'], Texts.DownloadProject],
+      ['div.row', ['a', { href: '#' }, ['svg.icon', [`use[href=${'icons.svg#download'}]`]], "Download example project"]],
+      ['div', Texts.DownloadProject],
       ['div.row.fields',
         ['div.field.head.grow', ['div.name.title', 'Title'], InputTitle()],
         ['div.field.head', ['div.name', 'Licence'], SelectLicense()],
@@ -133,7 +134,7 @@ export function User (name: string, {
   toolbar  = Html.el(['section.progs', ['button.pill', 'Send'], ['button.pill', 'P2PK'], ['button.pill', 'Vault'], ['button.pill', 'Escrow'], ['input.chat', { placeholder: 'chat' }], ['button.pill', 'Say']]),
   identity = Html.el(['section.meta',  ['div.col.gap', ['div.row.gap.align-center', ['strong.name', name], ['div.col.gap', p2wpkh, ['strong', [`span.balance[balance=${p2wpkh.address}]`, 'Loading balance...']]]]]]),
   //identity = Html`(section.meta (.col.gap (.row.gap.align-center (strong.name ${name}) (.col.gap p2wpkh (strong ${balance})))))`,
-  view     = () => Html.el(['div.col', ['article.user', identity, output, toolbar]]),
+  view     = () => Html.el(['article.user', identity, output, toolbar]),
   balance  = () => getBalances(p2wpkh.address).then(value => {
     for (const element of document.querySelectorAll(`span[balance=${p2wpkh.address}]`) as unknown as HTMLElement[]) {
       element.innerText = `${value} sats`;
@@ -193,13 +194,13 @@ const Chains = (view = Html.id("chains"), {
   }
 } = {}) => Html.catcher(view, ()=>{
   Html.replace(view, state.view = Html.el(['div.col.gap',
-    disabled('Liquid Mainnet'),
+    //disabled('Liquid Mainnet'),
     selected('Liquid Testnet'),
-    disabled('Liquid elementsregtest...'),
-    disabled('Bitcoin Mainnet'),
-    disabled('Bitcoin Testnet'),
-    disabled('Bitcoin regtest...'),
-    ['div.row.gap', disableder('Solana RPC...'), disableder('Tendermint RPC...')]
+    //disabled('Liquid elementsregtest...'),
+    //disabled('Bitcoin Mainnet'),
+    //disabled('Bitcoin Testnet'),
+    //disabled('Bitcoin regtest...'),
+    //['div.row.gap', disableder('Solana RPC...'), disableder('Tendermint RPC...')]
   ]));
   state.hashView = state.view.querySelector('.chain.active .hash') as HTMLDivElement;
   state.heightView = state.view.querySelector('.chain.active .height') as HTMLDivElement;

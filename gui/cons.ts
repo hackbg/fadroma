@@ -74,9 +74,8 @@ export function Platforms (
 
     ['div.textbox',
       ['div',
-        ['div.row.justify-between',
-          ['h2', '2026: SimplicityHL Support!'],
-          ['a.help', { target: '_blank', href: 'https://github.com/hackbg/fadroma/discussions/240' }, 'Discuss ', Icon('github')]],
+        ['h2.row.justify-between.align-center', ['span', ['strong', '2026: '], 'SimplicityHL support!'], ['a.help', { target: '_blank', href: 'https://github.com/hackbg/fadroma/discussions/240' }, 'Discuss ', Icon('github')]],
+        ['h3.row.justify-between.align-center', ['span', 'Long-awaited Fadroma IDE now live'], ['button', 'Open SimplicityHL playground']],
         ['p', ['a', { href: 'https://github.com/hackbg/simf/blob/dev/src/lib.rs' }, ['strong', 'Fadroma V3'], ' uses WebAssembly'],
           ' to instantly compile, evaluate, and deploy ', ['a', { href: 'https://docs.simplicity-lang.org/getting-started/simplicityhl/' }, 'Bitcoin-based ', ['strong', 'SimplicityHL'], ' smart contracts'],
           ' on ', ['a', { href: 'https://liquid.net/'}, 'the ', ['strong', 'Liquid'], ' Network'], '.'],
@@ -90,6 +89,8 @@ export function Platforms (
           [true, 0, "enable:elements", "Elements",
             ["Isomorphic TS client to ", ["code", "elementsd"], "RPC/REST and/or Esplora backends lets you develop and test with", ['code', "liquidtestnet"], ' and/or ', ['code', "elementsregtest"], "."],
             ["RPC", Urls.elementsRpc]],
+          [true,  0, "enable:git",          "Git",
+            "During the V3 pre-release phase, Fadroma is delivered as a Git snapshot. To facilitate this, Fadroma once again offers pre-configured project scaffolds (template repos)."],
           [true,  0, "enable:nix", "Nix Shell + Direnv",
             ["Fadroma projects can now automatically obtain certain platform dependencies from ", Link(Urls.nixPkgs, "nixpkgs")],
             ["Install Nix", Urls.nixInstall], ["Direnv Wiki", Urls.direnvWiki]],
@@ -101,15 +102,18 @@ export function Platforms (
       }),
       ['p', 'Try it now with the ', ['strong', 'SimplicityHL example programs'], ' on ', ['a', { href: 'https://blockstream.info/liquidtestnet/' }, 'Liquid Testnet'], ':']],
 
-    ['div.textbox', ['div', ['div.row.justify-between',
-      ['h2', '2025: Solana! Deno. Test DSL.'],
-      ['a.help', { target: '_blank', href: 'https://github.com/hackbg/fadroma/discussions/237' }, 'Discuss ', Icon('github')]],
+    ['div.textbox', ['div',
+      ['div.row.justify-between',
+        ['h2', '2025: Meet Solana! Hello Deno.'],
+        ['a.help', { target: '_blank', href: 'https://github.com/hackbg/fadroma/discussions/237' }, 'Discuss ', Icon('github')]],
+      ['h3', 'Higher-order testing in TypeScript brings gradual spec elaboration through TDD'],
+      ['p', 'In the beginning of 2025, Fadroma underwent a stealth rewrite targeting a next-gen TS-native runtime.'],
       Platforms.Section({
         features: [
           [true, 0, "enable:deno", "Deno",
-            "Run on next-gen TS/JS runtime by default.",
-            ["@std", Urls.denoStd],
-            ["API",  Urls.denoApi]],
+            "While many legacy footguns of the Node-first workflow are now a thing of the past, Deno also provides great backward compatibility with Node's stdlib.",
+            ["Deno @std", Urls.denoStd],
+            ["Deno API",  Urls.denoApi]],
           [false, 0, "enable:sol", "Solana", "Connect to Solana.",
             ["Web3",   Urls.solanaWeb3],
             ["Kit",    Urls.solanaKit]],
@@ -155,7 +159,56 @@ export function Platforms (
           [false, 1, "enable:cw", "CosmWasm",
             "Write contracts for the Cosmos ecosystem."],
         ]
-      })],
+      }),
+      Platforms.Section({
+        //open: false,
+        name: 'DevOps / Unix ecosystem',
+        help: 'https://github.com/hackbg/fadroma/discussions/categories/guides',
+        features: [
+          [false, 0, "enable:editorconfig", "EditorConfig",
+            "IDE-agnostic settings.",
+            ["Spec", Urls.edConfSpec]],
+        ]
+      }),
+      Platforms.Section({
+        //open: false,
+        name: 'JS / TS / ECMAScript ecosystem',
+        help: 'https://github.com/hackbg/fadroma/discussions/239',
+        features: [
+          [true, 0, "enable:node", "Node.js",
+            ["Will use ", Link(Urls.tsxNpm, "tsx"), " to run TypeScript."],
+            ["API", Urls.nodeApi]],
+          [true, 0, "enable:pnpm", "PNPM",
+            ["Recommended package manager."], ["Compare", Urls.pnpmCompare]],
+          [false, 0, "enable:eslint", "ESLint",
+            "Static analyzer.", ["Platforms", Urls.eslintConf]],
+          [false, 0, "enable:vite",
+            "Vite", "Build your front-end in the same repo."]
+        ]
+      }),
+      Platforms.Section({
+        //open: false,
+        name: 'Rust ecosystem',
+        help: 'https://github.com/hackbg/fadroma/discussions/236',
+        features: [
+          [false, 0, "enable:rust", "Rust", "Different targets may need different toolchains."],
+        ]
+      }),
+      //Platforms.Section({
+        ////open: false,
+        //name: 'CI / CD',
+        //help: 'https://github.com/hackbg/fadroma/discussions/categories/guides',
+        //features: [
+          //[false, 0, "enable:gha",          "GHA",
+            //"Setup for GitHub Actions."],
+          //[false, 0, "enable:drone",        "Drone",
+            //"Setup for Drone CI."],
+          //[false, 0, "enable:woodpecker",   "Woodpecker",
+            //"Setup for Woodpecker CI."],
+        //]
+      //}),
+
+    ],
 
 
   ]));
@@ -200,55 +253,6 @@ export namespace Platforms {
 
   export function Platforms2 () {
     return Html(['ul.features',
-      Platforms.Section({
-        //open: false,
-        name: 'DevOps / Unix ecosystem',
-        help: 'https://github.com/hackbg/fadroma/discussions/categories/guides',
-        features: [
-          [true,  0, "enable:git",          "Git",
-            "Automatically init Git repo in new project."],
-          [false, 0, "enable:editorconfig", "EditorConfig",
-            "IDE-agnostic settings.",
-            ["Spec", Urls.edConfSpec]],
-        ]
-      }),
-      Platforms.Section({
-        //open: false,
-        name: 'JS / TS / ECMAScript ecosystem',
-        help: 'https://github.com/hackbg/fadroma/discussions/239',
-        features: [
-          [true, 0, "enable:node", "Node.js",
-            ["Will use ", Link(Urls.tsxNpm, "tsx"), " to run TypeScript."],
-            ["API", Urls.nodeApi]],
-          [true, 0, "enable:pnpm", "PNPM",
-            ["Recommended package manager."], ["Compare", Urls.pnpmCompare]],
-          [false, 0, "enable:eslint", "ESLint",
-            "Static analyzer.", ["Platforms", Urls.eslintConf]],
-          [false, 0, "enable:vite",
-            "Vite", "Build your front-end in the same repo."]
-        ]
-      }),
-      Platforms.Section({
-        //open: false,
-        name: 'Rust ecosystem',
-        help: 'https://github.com/hackbg/fadroma/discussions/236',
-        features: [
-          [false, 0, "enable:rust", "Rust", "Different targets may need different toolchains."],
-        ]
-      }),
-      //Platforms.Section({
-        ////open: false,
-        //name: 'CI / CD',
-        //help: 'https://github.com/hackbg/fadroma/discussions/categories/guides',
-        //features: [
-          //[false, 0, "enable:gha",          "GHA",
-            //"Setup for GitHub Actions."],
-          //[false, 0, "enable:drone",        "Drone",
-            //"Setup for Drone CI."],
-          //[false, 0, "enable:woodpecker",   "Woodpecker",
-            //"Setup for Woodpecker CI."],
-        //]
-      //}),
     ])
   }
 

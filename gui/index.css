@@ -45,6 +45,7 @@
 html {
   --dark:  #120;
   --vivid: #65b34c;
+  --vivid-half: #65b34c88;
   box-shadow: 0.5rem 0.5rem 1rem #0001 inset;
   margin:     0;
   padding:    0;
@@ -70,6 +71,7 @@ body {
   top: 0;
   left: 0;
   right: 0;
+  height: 4.5rem;
 }
 
 .banner {
@@ -81,7 +83,7 @@ body {
   flex-grow: 1;
   background: #353b;
   display: block;
-  backdrop-filter: blur(3px);
+  /*backdrop-filter: blur(3px);*/
   z-index: 1000000;
   text-shadow: 1px 1px 0 #000;
   font-weight: semibold;
@@ -99,7 +101,7 @@ body {
 
 .view-main {
   align-items:     center;
-  border:          2px solid var(--vivid)44;
+  /*border:          2px solid var(--vivid-half);*/
   display:         flex;
   flex-flow:       column nowrap;
   justify-content: center;
@@ -109,7 +111,7 @@ body {
   position:        relative;
   background:      radial-gradient(at top, #ffffff1c 70%, #fff0), radial-gradient(at top, #fff1 50%, #fff0), linear-gradient(to bottom right, #0402, #0204),
                    radial-gradient(at left, #0000, #2311),
-                   radial-gradient(at bottom, var(--vivid), #77b377),
+                   radial-gradient(at bottom, var(--vivid-), #77b377),
                    radial-gradient(circle at top, #ddd8, #7778);
   p {
     color: white;
@@ -197,7 +199,8 @@ input[type=checkbox] {
 }
 noscript {
   display: inline-block;
-  inset: 0; z-index: 1000; background: #0004; backdrop-filter: blur(0.25rem);
+  inset: 0; z-index: 1000; background: #0004;
+  /*backdrop-filter: blur(0.25rem);*/
   font-weight: 350;
   color: #fff; border: 1px solid tomato; padding: 0.25rem 0.5rem;
   margin: 0 0.25rem;
@@ -467,7 +470,7 @@ a.help {
     gap: 0.5rem;
     &:hover {
       background: linear-gradient(-15deg, #fff2, #fff1);
-      backdrop-filter: blur(4px);
+      /*backdrop-filter: blur(4px);*/
     }
     .icon {
       padding: 0.25rem;
@@ -488,29 +491,35 @@ a.help {
   &.disableder { opacity: 0.33 }
 }
 .connections {
-  border-left: 1px solid var(--vivid);
-  position:    fixed;
-  left:        100%;
-  top:         0;
-  bottom:      0;
-  z-index:     200;
-  width: 32rem;
-  margin-left: -4rem;
-  transition: margin-left 0.16s ease-in-out;
-  :checked + &, &:hover, &:focus-within {
-    margin-left: -32rem;
-  }
-  background:  var(--dark);
-
   align-items:     stretch;
   align-self:      stretch;
+  background:      var(--dark);
+  border-left:     1px solid var(--vivid-half);
+  bottom:          0;
   color:           #fff;
   display:         flex;
   flex-flow:       column nowrap;
   font-size:       15px;
-  gap:             1.5rem;
   justify-content: flex-start;
-  padding:         0 0.5rem;
+  left:            100%;
+  margin-left:     -4rem;
+  padding:         0;
+  position:        fixed;
+  /*top:             4.5rem;*/
+  top:             0;
+  transition:      margin-left 0.16s ease-in-out;
+  width:           32rem;
+  z-index:         200;
+  .files {
+    opacity: 0;
+    transition: opacity 0.16s ease-in-out;
+  }
+  :checked + &, &:hover, &:focus-within {
+    margin-left: -32rem;
+    .files {
+      opacity: 1;
+    }
+  }
   strong, .address {
     color: #fff
   }
@@ -518,9 +527,15 @@ a.help {
 .view-chains,
 .view-users {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  border-bottom: 1px solid var(--vivid) !important;
+  min-height: 4.5rem;
+  padding: 0.5rem;
+  gap: 0.5rem;
+}
+.view-users {
+  border-top: 1px solid var(--vivid-half) !important;
+  border-bottom: 1px solid var(--vivid-half) !important;
 }
 .user {
   flex-grow: 1;
@@ -534,7 +549,6 @@ a.help {
   flex-flow: column nowrap;
   align-items: stretch;
   gap: 1rem;
-  margin-bottom: 0.5rem;
   & > section {
     display: flex;
     flex-flow: row nowrap;
@@ -718,7 +732,10 @@ textarea {
       display: flex;
       flex-flow: row nowrap;
       justify-content: space-between;
-      .help { color: #fffc; &:hover { color: #fff } }
+      .help {
+        color: #fffc;
+        &:hover { color: #fff }
+      }
     }
   }
 }
@@ -1082,6 +1099,21 @@ pre.compile-errors {
   .feature p {
     margin-bottom: 0 !important;
   }
+  h3 { margin: 0 0 1rem; font-size: 1.25rem !important; opacity: 0.9; font-weight: 900 }
+  button,
+  .button,
+  .help {
+    background: linear-gradient(to bottom, #65b34c44, #65b34c22);
+    &:hover { background: linear-gradient(to bottom, #65b34c88, #65b34c44); color: #fff !important }
+    color: #fff; font-weight: bold; text-shadow: 1px 1px 0 #0008; border-radius: 3px; margin-left: 0.5rem;
+    border: 1px solid var(--vivid-half);
+    font-size: 1rem;
+    padding: 0.25rem 0.5rem !important;
+  }
+  .help {
+    align-self: center;
+  }
+
 }
 .program-form {
   /*color:         #fff;*/
@@ -1489,11 +1521,7 @@ pre.sh,
   }
   & > * {
     border: 1px solid transparent;
-    border-bottom: 1px solid var(--vivid);
-    padding: 0 0.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border-bottom: 1px solid var(--vivid-half);
   }
 
   .tab,
@@ -1517,14 +1545,14 @@ pre.sh,
     gap: 0.5rem;
     border-bottom-color: transparent;
     &.active {
-      border: 1px solid var(--vivid);
+      border: 1px solid var(--vivid-half);
       border-bottom-color: transparent;
       border-top-left-radius: 3px;
       border-bottom-left-radius: 3px;
     }
     &:hover {
       background: linear-gradient(-15deg, #fff2, #fff1);
-      backdrop-filter: blur(4px);
+      /*backdrop-filter: blur(4px);*/
     }
     .icon {
       padding: 0.25rem;
@@ -1541,7 +1569,7 @@ pre.sh,
     align-self: stretch;
     gap: 2px;
     .tab {
-      border: 1px solid var(--vivid);
+      border: 1px solid var(--vivid-half);
       border-top-left-radius: 3px;
       border-top-right-radius: 3px;
     }
@@ -1551,11 +1579,30 @@ pre.sh,
 .tab-fadroma h1 {
   font-size: 1.33rem !important;
 }
+.tab-hackbg { 
+  align-items: stretch;
+  padding: 0;
+}
+.tab-hackbg .cut {
+  width: 4rem;
+  border-right: 1px solid var(--vivid-half);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tab-hackbg h1 {
+  align-self: center;
+  padding-right: 0.5rem;
+  padding-left: 0.25rem;
+}
 .tab-hackbg img,
 .tab-fadroma img {
   height: 3rem;
   opacity: 0.9;
-  margin-right: 0.5rem;
+}
+.tab-hackbg,
+.tab-fadroma {
+  gap: 0.5rem;
 }
 .tab-pages {
   background: var(--dark);
@@ -1581,4 +1628,72 @@ ul.tabs {
 }
 #brand-card p {
   margin-bottom: 0;
+}
+.tab-hello {
+  border-left: 1px solid var(--vivid-half);
+  margin-left: 4rem;
+}
+.tabs-pinned-west {
+  position: absolute;
+  left: 0;
+  display: flex;
+  flex-flow: row wrap;
+  gap: 0.5rem;
+}
+.project .files {
+  padding: 0.5rem;
+}
+
+/** https://cssloaders.github.io/ */
+.loader {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  margin: 0;
+  align-self: center;
+  margin: 0.5rem;
+  opacity: 0.25;
+}
+.loader:before,
+.loader:after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  animation: pulsOut 1.8s ease-in-out infinite;
+}
+.loader:before {
+  width: 100%;
+  padding-bottom: 100%;
+  box-shadow: inset 0 0 0 1rem #fff;
+  animation-name: pulsIn;
+}
+.loader:after {
+  width: calc(100% - 2rem);
+  padding-bottom: calc(100% - 2rem);
+  box-shadow: 0 0 0 0 #fff8;
+}
+
+@keyframes pulsIn {
+  0% {
+    box-shadow: inset 0 0 0 1rem #fff;
+    opacity: 1;
+  }
+  50%, 100% {
+    box-shadow: inset 0 0 0 0 #fff;
+    opacity: 0;
+  }
+}
+
+@keyframes pulsOut {
+  0%, 50% {
+    box-shadow: 0 0 0 0 #fff;
+    opacity: 0;
+  }
+  100% {
+    box-shadow: 0 0 0 1rem #fff;
+    opacity: 1;
+  }
 }

@@ -14,12 +14,17 @@
     </nav>
 
     <nav class="tabbar">
-      <a href="https://hack.bg" class="row tab-hackbg"><img src="hack.png" /><h1>Hack.bg</h1></a>
-      <div class="tab active tab-fadroma"><img src="logo.svg" /><h1>Fadroma</h1></div>
+      <div class="tabs-pinned-west">
+        <a href="https://hack.bg" class="row tab-hackbg">
+          <div class="cut"><img src="hack.png" /></div>
+          <h1>Hack.bg</h1>
+        </a>
+        <div class="tab active tab-fadroma"><img src="logo.svg" /><h1>Fadroma</h1></div>
+      </div>
       <div class="grow"></div>
       <div class="row">
         <button><svg class="icon"><use href="icons.svg#folder"></use></svg></button>
-        <ul id="files" class="tabs"></ul>
+        <ul id="files" class="tabs"><span class="loader"></span></ul>
         <button><svg class="icon"><use href="icons.svg#circle-with-plus"></use></svg></button>
       </div>
       <div class="grow"></div>
@@ -29,8 +34,8 @@
 
       <ul id="editors" class="tab-pages">
 
-        <li class="tab-page active">
-          <div class="row align-start">
+        <li class="tab-page tab-hello active">
+          <div class="col align-center">
             <div id="brand-card" class="scroll-to hero row wrap">
               <div class="col gap align-center" style="text-align:center">
                 <a class="logo" href="https://fadroma.tech" data-action="home"></a>
@@ -38,6 +43,7 @@
                 <p>Cross-chain dApp framework and workbench.</p>
                 <p>Explore the source on <a href="https://github.com/hackbg/fadroma"><svg class="icon"><use href="icons.svg#github"></use></svg> GitHub</a>.
                 <p>Inquiries welcome at <strong><a href="https://hack.bg/contact">https://hack.bg/contact</a></strong>.</p>
+                <p>(Ask us about licensing and custom integrations!)</p>
               </div>
             </div>
             <div class="scroll-to hero col gap align-start">
@@ -48,7 +54,7 @@
           </div>
         </li>
 
-        <div class="loading">Loading example project...</div>
+        <div class="loading"><span class="loader"></span></div>
         <script type="module">import load from './loader.ts';load(import('./index.ts'));</script>
 
       </ul>
@@ -56,18 +62,13 @@
     </div>
 
     <div id="connections" class="connections">
-      <div class="col" class="view-chains">
-        <div id="chains">Loading...</div>
+      <div class="col view-chains">
+        <div id="chains"><span class="loader"></span></div>
       </div>
-      <div id="wallets" class="col">
-        <div id="users" class="view-users col justify-center align-stretch gap">Loading...</div>
+      <div id="wallets" class="view-users col">
+        <div id="users" class="col justify-center align-stretch"><span class="loader"></span></div>
       </div>
-      <nav class="col buttons align-start" id="buttonbar">
-        <div class="row">
-          <a href="#"><svg class="icon"><use href="icons.svg#download"></use></svg> Download starter kit</a>
-        </div>
-      </nav>
-      <div id="project"></div>
+      <div id="project"><span class="loader"></span></div>
     </div>
 
   </body>
